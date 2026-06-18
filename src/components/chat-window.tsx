@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Mic } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { generateMockReply } from "@/lib/chat.functions";
+import { generateReply } from "@/lib/chat.functions";
 
 type DbMessage = {
   id: string;
@@ -53,7 +53,7 @@ async function fetchMessages(workflowId: string): Promise<DbMessage[]> {
 
 export function ChatWindow({ workflowId }: { workflowId: string }) {
   const qc = useQueryClient();
-  const callMock = useServerFn(generateMockReply);
+  const callAI = useServerFn(generateReply);
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -83,7 +83,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
       await qc.invalidateQueries({ queryKey: ["messages", workflowId] });
 
       // 2) Get mock AI reply
-      const { reply } = await callMock({
+      const { reply } = await callAI({
         data: { userText: text, workflowId },
       });
 
@@ -169,7 +169,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
           </PromptInputFooter>
         </PromptInput>
         <p className="mt-2 text-center text-[10px] text-muted-foreground">
-          Mock válasz aktív · Gemini bekötés után élesedik
+          Gemini 2.5 Flash · betanítási mód
         </p>
       </div>
     </div>
