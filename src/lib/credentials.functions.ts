@@ -24,7 +24,7 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
     const { data: row } = await supabase
       .from("workflow_credentials")
       .select(
-        "platform, username, password_ciphertext, cookie_ciphertext, totp_secret_ciphertext, updated_at",
+        "platform, username, password_ciphertext, cookie_ciphertext, totp_secret_ciphertext, proxy_ciphertext, updated_at",
       )
       .eq("workflow_id", data.workflowId)
       .maybeSingle();
@@ -37,6 +37,7 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
         hasPassword: false,
         hasCookie: false,
         hasTotp: false,
+        hasProxy: false,
         updatedAt: null as string | null,
       };
     }
@@ -54,6 +55,7 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
       hasPassword: !!row.password_ciphertext,
       hasCookie: !!row.cookie_ciphertext,
       hasTotp: !!row.totp_secret_ciphertext,
+      hasProxy: !!(row as { proxy_ciphertext?: string | null }).proxy_ciphertext,
       updatedAt: row.updated_at,
     };
   });
@@ -70,11 +72,13 @@ export const saveCredentials = createServerFn({ method: "POST" })
         platform: z.string().min(1).max(40),
         username: z.string().min(1).max(200),
         password: z.string().min(1).max(500).optional(),
-        cookie: z.string().min(1).max(20000).optional(),
+        cookie: z.string().min(1).max(50000).optional(),
         totpSecret: z.string().min(1).max(200).optional(),
+        proxy: z.string().min(1).max(500).optional(),
         clearPassword: z.boolean().optional(),
         clearCookie: z.boolean().optional(),
         clearTotp: z.boolean().optional(),
+        clearProxy: z.boolean().optional(),
       })
       .parse(input),
   )
@@ -131,6 +135,18 @@ export const saveCredentials = createServerFn({ method: "POST" })
       payload.totp_nonce = existing.totp_nonce;
     }
 
+    if (data.proxy !== undefined) {
+      const { ciphertext, nonce } = encryptString(data.proxy);
+      payload.proxy_ciphertext = ciphertext;
+      payload.proxy_nonce = nonce;
+    } else if (data.clearProxy) {
+      payload.proxy_ciphertext = null;
+      payload.proxy_nonce = null;
+    } else if (existing && "proxy_ciphertext" in existing) {
+      payload.proxy_ciphertext = (existing as { proxy_ciphertext?: string | null }).proxy_ciphertext ?? null;
+      payload.proxy_nonce = (existing as { proxy_nonce?: string | null }).proxy_nonce ?? null;
+    }
+
     const { error } = await supabase
       .from("workflow_credentials")
       .upsert(payload as never, { onConflict: "workflow_id" });
@@ -181,6 +197,14 @@ export async function loadDecryptedCredentialsServer(workflowId: string) {
     totpSecret:
       row.totp_secret_ciphertext && row.totp_nonce
         ? decryptString(row.totp_secret_ciphertext, row.totp_nonce)
+        : null,
+    proxy:
+      (row as { proxy_ciphertext?: string | null }).proxy_ciphertext &&
+      (row as { proxy_nonce?: string | null }).proxy_nonce
+        ? decryptString(
+            (row as { proxy_ciphertext: string }).proxy_ciphertext,
+            (row as { proxy_nonce: string }).proxy_nonce,
+          )
         : null,
   };
 }
