@@ -239,6 +239,21 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
               autoComplete="off"
             />
           </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">
+              Proxy / IP (Dolphin export, opcionális) {(status as { hasProxy?: boolean })?.hasProxy && <span className="text-muted-foreground/60">(üres = változatlan)</span>}
+            </Label>
+            <Input
+              value={proxy}
+              onChange={(e) => setProxy(e.target.value)}
+              placeholder="http://user:pass@host:port"
+              className="h-8 font-mono text-[10px]"
+              autoComplete="off"
+            />
+            <p className="text-[10px] text-muted-foreground/70">
+              A Steel sessionhöz és a Docker workerhez is ezen az IP-n megy ki a forgalom, így ugyanaz az ujjlenyomat, mint a Dolphin profilban.
+            </p>
+          </div>
           <div className="flex gap-2 pt-1">
             <Button type="button" size="sm" className="flex-1" onClick={handleSave} disabled={saving}>
               {saving ? "Mentés…" : "Mentés titkosítva"}
