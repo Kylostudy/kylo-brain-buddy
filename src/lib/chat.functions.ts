@@ -55,7 +55,7 @@ const RESPONSE_SCHEMA = {
   required: ["reply", "spec_patch", "ready"],
 } as const;
 
-type SpecPatch = {
+export type WorkflowSpec = {
   platform?: string;
   account_label?: string;
   content_type?: string;
@@ -67,12 +67,15 @@ type SpecPatch = {
   success_criteria?: string;
 };
 
-function mergeSpec(prev: Record<string, unknown>, patch: SpecPatch) {
-  const next: Record<string, unknown> = { ...prev };
-  for (const [k, v] of Object.entries(patch)) {
+type SpecPatch = WorkflowSpec;
+
+function mergeSpec(prev: WorkflowSpec, patch: SpecPatch): WorkflowSpec {
+  const next: WorkflowSpec = { ...prev };
+  for (const [k, v] of Object.entries(patch) as Array<[keyof WorkflowSpec, unknown]>) {
     if (v === undefined || v === null) continue;
     if (Array.isArray(v) && v.length === 0) continue;
     if (typeof v === "string" && v.trim() === "") continue;
+    // @ts-expect-error union assignment is fine here
     next[k] = v;
   }
   return next;
