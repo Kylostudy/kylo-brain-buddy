@@ -82,9 +82,9 @@ export async function decryptString(
   const iv = fromB64(nonceB64);
   const data = fromB64(ciphertextB64);
   const dec = await globalThis.crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv as BufferSource },
     key,
-    data,
+    data as BufferSource,
   );
   return new TextDecoder().decode(dec);
 }
