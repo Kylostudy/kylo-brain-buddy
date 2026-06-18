@@ -101,7 +101,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
     };
 
     if (data.password !== undefined) {
-      const { ciphertext, nonce } = encryptString(data.password);
+      const { ciphertext, nonce } = await encryptString(data.password);
       payload.password_ciphertext = ciphertext;
       payload.password_nonce = nonce;
     } else if (data.clearPassword) {
@@ -113,7 +113,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
     }
 
     if (data.cookie !== undefined) {
-      const { ciphertext, nonce } = encryptString(data.cookie);
+      const { ciphertext, nonce } = await encryptString(data.cookie);
       payload.cookie_ciphertext = ciphertext;
       payload.cookie_nonce = nonce;
     } else if (data.clearCookie) {
@@ -125,7 +125,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
     }
 
     if (data.totpSecret !== undefined) {
-      const { ciphertext, nonce } = encryptString(data.totpSecret);
+      const { ciphertext, nonce } = await encryptString(data.totpSecret);
       payload.totp_secret_ciphertext = ciphertext;
       payload.totp_nonce = nonce;
     } else if (data.clearTotp) {
@@ -137,7 +137,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
     }
 
     if (data.proxy !== undefined) {
-      const { ciphertext, nonce } = encryptString(data.proxy);
+      const { ciphertext, nonce } = await encryptString(data.proxy);
       payload.proxy_ciphertext = ciphertext;
       payload.proxy_nonce = nonce;
     } else if (data.clearProxy) {
@@ -147,6 +147,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
       payload.proxy_ciphertext = (existing as { proxy_ciphertext?: string | null }).proxy_ciphertext ?? null;
       payload.proxy_nonce = (existing as { proxy_nonce?: string | null }).proxy_nonce ?? null;
     }
+
 
     const { error } = await supabase
       .from("workflow_credentials")
