@@ -195,13 +195,17 @@ export const generateReply = createServerFn({ method: "POST" })
     const nextSpec = mergeSpec(currentSpec, parsed.spec_patch ?? {});
 
     // Persist updated spec + ready flag (only flip ready=true upward; once true stays true)
+    const updatePayload: { spec: WorkflowSpec; updated_at: string; ready_for_test?: boolean } = {
+      spec: nextSpec,
+      updated_at: new Date().toISOString(),
+    };
+    if (parsed.ready === true) updatePayload.ready_for_test = true;
+
     const { error: updErr } = await supabase
       .from("workflows")
-      .update({
-        spec: nextSpec,
-        ready_for_test: parsed.ready === true ? true : undefined,
-        updated_at: new Date().toISOString(),
-      })
+      // Cast: WorkflowSpec is a structurally-Json object, but the generated
+      // Json type doesn't see optional keys as compatible.
+      .update(updatePayload as unknown as { spec: unknown; updated_at: string; ready_for_test?: boolean })
       .eq("id", data.workflowId);
     if (updErr) console.error("Workflow update error", updErr);
 
