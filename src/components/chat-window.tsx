@@ -144,32 +144,30 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
 
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
         <PromptInput onSubmit={handleSubmit} accept="image/*,application/pdf" multiple>
-          <PromptInputBody>
-            <PromptInputTextarea
-              ref={textareaRef}
-              placeholder="Írd le a workflow következő lépését…"
-            />
-            <PromptInputFooter>
-              <PromptInputTools>
-                <PromptInputActionMenu>
-                  <PromptInputActionMenuTrigger />
-                  <PromptInputActionMenuContent>
-                    <PromptInputActionAddAttachments />
-                  </PromptInputActionMenuContent>
-                </PromptInputActionMenu>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Hangrögzítés (hamarosan)"
-                  onClick={() => toast.info("Mikrofon: hamarosan")}
-                >
-                  <Mic className="size-4" />
-                </Button>
-              </PromptInputTools>
-              <PromptInputSubmit status={sending ? "submitted" : undefined} />
-            </PromptInputFooter>
-          </PromptInputBody>
+          <PromptInputTextarea
+            ref={textareaRef}
+            placeholder="Írd le a workflow következő lépését…"
+          />
+          <PromptInputFooter>
+            <PromptInputTools>
+              <PromptInputActionMenu>
+                <PromptInputActionMenuTrigger />
+                <PromptInputActionMenuContent>
+                  <PromptInputActionAddAttachments />
+                </PromptInputActionMenuContent>
+              </PromptInputActionMenu>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Hangrögzítés (hamarosan)"
+                onClick={() => toast.info("Mikrofon: hamarosan")}
+              >
+                <Mic className="size-4" />
+              </Button>
+            </PromptInputTools>
+            <PromptInputSubmit status={sending ? "submitted" : undefined} />
+          </PromptInputFooter>
         </PromptInput>
         <p className="mt-2 text-center text-[10px] text-muted-foreground">
           Mock válasz aktív · Gemini bekötés után élesedik
