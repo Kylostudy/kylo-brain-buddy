@@ -49,6 +49,62 @@ export type Database = {
           },
         ]
       }
+      workflow_credentials: {
+        Row: {
+          cookie_ciphertext: string | null
+          cookie_nonce: string | null
+          created_at: string
+          id: string
+          password_ciphertext: string | null
+          password_nonce: string | null
+          platform: string
+          tenant_id: string
+          totp_nonce: string | null
+          totp_secret_ciphertext: string | null
+          updated_at: string
+          username: string
+          workflow_id: string
+        }
+        Insert: {
+          cookie_ciphertext?: string | null
+          cookie_nonce?: string | null
+          created_at?: string
+          id?: string
+          password_ciphertext?: string | null
+          password_nonce?: string | null
+          platform?: string
+          tenant_id?: string
+          totp_nonce?: string | null
+          totp_secret_ciphertext?: string | null
+          updated_at?: string
+          username?: string
+          workflow_id: string
+        }
+        Update: {
+          cookie_ciphertext?: string | null
+          cookie_nonce?: string | null
+          created_at?: string
+          id?: string
+          password_ciphertext?: string | null
+          password_nonce?: string | null
+          platform?: string
+          tenant_id?: string
+          totp_nonce?: string | null
+          totp_secret_ciphertext?: string | null
+          updated_at?: string
+          username?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_credentials_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: true
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_runs: {
         Row: {
           created_at: string
