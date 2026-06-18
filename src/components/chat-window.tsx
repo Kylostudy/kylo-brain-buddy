@@ -37,6 +37,7 @@ import {
   renameWorkflow,
   resetReadyForTest,
 } from "@/lib/chat.functions";
+import { startRun } from "@/lib/runs.functions";
 import { SpecPanel } from "@/components/spec-panel";
 
 type DbMessage = {
@@ -71,7 +72,9 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const callAI = useServerFn(generateReply);
   const callRename = useServerFn(renameWorkflow);
   const callResetReady = useServerFn(resetReadyForTest);
+  const callStartRun = useServerFn(startRun);
   const [sending, setSending] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -153,10 +156,30 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   }
 
   async function handleStartTest() {
-    toast.success("Teszt indítás — hamarosan élesedik. A spec elmentve.");
-    // Optional: reset the flag so the banner doesn't keep nagging.
-    await callResetReady({ data: { workflowId } });
-    await qc.invalidateQueries({ queryKey: ["workflow", workflowId] });
+    if (starting) return;
+    setStarting(true);
+    try {
+      const res = await callStartRun({ data: { workflowId, runner: "steel" } });
+      if (res.status === "succeeded") {
+        toast.success("Próbafuttatás sikeres (szimuláció).");
+      } else if (res.status === "failed") {
+        toast.error("Próbafuttatás hibára futott.");
+      } else {
+        toast.success("Futtatás elindítva — kövesd a jobb oldali panelen.");
+      }
+      await callResetReady({ data: { workflowId } });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["workflow", workflowId] }),
+        qc.invalidateQueries({ queryKey: ["workflow_runs", workflowId] }),
+      ]);
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        e instanceof Error ? e.message : "Futtatás indítása sikertelen",
+      );
+    } finally {
+      setStarting(false);
+    }
   }
 
   async function handleEditMore() {
@@ -242,11 +265,11 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                       A Brain összegyűjtötte a workflow alapjait. Most lefuttathatsz egy próba feltöltést, vagy folytathatod a finomhangolást.
                     </p>
                     <div className="mt-3 flex gap-2">
-                      <Button size="sm" onClick={handleStartTest}>
+                      <Button size="sm" onClick={handleStartTest} disabled={starting}>
                         <Play className="size-3.5" />
-                        Teszt indítása
+                        {starting ? "Indítás…" : "Teszt indítása"}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={handleEditMore}>
+                      <Button size="sm" variant="ghost" onClick={handleEditMore} disabled={starting}>
                         Még pontosítok
                       </Button>
                     </div>

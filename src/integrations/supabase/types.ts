@@ -49,6 +49,65 @@ export type Database = {
           },
         ]
       }
+      workflow_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          external_id: string | null
+          finished_at: string | null
+          id: string
+          logs: Json
+          result: Json | null
+          runner: string
+          spec_snapshot: Json
+          started_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          result?: Json | null
+          runner?: string
+          spec_snapshot?: Json
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          result?: Json | null
+          runner?: string
+          spec_snapshot?: Json
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflows: {
         Row: {
           created_at: string

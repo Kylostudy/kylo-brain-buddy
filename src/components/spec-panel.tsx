@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { WorkflowSpec } from "@/lib/chat.functions";
 import { cn } from "@/lib/utils";
+import { RunsPanel } from "@/components/runs-panel";
 
 type Row = {
   key: keyof WorkflowSpec;
@@ -94,8 +95,8 @@ export function SpecPanel({ workflowId }: { workflowId: string }) {
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        <div className="space-y-3">
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-3 px-4 py-3">
           {ROWS.map((row) => {
             const Icon = row.icon;
             const value = spec[row.key];
@@ -133,6 +134,8 @@ export function SpecPanel({ workflowId }: { workflowId: string }) {
             );
           })}
         </div>
+
+        <RunsPanel workflowId={workflowId} />
       </div>
     </aside>
   );
