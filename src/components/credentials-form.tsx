@@ -1,0 +1,246 @@
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { KeyRound, Lock, Cookie, ShieldCheck, Eye, EyeOff, Trash2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  getCredentialsStatus,
+  saveCredentials,
+  deleteCredentials,
+} from "@/lib/credentials.functions";
+
+const PLATFORMS = [
+  "tiktok",
+  "instagram",
+  "facebook",
+  "youtube",
+  "x",
+  "pinterest",
+  "linkedin",
+  "reddit",
+  "threads",
+] as const;
+
+export function CredentialsForm({ workflowId }: { workflowId: string }) {
+  const qc = useQueryClient();
+  const callStatus = useServerFn(getCredentialsStatus);
+  const callSave = useServerFn(saveCredentials);
+  const callDelete = useServerFn(deleteCredentials);
+
+  const { data: status } = useQuery({
+    queryKey: ["credentials", workflowId],
+    queryFn: () => callStatus({ data: { workflowId } }),
+  });
+
+  const [open, setOpen] = useState(false);
+  const [platform, setPlatform] = useState("tiktok");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [cookie, setCookie] = useState("");
+  const [totp, setTotp] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (status?.platform) setPlatform(status.platform);
+  }, [status?.platform]);
+
+  async function handleSave() {
+    if (!username.trim()) {
+      toast.error("Felhasználónév kötelező.");
+      return;
+    }
+    if (!password && !cookie && !status?.hasPassword && !status?.hasCookie) {
+      toast.error("Adj meg jelszót vagy mentett cookie-t.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await callSave({
+        data: {
+          workflowId,
+          platform,
+          username: username.trim(),
+          password: password || undefined,
+          cookie: cookie || undefined,
+          totpSecret: totp || undefined,
+        },
+      });
+      toast.success("Hozzáférés titkosítva mentve.");
+      setPassword("");
+      setCookie("");
+      setTotp("");
+      setOpen(false);
+      qc.invalidateQueries({ queryKey: ["credentials", workflowId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Mentés sikertelen.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm("Biztosan törlöd a mentett hozzáférést?")) return;
+    await callDelete({ data: { workflowId } });
+    qc.invalidateQueries({ queryKey: ["credentials", workflowId] });
+    toast.success("Hozzáférés törölve.");
+  }
+
+  const exists = status?.exists ?? false;
+
+  return (
+    <div className="border-t px-4 py-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Fiók hozzáférés
+        </h2>
+        {exists && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="text-[10px] text-muted-foreground hover:text-destructive"
+            title="Törlés"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        )}
+      </div>
+
+      {exists && !open ? (
+        <div className="mt-2 space-y-2 rounded-md border bg-background/40 p-2.5">
+          <div className="flex items-center gap-2 text-xs">
+            <KeyRound className="size-3.5 text-primary" />
+            <span className="font-medium uppercase">{status?.platform}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-mono">{status?.usernameMasked}</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {status?.hasPassword && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
+                <Lock className="size-3" /> jelszó
+              </span>
+            )}
+            {status?.hasCookie && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
+                <Cookie className="size-3" /> cookie
+              </span>
+            )}
+            {status?.hasTotp && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
+                <ShieldCheck className="size-3" /> 2FA
+              </span>
+            )}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="w-full"
+            onClick={() => setOpen(true)}
+          >
+            Módosítás
+          </Button>
+        </div>
+      ) : !exists && !open ? (
+        <div className="mt-2 space-y-2 rounded-md border border-dashed bg-background/40 p-2.5">
+          <p className="text-[11px] text-muted-foreground">
+            Még nincs mentett hozzáférés. A jelszó titkosítva tárolódik (AES-256-GCM), a chatben sosem szerepel.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="w-full"
+            onClick={() => setOpen(true)}
+          >
+            Hozzáférés hozzáadása
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-2 space-y-2.5 rounded-md border bg-background/40 p-3">
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">Platform</Label>
+            <select
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+              className="h-8 w-full rounded border bg-background px-2 text-xs"
+            >
+              {PLATFORMS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">
+              Felhasználónév / email
+            </Label>
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder={status?.usernameMasked ?? "pl. kylohu"}
+              className="h-8 text-xs"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">
+              Jelszó {status?.hasPassword && <span className="text-muted-foreground/60">(üres = változatlan)</span>}
+            </Label>
+            <div className="relative">
+              <Input
+                type={showPwd ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-8 pr-8 text-xs"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                tabIndex={-1}
+              >
+                {showPwd ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">
+              Session cookie (opcionális, JSON) {status?.hasCookie && <span className="text-muted-foreground/60">(üres = változatlan)</span>}
+            </Label>
+            <textarea
+              value={cookie}
+              onChange={(e) => setCookie(e.target.value)}
+              rows={2}
+              placeholder='[{"name":"sessionid","value":"..."}]'
+              className="w-full rounded border bg-background px-2 py-1 font-mono text-[10px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">
+              2FA secret (opcionális) {status?.hasTotp && <span className="text-muted-foreground/60">(üres = változatlan)</span>}
+            </Label>
+            <Input
+              value={totp}
+              onChange={(e) => setTotp(e.target.value)}
+              placeholder="JBSWY3DPEHPK3PXP"
+              className="h-8 font-mono text-[10px]"
+              autoComplete="off"
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button type="button" size="sm" className="flex-1" onClick={handleSave} disabled={saving}>
+              {saving ? "Mentés…" : "Mentés titkosítva"}
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)} disabled={saving}>
+              Mégse
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
