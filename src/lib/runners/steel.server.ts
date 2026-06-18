@@ -28,7 +28,7 @@ function log(level: RunLogEntry["level"], message: string): RunLogEntry {
 
 export const steelRunner: Runner = {
   name: "steel",
-  async start({ spec, workflowId }: StartRunArgs): Promise<StartRunResult> {
+  async start({ spec, workflowId, hasCredentials, credentialsLabel }: StartRunArgs): Promise<StartRunResult> {
     const apiKey = process.env.STEEL_API_KEY;
 
     // --- Fallback: szimulált futás kulcs nélkül ---
@@ -39,6 +39,7 @@ export const steelRunner: Runner = {
           "info",
           `Workflow ${workflowId} spec betöltve. Platform: ${spec.platform ?? "n/a"}, fiók: ${spec.account_label ?? "n/a"}.`,
         ),
+        log("info", `Credential: ${credentialsLabel ?? "nincs mentve"}`),
         log("info", "Emberi viselkedés-szimuláció: várakozás 1.2s …"),
         log("info", "Szimulált poszt elküldve. ✅"),
       ];
@@ -47,7 +48,7 @@ export const steelRunner: Runner = {
         initialLogs: logs,
         finishedSync: true,
         finalStatus: "succeeded",
-        finalResult: { simulated: true, posted: 1 },
+        finalResult: { simulated: true, posted: 1, hasCredentials: !!hasCredentials },
         finalError: null,
       };
     }
