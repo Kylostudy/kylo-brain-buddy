@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { WorkflowSpec } from "@/lib/chat.functions";
 import { cn } from "@/lib/utils";
 import { RunsPanel } from "@/components/runs-panel";
+import { CredentialsForm } from "@/components/credentials-form";
 
 type Row = {
   key: keyof WorkflowSpec;
@@ -135,6 +136,7 @@ export function SpecPanel({ workflowId }: { workflowId: string }) {
           })}
         </div>
 
+        <CredentialsForm workflowId={workflowId} />
         <RunsPanel workflowId={workflowId} />
       </div>
     </aside>
