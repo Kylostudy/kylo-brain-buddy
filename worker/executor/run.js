@@ -42,6 +42,8 @@ async function main() {
     `Indítás — platform: ${spec.platform || "n/a"}, fiók: ${spec.account_label || "n/a"}, cred: ${creds ? "✓" : "✗"}`,
   );
 
+  const runner = (process.env.RUNNER || "docker").toLowerCase();
+
   // Proxy átirányítás, ha a credentialben van. Formátum: http://user:pass@host:port
   const launchOpts = { headless: true };
   if (creds?.proxy) {
@@ -57,12 +59,54 @@ async function main() {
       log("warn", `Proxy URL nem értelmezhető: ${e.message}`);
     }
   }
-  const browser = await chromium.launch(launchOpts);
-  const context = await browser.newContext({
-    userAgent:
-      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-    viewport: { width: 1280, height: 800 },
-  });
+
+  let browser;
+  let context;
+
+  if (runner === "steel") {
+    // === Steel.dev: távoli felhő-böngésző, CDP-n keresztül ===
+    const apiKey = process.env.STEEL_API_KEY;
+    if (!apiKey) return finish("failed", null, "STEEL_API_KEY hiányzik az orchestrator env-jéből.");
+
+    const sessionBody = {
+      sessionTimeout: 10 * 60 * 1000,
+      blockAds: true,
+      stealthConfig: { humanlikeInteractions: true, skipFingerprintInjection: false },
+    };
+    if (launchOpts.proxy) {
+      sessionBody.proxyUrl = creds.proxy; // Steel a teljes URL-t várja
+    }
+
+    log("info", "Steel session létrehozása…");
+    const res = await fetch("https://api.steel.dev/v1/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Steel-Api-Key": apiKey },
+      body: JSON.stringify(sessionBody),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      return finish("failed", null, `Steel API ${res.status}: ${txt.slice(0, 200)}`);
+    }
+    const session = await res.json();
+    log("info", `Steel session: ${session.id}`);
+    if (session.sessionViewerUrl) log("info", `Viewer: ${session.sessionViewerUrl}`);
+
+    const wsUrl =
+      session.websocketUrl ||
+      `wss://connect.steel.dev?apiKey=${apiKey}&sessionId=${session.id}`;
+    browser = await chromium.connectOverCDP(wsUrl);
+    // Steel mindig ad egy default contextet — azt használjuk
+    context = browser.contexts()[0] || (await browser.newContext());
+    log("info", "Playwright csatlakozott a Steel browserhez (CDP).");
+  } else {
+    // === Saját Docker worker: helyi Chromium ===
+    browser = await chromium.launch(launchOpts);
+    context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      viewport: { width: 1280, height: 800 },
+    });
+  }
 
   // Session cookie-k injektálása (Dolphin / EditThisCookie JSON export)
   if (creds?.cookies) {
@@ -94,7 +138,7 @@ async function main() {
     }
   }
 
-  const page = await context.newPage();
+  const page = context.pages()[0] || (await context.newPage());
 
   try {
     const platform = (spec.platform || "").toLowerCase();
