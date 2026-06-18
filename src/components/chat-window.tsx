@@ -75,6 +75,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const callStartRun = useServerFn(startRun);
   const [sending, setSending] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [runner, setRunner] = useState<"steel" | "docker">("steel");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -159,11 +160,13 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     if (starting) return;
     setStarting(true);
     try {
-      const res = await callStartRun({ data: { workflowId, runner: "steel" } });
+      const res = await callStartRun({ data: { workflowId, runner } });
       if (res.status === "succeeded") {
         toast.success("Próbafuttatás sikeres (szimuláció).");
       } else if (res.status === "failed") {
         toast.error("Próbafuttatás hibára futott.");
+      } else if (res.status === "queued") {
+        toast.success("Sorba téve — a VPS worker rövidesen elindítja.");
       } else {
         toast.success("Futtatás elindítva — kövesd a jobb oldali panelen.");
       }
@@ -264,11 +267,21 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       A Brain összegyűjtötte a workflow alapjait. Most lefuttathatsz egy próba feltöltést, vagy folytathatod a finomhangolást.
                     </p>
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Button size="sm" onClick={handleStartTest} disabled={starting}>
                         <Play className="size-3.5" />
                         {starting ? "Indítás…" : "Teszt indítása"}
                       </Button>
+                      <select
+                        value={runner}
+                        onChange={(e) => setRunner(e.target.value as "steel" | "docker")}
+                        disabled={starting}
+                        className="h-8 rounded-md border bg-background px-2 text-xs"
+                        title="Hol fusson a teszt"
+                      >
+                        <option value="steel">Steel.dev (felhő preview)</option>
+                        <option value="docker">Saját Docker worker (éles)</option>
+                      </select>
                       <Button size="sm" variant="ghost" onClick={handleEditMore} disabled={starting}>
                         Még pontosítok
                       </Button>

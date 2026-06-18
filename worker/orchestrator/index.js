@@ -59,7 +59,7 @@ async function loadCredentials(workflowId) {
   const { data } = await supabase
     .from("workflow_credentials")
     .select(
-      "platform, username, password_ciphertext, password_nonce, cookie_ciphertext, cookie_nonce, totp_secret_ciphertext, totp_nonce",
+      "platform, username, password_ciphertext, password_nonce, cookie_ciphertext, cookie_nonce, totp_secret_ciphertext, totp_nonce, proxy_ciphertext, proxy_nonce",
     )
     .eq("workflow_id", workflowId)
     .maybeSingle();
@@ -74,6 +74,7 @@ async function loadCredentials(workflowId) {
         data.totp_secret_ciphertext,
         data.totp_nonce,
       ),
+      proxy: decryptString(data.proxy_ciphertext, data.proxy_nonce),
     };
   } catch (e) {
     console.error("Credential decrypt hiba:", e.message);

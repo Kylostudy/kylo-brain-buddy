@@ -58,6 +58,8 @@ export type Database = {
           password_ciphertext: string | null
           password_nonce: string | null
           platform: string
+          proxy_ciphertext: string | null
+          proxy_nonce: string | null
           tenant_id: string
           totp_nonce: string | null
           totp_secret_ciphertext: string | null
@@ -73,6 +75,8 @@ export type Database = {
           password_ciphertext?: string | null
           password_nonce?: string | null
           platform?: string
+          proxy_ciphertext?: string | null
+          proxy_nonce?: string | null
           tenant_id?: string
           totp_nonce?: string | null
           totp_secret_ciphertext?: string | null
@@ -88,6 +92,8 @@ export type Database = {
           password_ciphertext?: string | null
           password_nonce?: string | null
           platform?: string
+          proxy_ciphertext?: string | null
+          proxy_nonce?: string | null
           tenant_id?: string
           totp_nonce?: string | null
           totp_secret_ciphertext?: string | null
