@@ -7,6 +7,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { spawn } from "node:child_process";
+import { decryptString } from "./crypto.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -31,7 +32,7 @@ async function pickNextRun() {
   // Production: cseréld le `select ... for update skip locked` RPC-re.
   const { data } = await supabase
     .from("workflow_runs")
-    .select("id, spec_snapshot, runner")
+    .select("id, workflow_id, spec_snapshot, runner")
     .eq("runner", "docker")
     .eq("status", "queued")
     .order("created_at", { ascending: true })
@@ -54,18 +55,44 @@ async function pickNextRun() {
   return row;
 }
 
-function runContainer(row) {
+async function loadCredentials(workflowId) {
+  const { data } = await supabase
+    .from("workflow_credentials")
+    .select(
+      "platform, username, password_ciphertext, password_nonce, cookie_ciphertext, cookie_nonce, totp_secret_ciphertext, totp_nonce",
+    )
+    .eq("workflow_id", workflowId)
+    .maybeSingle();
+  if (!data) return null;
+  try {
+    return {
+      platform: data.platform,
+      username: data.username || null,
+      password: decryptString(data.password_ciphertext, data.password_nonce),
+      cookies: decryptString(data.cookie_ciphertext, data.cookie_nonce),
+      totpSecret: decryptString(
+        data.totp_secret_ciphertext,
+        data.totp_nonce,
+      ),
+    };
+  } catch (e) {
+    console.error("Credential decrypt hiba:", e.message);
+    return null;
+  }
+}
+
+function runContainer(row, creds) {
   return new Promise((resolve) => {
-    const proc = spawn(
-      "docker",
-      [
-        "run", "--rm",
-        "--network", "bridge",
-        "-e", `SPEC_JSON=${JSON.stringify(row.spec_snapshot ?? {})}`,
-        IMAGE,
-      ],
-      { stdio: ["ignore", "pipe", "pipe"] },
-    );
+    const args = [
+      "run", "--rm",
+      "--network", "bridge",
+      "-e", `SPEC_JSON=${JSON.stringify(row.spec_snapshot ?? {})}`,
+    ];
+    if (creds) {
+      args.push("-e", `CREDENTIALS_JSON=${JSON.stringify(creds)}`);
+    }
+    args.push(IMAGE);
+    const proc = spawn("docker", args, { stdio: ["ignore", "pipe", "pipe"] });
 
     const logs = [];
     let finalEntry = null;
@@ -113,7 +140,8 @@ async function processOne() {
   if (!row) return;
   inflight.add(row.id);
   try {
-    const out = await runContainer(row);
+    const creds = await loadCredentials(row.workflow_id);
+    const out = await runContainer(row, creds);
     await supabase
       .from("workflow_runs")
       .update({
