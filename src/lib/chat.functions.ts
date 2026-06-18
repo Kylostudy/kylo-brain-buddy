@@ -203,9 +203,7 @@ export const generateReply = createServerFn({ method: "POST" })
 
     const { error: updErr } = await supabase
       .from("workflows")
-      // Cast: WorkflowSpec is a structurally-Json object, but the generated
-      // Json type doesn't see optional keys as compatible.
-      .update(updatePayload as unknown as { spec: unknown; updated_at: string; ready_for_test?: boolean })
+      .update(updatePayload as never)
       .eq("id", data.workflowId);
     if (updErr) console.error("Workflow update error", updErr);
 
