@@ -1,9 +1,11 @@
 // worker/executor/run.js
-// Egyetlen workflow-futtatás. A spec JSON-t a SPEC_JSON env-ből olvassa,
-// Playwright-tel végrehajtja a megadott lépéseket, és JSON-line logokat ír
-// a stdout-ra. A worker-orchestrator olvassa ezeket vissza.
+// Egyetlen workflow-futtatás. A spec JSON-t a SPEC_JSON env-ből olvassa, a
+// visszafejtett hitelesítő adatokat a CREDENTIALS_JSON env-ből. Playwright-tel
+// végrehajtja a megadott lépéseket, és JSON-line logokat ír a stdout-ra.
+// A worker-orchestrator olvassa ezeket vissza.
 
 import { chromium } from "playwright";
+import { runTikTok } from "./scripts/tiktok.js";
 
 function log(level, message, extra = {}) {
   process.stdout.write(
@@ -21,33 +23,46 @@ function finish(status, result = null, error = null) {
 }
 
 async function main() {
-  let spec;
+  let spec, creds;
   try {
     spec = JSON.parse(process.env.SPEC_JSON || "{}");
   } catch (e) {
     return finish("failed", null, `SPEC_JSON parse hiba: ${e.message}`);
   }
+  try {
+    creds = process.env.CREDENTIALS_JSON
+      ? JSON.parse(process.env.CREDENTIALS_JSON)
+      : null;
+  } catch (e) {
+    return finish("failed", null, `CREDENTIALS_JSON parse hiba: ${e.message}`);
+  }
 
-  log("info", `Indítás — platform: ${spec.platform || "n/a"}, fiók: ${spec.account_label || "n/a"}`);
+  log(
+    "info",
+    `Indítás — platform: ${spec.platform || "n/a"}, fiók: ${spec.account_label || "n/a"}, cred: ${creds ? "✓" : "✗"}`,
+  );
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     userAgent:
       "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    viewport: { width: 1280, height: 800 },
   });
   const page = await context.newPage();
 
   try {
-    // TODO: itt jönnek majd a per-platform stratégiák
-    //   if (spec.platform === "TikTok") { await runTikTok(page, spec); }
-    //   if (spec.platform === "Instagram") { await runInstagram(page, spec); }
-    // Most csak demo: nyitunk egy semleges oldalt.
-    await page.goto("https://example.com", { waitUntil: "domcontentloaded" });
-    log("info", `Megnyitva: ${await page.title()}`);
-    log("warn", "Per-platform feltöltő szkriptek még nincsenek implementálva.");
+    const platform = (spec.platform || "").toLowerCase();
+    let result;
+    if (platform === "tiktok") {
+      result = await runTikTok({ page, context, spec, creds, log });
+    } else {
+      log("warn", `Platform "${spec.platform}" még nincs implementálva — demo.`);
+      await page.goto("https://example.com", { waitUntil: "domcontentloaded" });
+      result = { demo: true };
+    }
 
     await browser.close();
-    finish("succeeded", { demo: true });
+    finish("succeeded", result);
   } catch (e) {
     log("error", `Futtatás hibára futott: ${e.message}`);
     await browser.close().catch(() => {});
