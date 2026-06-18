@@ -40,6 +40,8 @@ export type StartRunArgs = {
   runId: string;
   workflowId: string;
   spec: WorkflowSpec;
+  hasCredentials?: boolean;
+  credentialsLabel?: string;
 };
 
 export type StartRunResult = {

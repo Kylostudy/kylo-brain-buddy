@@ -69,11 +69,23 @@ export const startRun = createServerFn({ method: "POST" })
     const { steelRunner } = await import("@/lib/runners/steel.server");
     const runner = steelRunner; // most csak ez van; később switch a `data.runner`-ön
 
+    // Credential státusz lekérése (nem fejtjük vissza, csak jelezzük a logban)
+    const { data: credRow } = await supabase
+      .from("workflow_credentials")
+      .select("platform, username, password_ciphertext, cookie_ciphertext")
+      .eq("workflow_id", data.workflowId)
+      .maybeSingle();
+    const credStatus = credRow
+      ? `${credRow.platform}/${credRow.username} (${credRow.password_ciphertext ? "jelszó✓" : "jelszó✗"}, ${credRow.cookie_ciphertext ? "cookie✓" : "cookie✗"})`
+      : "nincs mentve";
+
     try {
       const result = await runner.start({
         runId,
         workflowId: data.workflowId,
         spec,
+        hasCredentials: !!credRow,
+        credentialsLabel: credStatus,
       });
 
       // 4) Frissítés az eredménnyel

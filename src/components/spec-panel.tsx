@@ -4,6 +4,7 @@ import {
   User,
   Film,
   FolderInput,
+  Link2,
   Clock,
   Hash,
   ShieldAlert,
@@ -17,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { WorkflowSpec } from "@/lib/chat.functions";
 import { cn } from "@/lib/utils";
 import { RunsPanel } from "@/components/runs-panel";
+import { CredentialsForm } from "@/components/credentials-form";
 
 type Row = {
   key: keyof WorkflowSpec;
@@ -29,6 +31,7 @@ const ROWS: Row[] = [
   { key: "account_label", label: "Fiók", icon: User },
   { key: "content_type", label: "Tartalom típusa", icon: Film },
   { key: "content_source", label: "Tartalom forrása", icon: FolderInput },
+  { key: "media_source", label: "Konkrét média (teszt)", icon: Link2 },
   { key: "schedule", label: "Ütemezés", icon: Clock },
   { key: "caption_strategy", label: "Caption / hashtag", icon: Hash },
   { key: "kill_switches", label: "Kill switch-ek", icon: ShieldAlert },
@@ -135,6 +138,7 @@ export function SpecPanel({ workflowId }: { workflowId: string }) {
           })}
         </div>
 
+        <CredentialsForm workflowId={workflowId} />
         <RunsPanel workflowId={workflowId} />
       </div>
     </aside>

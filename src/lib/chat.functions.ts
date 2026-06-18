@@ -15,17 +15,21 @@ A SPEC MEZŐI (amit a beszélgetés alatt össze kell gyűjtened):
 - platform: cél platform (TikTok / Instagram / Facebook / Pinterest / YouTube / X / LinkedIn / Reddit / Threads stb.)
 - account_label: melyik fiók (pl. "magyar TikTok @kylohu")
 - content_type: tartalom típusa (videó / kép / story / reel / szöveg)
-- content_source: honnan jön a tartalom (mappa / feltöltés / AI generálás)
+- content_source: honnan jön a tartalom általában (mappa / feltöltés / AI generálás)
+- media_source: KONKRÉT média elérése a teszthez (publikus URL, Google Drive link, vagy "feltöltés az UI-on"). Egy URL is jó.
 - schedule: ütemezés szöveggel (pl. "minden nap 19:00 CET")
 - caption_strategy: caption / hashtag stratégia
 - kill_switches: leállító szabályok listája (pl. "ugyanazon IP-n max 1 TikTok session")
 - human_behavior: emberi viselkedés paraméterek (késleltetés, görgetés, gépelési sebesség)
 - success_criteria: mit nevezünk sikeres posztnak
 
+TILTOTT TÉMÁK A CHATBEN — NE KÉRDEZD MEG:
+- jelszó, 2FA kód, session cookie, semmilyen hitelesítő adat. Ezeket a felhasználó a jobb oldali "Fiók hozzáférés" űrlapon adja meg titkosítva. Ha a felhasználó mégis beleírná, NE ismételd vissza, NE mentsd a specbe — kedvesen kérd meg, hogy a jobb oldali "Fiók hozzáférés" panelen rögzítse.
+
 MINDEN VÁLASZODBAN:
 1) reply: amit a felhasználónak mondasz (magyarul, természetes hangon, EGY kérdéssel a végén — kivéve ha már kész vagy).
 2) spec_patch: csak azokat a mezőket add meg, amelyeket épp most tudtál meg vagy pontosítottál. A többit hagyd ki. Ne találj ki adatot.
-3) ready: true, AKKOR és csak akkor, ha minden lényeges mező (platform, account_label, content_type, content_source, schedule, és legalább 1 kill_switch) ki van töltve. Ilyenkor a reply-ban foglald össze 4-6 pontban a tervet és a végén kérdezd meg: "**Kész a spec, mehet a teszt?**" — ne tegyél fel új kérdést.
+3) ready: true, AKKOR és csak akkor, ha minden lényeges mező (platform, account_label, content_type, content_source, media_source, schedule, és legalább 1 kill_switch) ki van töltve. Ilyenkor a reply-ban foglald össze 4-6 pontban a tervet, és emlékeztesd a felhasználót, hogy ne felejtse el a jobb oldali "Fiók hozzáférés" űrlapot kitölteni, majd a végén kérdezd meg: "**Kész a spec, mehet a teszt?**" — ne tegyél fel új kérdést.
 
 FONTOS: a ready=true jelzés után se írj több kérdést, csak az összefoglalót és a "Kész a spec, mehet a teszt?" kérdést.`;
 
@@ -43,6 +47,7 @@ const RESPONSE_SCHEMA = {
         account_label: { type: "STRING" },
         content_type: { type: "STRING" },
         content_source: { type: "STRING" },
+        media_source: { type: "STRING" },
         schedule: { type: "STRING" },
         caption_strategy: { type: "STRING" },
         kill_switches: { type: "ARRAY", items: { type: "STRING" } },
@@ -60,6 +65,7 @@ export type WorkflowSpec = {
   account_label?: string;
   content_type?: string;
   content_source?: string;
+  media_source?: string;
   schedule?: string;
   caption_strategy?: string;
   kill_switches?: string[];
