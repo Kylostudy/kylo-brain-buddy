@@ -28,10 +28,30 @@ Lovable app (Cloudflare)            Bérelt VPS (Docker host)
 
 - **`orchestrator/`** — Node folyamat, ami Supabase-t pollozza, és minden
   `queued` futtatáshoz egy Docker konténert indít. Frissíti a `workflow_runs`
-  sort státusszal + logokkal.
+  sort státusszal + logokkal. Itt dekriptáljuk a `workflow_credentials`-t
+  (`crypto.js` — ugyanaz a HKDF + AES-256-GCM, mint a Lovable-oldalon), és
+  `CREDENTIALS_JSON` env-ben adjuk át a konténernek.
 - **`executor/`** — A konténer belseje. Egy Node + Playwright image, ami
-  bemenetként megkapja a `spec_snapshot` JSON-t, és végrehajtja a workflow-t.
+  bemenetként megkapja a `spec_snapshot` JSON-t és a visszafejtett creds-et,
+  majd platform szerint dispatchel (most: **TikTok**).
+- **`executor/scripts/tiktok.js`** — Login (cookie vagy user+pass) +
+  videófeltöltés a TikTok Studio-ra. Médiaforrás: URL (letöltés tempbe) vagy
+  konténerbe mountolt útvonal.
 - **`Dockerfile`** — Az executor image build receptje.
+
+## Credential lánc
+
+```
+workflow_credentials (titkosított, Supabase)
+     ↓  (SUPABASE_SERVICE_ROLE_KEY a workeren)
+orchestrator/crypto.js  → decryptString()
+     ↓  CREDENTIALS_JSON env
+executor/run.js → runTikTok({ creds, ... })
+```
+
+A jelszó és TOTP-titok soha nem kerül logba, és csak a konténer élettartamára
+él az env-ben.
+
 
 ## Hosting javaslat (~150 USD/hó helyett)
 
