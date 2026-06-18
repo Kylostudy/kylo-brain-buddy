@@ -115,9 +115,10 @@ export const steelRunner: Runner = {
           `Workflow ${workflowId} spec átadva. Platform: ${spec.platform ?? "n/a"}.`,
         ),
         log("info", `Credential: ${credentialsLabel ?? "nincs mentve"}`),
+        log("info", `Proxy: ${creds?.proxy ? "✓ session átirányítva" : "✗ direkt kapcsolat"} · Cookie: ${creds?.cookie ? "✓ injektálásra kész" : "✗ friss session"}`),
         log(
           "warn",
-          "Playwright szkript még nincs bekötve — a session él, de tétlen. (Következő fázis.)",
+          "Playwright szkript még nincs bekötve a Steel oldalon — a session él, de tétlen. (A Docker runner már intéz mindent.)",
         ),
       );
 
