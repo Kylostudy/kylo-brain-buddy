@@ -83,7 +83,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
       await qc.invalidateQueries({ queryKey: ["messages", workflowId] });
 
       // 2) Get mock AI reply
-      const { reply } = await callMock({
+      const { reply } = await callAI({
         data: { userText: text, workflowId },
       });
 
