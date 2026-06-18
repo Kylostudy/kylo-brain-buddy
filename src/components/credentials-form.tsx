@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { KeyRound, Lock, Cookie, ShieldCheck, Eye, EyeOff, Trash2 } from "lucide-react";
+import { KeyRound, Lock, Cookie, ShieldCheck, Globe, Eye, EyeOff, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,7 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
   const [password, setPassword] = useState("");
   const [cookie, setCookie] = useState("");
   const [totp, setTotp] = useState("");
+  const [proxy, setProxy] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -68,12 +69,14 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
           password: password || undefined,
           cookie: cookie || undefined,
           totpSecret: totp || undefined,
+          proxy: proxy || undefined,
         },
       });
       toast.success("Hozzáférés titkosítva mentve.");
       setPassword("");
       setCookie("");
       setTotp("");
+      setProxy("");
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["credentials", workflowId] });
     } catch (e) {
@@ -132,6 +135,11 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
             {status?.hasTotp && (
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
                 <ShieldCheck className="size-3" /> 2FA
+              </span>
+            )}
+            {(status as { hasProxy?: boolean })?.hasProxy && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
+                <Globe className="size-3" /> proxy
               </span>
             )}
           </div>
