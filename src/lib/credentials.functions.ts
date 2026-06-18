@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { encryptString, decryptString } from "@/lib/credentials/crypto.server";
 
 function serverSupabase() {
   return createClient<Database>(
@@ -83,7 +84,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const { encryptString } = await import(/* @vite-ignore */ "@/lib/credentials/crypto.server");
+    // encryptString → server-only import a fájl tetején
     const supabase = serverSupabase();
 
     // Olvassuk be a meglévőt (ha van) — hogy a nem érintett mezőket megtartsuk.
@@ -174,7 +175,7 @@ export const deleteCredentials = createServerFn({ method: "POST" })
  * Soha ne hívd kliensből — ez nem egy server function, csak `*.server.ts`-ből importálható.
  */
 export async function loadDecryptedCredentialsServer(workflowId: string) {
-  const { decryptString } = await import(/* @vite-ignore */ "@/lib/credentials/crypto.server");
+  // decryptString → server-only import a fájl tetején
   const supabase = serverSupabase();
   const { data: row, error } = await supabase
     .from("workflow_credentials")
