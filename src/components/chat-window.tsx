@@ -21,7 +21,6 @@ import {
   PromptInputActionMenu,
   PromptInputActionMenuContent,
   PromptInputActionMenuTrigger,
-  PromptInputBody,
   PromptInputFooter,
   PromptInputSubmit,
   PromptInputTextarea,
