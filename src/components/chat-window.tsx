@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Mic } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { generateMockReply } from "@/lib/chat.functions";
+import { generateReply } from "@/lib/chat.functions";
 
 type DbMessage = {
   id: string;
