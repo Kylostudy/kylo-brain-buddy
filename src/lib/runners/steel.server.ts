@@ -31,6 +31,10 @@ export const steelRunner: Runner = {
   async start({ spec, workflowId, hasCredentials, credentialsLabel }: StartRunArgs): Promise<StartRunResult> {
     const apiKey = process.env.STEEL_API_KEY;
 
+    // Credential betöltése (proxy + cookie szükséges a session indításához)
+    const { loadDecryptedCredentialsServer } = await import("@/lib/credentials.functions");
+    const creds = await loadDecryptedCredentialsServer(workflowId).catch(() => null);
+
     // --- Fallback: szimulált futás kulcs nélkül ---
     if (!apiKey) {
       const logs: RunLogEntry[] = [
@@ -40,6 +44,7 @@ export const steelRunner: Runner = {
           `Workflow ${workflowId} spec betöltve. Platform: ${spec.platform ?? "n/a"}, fiók: ${spec.account_label ?? "n/a"}.`,
         ),
         log("info", `Credential: ${credentialsLabel ?? "nincs mentve"}`),
+        log("info", `Proxy: ${creds?.proxy ? "✓ konfigurálva" : "✗ nincs"} · Cookie: ${creds?.cookie ? "✓ betöltésre kész" : "✗ nincs"}`),
         log("info", "Emberi viselkedés-szimuláció: várakozás 1.2s …"),
         log("info", "Szimulált poszt elküldve. ✅"),
       ];
@@ -55,22 +60,27 @@ export const steelRunner: Runner = {
 
     // --- Éles Steel.dev session létrehozása ---
     try {
+      // Proxy parse (http://user:pass@host:port) → Steel sessionConfig
+      const sessionBody: Record<string, unknown> = {
+        sessionTimeout: 5 * 60 * 1000,
+        blockAds: true,
+        isSelenium: false,
+        stealthConfig: {
+          humanlikeInteractions: true,
+          skipFingerprintInjection: false,
+        },
+      };
+      if (creds?.proxy) {
+        sessionBody.proxyUrl = creds.proxy;
+      }
+
       const res = await fetch("https://api.steel.dev/v1/sessions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Steel-Api-Key": apiKey,
         },
-        body: JSON.stringify({
-          // Konzervatív default — később per-workflow konfigolható.
-          sessionTimeout: 5 * 60 * 1000,
-          blockAds: true,
-          isSelenium: false,
-          stealthConfig: {
-            humanlikeInteractions: true,
-            skipFingerprintInjection: false,
-          },
-        }),
+        body: JSON.stringify(sessionBody),
       });
 
       if (!res.ok) {
