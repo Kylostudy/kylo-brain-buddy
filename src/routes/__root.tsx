@@ -11,6 +11,10 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -101,7 +105,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
@@ -118,8 +122,32 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <AppShell>
+        <Outlet />
+      </AppShell>
+      <Toaster richColors position="top-right" />
     </QueryClientProvider>
+  );
+}
+
+function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background text-foreground">
+        <AppSidebar />
+        <div className="flex min-h-screen flex-1 flex-col">
+          <header className="flex h-12 shrink-0 items-center justify-between border-b px-3">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger />
+              <span className="text-sm font-medium text-muted-foreground">
+                Brain
+              </span>
+            </div>
+            <ThemeToggle />
+          </header>
+          <main className="flex flex-1 flex-col overflow-hidden">{children}</main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
