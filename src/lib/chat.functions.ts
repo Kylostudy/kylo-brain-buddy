@@ -120,8 +120,8 @@ export const generateReply = createServerFn({ method: "POST" })
     if (wfErr) throw new Error(wfErr.message);
     if (msgErr) throw new Error(msgErr.message);
 
-    const currentSpec =
-      (wf?.spec as Record<string, unknown> | null) ?? {};
+    const currentSpec: WorkflowSpec =
+      (wf?.spec as WorkflowSpec | null) ?? {};
 
     const history: GeminiContent[] = (rows ?? []).map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
