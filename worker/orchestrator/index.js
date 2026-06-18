@@ -33,7 +33,7 @@ async function pickNextRun() {
   const { data } = await supabase
     .from("workflow_runs")
     .select("id, workflow_id, spec_snapshot, runner")
-    .eq("runner", "docker")
+    .in("runner", ["docker", "steel"])
     .eq("status", "queued")
     .order("created_at", { ascending: true })
     .limit(1);
@@ -88,7 +88,11 @@ function runContainer(row, creds) {
       "run", "--rm",
       "--network", "bridge",
       "-e", `SPEC_JSON=${JSON.stringify(row.spec_snapshot ?? {})}`,
+      "-e", `RUNNER=${row.runner || "docker"}`,
     ];
+    if (row.runner === "steel" && process.env.STEEL_API_KEY) {
+      args.push("-e", `STEEL_API_KEY=${process.env.STEEL_API_KEY}`);
+    }
     if (creds) {
       args.push("-e", `CREDENTIALS_JSON=${JSON.stringify(creds)}`);
     }
