@@ -54,6 +54,8 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          ready_for_test: boolean
+          spec: Json
           status: string
           tenant_id: string
           updated_at: string
@@ -62,6 +64,8 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          ready_for_test?: boolean
+          spec?: Json
           status?: string
           tenant_id?: string
           updated_at?: string
@@ -70,6 +74,8 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          ready_for_test?: boolean
+          spec?: Json
           status?: string
           tenant_id?: string
           updated_at?: string

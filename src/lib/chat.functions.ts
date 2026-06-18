@@ -3,26 +3,83 @@ import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-const SYSTEM_PROMPT = `Te a "Brain" vagy — egy magyar nyelvű, B2B automatizációs asszisztens.
-A felhasználó egy gerilla social media feltöltő platformot épít, és veled tanít be egy-egy "workflow"-t (pl. "magyar TikTok csatorna napi posztolás").
+const SYSTEM_PROMPT = `Te a "Brain" vagy — egy magyar nyelvű, B2B social media automatizációs asszisztens.
+A felhasználó egy gerilla feltöltő platformot épít, és veled tanít be egy-egy "workflow"-t (pl. "magyar TikTok csatorna napi posztolás").
 
-Feladatod: emberi módon, türelmesen, EGYESÉVEL tedd fel a szükséges kérdéseket, hogy fel tudd építeni a workflow specifikációját. Soha ne kérdezz egyszerre 3-4 dolgot — egy kérdés, megvárod a választ, jössz a következővel.
+FELADAT
+- Emberi módon, türelmesen, EGYESÉVEL tedd fel a szükséges kérdéseket.
+- Egy kérdés egyszerre, várd meg a választ, jöjjön a következő.
+- Tömör, profi magyar B2B hangvétel. Markdown megengedett.
 
-A betanításhoz lefedendő témák (de természetesen, beszélgető stílusban):
-1. Cél platform (TikTok / Instagram / Facebook / Pinterest / YouTube / X / LinkedIn / Reddit / Threads stb.)
-2. Fiók-azonosítás (melyik account, e-mail, ország/nyelv)
-3. Tartalom típusa (videó / kép / szöveg / story / reel)
-4. Tartalom forrása (honnan jön — feltöltés, mappa, AI generálás)
-5. Ütemezés (mikor, milyen gyakran, mely időzónában)
-6. Caption / hashtag stratégia
-7. Kill switch szabályok (pl. ugyanazon IP-n nem futhat két TikTok egyszerre, napi limit, hibák esetén leállás)
-8. Emberi viselkedés paraméterek (késleltetés, kurzormozgás random, gépelési sebesség)
-9. Sikerkritérium (mit nevezünk sikeres posztnak)
+A SPEC MEZŐI (amit a beszélgetés alatt össze kell gyűjtened):
+- platform: cél platform (TikTok / Instagram / Facebook / Pinterest / YouTube / X / LinkedIn / Reddit / Threads stb.)
+- account_label: melyik fiók (pl. "magyar TikTok @kylohu")
+- content_type: tartalom típusa (videó / kép / story / reel / szöveg)
+- content_source: honnan jön a tartalom (mappa / feltöltés / AI generálás)
+- schedule: ütemezés szöveggel (pl. "minden nap 19:00 CET")
+- caption_strategy: caption / hashtag stratégia
+- kill_switches: leállító szabályok listája (pl. "ugyanazon IP-n max 1 TikTok session")
+- human_behavior: emberi viselkedés paraméterek (késleltetés, görgetés, gépelési sebesség)
+- success_criteria: mit nevezünk sikeres posztnak
 
-Stílus: tömör, magyar, profi B2B hangvétel. Markdown formázás megengedett. Soha ne adj kódot, ha nem kér rá. Ha valami nem világos, kérdezz vissza. Ha elég infód van egy témához, foglalja össze röviden és lépj a következőre.`;
+MINDEN VÁLASZODBAN:
+1) reply: amit a felhasználónak mondasz (magyarul, természetes hangon, EGY kérdéssel a végén — kivéve ha már kész vagy).
+2) spec_patch: csak azokat a mezőket add meg, amelyeket épp most tudtál meg vagy pontosítottál. A többit hagyd ki. Ne találj ki adatot.
+3) ready: true, AKKOR és csak akkor, ha minden lényeges mező (platform, account_label, content_type, content_source, schedule, és legalább 1 kill_switch) ki van töltve. Ilyenkor a reply-ban foglald össze 4-6 pontban a tervet és a végén kérdezd meg: "**Kész a spec, mehet a teszt?**" — ne tegyél fel új kérdést.
+
+FONTOS: a ready=true jelzés után se írj több kérdést, csak az összefoglalót és a "Kész a spec, mehet a teszt?" kérdést.`;
 
 type GeminiPart = { text: string };
 type GeminiContent = { role: "user" | "model"; parts: GeminiPart[] };
+
+const RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    reply: { type: "STRING" },
+    spec_patch: {
+      type: "OBJECT",
+      properties: {
+        platform: { type: "STRING" },
+        account_label: { type: "STRING" },
+        content_type: { type: "STRING" },
+        content_source: { type: "STRING" },
+        schedule: { type: "STRING" },
+        caption_strategy: { type: "STRING" },
+        kill_switches: { type: "ARRAY", items: { type: "STRING" } },
+        human_behavior: { type: "STRING" },
+        success_criteria: { type: "STRING" },
+      },
+    },
+    ready: { type: "BOOLEAN" },
+  },
+  required: ["reply", "spec_patch", "ready"],
+} as const;
+
+export type WorkflowSpec = {
+  platform?: string;
+  account_label?: string;
+  content_type?: string;
+  content_source?: string;
+  schedule?: string;
+  caption_strategy?: string;
+  kill_switches?: string[];
+  human_behavior?: string;
+  success_criteria?: string;
+};
+
+type SpecPatch = WorkflowSpec;
+
+function mergeSpec(prev: WorkflowSpec, patch: SpecPatch): WorkflowSpec {
+  const next: WorkflowSpec = { ...prev };
+  for (const [k, v] of Object.entries(patch) as Array<[keyof WorkflowSpec, unknown]>) {
+    if (v === undefined || v === null) continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+    if (typeof v === "string" && v.trim() === "") continue;
+    // @ts-expect-error union assignment is fine here
+    next[k] = v;
+  }
+  return next;
+}
 
 export const generateReply = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
@@ -39,34 +96,59 @@ export const generateReply = createServerFn({ method: "POST" })
       throw new Error("GEMINI_API_KEY hiányzik a szerver környezetből.");
     }
 
-    // Pull conversation history (read-only, public anon client is fine — RLS dev policy)
     const supabase = createClient<Database>(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_PUBLISHABLE_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
 
-    const { data: rows, error } = await supabase
-      .from("messages")
-      .select("role, content, created_at")
-      .eq("workflow_id", data.workflowId)
-      .order("created_at", { ascending: true })
-      .limit(100);
-    if (error) throw new Error(error.message);
+    // Load existing spec + message history
+    const [{ data: wf, error: wfErr }, { data: rows, error: msgErr }] =
+      await Promise.all([
+        supabase
+          .from("workflows")
+          .select("spec")
+          .eq("id", data.workflowId)
+          .single(),
+        supabase
+          .from("messages")
+          .select("role, content, created_at")
+          .eq("workflow_id", data.workflowId)
+          .order("created_at", { ascending: true })
+          .limit(100),
+      ]);
+    if (wfErr) throw new Error(wfErr.message);
+    if (msgErr) throw new Error(msgErr.message);
+
+    const currentSpec: WorkflowSpec =
+      (wf?.spec as WorkflowSpec | null) ?? {};
 
     const history: GeminiContent[] = (rows ?? []).map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
 
-    // Append the current user message (it may not be in DB yet depending on race)
+    const last = history[history.length - 1];
     if (
-      history.length === 0 ||
-      history[history.length - 1].role !== "user" ||
-      history[history.length - 1].parts[0]?.text !== data.userText
+      !last ||
+      last.role !== "user" ||
+      last.parts[0]?.text !== data.userText
     ) {
       history.push({ role: "user", parts: [{ text: data.userText }] });
     }
+
+    // Prepend current spec as context so the model knows what's already known.
+    const specContext: GeminiContent = {
+      role: "user",
+      parts: [
+        {
+          text:
+            `[SPEC STATE - belső kontextus, ne idézd]\n` +
+            JSON.stringify(currentSpec, null, 2),
+        },
+      ],
+    };
+    const contents = [specContext, ...history];
 
     const model = "gemini-2.5-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -76,10 +158,12 @@ export const generateReply = createServerFn({ method: "POST" })
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { role: "system", parts: [{ text: SYSTEM_PROMPT }] },
-        contents: history,
+        contents,
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.6,
           maxOutputTokens: 2048,
+          responseMimeType: "application/json",
+          responseSchema: RESPONSE_SCHEMA,
         },
       }),
     });
@@ -93,9 +177,80 @@ export const generateReply = createServerFn({ method: "POST" })
     const json = (await res.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
-    const reply =
+    const raw =
       json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ??
-      "_(Üres válasz a modelltől.)_";
+      "";
 
-    return { reply };
+    let parsed: { reply: string; spec_patch: SpecPatch; ready: boolean };
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = {
+        reply: raw || "_(Üres válasz a modelltől.)_",
+        spec_patch: {},
+        ready: false,
+      };
+    }
+
+    const nextSpec = mergeSpec(currentSpec, parsed.spec_patch ?? {});
+
+    // Persist updated spec + ready flag (only flip ready=true upward; once true stays true)
+    const updatePayload: { spec: WorkflowSpec; updated_at: string; ready_for_test?: boolean } = {
+      spec: nextSpec,
+      updated_at: new Date().toISOString(),
+    };
+    if (parsed.ready === true) updatePayload.ready_for_test = true;
+
+    const { error: updErr } = await supabase
+      .from("workflows")
+      .update(updatePayload as never)
+      .eq("id", data.workflowId);
+    if (updErr) console.error("Workflow update error", updErr);
+
+    return {
+      reply: parsed.reply,
+      spec: nextSpec,
+      ready: parsed.ready === true,
+    };
+  });
+
+export const renameWorkflow = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        workflowId: z.string().uuid(),
+        name: z.string().min(1).max(120),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const supabase = createClient<Database>(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const { error } = await supabase
+      .from("workflows")
+      .update({ name: data.name.trim() })
+      .eq("id", data.workflowId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const resetReadyForTest = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ workflowId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const supabase = createClient<Database>(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const { error } = await supabase
+      .from("workflows")
+      .update({ ready_for_test: false })
+      .eq("id", data.workflowId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

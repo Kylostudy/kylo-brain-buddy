@@ -1,6 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, MessageSquare, Trash2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Plus, MessageSquare, Trash2, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -16,7 +18,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { renameWorkflow } from "@/lib/chat.functions";
 import logo from "@/assets/kylo-brain-logo.png";
 
 type Workflow = {
@@ -38,14 +42,23 @@ async function fetchWorkflows(): Promise<Workflow[]> {
 export function AppSidebar() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const callRename = useServerFn(renameWorkflow);
   const currentPath = useRouterState({
     select: (s) => s.location.pathname,
   });
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const editInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: workflows = [], isLoading } = useQuery({
     queryKey: ["workflows"],
     queryFn: fetchWorkflows,
   });
+
+  useEffect(() => {
+    if (editingId) editInputRef.current?.focus();
+  }, [editingId]);
 
   async function createWorkflow() {
     const { data, error } = await supabase
@@ -58,6 +71,9 @@ export function AppSidebar() {
       return;
     }
     await qc.invalidateQueries({ queryKey: ["workflows"] });
+    // Open it and immediately put it into rename mode so the user can name it.
+    setDraft("");
+    setEditingId(data.id);
     navigate({ to: "/w/$workflowId", params: { workflowId: data.id } });
   }
 
@@ -69,6 +85,30 @@ export function AppSidebar() {
     }
     await qc.invalidateQueries({ queryKey: ["workflows"] });
     if (currentPath === `/w/${id}`) navigate({ to: "/" });
+  }
+
+  function startEdit(wf: Workflow, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraft(wf.name);
+    setEditingId(wf.id);
+  }
+
+  async function commitEdit(id: string) {
+    const next = draft.trim();
+    const original = workflows.find((w) => w.id === id)?.name ?? "";
+    setEditingId(null);
+    if (!next || next === original) return;
+    try {
+      await callRename({ data: { workflowId: id, name: next } });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["workflows"] }),
+        qc.invalidateQueries({ queryKey: ["workflow", id] }),
+      ]);
+    } catch (e) {
+      console.error(e);
+      toast.error("Átnevezés sikertelen");
+    }
   }
 
   return (
@@ -120,31 +160,80 @@ export function AppSidebar() {
               )}
               {workflows.map((wf) => {
                 const active = currentPath === `/w/${wf.id}`;
+                const isEditing = editingId === wf.id;
                 return (
                   <SidebarMenuItem key={wf.id}>
-                    <div className="group/item flex items-center gap-1">
-                      <SidebarMenuButton asChild isActive={active} className="flex-1">
-                        <Link
-                          to="/w/$workflowId"
-                          params={{ workflowId: wf.id }}
-                          className="flex items-center gap-2"
+                    {isEditing ? (
+                      <div className="flex items-center gap-1 px-1 group-data-[collapsible=icon]:hidden">
+                        <Input
+                          ref={editInputRef}
+                          value={draft}
+                          onChange={(e) => setDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitEdit(wf.id);
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                          onBlur={() => commitEdit(wf.id)}
+                          className="h-7 text-xs"
+                          placeholder="Workflow neve"
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            commitEdit(wf.id);
+                          }}
+                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                          aria-label="Mentés"
                         >
-                          <MessageSquare className="size-4 shrink-0" />
-                          <span className="truncate">{wf.name}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          deleteWorkflow(wf.id);
-                        }}
-                        className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
-                        aria-label="Törlés"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
+                          <Check className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setEditingId(null);
+                          }}
+                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                          aria-label="Mégse"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="group/item flex items-center gap-1">
+                        <SidebarMenuButton asChild isActive={active} className="flex-1">
+                          <Link
+                            to="/w/$workflowId"
+                            params={{ workflowId: wf.id }}
+                            onDoubleClick={(e) => startEdit(wf, e)}
+                            className="flex items-center gap-2"
+                          >
+                            <MessageSquare className="size-4 shrink-0" />
+                            <span className="truncate">{wf.name}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                        <button
+                          type="button"
+                          onClick={(e) => startEdit(wf, e)}
+                          className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+                          aria-label="Átnevezés"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            deleteWorkflow(wf.id);
+                          }}
+                          className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+                          aria-label="Törlés"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </SidebarMenuItem>
                 );
               })}
