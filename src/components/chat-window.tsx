@@ -169,7 +169,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
           </PromptInputFooter>
         </PromptInput>
         <p className="mt-2 text-center text-[10px] text-muted-foreground">
-          Mock válasz aktív · Gemini bekötés után élesedik
+          Gemini 2.5 Flash · betanítási mód
         </p>
       </div>
     </div>
