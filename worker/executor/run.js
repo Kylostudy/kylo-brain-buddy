@@ -42,12 +42,58 @@ async function main() {
     `Indítás — platform: ${spec.platform || "n/a"}, fiók: ${spec.account_label || "n/a"}, cred: ${creds ? "✓" : "✗"}`,
   );
 
-  const browser = await chromium.launch({ headless: true });
+  // Proxy átirányítás, ha a credentialben van. Formátum: http://user:pass@host:port
+  const launchOpts = { headless: true };
+  if (creds?.proxy) {
+    try {
+      const u = new URL(creds.proxy);
+      launchOpts.proxy = {
+        server: `${u.protocol}//${u.host}`,
+        username: u.username ? decodeURIComponent(u.username) : undefined,
+        password: u.password ? decodeURIComponent(u.password) : undefined,
+      };
+      log("info", `Proxy aktív: ${u.host} (Dolphin-azonos IP)`);
+    } catch (e) {
+      log("warn", `Proxy URL nem értelmezhető: ${e.message}`);
+    }
+  }
+  const browser = await chromium.launch(launchOpts);
   const context = await browser.newContext({
     userAgent:
       "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
     viewport: { width: 1280, height: 800 },
   });
+
+  // Session cookie-k injektálása (Dolphin / EditThisCookie JSON export)
+  if (creds?.cookies) {
+    try {
+      const parsed = JSON.parse(creds.cookies);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const norm = parsed
+          .map((c) => ({
+            name: c.name,
+            value: c.value,
+            domain: c.domain,
+            path: c.path || "/",
+            expires: c.expirationDate || c.expires || -1,
+            httpOnly: !!c.httpOnly,
+            secure: !!c.secure,
+            sameSite:
+              c.sameSite === "no_restriction" || c.sameSite === "None"
+                ? "None"
+                : c.sameSite === "lax" || c.sameSite === "Lax"
+                  ? "Lax"
+                  : "Strict",
+          }))
+          .filter((c) => c.name && c.domain);
+        await context.addCookies(norm);
+        log("info", `Cookie-k injektálva: ${norm.length} db (session folytatás).`);
+      }
+    } catch (e) {
+      log("warn", `Cookie parse hiba: ${e.message}`);
+    }
+  }
+
   const page = await context.newPage();
 
   try {
