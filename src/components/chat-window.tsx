@@ -53,7 +53,7 @@ async function fetchMessages(workflowId: string): Promise<DbMessage[]> {
 
 export function ChatWindow({ workflowId }: { workflowId: string }) {
   const qc = useQueryClient();
-  const callMock = useServerFn(generateMockReply);
+  const callAI = useServerFn(generateReply);
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
