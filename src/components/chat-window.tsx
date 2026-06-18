@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Brain } from "lucide-react";
+import { Brain, Mic, Play, Pencil } from "lucide-react";
 
 import {
   Conversation,
@@ -29,10 +29,15 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
-import { Mic } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 import { supabase } from "@/integrations/supabase/client";
-import { generateReply } from "@/lib/chat.functions";
+import {
+  generateReply,
+  renameWorkflow,
+  resetReadyForTest,
+} from "@/lib/chat.functions";
+import { SpecPanel } from "@/components/spec-panel";
 
 type DbMessage = {
   id: string;
@@ -51,21 +56,60 @@ async function fetchMessages(workflowId: string): Promise<DbMessage[]> {
   return data ?? [];
 }
 
+async function fetchWorkflowMeta(workflowId: string) {
+  const { data, error } = await supabase
+    .from("workflows")
+    .select("name, ready_for_test")
+    .eq("id", workflowId)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export function ChatWindow({ workflowId }: { workflowId: string }) {
   const qc = useQueryClient();
   const callAI = useServerFn(generateReply);
+  const callRename = useServerFn(renameWorkflow);
+  const callResetReady = useServerFn(resetReadyForTest);
   const [sending, setSending] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", workflowId],
     queryFn: () => fetchMessages(workflowId),
   });
 
+  const { data: meta } = useQuery({
+    queryKey: ["workflow", workflowId],
+    queryFn: () => fetchWorkflowMeta(workflowId),
+    refetchInterval: 2000,
+  });
+
   useEffect(() => {
-    // Focus textarea on mount + workflow change
     textareaRef.current?.focus();
+    setEditingName(false);
   }, [workflowId]);
+
+  useEffect(() => {
+    if (editingName) nameInputRef.current?.focus();
+  }, [editingName]);
+
+  async function commitRename() {
+    const next = nameDraft.trim();
+    setEditingName(false);
+    if (!next || next === meta?.name) return;
+    try {
+      await callRename({ data: { workflowId, name: next } });
+      await qc.invalidateQueries({ queryKey: ["workflow", workflowId] });
+      await qc.invalidateQueries({ queryKey: ["workflows"] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Átnevezés sikertelen");
+    }
+  }
 
   async function handleSubmit(msg: PromptInputMessage) {
     const text = msg.text?.trim();
@@ -73,7 +117,6 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     setSending(true);
 
     try {
-      // 1) Save user message
       const { error: userErr } = await supabase.from("messages").insert({
         workflow_id: workflowId,
         role: "user",
@@ -82,96 +125,173 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
       if (userErr) throw userErr;
       await qc.invalidateQueries({ queryKey: ["messages", workflowId] });
 
-      // 2) Get mock AI reply
-      const { reply } = await callAI({
+      const result = await callAI({
         data: { userText: text, workflowId },
       });
 
-      // 3) Save assistant message
       const { error: aiErr } = await supabase.from("messages").insert({
         workflow_id: workflowId,
         role: "assistant",
-        content: reply,
+        content: result.reply,
       });
       if (aiErr) throw aiErr;
 
-      await qc.invalidateQueries({ queryKey: ["messages", workflowId] });
-      await qc.invalidateQueries({ queryKey: ["workflows"] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["messages", workflowId] }),
+        qc.invalidateQueries({ queryKey: ["workflow", workflowId] }),
+        qc.invalidateQueries({ queryKey: ["workflows"] }),
+      ]);
     } catch (e) {
       console.error(e);
-      toast.error("Üzenet küldése sikertelen");
+      toast.error(
+        e instanceof Error ? e.message : "Üzenet küldése sikertelen",
+      );
     } finally {
       setSending(false);
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
   }
 
+  async function handleStartTest() {
+    toast.success("Teszt indítás — hamarosan élesedik. A spec elmentve.");
+    // Optional: reset the flag so the banner doesn't keep nagging.
+    await callResetReady({ data: { workflowId } });
+    await qc.invalidateQueries({ queryKey: ["workflow", workflowId] });
+  }
+
+  async function handleEditMore() {
+    await callResetReady({ data: { workflowId } });
+    await qc.invalidateQueries({ queryKey: ["workflow", workflowId] });
+    textareaRef.current?.focus();
+  }
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <Conversation className="flex-1">
-        <ConversationContent className="mx-auto w-full max-w-3xl">
-          {messages.length === 0 ? (
-            <ConversationEmptyState
-              icon={<Brain className="size-10" />}
-              title="Új workflow tanítása"
-              description="Mondd el lépésről lépésre, mit szeretnél automatizálni. A Brain emberi módon, óvatosan, kérdésekkel haladva építi fel a folyamatot."
+    <div className="flex h-full min-h-0">
+      <div className="flex h-full min-h-0 flex-1 flex-col">
+        {/* Header with editable name */}
+        <div className="flex items-center gap-2 border-b px-4 py-2.5">
+          {editingName ? (
+            <Input
+              ref={nameInputRef}
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                if (e.key === "Escape") setEditingName(false);
+              }}
+              className="h-8 max-w-sm text-sm font-medium"
             />
           ) : (
-            messages.map((m) => (
-              <Message key={m.id} from={m.role as "user" | "assistant"}>
+            <button
+              type="button"
+              className="group/name flex items-center gap-2 rounded px-1.5 py-1 -mx-1.5 text-sm font-medium hover:bg-accent"
+              onClick={() => {
+                setNameDraft(meta?.name ?? "");
+                setEditingName(true);
+              }}
+              title="Kattints az átnevezéshez"
+            >
+              <span className="truncate">{meta?.name ?? "Workflow"}</span>
+              <Pencil className="size-3.5 opacity-0 transition group-hover/name:opacity-60" />
+            </button>
+          )}
+        </div>
+
+        <Conversation className="flex-1">
+          <ConversationContent className="mx-auto w-full max-w-3xl">
+            {messages.length === 0 ? (
+              <ConversationEmptyState
+                icon={<Brain className="size-10" />}
+                title="Új workflow tanítása"
+                description="Mondd el lépésről lépésre, mit szeretnél automatizálni. A Brain emberi módon, óvatosan, kérdésekkel haladva építi fel a folyamatot."
+              />
+            ) : (
+              messages.map((m) => (
+                <Message key={m.id} from={m.role as "user" | "assistant"}>
+                  <MessageContent>
+                    {m.role === "assistant" ? (
+                      <MessageResponse>{m.content}</MessageResponse>
+                    ) : (
+                      <div className="whitespace-pre-wrap">{m.content}</div>
+                    )}
+                  </MessageContent>
+                </Message>
+              ))
+            )}
+
+            {sending && (
+              <Message from="assistant">
                 <MessageContent>
-                  {m.role === "assistant" ? (
-                    <MessageResponse>{m.content}</MessageResponse>
-                  ) : (
-                    <div className="whitespace-pre-wrap">{m.content}</div>
-                  )}
+                  <Shimmer>Gondolkodom…</Shimmer>
                 </MessageContent>
               </Message>
-            ))
-          )}
+            )}
 
-          {sending && (
-            <Message from="assistant">
-              <MessageContent>
-                <Shimmer>Gondolkodom…</Shimmer>
-              </MessageContent>
-            </Message>
-          )}
-        </ConversationContent>
-        <ConversationScrollButton />
-      </Conversation>
+            {meta?.ready_for_test && !sending && (
+              <div className="mx-auto mt-2 w-full max-w-2xl rounded-lg border border-primary/40 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                    <Play className="size-4" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">
+                      Kész a spec, mehet a teszt?
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      A Brain összegyűjtötte a workflow alapjait. Most lefuttathatsz egy próba feltöltést, vagy folytathatod a finomhangolást.
+                    </p>
+                    <div className="mt-3 flex gap-2">
+                      <Button size="sm" onClick={handleStartTest}>
+                        <Play className="size-3.5" />
+                        Teszt indítása
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={handleEditMore}>
+                        Még pontosítok
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
 
-      <div className="mx-auto w-full max-w-3xl px-4 pb-4">
-        <PromptInput onSubmit={handleSubmit} accept="image/*,application/pdf" multiple>
-          <PromptInputTextarea
-            ref={textareaRef}
-            placeholder="Írd le a workflow következő lépését…"
-          />
-          <PromptInputFooter>
-            <PromptInputTools>
-              <PromptInputActionMenu>
-                <PromptInputActionMenuTrigger />
-                <PromptInputActionMenuContent>
-                  <PromptInputActionAddAttachments />
-                </PromptInputActionMenuContent>
-              </PromptInputActionMenu>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Hangrögzítés (hamarosan)"
-                onClick={() => toast.info("Mikrofon: hamarosan")}
-              >
-                <Mic className="size-4" />
-              </Button>
-            </PromptInputTools>
-            <PromptInputSubmit status={sending ? "submitted" : undefined} />
-          </PromptInputFooter>
-        </PromptInput>
-        <p className="mt-2 text-center text-[10px] text-muted-foreground">
-          Gemini 2.5 Flash · betanítási mód
-        </p>
+        <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+          <PromptInput onSubmit={handleSubmit} accept="image/*,application/pdf" multiple>
+            <PromptInputTextarea
+              ref={textareaRef}
+              placeholder="Írd le a workflow következő lépését…"
+            />
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger />
+                  <PromptInputActionMenuContent>
+                    <PromptInputActionAddAttachments />
+                  </PromptInputActionMenuContent>
+                </PromptInputActionMenu>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Hangrögzítés (hamarosan)"
+                  onClick={() => toast.info("Mikrofon: hamarosan")}
+                >
+                  <Mic className="size-4" />
+                </Button>
+              </PromptInputTools>
+              <PromptInputSubmit status={sending ? "submitted" : undefined} />
+            </PromptInputFooter>
+          </PromptInput>
+          <p className="mt-2 text-center text-[10px] text-muted-foreground">
+            Gemini 2.5 Flash · betanítási mód
+          </p>
+        </div>
       </div>
+
+      <SpecPanel workflowId={workflowId} />
     </div>
   );
 }
