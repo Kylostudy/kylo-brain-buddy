@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { encryptString, decryptString } from "@/lib/credentials/crypto.server";
 
 function serverSupabase() {
   return createClient<Database>(
@@ -83,7 +84,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const { encryptString } = await import("@/lib/credentials/crypto.server");
+    // encryptString → server-only import a fájl tetején
     const supabase = serverSupabase();
 
     // Olvassuk be a meglévőt (ha van) — hogy a nem érintett mezőket megtartsuk.
@@ -100,7 +101,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
     };
 
     if (data.password !== undefined) {
-      const { ciphertext, nonce } = encryptString(data.password);
+      const { ciphertext, nonce } = await encryptString(data.password);
       payload.password_ciphertext = ciphertext;
       payload.password_nonce = nonce;
     } else if (data.clearPassword) {
@@ -112,7 +113,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
     }
 
     if (data.cookie !== undefined) {
-      const { ciphertext, nonce } = encryptString(data.cookie);
+      const { ciphertext, nonce } = await encryptString(data.cookie);
       payload.cookie_ciphertext = ciphertext;
       payload.cookie_nonce = nonce;
     } else if (data.clearCookie) {
@@ -124,7 +125,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
     }
 
     if (data.totpSecret !== undefined) {
-      const { ciphertext, nonce } = encryptString(data.totpSecret);
+      const { ciphertext, nonce } = await encryptString(data.totpSecret);
       payload.totp_secret_ciphertext = ciphertext;
       payload.totp_nonce = nonce;
     } else if (data.clearTotp) {
@@ -136,7 +137,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
     }
 
     if (data.proxy !== undefined) {
-      const { ciphertext, nonce } = encryptString(data.proxy);
+      const { ciphertext, nonce } = await encryptString(data.proxy);
       payload.proxy_ciphertext = ciphertext;
       payload.proxy_nonce = nonce;
     } else if (data.clearProxy) {
@@ -146,6 +147,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
       payload.proxy_ciphertext = (existing as { proxy_ciphertext?: string | null }).proxy_ciphertext ?? null;
       payload.proxy_nonce = (existing as { proxy_nonce?: string | null }).proxy_nonce ?? null;
     }
+
 
     const { error } = await supabase
       .from("workflow_credentials")
@@ -174,7 +176,7 @@ export const deleteCredentials = createServerFn({ method: "POST" })
  * Soha ne hívd kliensből — ez nem egy server function, csak `*.server.ts`-ből importálható.
  */
 export async function loadDecryptedCredentialsServer(workflowId: string) {
-  const { decryptString } = await import("@/lib/credentials/crypto.server");
+  // decryptString → server-only import a fájl tetején
   const supabase = serverSupabase();
   const { data: row, error } = await supabase
     .from("workflow_credentials")
