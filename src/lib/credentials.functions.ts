@@ -83,7 +83,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const { encryptString } = await import("@/lib/credentials/crypto.server");
+    const { encryptString } = await import(/* @vite-ignore */ "@/lib/credentials/crypto.server");
     const supabase = serverSupabase();
 
     // Olvassuk be a meglévőt (ha van) — hogy a nem érintett mezőket megtartsuk.
@@ -174,7 +174,7 @@ export const deleteCredentials = createServerFn({ method: "POST" })
  * Soha ne hívd kliensből — ez nem egy server function, csak `*.server.ts`-ből importálható.
  */
 export async function loadDecryptedCredentialsServer(workflowId: string) {
-  const { decryptString } = await import("@/lib/credentials/crypto.server");
+  const { decryptString } = await import(/* @vite-ignore */ "@/lib/credentials/crypto.server");
   const supabase = serverSupabase();
   const { data: row, error } = await supabase
     .from("workflow_credentials")
