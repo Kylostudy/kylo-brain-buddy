@@ -66,17 +66,19 @@ export const startRun = createServerFn({ method: "POST" })
     const runId = created!.id;
 
     // 3) Runner kiválasztása + indítása
-    const { steelRunner } = await import("@/lib/runners/steel.server");
-    const runner = steelRunner; // most csak ez van; később switch a `data.runner`-ön
+    const runner =
+      data.runner === "docker"
+        ? (await import("@/lib/runners/docker.server")).dockerRunner
+        : (await import("@/lib/runners/steel.server")).steelRunner;
 
     // Credential státusz lekérése (nem fejtjük vissza, csak jelezzük a logban)
     const { data: credRow } = await supabase
       .from("workflow_credentials")
-      .select("platform, username, password_ciphertext, cookie_ciphertext")
+      .select("platform, username, password_ciphertext, cookie_ciphertext, proxy_ciphertext")
       .eq("workflow_id", data.workflowId)
       .maybeSingle();
     const credStatus = credRow
-      ? `${credRow.platform}/${credRow.username} (${credRow.password_ciphertext ? "jelszó✓" : "jelszó✗"}, ${credRow.cookie_ciphertext ? "cookie✓" : "cookie✗"})`
+      ? `${credRow.platform}/${credRow.username} (${credRow.password_ciphertext ? "jelszó✓" : "jelszó✗"}, ${credRow.cookie_ciphertext ? "cookie✓" : "cookie✗"}, ${credRow.proxy_ciphertext ? "proxy✓" : "proxy✗"})`
       : "nincs mentve";
 
     try {
