@@ -104,6 +104,7 @@ export const steelRunner: Runner = {
           "info",
           `Workflow ${workflowId} spec átadva. Platform: ${spec.platform ?? "n/a"}.`,
         ),
+        log("info", `Credential: ${credentialsLabel ?? "nincs mentve"}`),
         log(
           "warn",
           "Playwright szkript még nincs bekötve — a session él, de tétlen. (Következő fázis.)",
