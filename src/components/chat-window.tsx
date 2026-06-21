@@ -274,13 +274,12 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                       </Button>
                       <select
                         value={runner}
-                        onChange={(e) => setRunner(e.target.value as "steel" | "docker")}
+                        onChange={(e) => setRunner(e.target.value as "docker")}
                         disabled={starting}
                         className="h-8 rounded-md border bg-background px-2 text-xs"
                         title="Hol fusson a teszt"
                       >
-                        <option value="steel">Steel.dev (felhő preview)</option>
-                        <option value="docker">Saját Docker worker (éles)</option>
+                        <option value="docker">Saját VPS worker (Playwright)</option>
                       </select>
                       <Button size="sm" variant="ghost" onClick={handleEditMore} disabled={starting}>
                         Még pontosítok
