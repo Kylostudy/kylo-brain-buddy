@@ -83,16 +83,27 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         let credentials: Record<string, string | null> | null = null;
         if (credRow) {
           const { decryptString } = await import("@/lib/credentials/crypto.server");
+          const safe = async (
+            ct: string | null,
+            n: string | null,
+          ): Promise<string | null> => {
+            if (!ct || !n) return null;
+            try {
+              return await decryptString(ct, n);
+            } catch {
+              return null;
+            }
+          };
           credentials = {
             platform: credRow.platform,
             username: credRow.username || null,
-            password: decryptString(credRow.password_ciphertext, credRow.password_nonce),
-            cookies: decryptString(credRow.cookie_ciphertext, credRow.cookie_nonce),
-            totpSecret: decryptString(
+            password: await safe(credRow.password_ciphertext, credRow.password_nonce),
+            cookies: await safe(credRow.cookie_ciphertext, credRow.cookie_nonce),
+            totpSecret: await safe(
               credRow.totp_secret_ciphertext,
               credRow.totp_nonce,
             ),
-            proxy: decryptString(credRow.proxy_ciphertext, credRow.proxy_nonce),
+            proxy: await safe(credRow.proxy_ciphertext, credRow.proxy_nonce),
           };
         }
 
