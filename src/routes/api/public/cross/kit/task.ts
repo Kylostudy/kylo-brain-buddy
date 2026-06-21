@@ -122,7 +122,7 @@ export const Route = createFileRoute("/api/public/cross/kit/task")({
             kit_user_id: body.user_id ?? null,
             kit_callback_url: body.kit_callback_url,
             task_type: body.task_type,
-            payload: (body.payload ?? {}) as object,
+            payload: (body.payload ?? {}) as never,
             status: "pending",
           });
 
