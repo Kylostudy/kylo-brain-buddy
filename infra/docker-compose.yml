@@ -1,0 +1,179 @@
+version: "3.9"
+
+# =============================================================================
+# Kylo Systems — Docker Compose stack
+# Futtatás: docker compose up -d
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # 1. PostgreSQL — Adatbázis (workflow-ok, felhasználók, LEGO könyvtár)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: kylo-postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kylo}
+      POSTGRES_USER: ${POSTGRES_USER:-kylo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-VALTOZTASD_MEG_EZT_A_JELSZOT}
+    volumes:
+      - /opt/kylo/postgres-data:/var/lib/postgresql/data
+      # Backup scriptek helye
+      - ./scripts/postgres-backup.sh:/docker-entrypoint-initdb.d/backup.sh:ro
+    ports:
+      - "127.0.0.1:5432:5432"  # Csak localhostról érhető el (biztonságos)
+    networks:
+      - kylo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kylo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # 2. Redis — Cache, queue, session tároló
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: kylo-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    command: redis-server --appendonly yes --maxmemory 192mb --maxmemory-policy allkeys-lru
+    volumes:
+      - /opt/kylo/redis-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"  # Csak localhostról érhető el
+    networks:
+      - kylo-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # 3. KyloBrain — Workflow kezelő, LEGO könyvtár, Gemini router
+  # ---------------------------------------------------------------------------
+  kylo-brain:
+    build:
+      context: ./kylo-brain
+      dockerfile: Dockerfile
+    container_name: kylo-brain
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-kylo}:${POSTGRES_PASSWORD:-VALTOZTASD_MEG_EZT_A_JELSZOT}@postgres:5432/${POSTGRES_DB:-kylo}
+      REDIS_URL: redis://redis:6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      LEGO_LIBRARY_PATH: /app/lego-library
+    volumes:
+      - /opt/kylo/lego-library:/app/lego-library
+      - /opt/kylo/logs:/app/logs
+    ports:
+      - "3000:3000"
+    networks:
+      - kylo-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # 4. KyloKit — Playwright session kezelő, böngésző izoláció
+  # ---------------------------------------------------------------------------
+  kylo-kit:
+    build:
+      context: ./kylo-kit
+      dockerfile: Dockerfile
+    container_name: kylo-kit
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.0'
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://${POSTGRES_USER:-kylo}:${POSTGRES_PASSWORD:-VALTOZTASD_MEG_EZT_A_JELSZOT}@postgres:5432/${POSTGRES_DB:-kylo}
+      REDIS_URL: redis://redis:6379
+      COOKIE_STORAGE_PATH: /app/cookies
+      # Böngésző izoláció: minden session külön context
+      MAX_PARALLEL_SESSIONS: ${MAX_PARALLEL_SESSIONS:-5}
+    volumes:
+      - /opt/kylo/cookies:/app/cookies:rw
+      - /opt/kylo/logs:/app/logs
+    ports:
+      - "3001:3001"
+    networks:
+      - kylo-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Biztonság: a konténer csak a szükséges capability-ket kapja
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
+  # ---------------------------------------------------------------------------
+  # 5. Nginx — Reverse proxy, SSL termination (később Certbot-tal)
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: kylo-nginx
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - /opt/kylo/logs/nginx:/var/log/nginx
+    networks:
+      - kylo-network
+    depends_on:
+      - kylo-brain
+      - kylo-kit
+
+# =============================================================================
+# Hálózatok
+# =============================================================================
+networks:
+  kylo-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# =============================================================================
+# Volume-ok (külső mount-ok használata helyett explicit)
+# =============================================================================
+# A volume-okat a /opt/kylo/ alatt tároljuk (lásd install.sh)
