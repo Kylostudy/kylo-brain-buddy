@@ -17,7 +17,7 @@ function serverSupabase() {
  * Új futtatás indítása — runner-agnosztikus.
  * 1) Beolvassa a workflow specet (snapshot).
  * 2) Beszúr egy `workflow_runs` sort `queued` státusszal.
- * 3) Behívja a megfelelő runnert (most: Steel).
+ * 3) Behívja a docker runnert (sorba teszi a saját VPS worker számára).
  * 4) Frissíti a sort az eredménnyel.
  */
 export const startRun = createServerFn({ method: "POST" })
@@ -25,7 +25,7 @@ export const startRun = createServerFn({ method: "POST" })
     z
       .object({
         workflowId: z.string().uuid(),
-        runner: z.enum(["steel", "docker", "local-mock"]).default("steel"),
+        runner: z.enum(["docker", "local-mock"]).default("docker"),
       })
       .parse(input),
   )
@@ -66,10 +66,7 @@ export const startRun = createServerFn({ method: "POST" })
     const runId = created!.id;
 
     // 3) Runner kiválasztása + indítása
-    const runner =
-      data.runner === "docker"
-        ? (await import("@/lib/runners/docker.server")).dockerRunner
-        : (await import("@/lib/runners/steel.server")).steelRunner;
+    const runner = (await import("@/lib/runners/docker.server")).dockerRunner;
 
     // Credential státusz lekérése (nem fejtjük vissza, csak jelezzük a logban)
     const { data: credRow } = await supabase

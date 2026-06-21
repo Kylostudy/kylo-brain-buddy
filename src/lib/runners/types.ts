@@ -1,12 +1,12 @@
 /**
- * Runner absztrakció — bármely backend (Steel.dev, saját Docker worker, helyi)
+ * Runner absztrakció — bármely backend (saját Docker worker, helyi mock)
  * ugyanezt az interface-t implementálja. A Brain és az UI nem tud róla,
  * melyik runner fut épp.
  */
 
 import type { WorkflowSpec } from "@/lib/chat.functions";
 
-export type RunnerName = "steel" | "docker" | "local-mock";
+export type RunnerName = "docker" | "local-mock";
 
 export type RunStatus =
   | "queued"
