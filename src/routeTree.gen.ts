@@ -15,6 +15,7 @@ import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
+import { Route as ApiPublicCrossKitTaskTask_idLogRouteImport } from './routes/api/public/cross/kit/task/$task_id/log'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,6 +48,12 @@ const ApiPublicCrossKitTaskRoute = ApiPublicCrossKitTaskRouteImport.update({
   path: '/api/public/cross/kit/task',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCrossKitTaskTask_idLogRoute =
+  ApiPublicCrossKitTaskTask_idLogRouteImport.update({
+    id: '/$task_id/log',
+    path: '/$task_id/log',
+    getParentRoute: () => ApiPublicCrossKitTaskRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,7 +61,8 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
-  '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRoute
+  '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,7 +70,8 @@ export interface FileRoutesByTo {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
-  '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRoute
+  '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,7 +80,8 @@ export interface FileRoutesById {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
-  '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRoute
+  '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -82,6 +92,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -90,6 +101,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kit/task/$task_id/log'
   id:
     | '__root__'
     | '/'
@@ -98,6 +110,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,7 +119,7 @@ export interface RootRouteChildren {
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
-  ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRoute
+  ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -153,8 +166,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrossKitTaskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cross/kit/task/$task_id/log': {
+      id: '/api/public/cross/kit/task/$task_id/log'
+      path: '/$task_id/log'
+      fullPath: '/api/public/cross/kit/task/$task_id/log'
+      preLoaderRoute: typeof ApiPublicCrossKitTaskTask_idLogRouteImport
+      parentRoute: typeof ApiPublicCrossKitTaskRoute
+    }
   }
 }
+
+interface ApiPublicCrossKitTaskRouteChildren {
+  ApiPublicCrossKitTaskTask_idLogRoute: typeof ApiPublicCrossKitTaskTask_idLogRoute
+}
+
+const ApiPublicCrossKitTaskRouteChildren: ApiPublicCrossKitTaskRouteChildren = {
+  ApiPublicCrossKitTaskTask_idLogRoute: ApiPublicCrossKitTaskTask_idLogRoute,
+}
+
+const ApiPublicCrossKitTaskRouteWithChildren =
+  ApiPublicCrossKitTaskRoute._addFileChildren(
+    ApiPublicCrossKitTaskRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -162,7 +195,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
-  ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRoute,
+  ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
