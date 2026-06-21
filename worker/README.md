@@ -1,74 +1,76 @@
-# Kylo Worker — saját vas, Docker-alapú futtató
+# KyloKit Worker — saját VPS, Docker + Playwright
 
-Ez a könyvtár a **jövőbeli** runner backendet tartalmazza, amit egy bérelt
-Linux szerveren (pl. Hetzner CX22, ~5 €/hó) fogsz futtatni, és ez váltja ki a
-Steel.dev-et, amint van pár stabil workflow.
+Ez a komponens a **saját szervereden** fut (95.216.224.103). Itt indulnak el
+a Playwright virtuális böngészők, amik az időzített / kézzel indított
+workflow-kat végrehajtják.
 
-A frontend / Brain **nem fog változni**, amikor erre váltunk — ugyanaz a
-`Runner` interface (`src/lib/runners/types.ts`), csak a `runs.functions.ts`-ben
-átírjuk, hogy ne a `steelRunner`-t hívja, hanem queue-zza ide.
+A KyloBrain (a felület + a hozzá tartozó backend) **Lovable Cloud-on marad**,
+ide csak a worker kerül. A két oldal egy publikus, megosztott tokennel
+védett HTTP API-n keresztül beszélget — a workernek nem kell se Supabase
+service-role kulcs, se DB hozzáférés.
 
-## Architektúra dióhéjban
+## Architektúra
 
-```
-Lovable app (Cloudflare)            Bérelt VPS (Docker host)
-┌──────────────────────────┐        ┌─────────────────────────────────────┐
-│ Brain UI                 │        │  worker-orchestrator (Node)         │
-│   ↓                      │  poll  │    - Supabase-ből húzza a queued    │
-│ startRun() server fn     │ ─────▶ │      workflow_runs sorokat          │
-│   ↓                      │        │    - spawn Docker container/run     │
-│ workflow_runs (Supabase) │ ◀───── │    - logokat + státuszt visszaír    │
-└──────────────────────────┘  upd   │                                     │
-                                    │  per-workflow Docker image:         │
-                                    │    playwright + spec executor       │
-                                    └─────────────────────────────────────┘
+```text
+KyloBrain (Lovable Cloud)              KyloKit worker (saját VPS)
+┌───────────────────────────┐          ┌──────────────────────────────────┐
+│  Felület + Backend        │  HTTPS   │  worker-orchestrator (Node)      │
+│                           │ ◀──────▶ │   - POST /api/public/worker/     │
+│  POST /api/public/worker/ │  Bearer  │       claim       (új job?)      │
+│    claim      complete    │  token   │       complete    (eredmény)     │
+│                           │          │   - docker run executor          │
+│  workflow_runs (DB)       │          │                                  │
+└───────────────────────────┘          │  executor image: Playwright +    │
+                                       │  Chromium, egy futás = 1 konténer │
+                                       └──────────────────────────────────┘
 ```
 
 ## Komponensek
 
-- **`orchestrator/`** — Node folyamat, ami Supabase-t pollozza, és minden
-  `queued` futtatáshoz egy Docker konténert indít. Frissíti a `workflow_runs`
-  sort státusszal + logokkal. Itt dekriptáljuk a `workflow_credentials`-t
-  (`crypto.js` — ugyanaz a HKDF + AES-256-GCM, mint a Lovable-oldalon), és
-  `CREDENTIALS_JSON` env-ben adjuk át a konténernek.
-- **`executor/`** — A konténer belseje. Egy Node + Playwright image, ami
-  bemenetként megkapja a `spec_snapshot` JSON-t és a visszafejtett creds-et,
-  majd platform szerint dispatchel (most: **TikTok**).
-- **`executor/scripts/tiktok.js`** — Login (cookie vagy user+pass) +
-  videófeltöltés a TikTok Studio-ra. Médiaforrás: URL (letöltés tempbe) vagy
-  konténerbe mountolt útvonal.
+- **`orchestrator/`** — Node folyamat, ami a Brain publikus job-API-ját
+  pollozza, és minden visszakapott jobra egy Docker konténert indít. A
+  konténer stdout JSON-line logjait visszaküldi a Brainnek a `complete`
+  végponton.
+- **`executor/`** — A konténer belseje. Node + Playwright image, ami a
+  `SPEC_JSON` env alapján dispatchel:
+  - `monitor_type: "decathlon-stock"` → `scripts/decathlon-stock.js`
+  - `platform: "tiktok"` → `scripts/tiktok.js`
 - **`Dockerfile`** — Az executor image build receptje.
 
-## Credential lánc
+## VPS telepítés (egyszeri)
 
+```sh
+# 1) Csatlakozás (felhasználói gépedről)
+ssh kylo@95.216.224.103
+
+# 2) Docker telepítése, ha még nincs (kylo legyen a docker csoportban)
+sudo apt update && sudo apt install -y docker.io docker-compose-v2
+sudo usermod -aG docker kylo
+newgrp docker
+
+# 3) Kódot másold fel (a saját gépedről)
+scp -r worker/ kylo@95.216.224.103:/home/kylo/kylokit
+
+# 4) .env létrehozása (a szerveren)
+cd /home/kylo/kylokit
+cp .env.example .env
+nano .env   # töltsd ki: BRAIN_URL, WORKER_API_TOKEN
+
+# 5) Indítás
+docker compose up -d --build
+
+# 6) Logok ellenőrzése
+docker compose logs -f orchestrator
 ```
-workflow_credentials (titkosított, Supabase)
-     ↓  (SUPABASE_SERVICE_ROLE_KEY a workeren)
-orchestrator/crypto.js  → decryptString()
-     ↓  CREDENTIALS_JSON env
-executor/run.js → runTikTok({ creds, ... })
+
+Egy egészséges futtatáskor 3 másodpercenként lát egy claim-próbálkozást a
+logban; ha a Brainen van queued job, akkor egy `[run <uuid>] start` →
+`[run <uuid>] succeeded|failed` sorpárt.
+
+## Frissítés
+
+```sh
+cd /home/kylo/kylokit
+git pull            # vagy újabb scp
+docker compose up -d --build
 ```
-
-A jelszó és TOTP-titok soha nem kerül logba, és csak a konténer élettartamára
-él az env-ben.
-
-
-## Hosting javaslat (~150 USD/hó helyett)
-
-- **Hetzner CX22** (2 vCPU, 4 GB RAM): ~5 €/hó — kezdésnek bőven elég
-  ~10-20 párhuzamos sessionhöz.
-- **Hetzner CCX13** (2 dedikált vCPU, 8 GB RAM): ~13 €/hó — ha kell a stabil
-  CPU.
-- Egy Docker host, `docker compose up -d`, és kész.
-
-## Indítási sorrend (későbbi fázis)
-
-1. Béreld a VPS-t, telepítsd a Docker-t.
-2. Másold ide ezt a könyvtárat (`scp -r worker/ root@host:/opt/kylo-worker`).
-3. `.env`-be: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `WORKER_ID`.
-4. `docker compose up -d --build`.
-5. A Lovable oldalon a `runs.functions.ts`-ben válts át: `runner: "docker"`
-   default, és csak hagyd a sort `queued` státuszban — a worker felveszi.
-
-> Most még nem aktív. Először a Steel.dev éles bekötése jön (`STEEL_API_KEY`
-> hozzáadása), aztán pár sikeres futtatás után váltunk át erre.
