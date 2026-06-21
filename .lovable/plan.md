@@ -1,106 +1,72 @@
-## Cél
+# Terv: Saját VPS Playwright workerek + első Decathlon-figyelő workflow
 
-Egyetlen Hetzner szerveren (95.216.224.103, Ubuntu 24.04 LTS) futtatjuk a **KyloBrain**-t (AI agent / chat backend) és a **KyloKit**-et (Playwright-alapú böngésző-automatizáció, "Dolphin"-szerű izolált profilokkal). A két rendszer **osztozik a szerver erőforrásain** (CPU, RAM, disk, hálózat), de **logikailag és biztonságilag el van választva** egymástól.
+## 1. Mit takarítunk el
 
----
+- **Steel.dev**: a kódban minden hivatkozást/függőséget kivezetünk (`src/lib/runners/steel.server.ts`, `runs.functions.ts` „steel" ága, worker `runner: "steel"` ág, README említései). A connector a Lovable beállításaiban maradhat, ezt nem te kötöd ki manuálisan, csak a kód nem fog ráhivatkozni.
 
-## Architektúra dióhéjban
+## 2. Architektúra tisztázása — fontos!
+
+Te ezt írtad: „Kylo kitnek a dockert, a Kylo brainnek a dockert". A jelenlegi felépítés miatt **a KyloBrain (a felület + a hozzá tartozó backend) nem kerül a te szerveredre** — az Lovable Cloud‑on fut (Cloudflare). A te VPS‑edre **csak a KyloKit worker** kerül, ami a virtuális böngészőket futtatja. Így néz ki:
 
 ```text
-                  ┌─────────────────────────────────────┐
-                  │     Hetzner szerver (Ubuntu 24)     │
-                  │                                     │
-   Internet ──►   │  Caddy (reverse proxy, HTTPS)       │
-                  │    │                                │
-                  │    ├─► brain.kylosystems.com  ──►  KyloBrain konténer
-                  │    └─► kit.kylosystems.com    ──►  KyloKit konténer
-                  │                                     │
-                  │  Docker (közös motor)               │
-                  │   ├── kylobrain      (Node/Bun API) │
-                  │   ├── kylokit-api    (vezérlő API)  │
-                  │   ├── kylokit-worker (Playwright)   │
-                  │   │     └── profil-1, profil-2, ... │
-                  │   ├── postgres       (közös DB)     │
-                  │   └── redis          (közös cache)  │
-                  │                                     │
-                  │  /opt/kylo/                         │
-                  │   ├── brain/   (kód + adat)         │
-                  │   ├── kit/     (kód + profilok)     │
-                  │   └── shared/  (postgres, redis)    │
-                  └─────────────────────────────────────┘
+Felhasználó böngészője
+        │
+        ▼
+KyloBrain (Lovable Cloud)         ← itt marad, ezt nem mozgatjuk
+   - UI, workflow definíciók
+   - jobok sorba állítása (workflow_runs tábla)
+   - publikus job‑API a workernek
+        │  HTTPS (megosztott titok)
+        ▼
+KyloKit worker (a Te VPS-ed, 95.216.224.103)
+   - orchestrator konténer: polloz, indít, jelent
+   - executor konténer: Playwright + Chromium, egy futás = egy konténer
 ```
 
-**Erőforrás-megosztás** úgy működik, hogy a Docker minden konténernek limitet adunk (pl. KyloBrain max 8 GB RAM, KyloKit worker max 2 GB/böngésző), és a Linux kernel osztja el a maradékot dinamikusan. Ha az egyik pihen, a másik kap többet.
+Ha tényleg külön KyloBrain‑docker kell a saját vasadon (pl. mert mindent ki akarsz költöztetni Lovable‑ből), azt egy későbbi, külön fázisban érdemes — most maradjunk a workernél, ahogy eddig is volt a terv.
 
----
+## 3. Hiányzó láncszem: hogyan szól a worker a backendhez
 
-## Lépések (sorrendben, ahogy haladunk)
+Eddig a worker közvetlenül a Supabase service‑role kulccsal akart írni‑olvasni. Lovable Cloud‑on ezt a kulcsot nem tudjuk a te kezedbe adni. Megoldás: **publikus job‑API a Brain oldalán**, megosztott titokkal (`WORKER_API_TOKEN`):
 
-### 1. Szerver alapbeállítás (biztonság először)
-- Bejelentkezés SSH-val, root jelszó cseréje
-- Új felhasználó (`kylo`) sudo joggal — root SSH letiltása
-- SSH-kulcs feltöltése (jelszavas login kikapcsolása)
-- Tűzfal (UFW): csak 22, 80, 443 port nyitva
-- Fail2ban (brute-force védelem)
-- Automatikus biztonsági frissítések
+- `GET  /api/public/worker/claim` — a worker elkér egy következő futtatható jobot
+- `POST /api/public/worker/heartbeat` — futás közbeni státusz/logok
+- `POST /api/public/worker/complete` — végeredmény (succeeded / failed + result)
 
-### 2. Alaprendszer (közös platform)
-- Docker + Docker Compose telepítés
-- Caddy reverse proxy (automatikus Let's Encrypt HTTPS)
-- DNS beállítás: `brain.kylosystems.com` és `kit.kylosystems.com` mutasson a szerver IP-jére
+Mindhárom végpont a kéréshez kötött `Authorization: Bearer <WORKER_API_TOKEN>` fejlécet ellenőrzi (timing‑safe), és csak ezután nyúl a DB‑hez. Ez teljesen kiváltja a service‑role kulcs igényét a workeren.
 
-### 3. Megosztott szolgáltatások (mindkét app használja)
-- **PostgreSQL** konténer — közös adatbázis, két külön sémával/DB-vel (`kylobrain`, `kylokit`)
-- **Redis** konténer — közös cache és job queue
+## 4. Decathlon 4XL fitness póló figyelő (első éles workflow)
 
-### 4. KyloBrain telepítés
-- Git repo klónozása `/opt/kylo/brain/`
-- `.env` fájl beállítása (DB connection, API kulcsok, Lovable AI Gateway)
-- Docker image build + indítás
-- Caddy route: `brain.kylosystems.com` → konténer
+- Új workflow‑típus: **„monitor"** — időzítve fut (pl. 15 percenként), nem egyszer.
+- Lovable Cloud‑oldalon egy cron (pg_cron vagy a Brain‑ben időzítő) berakja a workflow_runs sort, a worker pedig lefuttatja Playwrighttal.
+- Az executor új szkriptje: `executor/scripts/decathlon-stock.js`
+  - Megnyitja a megadott termékoldalt
+  - Megnézi, a 4XL méret kiválasztható‑e (nincs „nincs raktáron" felirat / aktív a Kosárba gomb)
+  - Eredmény: `{ available: true/false, size: "4XL", url, screenshot }`
+- Ha `available: true` és előzőleg `false` volt → **Telegram üzenet** a Lovable Telegram connectorán keresztül („Decathlon: most kapható 4XL [terméknév] — [link]").
+- Adott a duplikáció elleni védelem: utolsó N futás eredménye alapján csak állapotváltozáskor küld értesítést.
 
-### 5. KyloKit telepítés (Playwright + izolált profilok)
-- Git repo klónozása `/opt/kylo/kit/`
-- Playwright Docker image (hivatalos `mcr.microsoft.com/playwright`)
-- **Profil-izoláció**: minden böngésző-session külön Docker konténerben fut, saját:
-  - user data dir (cookie, localStorage, history)
-  - hálózati namespace (opcionálisan proxy-val)
-  - fingerprint (user-agent, viewport, timezone, locale)
-- Vezérlő API: REST/WebSocket, ami profilonként indít/leállít workert
-- Caddy route: `kit.kylosystems.com` → API konténer
+> Még meg kell mondanod a konkrét **Decathlon termékoldal URL‑t** (egy konkrét fitness pólóét, amit figyelni szeretnél), és hogy **mire jöjjön a Telegram‑értesítés** (csak a saját Telegram fiókodra, vagy egy csoportba). Telegram connector kell — ha még nincs csatlakoztatva, a megvalósításnál szólni fogok.
 
-### 6. Erőforrás-szabályozás
-- Docker `--memory` és `--cpus` limit minden konténerre
-- KyloBrain: garantált 4 GB RAM, max 8 GB
-- KyloKit worker: 1 GB RAM/böngésző, max 6 párhuzamos worker
-- PostgreSQL: 2 GB RAM
-- Redis: 512 MB RAM
-- Marad ~4 GB rendszerre + burst-re
+## 5. Lépések (sorrend)
 
-### 7. Monitoring és backup
-- **Uptime Kuma** (egyszerű uptime monitor, saját konténer)
-- **Automatikus napi backup**: PostgreSQL dump + KyloKit profilok → külön Hetzner Storage Box (olcsó, ~3 EUR/hó, később)
-- Log rotáció (Docker beépített)
+1. **Tisztítás a kódban**: Steel.dev‑hivatkozások eltávolítása a Brainből és a workerből.
+2. **Job‑API**: `src/routes/api/public/worker/{claim,heartbeat,complete}.ts` + `WORKER_API_TOKEN` titok.
+3. **Worker átírása** a service‑role helyett a publikus job‑API‑ra (orchestrator).
+4. **`monitor` workflow‑típus**: új mező a workflow‑n (`schedule_minutes`, `last_state`), cron, ami időzítve sort rak a `workflow_runs`‑ba.
+5. **Decathlon executor szkript** + Telegram értesítés (connector + szerver fn).
+6. **VPS oldali telepítés**: pontos parancsok, amiket a `kylo` felhasználóval lefuttatsz (Docker telepítés, repo lehúzás vagy fájlok scp‑zése, `.env` kitöltése, `docker compose up -d --build`).
+7. **Első éles teszt**: manuális futtatás a felületről („Futtasd most"), majd időzített futás.
 
----
+## Technikai részletek (ha érdekel)
 
-## Sorrend a mai munkára
+- Egyetlen képet építünk (`kylo-executor`), egy konténer = egy futás. Az orchestrator hosszan él, dockert spawnol.
+- A worker‑oldali `.env` csak ennyit fog tartalmazni: `BRAIN_URL=https://brain.kylosystems.com`, `WORKER_API_TOKEN=...`, `WORKER_ID=worker-1`, `MAX_PARALLEL=4`.
+- A `WORKER_API_TOKEN`‑t a Lovable secret store‑ba mentem, a VPS `.env`‑be pedig ugyanazt az értéket írjuk be — neked csak egyszer kell bemásolni a szerverre.
+- Telegram: értesítés a Brain szerverfüggvényéből megy ki (a worker nem küld közvetlenül), így a token nem szivárog a VPS‑re.
 
-**Most rögtön (1. lépés):** szerver biztonságossá tétele. Ez 15-20 perc, utána nyugodtan alhatsz a tudattal, hogy senki nem fog betörni.
+## Kérdés feléd, mielőtt elkezdem
 
-Utána lépésenként haladunk, és minden lépés után megmutatom mit csinálunk és miért — nem kell egyszerre mindent megérteni.
-
----
-
-## Technikai megjegyzések (haladóknak, neked nem kell érteni)
-
-- **Miért Docker és nem natív telepítés?** Mert így a KyloBrain és KyloKit nem zavarja egymást (külön Node verzió, külön függőségek), és egy paranccsal újra lehet rakni az egészet.
-- **Miért Caddy és nem Nginx?** Mert automatikusan kezeli a HTTPS tanúsítványokat (Let's Encrypt), nincs külön certbot bohóckodás.
-- **Miért közös Postgres és nem két külön?** Erőforrás-takarékosság — egy Postgres instance bőven elbírja mindkét appot, és könnyebb backupolni.
-- **Playwright izoláció:** minden session külön konténerben → ha egy oldal megtámadja a böngészőt, nem éri el a többi profilt. Ez a "Dolphin Anty" / "Multilogin" modell, csak nálunk nyílt forrású alapokon.
-
----
-
-## Mehet?
-
-Ha rábólintasz, kezdjük az **1. lépéssel** (szerver biztonság). Először SSH-zz be (`ssh root@95.216.224.103`), és írd meg, hogy bent vagy — onnan vezetlek lépésről lépésre.
+1. Rendben az, hogy **csak a worker (KyloKit) megy a te szerveredre**, a Brain Lovable Cloud‑on marad?
+2. Adsz egy **konkrét Decathlon termék URL‑t** a figyeléshez, vagy generikus „bármilyen 4XL fitness póló a Decathlonon" típusú listafigyelés legyen?
+3. Telegram értesítés: **saját DM** vagy egy csoport? (Ehhez kell a chat_id, amit a beüzemelésnél meg fogunk szerezni.)
