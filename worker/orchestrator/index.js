@@ -1,102 +1,83 @@
 // worker/orchestrator/index.js
-// Saját VPS-en futó folyamat. Pollozza a Supabase workflow_runs táblát,
-// minden 'queued' sorhoz indít egy Docker konténert az executor image-ből,
-// és visszaírja a logokat + végállapotot.
 //
-// Indítás: node index.js (lásd worker/README.md)
+// Saját VPS-en futó folyamat. NEM nyúl közvetlenül a Supabase-hez —
+// a Lovable Brain publikus job-API-ját hívja megosztott tokennel:
+//
+//   POST {BRAIN_URL}/api/public/worker/claim     → következő job (vagy 204)
+//   POST {BRAIN_URL}/api/public/worker/complete  → végeredmény + logok
+//
+// Minden claim-elt jobra indít egy Docker konténert az executor image-ből,
+// és a stdout JSON-line logjait + a `final` rekordot visszaküldi.
+//
+// Indítás: docker compose up -d --build (lásd worker/README.md)
 
-import { createClient } from "@supabase/supabase-js";
 import { spawn } from "node:child_process";
-import { decryptString } from "./crypto.js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BRAIN_URL = (process.env.BRAIN_URL || "").replace(/\/$/, "");
+const WORKER_API_TOKEN = process.env.WORKER_API_TOKEN;
 const WORKER_ID = process.env.WORKER_ID || "worker-1";
-const POLL_INTERVAL_MS = 3000;
 const IMAGE = process.env.EXECUTOR_IMAGE || "kylo-executor:latest";
 const MAX_PARALLEL = Number(process.env.MAX_PARALLEL || 4);
+const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 3000);
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("SUPABASE_URL és SUPABASE_SERVICE_ROLE_KEY kötelező.");
+if (!BRAIN_URL || !WORKER_API_TOKEN) {
+  console.error(
+    "BRAIN_URL és WORKER_API_TOKEN kötelező a .env-ben. Lásd worker/README.md.",
+  );
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-
 const inflight = new Set();
 
-async function pickNextRun() {
-  // Naiv claim: 1 sor lekérése, státusz frissítése running-ra.
-  // Production: cseréld le `select ... for update skip locked` RPC-re.
-  const { data } = await supabase
-    .from("workflow_runs")
-    .select("id, workflow_id, spec_snapshot, runner")
-    .in("runner", ["docker", "steel"])
-    .eq("status", "queued")
-    .order("created_at", { ascending: true })
-    .limit(1);
-
-  const row = data?.[0];
-  if (!row) return null;
-
-  const { error } = await supabase
-    .from("workflow_runs")
-    .update({
-      status: "running",
-      external_id: `${WORKER_ID}:${row.id}`,
-      started_at: new Date().toISOString(),
-    })
-    .eq("id", row.id)
-    .eq("status", "queued");
-  if (error) return null;
-
-  return row;
+async function brainFetch(path, body) {
+  const res = await fetch(`${BRAIN_URL}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${WORKER_API_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body ?? {}),
+  });
+  return res;
 }
 
-async function loadCredentials(workflowId) {
-  const { data } = await supabase
-    .from("workflow_credentials")
-    .select(
-      "platform, username, password_ciphertext, password_nonce, cookie_ciphertext, cookie_nonce, totp_secret_ciphertext, totp_nonce, proxy_ciphertext, proxy_nonce",
-    )
-    .eq("workflow_id", workflowId)
-    .maybeSingle();
-  if (!data) return null;
+async function claimNext() {
   try {
-    return {
-      platform: data.platform,
-      username: data.username || null,
-      password: decryptString(data.password_ciphertext, data.password_nonce),
-      cookies: decryptString(data.cookie_ciphertext, data.cookie_nonce),
-      totpSecret: decryptString(
-        data.totp_secret_ciphertext,
-        data.totp_nonce,
-      ),
-      proxy: decryptString(data.proxy_ciphertext, data.proxy_nonce),
-    };
+    const res = await brainFetch("/api/public/worker/claim", { workerId: WORKER_ID });
+    if (res.status === 204) return null;
+    if (!res.ok) {
+      console.error(`[claim] ${res.status} ${await res.text()}`);
+      return null;
+    }
+    const data = await res.json();
+    return data.run ?? null;
   } catch (e) {
-    console.error("Credential decrypt hiba:", e.message);
+    console.error("[claim] network error", e.message);
     return null;
   }
 }
 
-function runContainer(row, creds) {
+async function reportComplete(payload) {
+  try {
+    const res = await brainFetch("/api/public/worker/complete", payload);
+    if (!res.ok) console.error(`[complete] ${res.status} ${await res.text()}`);
+  } catch (e) {
+    console.error("[complete] network error", e.message);
+  }
+}
+
+function runContainer(job) {
   return new Promise((resolve) => {
     const args = [
       "run", "--rm",
       "--network", "bridge",
-      "-e", `SPEC_JSON=${JSON.stringify(row.spec_snapshot ?? {})}`,
-      "-e", `RUNNER=${row.runner || "docker"}`,
+      "-e", `SPEC_JSON=${JSON.stringify(job.spec ?? {})}`,
     ];
-    if (row.runner === "steel" && process.env.STEEL_API_KEY) {
-      args.push("-e", `STEEL_API_KEY=${process.env.STEEL_API_KEY}`);
-    }
-    if (creds) {
-      args.push("-e", `CREDENTIALS_JSON=${JSON.stringify(creds)}`);
+    if (job.credentials) {
+      args.push("-e", `CREDENTIALS_JSON=${JSON.stringify(job.credentials)}`);
     }
     args.push(IMAGE);
+
     const proc = spawn("docker", args, { stdio: ["ignore", "pipe", "pipe"] });
 
     const logs = [];
@@ -110,7 +91,11 @@ function runContainer(row, creds) {
         if (obj.final) {
           finalEntry = obj;
         } else {
-          logs.push({ ts: obj.ts, level: obj.level || "info", message: obj.message });
+          logs.push({
+            ts: obj.ts || new Date().toISOString(),
+            level: obj.level || "info",
+            message: obj.message ?? s,
+          });
         }
       } catch {
         logs.push({ ts: new Date().toISOString(), level: "info", message: s });
@@ -125,7 +110,11 @@ function runContainer(row, creds) {
       for (const line of parts) onLine(line);
     });
     proc.stderr.on("data", (chunk) => {
-      logs.push({ ts: new Date().toISOString(), level: "error", message: chunk.toString().trim() });
+      logs.push({
+        ts: new Date().toISOString(),
+        level: "error",
+        message: chunk.toString().trim(),
+      });
     });
 
     proc.on("close", (code) => {
@@ -141,44 +130,43 @@ function runContainer(row, creds) {
 }
 
 async function processOne() {
-  const row = await pickNextRun();
-  if (!row) return;
-  inflight.add(row.id);
+  const job = await claimNext();
+  if (!job) return;
+  inflight.add(job.id);
+  console.log(`[run ${job.id}] start (workflow ${job.workflowId})`);
   try {
-    const creds = await loadCredentials(row.workflow_id);
-    const out = await runContainer(row, creds);
-    await supabase
-      .from("workflow_runs")
-      .update({
-        status: out.status,
-        logs: out.logs,
-        result: out.result,
-        error: out.error,
-        finished_at: new Date().toISOString(),
-      })
-      .eq("id", row.id);
+    const out = await runContainer(job);
+    await reportComplete({
+      runId: job.id,
+      status: out.status,
+      logs: out.logs,
+      result: out.result,
+      error: out.error,
+    });
+    console.log(`[run ${job.id}] ${out.status}`);
   } catch (e) {
-    await supabase
-      .from("workflow_runs")
-      .update({
-        status: "failed",
-        error: e.message,
-        finished_at: new Date().toISOString(),
-      })
-      .eq("id", row.id);
+    await reportComplete({
+      runId: job.id,
+      status: "failed",
+      logs: [],
+      result: null,
+      error: e.message,
+    });
   } finally {
-    inflight.delete(row.id);
+    inflight.delete(job.id);
   }
 }
 
 async function loop() {
+  console.log(
+    `[${WORKER_ID}] orchestrator → ${BRAIN_URL} | max ${MAX_PARALLEL} párhuzamos`,
+  );
   while (true) {
     if (inflight.size < MAX_PARALLEL) {
-      processOne().catch(console.error);
+      processOne().catch((e) => console.error("processOne", e));
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 }
 
-console.log(`[${WORKER_ID}] orchestrator indul, max ${MAX_PARALLEL} párhuzamos futás`);
 loop();
