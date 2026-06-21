@@ -75,7 +75,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const callStartRun = useServerFn(startRun);
   const [sending, setSending] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [runner, setRunner] = useState<"steel" | "docker">("steel");
+  const [runner, setRunner] = useState<"docker">("docker");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
