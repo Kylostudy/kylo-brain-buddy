@@ -14,6 +14,7 @@ import { Route as WWorkflowIdRouteImport } from './routes/w.$workflowId'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
+import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,6 +42,11 @@ const ApiPublicCronEnqueueMonitorsRoute =
     path: '/api/public/cron/enqueue-monitors',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCrossKitTaskRoute = ApiPublicCrossKitTaskRouteImport.update({
+  id: '/api/public/cross/kit/task',
+  path: '/api/public/cross/kit/task',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -48,6 +54,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
+  '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -55,6 +62,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
+  '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -63,6 +71,7 @@ export interface FileRoutesById {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
+  '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -72,6 +81,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
+    | '/api/public/cross/kit/task'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -79,6 +89,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
+    | '/api/public/cross/kit/task'
   id:
     | '__root__'
     | '/'
@@ -86,6 +97,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
+    | '/api/public/cross/kit/task'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,6 +106,7 @@ export interface RootRouteChildren {
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
+  ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -133,6 +146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronEnqueueMonitorsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cross/kit/task': {
+      id: '/api/public/cross/kit/task'
+      path: '/api/public/cross/kit/task'
+      fullPath: '/api/public/cross/kit/task'
+      preLoaderRoute: typeof ApiPublicCrossKitTaskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -142,6 +162,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
+  ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
