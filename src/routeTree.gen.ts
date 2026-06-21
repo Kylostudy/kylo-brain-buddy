@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WWorkflowIdRouteImport } from './routes/w.$workflowId'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
+import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,16 +35,24 @@ const ApiPublicWorkerClaimRoute = ApiPublicWorkerClaimRouteImport.update({
   path: '/api/public/worker/claim',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronEnqueueMonitorsRoute =
+  ApiPublicCronEnqueueMonitorsRouteImport.update({
+    id: '/api/public/cron/enqueue-monitors',
+    path: '/api/public/cron/enqueue-monitors',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/w/$workflowId': typeof WWorkflowIdRoute
+  '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/w/$workflowId': typeof WWorkflowIdRoute
+  '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
 }
@@ -51,6 +60,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/w/$workflowId': typeof WWorkflowIdRoute
+  '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
 }
@@ -59,18 +69,21 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/w/$workflowId'
+    | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/w/$workflowId'
+    | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
   id:
     | '__root__'
     | '/'
     | '/w/$workflowId'
+    | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
   fileRoutesById: FileRoutesById
@@ -78,6 +91,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   WWorkflowIdRoute: typeof WWorkflowIdRoute
+  ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
 }
@@ -112,12 +126,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerClaimRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/enqueue-monitors': {
+      id: '/api/public/cron/enqueue-monitors'
+      path: '/api/public/cron/enqueue-monitors'
+      fullPath: '/api/public/cron/enqueue-monitors'
+      preLoaderRoute: typeof ApiPublicCronEnqueueMonitorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   WWorkflowIdRoute: WWorkflowIdRoute,
+  ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
 }
