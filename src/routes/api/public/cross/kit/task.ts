@@ -168,7 +168,7 @@ export const Route = createFileRoute("/api/public/cross/kit/task")({
           task_id: body.task_id,
           event: "task.completed",
           outcome: "success",
-          detail: { result },
+          detail: { result } as never,
         });
 
         // Background callback (don't block response).
