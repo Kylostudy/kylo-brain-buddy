@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WWorkflowIdRouteImport } from './routes/w.$workflowId'
+import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const WWorkflowIdRoute = WWorkflowIdRouteImport.update({
   path: '/w/$workflowId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWorkerClaimRoute = ApiPublicWorkerClaimRouteImport.update({
+  id: '/api/public/worker/claim',
+  path: '/api/public/worker/claim',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/w/$workflowId': typeof WWorkflowIdRoute
+  '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/w/$workflowId': typeof WWorkflowIdRoute
+  '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/w/$workflowId': typeof WWorkflowIdRoute
+  '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/w/$workflowId'
+  fullPaths: '/' | '/w/$workflowId' | '/api/public/worker/claim'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/w/$workflowId'
-  id: '__root__' | '/' | '/w/$workflowId'
+  to: '/' | '/w/$workflowId' | '/api/public/worker/claim'
+  id: '__root__' | '/' | '/w/$workflowId' | '/api/public/worker/claim'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   WWorkflowIdRoute: typeof WWorkflowIdRoute
+  ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkflowIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/claim': {
+      id: '/api/public/worker/claim'
+      path: '/api/public/worker/claim'
+      fullPath: '/api/public/worker/claim'
+      preLoaderRoute: typeof ApiPublicWorkerClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   WWorkflowIdRoute: WWorkflowIdRoute,
+  ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
