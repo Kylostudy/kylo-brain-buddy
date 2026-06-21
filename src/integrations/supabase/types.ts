@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      cross_module_tenant_cache: {
+        Row: {
+          cached_until: string
+          created_at: string
+          id: string
+          module: string
+          module_user_id: string
+          tenant_id: string
+        }
+        Insert: {
+          cached_until: string
+          created_at?: string
+          id?: string
+          module: string
+          module_user_id: string
+          tenant_id: string
+        }
+        Update: {
+          cached_until?: string
+          created_at?: string
+          id?: string
+          module?: string
+          module_user_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -48,6 +75,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          tenant_id: string | null
+          tenant_id_resolved_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          tenant_id?: string | null
+          tenant_id_resolved_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          tenant_id?: string | null
+          tenant_id_resolved_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       workflow_credentials: {
         Row: {
