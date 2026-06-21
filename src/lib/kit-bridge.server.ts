@@ -78,14 +78,49 @@ export function verifyKitRequest(
   headers: Headers,
 ): VerifyResult {
   const mod = headers.get("x-kylo-module");
-  const ts = headers.get("x-kylo-timestamp");
-  const sig = headers.get("x-kylo-signature");
+  const tsHeader = headers.get("x-kylo-timestamp");
+  const sigHeader = headers.get("x-kylo-signature");
 
-  if (!mod || !ts || !sig) {
+  if (!mod || !sigHeader) {
     return { ok: false, status: 401, reason: "Missing Kylo HMAC headers" };
   }
   if (mod.toLowerCase() !== EXPECTED_PEER_MODULE) {
     return { ok: false, status: 401, reason: `Unexpected X-Kylo-Module: ${mod}` };
+  }
+
+  // Accept either:
+  //   (A) pure hex in X-Kylo-Signature + X-Kylo-Timestamp header
+  //   (B) Stripe-style combined: "t=<ts>,v1=<hex>[,v1=<hex>...]"
+  let ts: string | null = tsHeader;
+  let sigHex: string | null = null;
+
+  if (/^[0-9a-fA-F]+$/.test(sigHeader.trim())) {
+    sigHex = sigHeader.trim();
+  } else {
+    const parts = sigHeader.split(",").map((p) => p.trim());
+    const v1s: string[] = [];
+    for (const p of parts) {
+      const eq = p.indexOf("=");
+      if (eq < 0) continue;
+      const k = p.slice(0, eq).trim();
+      const v = p.slice(eq + 1).trim();
+      if (k === "t" && !ts) ts = v;
+      else if (k === "t" && ts && v !== ts) {
+        // Prefer the t= inside the signature header if both present — it's
+        // what the sender actually used to compute the HMAC.
+        ts = v;
+      } else if (k === "v1") {
+        v1s.push(v);
+      }
+    }
+    if (v1s.length === 0) {
+      return { ok: false, status: 401, reason: "No v1 signature found in header" };
+    }
+    sigHex = v1s[0]; // try first; we'll loop below
+  }
+
+  if (!ts) {
+    return { ok: false, status: 401, reason: "Missing timestamp" };
   }
   const tsNum = Number(ts);
   if (!Number.isFinite(tsNum)) {
@@ -98,10 +133,22 @@ export function verifyKitRequest(
 
   const secret = channel === "task" ? getTaskSecret() : getLogSecret();
   const expected = sign(secret, method, pathWithQuery, rawBody, ts);
-  if (!safeEqualHex(expected, sig)) {
-    return { ok: false, status: 401, reason: "Invalid signature" };
+
+  // Build candidate signature list to compare against
+  const candidates: string[] = [];
+  if (/^[0-9a-fA-F]+$/.test(sigHeader.trim())) {
+    candidates.push(sigHeader.trim());
+  } else {
+    for (const p of sigHeader.split(",")) {
+      const eq = p.indexOf("=");
+      if (eq < 0) continue;
+      if (p.slice(0, eq).trim() === "v1") candidates.push(p.slice(eq + 1).trim());
+    }
   }
-  return { ok: true };
+  for (const c of candidates) {
+    if (safeEqualHex(expected, c)) return { ok: true };
+  }
+  return { ok: false, status: 401, reason: "Invalid signature" };
 }
 
 // ---------- Outbound callback to Kit ---------------------------------------
