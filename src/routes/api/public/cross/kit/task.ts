@@ -156,7 +156,7 @@ export const Route = createFileRoute("/api/public/cross/kit/task")({
 
         const { error: updErr } = await supabaseAdmin
           .from("kit_incoming_tasks")
-          .update({ status: "completed", result })
+          .update({ status: "completed", result: result as never })
           .eq("task_id", body.task_id);
 
         if (updErr) {
