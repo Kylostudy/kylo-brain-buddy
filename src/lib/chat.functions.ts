@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const SYSTEM_PROMPT = `Te a "Brain" vagy — egy magyar nyelvű, B2B social media automatizációs asszisztens.
 A felhasználó egy gerilla feltöltő platformot épít, és veled tanít be egy-egy "workflow"-t (pl. "magyar TikTok csatorna napi posztolás").
@@ -88,6 +87,7 @@ function mergeSpec(prev: WorkflowSpec, patch: SpecPatch): WorkflowSpec {
 }
 
 export const generateReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -96,17 +96,13 @@ export const generateReply = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY hiányzik a szerver környezetből.");
     }
 
-    const supabase = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
+    const { supabase } = context;
 
     // Load existing spec + message history
     const [{ data: wf, error: wfErr }, { data: rows, error: msgErr }] =
@@ -221,6 +217,7 @@ export const generateReply = createServerFn({ method: "POST" })
   });
 
 export const renameWorkflow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -229,12 +226,8 @@ export const renameWorkflow = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
-    const supabase = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
     const { error } = await supabase
       .from("workflows")
       .update({ name: data.name.trim() })
@@ -244,15 +237,12 @@ export const renameWorkflow = createServerFn({ method: "POST" })
   });
 
 export const resetReadyForTest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({ workflowId: z.string().uuid() }).parse(input),
   )
-  .handler(async ({ data }) => {
-    const supabase = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
     const { error } = await supabase
       .from("workflows")
       .update({ ready_for_test: false })
