@@ -313,6 +313,59 @@ export type Database = {
         }
         Relationships: []
       }
+      recording_sessions: {
+        Row: {
+          action_log: Json
+          created_at: string
+          ended_at: string | null
+          error: string | null
+          id: string
+          start_url: string | null
+          started_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          worker_id: string | null
+          workflow_id: string
+        }
+        Insert: {
+          action_log?: Json
+          created_at?: string
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          start_url?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          worker_id?: string | null
+          workflow_id: string
+        }
+        Update: {
+          action_log?: Json
+          created_at?: string
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          start_url?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          worker_id?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_sessions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_module_access: {
         Row: {
           created_at: string
