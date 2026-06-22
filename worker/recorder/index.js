@@ -15,6 +15,7 @@
 
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 
 const BRAIN_URL = (process.env.BRAIN_URL || "").replace(/\/$/, "");
 const WORKER_API_TOKEN = process.env.WORKER_API_TOKEN;
@@ -120,7 +121,7 @@ async function runSession(payload) {
   // Sessiononként saját Realtime kliens — anon publishable kulccsal.
   const sb = createClient(supabaseUrl, supabasePublishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-    realtime: { params: { eventsPerSecond: 30 } },
+    realtime: { params: { eventsPerSecond: 30 }, transport: ws },
   });
 
   const br = await getBrowser();
