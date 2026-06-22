@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Brain, Play, Pencil } from "lucide-react";
+import { Brain, Play, Pencil, Video } from "lucide-react";
 import { MicButton } from "@/components/mic-button";
+import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
+import { startRecording } from "@/lib/recording.functions";
+
 
 import {
   Conversation,
@@ -74,13 +77,17 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const callRename = useServerFn(renameWorkflow);
   const callResetReady = useServerFn(resetReadyForTest);
   const callStartRun = useServerFn(startRun);
+  const callStartRecording = useServerFn(startRecording);
   const [sending, setSending] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
+  const [recordOpen, setRecordOpen] = useState(false);
   const [runner, setRunner] = useState<"docker">("docker");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
+
 
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", workflowId],
@@ -228,7 +235,34 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
               <Pencil className="size-3.5 opacity-0 transition group-hover/name:opacity-60" />
             </button>
           )}
+          <div className="ml-auto flex items-center gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const session = await callStartRecording({
+                    data: { workflowId },
+                  });
+                  setRecordSessionId(session.id);
+                  setRecordOpen(true);
+                } catch (e) {
+                  toast.error(
+                    e instanceof Error
+                      ? `Felvétel indítása sikertelen: ${e.message}`
+                      : "Felvétel indítása sikertelen",
+                  );
+                }
+              }}
+              title="Élő böngésző felvétele"
+            >
+              <Video className="size-4" />
+              <span className="ml-1.5 hidden sm:inline">Felvétel</span>
+            </Button>
+          </div>
         </div>
+
 
         <Conversation className="flex-1 min-h-0 overflow-auto">
           <ConversationContent className="mx-auto w-full max-w-3xl pb-6">
@@ -352,6 +386,17 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
       </div>
 
       <SpecPanel workflowId={workflowId} />
+
+      <BrowserRecorderModal
+        open={recordOpen}
+        sessionId={recordSessionId}
+        onClose={() => {
+          setRecordOpen(false);
+          setRecordSessionId(null);
+          void qc.invalidateQueries({ queryKey: ["workflow", workflowId] });
+        }}
+      />
     </div>
   );
 }
+
