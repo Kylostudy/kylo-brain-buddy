@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Brain, Play, Pencil } from "lucide-react";
+import { Brain, Play, Pencil, Video } from "lucide-react";
 import { MicButton } from "@/components/mic-button";
+import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
+import { startRecording } from "@/lib/recording.functions";
+
 
 import {
   Conversation,
