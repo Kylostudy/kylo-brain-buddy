@@ -1,10 +1,12 @@
 import { useRef, useState } from "react";
-import { Mic, Square, Loader2 } from "lucide-react";
+import { Mic, Check, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 type Props = {
-  onTranscript: (text: string) => void;
+  /** Called when transcription completes. If `send` is true, the parent should
+   *  submit the text immediately instead of just inserting it into the input. */
+  onTranscript: (text: string, opts: { send: boolean }) => void;
   language?: string; // ISO-639-1, e.g. "hu"
   disabled?: boolean;
 };
@@ -14,6 +16,8 @@ export function MicButton({ onTranscript, language = "hu", disabled }: Props) {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  // What to do once the recorder finishes flushing: send to chat or just paste.
+  const intentRef = useRef<"send" | "paste" | "cancel">("paste");
 
   async function start() {
     if (disabled) return;
@@ -36,12 +40,19 @@ export function MicButton({ onTranscript, language = "hu", disabled }: Props) {
     const recorder = new MediaRecorder(stream, { mimeType });
     chunksRef.current = [];
     streamRef.current = stream;
+    intentRef.current = "paste";
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
     recorder.onstop = async () => {
       stream.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      const intent = intentRef.current;
+      if (intent === "cancel") {
+        chunksRef.current = [];
+        setState("idle");
+        return;
+      }
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
       if (blob.size < 1024) {
         toast.error("Túl rövid felvétel — próbáld újra.");
@@ -63,7 +74,7 @@ export function MicButton({ onTranscript, language = "hu", disabled }: Props) {
         if (!text) {
           toast.warning("Nem ismertem fel beszédet a felvételen.");
         } else {
-          onTranscript(text);
+          onTranscript(text, { send: intent === "send" });
         }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Átírás sikertelen.");
@@ -76,36 +87,54 @@ export function MicButton({ onTranscript, language = "hu", disabled }: Props) {
     setState("recording");
   }
 
-  function stop() {
+  function stopWith(intent: "send" | "paste" | "cancel") {
+    intentRef.current = intent;
     const r = recorderRef.current;
     if (r && r.state !== "inactive") r.stop();
     recorderRef.current = null;
   }
 
-  const onClick = () => {
-    if (state === "idle") start();
-    else if (state === "recording") stop();
-  };
+  if (state === "recording") {
+    return (
+      <div className="flex items-center gap-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Felvétel elvetése"
+          onClick={() => stopWith("cancel")}
+        >
+          <X className="size-4" />
+        </Button>
+        <span className="px-1 text-xs font-medium text-destructive animate-pulse">
+          ●
+        </span>
+        <Button
+          type="button"
+          variant="default"
+          size="icon-sm"
+          aria-label="Felvétel kész — küldés"
+          onClick={() => stopWith("send")}
+        >
+          <Check className="size-4" />
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Button
       type="button"
-      variant={state === "recording" ? "destructive" : "ghost"}
+      variant="ghost"
       size="icon-sm"
       aria-label={
-        state === "recording"
-          ? "Felvétel leállítása"
-          : state === "uploading"
-            ? "Átírás folyamatban"
-            : "Hangrögzítés indítása"
+        state === "uploading" ? "Átírás folyamatban" : "Hangrögzítés indítása"
       }
-      onClick={onClick}
+      onClick={() => state === "idle" && start()}
       disabled={disabled || state === "uploading"}
     >
       {state === "uploading" ? (
         <Loader2 className="size-4 animate-spin" />
-      ) : state === "recording" ? (
-        <Square className="size-4" />
       ) : (
         <Mic className="size-4" />
       )}
