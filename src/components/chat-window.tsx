@@ -199,9 +199,9 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
 
   return (
     <div className="flex h-full min-h-0">
-      <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         {/* Header with editable name */}
-        <div className="flex items-center gap-2 border-b px-4 py-2.5">
+        <div className="flex items-center gap-2 border-b px-4 py-2.5 shrink-0">
           {editingName ? (
             <Input
               ref={nameInputRef}
@@ -230,8 +230,8 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
           )}
         </div>
 
-        <Conversation className="flex-1">
-          <ConversationContent className="mx-auto w-full max-w-3xl">
+        <Conversation className="flex-1 min-h-0 overflow-auto">
+          <ConversationContent className="mx-auto w-full max-w-3xl pb-6">
             {messages.length === 0 ? (
               <ConversationEmptyState
                 icon={<Brain className="size-10" />}
@@ -299,16 +299,26 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+        <div className="shrink-0 border-t bg-background mx-auto w-full max-w-3xl px-4 py-3">
           <PromptInput
             onSubmit={handleSubmit}
             accept="image/*,application/pdf"
             multiple
-            className="relative"
           >
-            {/* Fixed mic button — mindig látható, a textarea-réteg fölött lebeg */}
-            <div className="pointer-events-none absolute right-3 top-3 z-20">
-              <div className="pointer-events-auto">
+            <PromptInputTextarea
+              ref={textareaRef}
+              placeholder="Írd le a workflow következő lépését…"
+            />
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger />
+                  <PromptInputActionMenuContent>
+                    <PromptInputActionAddAttachments />
+                  </PromptInputActionMenuContent>
+                </PromptInputActionMenu>
+              </PromptInputTools>
+              <div className="flex items-center gap-1">
                 <MicButton
                   onTranscript={(text) => {
                     const ta = textareaRef.current;
@@ -325,27 +335,11 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                   }}
                   disabled={sending}
                 />
+                <PromptInputSubmit status={sending ? "submitted" : undefined} />
               </div>
-            </div>
-
-            <PromptInputTextarea
-              ref={textareaRef}
-              placeholder="Írd le a workflow következő lépését…"
-              className="pr-14"
-            />
-            <PromptInputFooter>
-              <PromptInputTools>
-                <PromptInputActionMenu>
-                  <PromptInputActionMenuTrigger />
-                  <PromptInputActionMenuContent>
-                    <PromptInputActionAddAttachments />
-                  </PromptInputActionMenuContent>
-                </PromptInputActionMenu>
-              </PromptInputTools>
-              <PromptInputSubmit status={sending ? "submitted" : undefined} />
             </PromptInputFooter>
           </PromptInput>
-          <p className="mt-2 text-center text-[10px] text-muted-foreground">
+          <p className="mt-1 text-center text-[10px] text-muted-foreground">
             Gemini 2.5 Flash · betanítási mód
           </p>
         </div>
