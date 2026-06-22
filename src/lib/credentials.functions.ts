@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { encryptString, decryptString } from "@/lib/credentials/crypto.server";
 
 function serverSupabase() {
@@ -17,11 +18,12 @@ function serverSupabase() {
  * SOHA nem ad vissza nyers jelszót vagy cookie-t. Maszkolva mutatja a usernevet.
  */
 export const getCredentialsStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({ workflowId: z.string().uuid() }).parse(input),
   )
-  .handler(async ({ data }) => {
-    const supabase = serverSupabase();
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
     const { data: row } = await supabase
       .from("workflow_credentials")
       .select(
@@ -66,6 +68,7 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
  * Ha üres stringet kapsz, az NEM törli a meglévőt — explicit `clearPassword`/`clearCookie`/`clearTotp` kell hozzá.
  */
 export const saveCredentials = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -83,9 +86,9 @@ export const saveCredentials = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     // encryptString → server-only import a fájl tetején
-    const supabase = serverSupabase();
+    const { supabase } = context;
 
     // Olvassuk be a meglévőt (ha van) — hogy a nem érintett mezőket megtartsuk.
     const { data: existing } = await supabase
@@ -158,11 +161,12 @@ export const saveCredentials = createServerFn({ method: "POST" })
   });
 
 export const deleteCredentials = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({ workflowId: z.string().uuid() }).parse(input),
   )
-  .handler(async ({ data }) => {
-    const supabase = serverSupabase();
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
     const { error } = await supabase
       .from("workflow_credentials")
       .delete()
