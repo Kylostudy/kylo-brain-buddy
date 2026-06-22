@@ -102,17 +102,22 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
 
+  const renamingRef = useRef(false);
   async function commitRename() {
+    if (renamingRef.current) return;
     const next = nameDraft.trim();
     setEditingName(false);
     if (!next || next === meta?.name) return;
+    renamingRef.current = true;
     try {
       await callRename({ data: { workflowId, name: next } });
       await qc.invalidateQueries({ queryKey: ["workflow", workflowId] });
       await qc.invalidateQueries({ queryKey: ["workflows"] });
     } catch (e) {
-      console.error(e);
-      toast.error("Átnevezés sikertelen");
+      console.error("rename failed", e);
+      toast.error(e instanceof Error ? `Átnevezés sikertelen: ${e.message}` : "Átnevezés sikertelen");
+    } finally {
+      renamingRef.current = false;
     }
   }
 
