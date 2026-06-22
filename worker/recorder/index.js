@@ -236,8 +236,10 @@ async function runSession(payload) {
   });
 
   if (session.startUrl) {
+    let url = session.startUrl.trim();
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
     try {
-      await page.goto(session.startUrl, { waitUntil: "domcontentloaded" });
+      await page.goto(url, { waitUntil: "domcontentloaded" });
     } catch (e) {
       console.error(`[session ${session.id}] initial goto failed`, e.message);
     }
