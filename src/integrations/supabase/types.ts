@@ -14,6 +14,136 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_workflow_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          external_id: string | null
+          finished_at: string | null
+          id: string
+          logs: Json
+          module: Database["public"]["Enums"]["app_module"]
+          result: Json | null
+          runner: string
+          spec_snapshot: Json
+          started_at: string | null
+          status: string
+          synced_to_hub_at: string | null
+          tenant_id: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          module?: Database["public"]["Enums"]["app_module"]
+          result?: Json | null
+          runner?: string
+          spec_snapshot?: Json
+          started_at?: string | null
+          status?: string
+          synced_to_hub_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          module?: Database["public"]["Enums"]["app_module"]
+          result?: Json | null
+          runner?: string
+          spec_snapshot?: Json
+          started_at?: string | null
+          status?: string
+          synced_to_hub_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_workflow_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          external_id: string | null
+          finished_at: string | null
+          id: string
+          logs: Json
+          module: Database["public"]["Enums"]["app_module"]
+          result: Json | null
+          runner: string
+          spec_snapshot: Json
+          started_at: string | null
+          status: string
+          synced_to_hub_at: string | null
+          tenant_id: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          module?: Database["public"]["Enums"]["app_module"]
+          result?: Json | null
+          runner?: string
+          spec_snapshot?: Json
+          started_at?: string | null
+          status?: string
+          synced_to_hub_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          module?: Database["public"]["Enums"]["app_module"]
+          result?: Json | null
+          runner?: string
+          spec_snapshot?: Json
+          started_at?: string | null
+          status?: string
+          synced_to_hub_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cross_module_tenant_cache: {
         Row: {
           cached_until: string
@@ -183,6 +313,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_module_access: {
+        Row: {
+          created_at: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          module: Database["public"]["Enums"]["app_module"]
+          revoked_at: string | null
+          revoked_by: string | null
+          source: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["app_module"]
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["app_module"]
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workflow_credentials: {
         Row: {
           cookie_ciphertext: string | null
@@ -245,69 +414,11 @@ export type Database = {
           },
         ]
       }
-      workflow_runs: {
-        Row: {
-          created_at: string
-          error: string | null
-          external_id: string | null
-          finished_at: string | null
-          id: string
-          logs: Json
-          result: Json | null
-          runner: string
-          spec_snapshot: Json
-          started_at: string | null
-          status: string
-          tenant_id: string
-          updated_at: string
-          workflow_id: string
-        }
-        Insert: {
-          created_at?: string
-          error?: string | null
-          external_id?: string | null
-          finished_at?: string | null
-          id?: string
-          logs?: Json
-          result?: Json | null
-          runner?: string
-          spec_snapshot?: Json
-          started_at?: string | null
-          status?: string
-          tenant_id?: string
-          updated_at?: string
-          workflow_id: string
-        }
-        Update: {
-          created_at?: string
-          error?: string | null
-          external_id?: string | null
-          finished_at?: string | null
-          id?: string
-          logs?: Json
-          result?: Json | null
-          runner?: string
-          spec_snapshot?: Json
-          started_at?: string | null
-          status?: string
-          tenant_id?: string
-          updated_at?: string
-          workflow_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "workflow_runs_workflow_id_fkey"
-            columns: ["workflow_id"]
-            isOneToOne: false
-            referencedRelation: "workflows"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       workflows: {
         Row: {
           created_at: string
           id: string
+          module: Database["public"]["Enums"]["app_module"]
           name: string
           ready_for_test: boolean
           spec: Json
@@ -318,6 +429,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          module?: Database["public"]["Enums"]["app_module"]
           name?: string
           ready_for_test?: boolean
           spec?: Json
@@ -328,6 +440,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          module?: Database["public"]["Enums"]["app_module"]
           name?: string
           ready_for_test?: boolean
           spec?: Json
@@ -343,9 +456,16 @@ export type Database = {
     }
     Functions: {
       current_tenant_id: { Args: never; Returns: string }
+      tenant_has_module: {
+        Args: {
+          _module: Database["public"]["Enums"]["app_module"]
+          _tenant_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_module: "brain" | "audit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -472,6 +592,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_module: ["brain", "audit"],
+    },
   },
 } as const

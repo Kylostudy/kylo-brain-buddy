@@ -1,72 +1,111 @@
-# Terv: Saját VPS Playwright workerek + első Decathlon-figyelő workflow
 
-## 1. Mit takarítunk el
+# Brain + Audit moduláris architektúra
 
-- **Steel.dev**: a kódban minden hivatkozást/függőséget kivezetünk (`src/lib/runners/steel.server.ts`, `runs.functions.ts` „steel" ága, worker `runner: "steel"` ág, README említései). A connector a Lovable beállításaiban maradhat, ezt nem te kötöd ki manuálisan, csak a kód nem fog ráhivatkozni.
+**Alapelv:** Egy kódbázis, két termék. A különbséget a tenant jogosultsága, az aldomain és a viselkedési profil határozza meg — soha nem keveredhetnek.
 
-## 2. Architektúra tisztázása — fontos!
+## 1. Adatbázis változások
 
-Te ezt írtad: „Kylo kitnek a dockert, a Kylo brainnek a dockert". A jelenlegi felépítés miatt **a KyloBrain (a felület + a hozzá tartozó backend) nem kerül a te szerveredre** — az Lovable Cloud‑on fut (Cloudflare). A te VPS‑edre **csak a KyloKit worker** kerül, ami a virtuális böngészőket futtatja. Így néz ki:
+### Új tábla: `tenant_module_access` (SOC 2 audit nyomvonal)
+Ki, mikor, melyik modulhoz kapott / vesztett hozzáférést.
+```
+tenant_id (uuid)
+module ('brain' | 'audit')
+granted_at (timestamptz)
+granted_by (uuid | null)        -- Hub user id, ha tőle jött
+revoked_at (timestamptz | null)
+revoked_by (uuid | null)
+source ('hub' | 'manual_dev')   -- honnan jött a jogosultság
+```
+- RLS: tenant csak a saját sorait olvashatja, írni csak service_role (a Hub szinkron + dev).
+- Helper függvény: `public.tenant_has_module(_tenant_id uuid, _module text) returns boolean` (security definer) — ezt használja minden RLS policy.
+
+### Workflow-k modul szerinti szétválasztása
+- A `workflows` tábla kap egy `module text not null default 'brain'` oszlopot (`'brain'` vagy `'audit'`).
+- Új RLS: csak az a tenant lát workflow-t, akinek van joga az adott modulhoz (`tenant_has_module(tenant_id, module)`).
+- Mivel a rendszer üres, nincs migrálandó adat.
+
+### Két fizikailag külön log tábla (SOC 2)
+A jelenlegi `workflow_runs` táblát **átnevezzük** `brain_workflow_runs`-ra, és létrehozunk egy **strukturálisan azonos** `audit_workflow_runs` táblát.
+- Saját RLS, saját GRANT, saját indexek.
+- Soha egy queryben nem JOIN-oltatjuk őket.
+- Mindkettőhöz tartozik egy `module` constraint (`check (module = 'brain')` / `check (module = 'audit')`) belt-and-suspenders védelemnek.
+
+## 2. Viselkedési profilok (a futtatómotorban)
+
+Új absztrakció a kódban (`src/lib/behavior/`):
+- `BehaviorProfile` interfész — közös API: `moveMouse()`, `type()`, `wait()`, `click()`, stb.
+- `HumanProfile` — Poisson egérmozgás, gépelési hibák, gondolkodási szünetek (Brain).
+- `RobotProfile` — determinisztikus, gyors, hibamentes (Audit).
+
+A workflow futtatáskor a profil **a workflow `module` mezőjéből** dől el (nem külön user beállítás), így soha nem keveredhet.
+
+## 3. Modul-felismerés és UI
+
+### Modul forrásai (prioritási sorrendben)
+1. **Aldomain** (éles): `brain.kylosystems.com` → Brain mód, `audit.kylosystems.com` → Audit mód.
+2. **Query param** (preview/dev): `?module=brain` vagy `?module=audit`.
+3. **Dev modul-kapcsoló** (preview-n felül egy kis gomb): Brain ↔ Audit váltás, localStorage-ba menti.
+4. **Fallback**: Brain.
+
+Egy `useModule()` hook + `ModuleProvider` context — minden komponens innen kérdezi le, melyik módban van.
+
+### Teljes téma (branding)
+A `src/styles.css`-ben két téma-blokk:
+- **Brain** (alap, már megvan): Kylo zöld primary, success, ring, sidebar.
+- **Audit**: kék primary (`oklch(...)`), kék ring, kék success accent — minden Tailwind token átvált.
+
+Aktiválás: `<html data-module="brain">` vagy `data-module="audit"` attribútum, és CSS `[data-module="audit"]` selectorral felülírjuk a tokeneket. Egy CSS fájl, két téma, automatikus váltás.
+
+### UI különbségek modulonként
+- Header logó és cím: "Kylo Brain" / "Kylo Audit"
+- Ikon: human (Brain) / robot (Audit)
+- Szókincs: "human-like automation" vs "automated testing"
+- Workflow lista csak az aktuális modul workflow-it mutatja.
+
+## 4. Bejelentkezés
+
+- **Éles**: a Hub kezeli a bejelentkezést, és aldomain alapján irányít. A Hub a tenant létrehozásakor / módosításakor egy webhookkal frissíti a `tenant_module_access` táblát (push szinkron).
+- **Dev**: az `/auth` oldal megmarad **PIN-es fejlesztői hátsóajtónak**, csak neked. Ezzel be tudsz jönni Brain és Audit módban is, hogy a UI-t fejleszteni tudd.
+
+## 5. Logolás (Hub-felé 24 óránként)
+
+A Hub-szinkron job naponta egyszer fut (`pg_cron` + szerver route `/api/public/hooks/sync-logs-to-hub`).
+- **Két külön payload**, két külön HTTP hívás:
+  - `POST {hub}/api/logs/brain` — `brain_workflow_runs` adatai
+  - `POST {hub}/api/logs/audit` — `audit_workflow_runs` adatai
+- Egyik sem tartalmazza a másik adatait. Soha.
+- Sikeres átvitel után `synced_to_hub_at` timestampet írunk a sorra (de nem töröljük — SOC 2 retention).
+
+## 6. Lépések sorrendben
 
 ```text
-Felhasználó böngészője
-        │
-        ▼
-KyloBrain (Lovable Cloud)         ← itt marad, ezt nem mozgatjuk
-   - UI, workflow definíciók
-   - jobok sorba állítása (workflow_runs tábla)
-   - publikus job‑API a workernek
-        │  HTTPS (megosztott titok)
-        ▼
-KyloKit worker (a Te VPS-ed, 95.216.224.103)
-   - orchestrator konténer: polloz, indít, jelent
-   - executor konténer: Playwright + Chromium, egy futás = egy konténer
+1. Migration: tenant_module_access + tenant_has_module() függvény
+2. Migration: workflows.module oszlop + új RLS policy
+3. Migration: workflow_runs → brain_workflow_runs átnevezés
+                + új audit_workflow_runs tábla
+4. Audit téma: src/styles.css [data-module="audit"] blokk
+5. ModuleProvider + useModule() hook
+6. Aldomain / query param / dev kapcsoló felismerés
+7. UI: header branding, ikonok, szókincs modul szerint
+8. Workflow lista szűrése modul alapján
+9. BehaviorProfile absztrakció (Human + Robot)
+10. Dev modul-kapcsoló a preview-n
+11. PIN-es /auth bejárat megerősítése (már megvan)
+12. (Később) Hub-szinkron szerver route + pg_cron job
+13. (Később) audit.kylosystems.com DNS beállítása
 ```
 
-Ha tényleg külön KyloBrain‑docker kell a saját vasadon (pl. mert mindent ki akarsz költöztetni Lovable‑ből), azt egy későbbi, külön fázisban érdemes — most maradjunk a workernél, ahogy eddig is volt a terv.
+## 7. Amit ez NEM tartalmaz (külön kör)
 
-## 3. Hiányzó láncszem: hogyan szól a worker a backendhez
+- A Hub oldali kód (az a másik projekt — onnan külön kérlek majd push szinkronra).
+- A `audit.kylosystems.com` DNS beállítása — ezt akkor csináljuk, ha a modul-szétválasztás kész és teszteltük.
+- Mobil alkalmazás (egyelőre nem kell).
+- A Hub → Brain webhook implementáció — addig manuálisan állítjuk a `tenant_module_access` táblát dev-ben.
 
-Eddig a worker közvetlenül a Supabase service‑role kulccsal akart írni‑olvasni. Lovable Cloud‑on ezt a kulcsot nem tudjuk a te kezedbe adni. Megoldás: **publikus job‑API a Brain oldalán**, megosztott titokkal (`WORKER_API_TOKEN`):
+## Technikai részletek
 
-- `GET  /api/public/worker/claim` — a worker elkér egy következő futtatható jobot
-- `POST /api/public/worker/heartbeat` — futás közbeni státusz/logok
-- `POST /api/public/worker/complete` — végeredmény (succeeded / failed + result)
-
-Mindhárom végpont a kéréshez kötött `Authorization: Bearer <WORKER_API_TOKEN>` fejlécet ellenőrzi (timing‑safe), és csak ezután nyúl a DB‑hez. Ez teljesen kiváltja a service‑role kulcs igényét a workeren.
-
-## 4. Decathlon 4XL fitness póló figyelő (első éles workflow)
-
-- Új workflow‑típus: **„monitor"** — időzítve fut (pl. 15 percenként), nem egyszer.
-- Lovable Cloud‑oldalon egy cron (pg_cron vagy a Brain‑ben időzítő) berakja a workflow_runs sort, a worker pedig lefuttatja Playwrighttal.
-- Az executor új szkriptje: `executor/scripts/decathlon-stock.js`
-  - Megnyitja a megadott termékoldalt
-  - Megnézi, a 4XL méret kiválasztható‑e (nincs „nincs raktáron" felirat / aktív a Kosárba gomb)
-  - Eredmény: `{ available: true/false, size: "4XL", url, screenshot }`
-- Ha `available: true` és előzőleg `false` volt → **Telegram üzenet** a Lovable Telegram connectorán keresztül („Decathlon: most kapható 4XL [terméknév] — [link]").
-- Adott a duplikáció elleni védelem: utolsó N futás eredménye alapján csak állapotváltozáskor küld értesítést.
-
-> Még meg kell mondanod a konkrét **Decathlon termékoldal URL‑t** (egy konkrét fitness pólóét, amit figyelni szeretnél), és hogy **mire jöjjön a Telegram‑értesítés** (csak a saját Telegram fiókodra, vagy egy csoportba). Telegram connector kell — ha még nincs csatlakoztatva, a megvalósításnál szólni fogok.
-
-## 5. Lépések (sorrend)
-
-1. **Tisztítás a kódban**: Steel.dev‑hivatkozások eltávolítása a Brainből és a workerből.
-2. **Job‑API**: `src/routes/api/public/worker/{claim,heartbeat,complete}.ts` + `WORKER_API_TOKEN` titok.
-3. **Worker átírása** a service‑role helyett a publikus job‑API‑ra (orchestrator).
-4. **`monitor` workflow‑típus**: új mező a workflow‑n (`schedule_minutes`, `last_state`), cron, ami időzítve sort rak a `workflow_runs`‑ba.
-5. **Decathlon executor szkript** + Telegram értesítés (connector + szerver fn).
-6. **VPS oldali telepítés**: pontos parancsok, amiket a `kylo` felhasználóval lefuttatsz (Docker telepítés, repo lehúzás vagy fájlok scp‑zése, `.env` kitöltése, `docker compose up -d --build`).
-7. **Első éles teszt**: manuális futtatás a felületről („Futtasd most"), majd időzített futás.
-
-## Technikai részletek (ha érdekel)
-
-- Egyetlen képet építünk (`kylo-executor`), egy konténer = egy futás. Az orchestrator hosszan él, dockert spawnol.
-- A worker‑oldali `.env` csak ennyit fog tartalmazni: `BRAIN_URL=https://brain.kylosystems.com`, `WORKER_API_TOKEN=...`, `WORKER_ID=worker-1`, `MAX_PARALLEL=4`.
-- A `WORKER_API_TOKEN`‑t a Lovable secret store‑ba mentem, a VPS `.env`‑be pedig ugyanazt az értéket írjuk be — neked csak egyszer kell bemásolni a szerverre.
-- Telegram: értesítés a Brain szerverfüggvényéből megy ki (a worker nem küld közvetlenül), így a token nem szivárog a VPS‑re.
-
-## Kérdés feléd, mielőtt elkezdem
-
-1. Rendben az, hogy **csak a worker (KyloKit) megy a te szerveredre**, a Brain Lovable Cloud‑on marad?
-2. Adsz egy **konkrét Decathlon termék URL‑t** a figyeléshez, vagy generikus „bármilyen 4XL fitness póló a Decathlonon" típusú listafigyelés legyen?
-3. Telegram értesítés: **saját DM** vagy egy csoport? (Ehhez kell a chat_id, amit a beüzemelésnél meg fogunk szerezni.)
+- **`tenant_has_module`** SECURITY DEFINER funkcióként hívható minden RLS-ből, nincs rekurzió.
+- **GRANT** minden új táblán: `SELECT, INSERT, UPDATE, DELETE TO authenticated; ALL TO service_role`. Anon nincs (minden tenant-scoped).
+- **`data-module`** attribútumot a `ModuleProvider` rakja a `<html>` elemre `useEffect`-ben — server-rendered fallback Brain.
+- **Két log tábla = két RLS policy set**, plusz CHECK constraint a `module` oszlopon, hogy DB szinten se kerülhessen rossz sor a rossz táblába.
+- **Worker viselkedés**: a workflow futtató (Steel API hívó) a `workflow.module` alapján példányosítja a megfelelő `BehaviorProfile`-t — egyetlen helyen kapcsolja össze a modul-fogalmat a viselkedéssel.

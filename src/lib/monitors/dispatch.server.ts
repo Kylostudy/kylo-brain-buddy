@@ -20,7 +20,7 @@ function sb() {
 
 export async function handleRunCompletion(runId: string): Promise<void> {
   const { data: run } = await sb()
-    .from("workflow_runs")
+    .from("brain_workflow_runs")
     .select("id, workflow_id, status, result, spec_snapshot, finished_at")
     .eq("id", runId)
     .maybeSingle();
@@ -36,7 +36,7 @@ export async function handleRunCompletion(runId: string): Promise<void> {
 
   // Előző sikeres futás eredménye ugyanahhoz a workflow-hoz
   const { data: prev } = await sb()
-    .from("workflow_runs")
+    .from("brain_workflow_runs")
     .select("result")
     .eq("workflow_id", run.workflow_id)
     .eq("status", "succeeded")

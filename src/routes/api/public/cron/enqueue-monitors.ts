@@ -54,7 +54,7 @@ export const Route = createFileRoute("/api/public/cron/enqueue-monitors")({
 
           // Utolsó futás ideje (queued / running / bármi)
           const { data: lastRun } = await sb
-            .from("workflow_runs")
+            .from("brain_workflow_runs")
             .select("created_at, status")
             .eq("workflow_id", wf.id)
             .order("created_at", { ascending: false })
@@ -74,7 +74,7 @@ export const Route = createFileRoute("/api/public/cron/enqueue-monitors")({
             continue;
           }
 
-          const { error } = await sb.from("workflow_runs").insert({
+          const { error } = await sb.from("brain_workflow_runs").insert({
             workflow_id: wf.id,
             runner: "docker",
             status: "queued",

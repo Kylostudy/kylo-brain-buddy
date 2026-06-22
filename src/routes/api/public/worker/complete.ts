@@ -63,7 +63,7 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         const sb = supabaseAdmin as ReturnType<typeof createClient<Database>>;
 
         const { error } = await sb
-          .from("workflow_runs")
+          .from("brain_workflow_runs")
           .update({
             status: parsed.status,
             logs: parsed.logs as never,

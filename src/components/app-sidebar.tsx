@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { renameWorkflow } from "@/lib/chat.functions";
+import { useModule } from "@/lib/module/provider";
+import type { AppModule } from "@/lib/module/types";
 import logo from "@/assets/kylo-brain-logo.png";
 
 type Workflow = {
@@ -30,19 +32,22 @@ type Workflow = {
   updated_at: string;
 };
 
-async function fetchWorkflows(): Promise<Workflow[]> {
+async function fetchWorkflows(module: AppModule): Promise<Workflow[]> {
   const { data, error } = await supabase
     .from("workflows")
     .select("id, name, status, updated_at")
+    .eq("module", module)
     .order("updated_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
 
+
 export function AppSidebar() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const callRename = useServerFn(renameWorkflow);
+  const { module, meta } = useModule();
   const currentPath = useRouterState({
     select: (s) => s.location.pathname,
   });
@@ -52,8 +57,8 @@ export function AppSidebar() {
   const editInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: workflows = [], isLoading } = useQuery({
-    queryKey: ["workflows"],
-    queryFn: fetchWorkflows,
+    queryKey: ["workflows", module],
+    queryFn: () => fetchWorkflows(module),
   });
 
   useEffect(() => {
@@ -63,14 +68,14 @@ export function AppSidebar() {
   async function createWorkflow() {
     const { data, error } = await supabase
       .from("workflows")
-      .insert({ name: "Új workflow" })
+      .insert({ name: "Új workflow", module })
       .select("id")
       .single();
     if (error) {
       toast.error("Nem sikerült létrehozni a workflow-t");
       return;
     }
-    await qc.invalidateQueries({ queryKey: ["workflows"] });
+    await qc.invalidateQueries({ queryKey: ["workflows", module] });
     // Open it and immediately put it into rename mode so the user can name it.
     setDraft("");
     setEditingId(data.id);
@@ -83,9 +88,10 @@ export function AppSidebar() {
       toast.error("Törlés sikertelen");
       return;
     }
-    await qc.invalidateQueries({ queryKey: ["workflows"] });
+    await qc.invalidateQueries({ queryKey: ["workflows", module] });
     if (currentPath === `/w/${id}`) navigate({ to: "/" });
   }
+
 
   function startEdit(wf: Workflow, e: React.MouseEvent) {
     e.preventDefault();
@@ -102,7 +108,8 @@ export function AppSidebar() {
     try {
       await callRename({ data: { workflowId: id, name: next } });
       await Promise.all([
-        qc.invalidateQueries({ queryKey: ["workflows"] }),
+        qc.invalidateQueries({ queryKey: ["workflows", module] }),
+
         qc.invalidateQueries({ queryKey: ["workflow", id] }),
       ]);
     } catch (e) {
@@ -117,16 +124,17 @@ export function AppSidebar() {
         <Link to="/" className="flex items-center gap-2 px-2 py-1.5">
           <img
             src={logo}
-            alt="KyloBrain"
+            alt={meta.fullName}
             width={28}
             height={28}
             className="size-7 shrink-0"
           />
           <span className="text-sm font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-            KyloBrain
+            {meta.fullName}
           </span>
         </Link>
       </SidebarHeader>
+
 
       <SidebarContent>
         <SidebarGroup>
