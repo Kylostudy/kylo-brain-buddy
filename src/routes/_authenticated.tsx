@@ -12,7 +12,10 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { HubTenantBootstrap } from "@/components/hub-tenant-bootstrap";
+import { ModuleSwitcher } from "@/components/module-switcher";
+import { useModule } from "@/lib/module/provider";
 import { LogOut } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -61,6 +64,7 @@ function AppShell({
   children: ReactNode;
   onSignOut: () => void;
 }) {
+  const { meta } = useModule();
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -69,9 +73,10 @@ function AppShell({
           <header className="flex h-12 shrink-0 items-center justify-between border-b px-3">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <span className="text-sm font-medium text-muted-foreground">Brain</span>
+              <span className="text-sm font-medium text-foreground">{meta.fullName}</span>
             </div>
             <div className="flex items-center gap-2">
+              <ModuleSwitcher />
               <ThemeToggle />
               <Button
                 variant="ghost"
@@ -89,3 +94,4 @@ function AppShell({
     </SidebarProvider>
   );
 }
+
