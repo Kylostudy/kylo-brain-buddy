@@ -39,6 +39,14 @@ type Props = {
 
 type Frame = { dataUrl: string; w: number; h: number; ts: number };
 
+function normalizeBrowserUrl(rawUrl: string) {
+  const url = rawUrl.trim();
+  if (!url) return "";
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) return url;
+  if (/^localhost(?::\d+)?(?:\/|$)/i.test(url)) return `http://${url}`;
+  return `https://${url}`;
+}
+
 export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const callSave = useServerFn(saveRecording);
   const callCancel = useServerFn(cancelRecording);
@@ -158,8 +166,10 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   }
 
   function handleNav() {
-    if (!urlDraft.trim()) return;
-    sendToWorker("goto", { url: urlDraft.trim() });
+    const url = normalizeBrowserUrl(urlDraft);
+    if (!url) return;
+    setUrlDraft(url);
+    sendToWorker("goto", { url });
   }
 
   async function handleSave() {
@@ -251,7 +261,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
               handleNav();
             }
           }}
-          placeholder="https://…"
+          placeholder="origo.hu vagy https://origo.hu"
+          inputMode="url"
           className="h-8 flex-1 bg-zinc-900 border-white/10 text-sm text-white placeholder:text-white/40"
         />
         <span className="hidden md:inline px-2 text-xs text-white/60">
