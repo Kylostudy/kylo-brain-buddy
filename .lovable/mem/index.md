@@ -7,5 +7,5 @@ Decathlon tesztfeladat lezárva: Cloudflare Turnstile blokkol, nem fejlesztési 
 Recorder infrastruktúra (VPS + IPRoyal ISP proxy + Steel) működik; session-alapú login (FB/TikTok) korábban már működött amszterdami VPS-ről.
 
 ## Memories
-- [Függő feladatok](mem://todo/pending) — Privacy policy + security oldalak, Kai Logic integráció, magyar IP beszerzés
+- [Függő feladatok](mem://todo/pending) — Privacy policy + security oldalak, Kai Logic integráció, magyar IP beszerzés, Kubernetes VPS kezelés
 - [Kai Logic integráció terv](mem://features/kai-logic-integration) — Core Hub bekötés, tenant összehangolás, AirShare kiváltása
