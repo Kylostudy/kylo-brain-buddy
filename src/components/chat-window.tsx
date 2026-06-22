@@ -295,19 +295,15 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
         </Conversation>
 
         <div className="mx-auto w-full max-w-3xl px-4 pb-4">
-          <PromptInput onSubmit={handleSubmit} accept="image/*,application/pdf" multiple>
-            <PromptInputTextarea
-              ref={textareaRef}
-              placeholder="Írd le a workflow következő lépését…"
-            />
-            <PromptInputFooter>
-              <PromptInputTools>
-                <PromptInputActionMenu>
-                  <PromptInputActionMenuTrigger />
-                  <PromptInputActionMenuContent>
-                    <PromptInputActionAddAttachments />
-                  </PromptInputActionMenuContent>
-                </PromptInputActionMenu>
+          <PromptInput
+            onSubmit={handleSubmit}
+            accept="image/*,application/pdf"
+            multiple
+            className="relative"
+          >
+            {/* Fixed mic button — mindig látható, a textarea-réteg fölött lebeg */}
+            <div className="pointer-events-none absolute right-3 top-3 z-20">
+              <div className="pointer-events-auto">
                 <MicButton
                   onTranscript={(text) => {
                     const ta = textareaRef.current;
@@ -324,7 +320,22 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                   }}
                   disabled={sending}
                 />
+              </div>
+            </div>
 
+            <PromptInputTextarea
+              ref={textareaRef}
+              placeholder="Írd le a workflow következő lépését…"
+              className="pr-14"
+            />
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger />
+                  <PromptInputActionMenuContent>
+                    <PromptInputActionAddAttachments />
+                  </PromptInputActionMenuContent>
+                </PromptInputActionMenu>
               </PromptInputTools>
               <PromptInputSubmit status={sending ? "submitted" : undefined} />
             </PromptInputFooter>
