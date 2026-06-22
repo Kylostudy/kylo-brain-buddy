@@ -1,17 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { WorkflowSpec } from "@/lib/chat.functions";
 import type { RunLogEntry, RunnerName } from "@/lib/runners/types";
-
-function serverSupabase() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
-}
 
 /**
  * Új futtatás indítása — runner-agnosztikus.
@@ -25,6 +16,7 @@ function serverSupabase() {
  */
 
 export const startRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -33,8 +25,8 @@ export const startRun = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
-    const supabase = serverSupabase();
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
 
     // 1) Spec snapshot
     const { data: wf, error: wfErr } = await supabase
@@ -131,11 +123,12 @@ export const startRun = createServerFn({ method: "POST" })
   });
 
 export const cancelRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({ runId: z.string().uuid() }).parse(input),
   )
-  .handler(async ({ data }) => {
-    const supabase = serverSupabase();
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
     const { error } = await supabase
       .from("brain_workflow_runs")
       .update({
