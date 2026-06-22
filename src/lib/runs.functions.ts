@@ -16,10 +16,14 @@ function serverSupabase() {
 /**
  * Új futtatás indítása — runner-agnosztikus.
  * 1) Beolvassa a workflow specet (snapshot).
- * 2) Beszúr egy `workflow_runs` sort `queued` státusszal.
+ * 2) Beszúr egy `brain_workflow_runs` sort `queued` státusszal.
  * 3) Behívja a docker runnert (sorba teszi a saját VPS worker számára).
  * 4) Frissíti a sort az eredménnyel.
+ *
+ * TODO (Audit modul): ha workflow.module === 'audit', a sor `audit_workflow_runs`-ba kell menjen,
+ * és a runner egy RobotProfile-t használjon HumanProfile helyett. Lásd src/lib/behavior/.
  */
+
 export const startRun = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
