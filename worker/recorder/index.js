@@ -33,6 +33,13 @@ if (!BRAIN_URL || !WORKER_API_TOKEN) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+function normalizeUrl(rawUrl) {
+  const url = String(rawUrl || "").trim();
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return "https://" + url;
+}
+
 async function brainPost(path, body) {
   return fetch(`${BRAIN_URL}${path}`, {
     method: "POST",
@@ -190,7 +197,9 @@ async function runSession(payload) {
 
   channel.on("broadcast", { event: "goto" }, async ({ payload }) => {
     try {
-      await page.goto(payload.url, { waitUntil: "domcontentloaded" });
+      const url = normalizeUrl(payload?.url);
+      if (!url) return;
+      await page.goto(url, { waitUntil: "domcontentloaded" });
     } catch (e) {
       console.error(`[session ${session.id}] goto error`, e.message);
     }
@@ -236,10 +245,9 @@ async function runSession(payload) {
   });
 
   if (session.startUrl) {
-    let url = session.startUrl.trim();
-    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    const url = normalizeUrl(session.startUrl);
     try {
-      await page.goto(url, { waitUntil: "domcontentloaded" });
+      if (url) await page.goto(url, { waitUntil: "domcontentloaded" });
     } catch (e) {
       console.error(`[session ${session.id}] initial goto failed`, e.message);
     }
