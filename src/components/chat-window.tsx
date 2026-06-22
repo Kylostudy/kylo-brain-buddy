@@ -77,13 +77,17 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const callRename = useServerFn(renameWorkflow);
   const callResetReady = useServerFn(resetReadyForTest);
   const callStartRun = useServerFn(startRun);
+  const callStartRecording = useServerFn(startRecording);
   const [sending, setSending] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
+  const [recordOpen, setRecordOpen] = useState(false);
   const [runner, setRunner] = useState<"docker">("docker");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
+
 
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", workflowId],
