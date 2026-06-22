@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Brain, Mic, Play, Pencil } from "lucide-react";
+import { Brain, Play, Pencil } from "lucide-react";
+import { MicButton } from "@/components/mic-button";
 
 import {
   Conversation,
@@ -307,15 +308,23 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                     <PromptInputActionAddAttachments />
                   </PromptInputActionMenuContent>
                 </PromptInputActionMenu>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Hangrögzítés (hamarosan)"
-                  onClick={() => toast.info("Mikrofon: hamarosan")}
-                >
-                  <Mic className="size-4" />
-                </Button>
+                <MicButton
+                  onTranscript={(text) => {
+                    const ta = textareaRef.current;
+                    if (!ta) return;
+                    const current = ta.value;
+                    const next = current ? `${current.replace(/\s+$/, "")} ${text}` : text;
+                    const setter = Object.getOwnPropertyDescriptor(
+                      window.HTMLTextAreaElement.prototype,
+                      "value",
+                    )?.set;
+                    setter?.call(ta, next);
+                    ta.dispatchEvent(new Event("input", { bubbles: true }));
+                    ta.focus();
+                  }}
+                  disabled={sending}
+                />
+
               </PromptInputTools>
               <PromptInputSubmit status={sending ? "submitted" : undefined} />
             </PromptInputFooter>
