@@ -13,9 +13,57 @@
 // Semmilyen inbound portot NEM nyitunk a VPS-en.
 // Egy folyamat több párhuzamos session-t is kezel (külön browser context-tel).
 
-import { chromium } from "playwright";
+import { chromium as _rawChromium } from "playwright";
+import { chromium as _extraChromium } from "playwright-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
+
+// Stealth plugin: álcázza a headless böngészőt valódi böngészőnek
+// (Cloudflare / DataDome / PerimeterX bot-detektorok ellen).
+_extraChromium.use(StealthPlugin());
+const chromium = _extraChromium;
+
+// ---- Proxy pool (IPRoyal residential, formátum: host:port:user:pass) ----
+function loadProxies() {
+  const list = [];
+  for (let i = 1; i <= 20; i++) {
+    const raw = process.env[`PROXY_${i}`];
+    if (!raw) continue;
+    const parts = raw.split(":");
+    if (parts.length < 4) {
+      console.error(`[proxy] PROXY_${i} hibás formátum (vár: host:port:user:pass)`);
+      continue;
+    }
+    const [host, port, user, ...rest] = parts;
+    const pass = rest.join(":"); // jelszóban lehet ':'
+    list.push({
+      server: `http://${host}:${port}`,
+      username: user,
+      password: pass,
+      label: `PROXY_${i}`,
+    });
+  }
+  return list;
+}
+const PROXIES = loadProxies();
+let proxyCursor = 0;
+function nextProxy() {
+  if (PROXIES.length === 0) return null;
+  const p = PROXIES[proxyCursor % PROXIES.length];
+  proxyCursor++;
+  return p;
+}
+
+// ---- User-Agent pool (valódi, friss Chrome / Edge UA-k) ----
+const USER_AGENTS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0",
+];
+const pickUA = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 
 const BRAIN_URL = (process.env.BRAIN_URL || "").replace(/\/$/, "");
 const WORKER_API_TOKEN = process.env.WORKER_API_TOKEN;
@@ -54,7 +102,16 @@ async function brainPost(path, body) {
 let browser = null;
 async function getBrowser() {
   if (browser && browser.isConnected()) return browser;
-  browser = await chromium.launch({ headless: true });
+  // 'per-context' proxy placeholder — a tényleges proxy a newContext({ proxy })-ban dől el.
+  browser = await chromium.launch({
+    headless: true,
+    proxy: { server: "http://per-context" },
+    args: [
+      "--disable-blink-features=AutomationControlled",
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+    ],
+  });
   return browser;
 }
 
@@ -132,8 +189,19 @@ async function runSession(payload) {
   });
 
   const br = await getBrowser();
+  const proxy = nextProxy();
+  const userAgent = pickUA();
+  if (proxy) {
+    console.log(`[session ${session.id}] using ${proxy.label} + UA ${userAgent.slice(0, 40)}…`);
+  } else {
+    console.warn(`[session ${session.id}] NINCS proxy konfigurálva (PROXY_1..N env hiányzik) — direkt IP-vel megy!`);
+  }
   const context = await br.newContext({
     viewport: { width: VIEWPORT_W, height: VIEWPORT_H },
+    userAgent,
+    locale: "hu-HU",
+    timezoneId: "Europe/Budapest",
+    ...(proxy ? { proxy } : {}),
   });
   const page = await context.newPage();
 
