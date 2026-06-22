@@ -80,9 +80,14 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
               channel: `record:${claimed.id}`,
               startedAt: claimed.started_at,
             },
+            // A worker ezekkel csatlakozik a Realtime broadcast csatornára.
+            // A publishable kulcs publikus, biztonságosan kiadható.
+            supabaseUrl: process.env.SUPABASE_URL,
+            supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         );
+
       },
     },
   },

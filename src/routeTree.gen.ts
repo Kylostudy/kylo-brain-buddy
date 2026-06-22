@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
+import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
@@ -45,6 +46,12 @@ const AuthenticatedWWorkflowIdRoute =
     id: '/w/$workflowId',
     path: '/w/$workflowId',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const ApiPublicWorkerRecordStatusRoute =
+  ApiPublicWorkerRecordStatusRouteImport.update({
+    id: '/api/public/worker/record-status',
+    path: '/api/public/worker/record-status',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWorkerRecordClaimRoute =
   ApiPublicWorkerRecordClaimRouteImport.update({
@@ -89,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
+  '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -101,6 +109,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
+  '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -115,6 +124,7 @@ export interface FileRoutesById {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
+  '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/record-claim'
+    | '/api/public/worker/record-status'
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesByTo: FileRoutesByTo
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/record-claim'
+    | '/api/public/worker/record-status'
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kit/task/$task_id/log'
   id:
@@ -154,6 +166,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/record-claim'
+    | '/api/public/worker/record-status'
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesById: FileRoutesById
@@ -166,6 +179,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
+  ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
 }
 
@@ -205,6 +219,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workflowId'
       preLoaderRoute: typeof AuthenticatedWWorkflowIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/worker/record-status': {
+      id: '/api/public/worker/record-status'
+      path: '/api/public/worker/record-status'
+      fullPath: '/api/public/worker/record-status'
+      preLoaderRoute: typeof ApiPublicWorkerRecordStatusRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/record-claim': {
       id: '/api/public/worker/record-claim'
@@ -286,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
+  ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
   ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,
 }
 export const routeTree = rootRouteImport
