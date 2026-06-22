@@ -119,8 +119,24 @@
   --sidebar-ring: oklch(0.82 0.18 145);
 }
 
+/*
+ * Audit téma — kék paletta. Akkor aktiválódik, ha a <html data-module="audit">.
+ * Ugyanazok a token-nevek, csak a "primary / ring / success" váltja a Brain zöldjét kékre.
+ */
+[data-module="audit"] {
+  --primary: oklch(0.72 0.16 245);
+  --primary-foreground: oklch(0.16 0.012 250);
+  --success: oklch(0.72 0.14 245);
+  --success-foreground: oklch(0.16 0.012 250);
+  --ring: oklch(0.72 0.16 245);
+  --sidebar-primary: oklch(0.72 0.16 245);
+  --sidebar-primary-foreground: oklch(0.16 0.012 250);
+  --sidebar-ring: oklch(0.72 0.16 245);
+}
+
 @layer base {
   * { border-color: var(--color-border); }
   html, body { background-color: var(--color-background); color: var(--color-foreground); }
   body { font-feature-settings: "cv02","cv03","cv04","cv11"; }
 }
+
