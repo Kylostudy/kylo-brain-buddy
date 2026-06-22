@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ChatWindow } from "@/components/chat-window";
 
-export const Route = createFileRoute("/w/$workflowId")({
+export const Route = createFileRoute("/_authenticated/w/$workflowId")({
   component: WorkflowRoute,
 });
 

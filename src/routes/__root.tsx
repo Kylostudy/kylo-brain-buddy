@@ -11,11 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/ui/sonner";
-import { HubTenantBootstrap } from "@/components/hub-tenant-bootstrap";
+
 
 function NotFoundComponent() {
   return (
@@ -127,33 +124,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <HubTenantBootstrap />
-      <AppShell>
-        <Outlet />
-      </AppShell>
+      <Outlet />
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );
 }
 
-function AppShell({ children }: { children: ReactNode }) {
-  return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background text-foreground">
-        <AppSidebar />
-        <div className="flex min-h-screen flex-1 flex-col">
-          <header className="flex h-12 shrink-0 items-center justify-between border-b px-3">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <span className="text-sm font-medium text-muted-foreground">
-                Brain
-              </span>
-            </div>
-            <ThemeToggle />
-          </header>
-          <main className="flex flex-1 flex-col overflow-hidden">{children}</main>
-        </div>
-      </div>
-    </SidebarProvider>
-  );
-}

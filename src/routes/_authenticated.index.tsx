@@ -4,7 +4,7 @@ import { Brain } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "KyloBrain — Workflow automatizáció" },

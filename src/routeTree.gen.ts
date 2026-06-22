@@ -9,24 +9,36 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as WWorkflowIdRouteImport } from './routes/w.$workflowId'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
+import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
 import { Route as ApiPublicCrossKitTaskTask_idLogRouteImport } from './routes/api/public/cross/kit/task/$task_id/log'
 
-const IndexRoute = IndexRouteImport.update({
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const WWorkflowIdRoute = WWorkflowIdRouteImport.update({
-  id: '/w/$workflowId',
-  path: '/w/$workflowId',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedWWorkflowIdRoute =
+  AuthenticatedWWorkflowIdRouteImport.update({
+    id: '/w/$workflowId',
+    path: '/w/$workflowId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicWorkerCompleteRoute = ApiPublicWorkerCompleteRouteImport.update({
   id: '/api/public/worker/complete',
   path: '/api/public/worker/complete',
@@ -56,8 +68,9 @@ const ApiPublicCrossKitTaskTask_idLogRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/w/$workflowId': typeof WWorkflowIdRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRoute
+  '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -65,8 +78,9 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/w/$workflowId': typeof WWorkflowIdRoute
+  '/auth': typeof AuthRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -75,8 +89,10 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/w/$workflowId': typeof WWorkflowIdRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -87,6 +103,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/w/$workflowId'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
@@ -95,6 +112,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/auth'
     | '/'
     | '/w/$workflowId'
     | '/api/public/cron/enqueue-monitors'
@@ -104,8 +122,10 @@ export interface FileRouteTypes {
     | '/api/public/cross/kit/task/$task_id/log'
   id:
     | '__root__'
-    | '/'
-    | '/w/$workflowId'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/'
+    | '/_authenticated/w/$workflowId'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -114,8 +134,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  WWorkflowIdRoute: typeof WWorkflowIdRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AuthRoute: typeof AuthRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
@@ -124,19 +144,33 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/w/$workflowId': {
-      id: '/w/$workflowId'
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/w/$workflowId': {
+      id: '/_authenticated/w/$workflowId'
       path: '/w/$workflowId'
       fullPath: '/w/$workflowId'
-      preLoaderRoute: typeof WWorkflowIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedWWorkflowIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/api/public/worker/complete': {
       id: '/api/public/worker/complete'
@@ -176,6 +210,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedWWorkflowIdRoute: typeof AuthenticatedWWorkflowIdRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedWWorkflowIdRoute: AuthenticatedWWorkflowIdRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 interface ApiPublicCrossKitTaskRouteChildren {
   ApiPublicCrossKitTaskTask_idLogRoute: typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -190,8 +238,8 @@ const ApiPublicCrossKitTaskRouteWithChildren =
   )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  WWorkflowIdRoute: WWorkflowIdRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AuthRoute: AuthRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
@@ -200,13 +248,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
