@@ -61,6 +61,14 @@ const RESPONSE_SCHEMA = {
   required: ["reply", "spec_patch", "ready"],
 } as const;
 
+export type RecordedAction =
+  | { type: "navigate"; url: string; t: number }
+  | { type: "click"; selector: string; x?: number; y?: number; text?: string; t: number }
+  | { type: "type"; selector: string; value: string; t: number }
+  | { type: "key"; key: string; t: number }
+  | { type: "scroll"; x: number; y: number; t: number }
+  | { type: "wait"; ms: number; t: number };
+
 export type WorkflowSpec = {
   platform?: string;
   account_label?: string;
@@ -72,7 +80,10 @@ export type WorkflowSpec = {
   kill_switches?: string[];
   human_behavior?: string;
   success_criteria?: string;
+  recorded_actions?: RecordedAction[];
+  start_url?: string;
 };
+
 
 type SpecPatch = WorkflowSpec;
 
