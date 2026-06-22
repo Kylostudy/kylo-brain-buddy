@@ -39,5 +39,7 @@ services:
       - RECORD_FPS=${RECORD_FPS:-5}
       - RECORD_VIEWPORT_W=${RECORD_VIEWPORT_W:-1280}
       - RECORD_VIEWPORT_H=${RECORD_VIEWPORT_H:-800}
+      - PROXY_1=${PROXY_1:-}
+      - PROXY_2=${PROXY_2:-}
     restart: unless-stopped
 
