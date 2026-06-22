@@ -24,25 +24,49 @@ import ws from "ws";
 _extraChromium.use(StealthPlugin());
 const chromium = _extraChromium;
 
-// ---- Proxy pool (IPRoyal residential, formátum: host:port:user:pass) ----
+// ---- Proxy pool (residential, támogatott formátumok: host:port:user:pass vagy user:pass:host:port) ----
+function parseProxy(raw, label) {
+  const parts = String(raw || "").trim().split(":");
+  const isPort = (value) => /^\d{2,5}$/.test(value || "");
+
+  if (parts.length < 4) {
+    console.error(`[proxy] ${label} hibás formátum (vár: host:port:user:pass vagy user:pass:host:port)`);
+    return null;
+  }
+
+  let host;
+  let port;
+  let username;
+  let password;
+
+  if (isPort(parts[1])) {
+    [host, port, username] = parts;
+    password = parts.slice(3).join(":");
+  } else if (isPort(parts.at(-1))) {
+    host = parts.at(-2);
+    port = parts.at(-1);
+    username = parts[0];
+    password = parts.slice(1, -2).join(":");
+  } else {
+    console.error(`[proxy] ${label} hibás formátum (nem található port)`);
+    return null;
+  }
+
+  return {
+    server: `http://${host}:${port}`,
+    username,
+    password,
+    label,
+  };
+}
+
 function loadProxies() {
   const list = [];
   for (let i = 1; i <= 20; i++) {
     const raw = process.env[`PROXY_${i}`];
     if (!raw) continue;
-    const parts = raw.split(":");
-    if (parts.length < 4) {
-      console.error(`[proxy] PROXY_${i} hibás formátum (vár: host:port:user:pass)`);
-      continue;
-    }
-    const [host, port, user, ...rest] = parts;
-    const pass = rest.join(":"); // jelszóban lehet ':'
-    list.push({
-      server: `http://${host}:${port}`,
-      username: user,
-      password: pass,
-      label: `PROXY_${i}`,
-    });
+    const proxy = parseProxy(raw, `PROXY_${i}`);
+    if (proxy) list.push(proxy);
   }
   return list;
 }
