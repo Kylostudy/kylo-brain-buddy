@@ -235,7 +235,34 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
               <Pencil className="size-3.5 opacity-0 transition group-hover/name:opacity-60" />
             </button>
           )}
+          <div className="ml-auto flex items-center gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const session = await callStartRecording({
+                    data: { workflowId },
+                  });
+                  setRecordSessionId(session.id);
+                  setRecordOpen(true);
+                } catch (e) {
+                  toast.error(
+                    e instanceof Error
+                      ? `Felvétel indítása sikertelen: ${e.message}`
+                      : "Felvétel indítása sikertelen",
+                  );
+                }
+              }}
+              title="Élő böngésző felvétele"
+            >
+              <Video className="size-4" />
+              <span className="ml-1.5 hidden sm:inline">Felvétel</span>
+            </Button>
+          </div>
         </div>
+
 
         <Conversation className="flex-1 min-h-0 overflow-auto">
           <ConversationContent className="mx-auto w-full max-w-3xl pb-6">
