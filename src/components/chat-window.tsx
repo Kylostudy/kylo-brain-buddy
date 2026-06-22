@@ -386,6 +386,17 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
       </div>
 
       <SpecPanel workflowId={workflowId} />
+
+      <BrowserRecorderModal
+        open={recordOpen}
+        sessionId={recordSessionId}
+        onClose={() => {
+          setRecordOpen(false);
+          setRecordSessionId(null);
+          void qc.invalidateQueries({ queryKey: ["workflow", workflowId] });
+        }}
+      />
     </div>
   );
 }
+
