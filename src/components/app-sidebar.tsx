@@ -100,21 +100,25 @@ export function AppSidebar() {
     setEditingId(wf.id);
   }
 
+  const renamingRef = useRef<string | null>(null);
   async function commitEdit(id: string) {
+    if (renamingRef.current === id) return;
     const next = draft.trim();
     const original = workflows.find((w) => w.id === id)?.name ?? "";
     setEditingId(null);
     if (!next || next === original) return;
+    renamingRef.current = id;
     try {
       await callRename({ data: { workflowId: id, name: next } });
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["workflows", module] }),
-
         qc.invalidateQueries({ queryKey: ["workflow", id] }),
       ]);
     } catch (e) {
-      console.error(e);
-      toast.error("Átnevezés sikertelen");
+      console.error("rename failed", e);
+      toast.error(e instanceof Error ? `Átnevezés sikertelen: ${e.message}` : "Átnevezés sikertelen");
+    } finally {
+      renamingRef.current = null;
     }
   }
 
