@@ -320,7 +320,12 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
               </PromptInputTools>
               <div className="flex items-center gap-1">
                 <MicButton
-                  onTranscript={(text) => {
+                  onTranscript={(text, { send }) => {
+                    if (send) {
+                      // Pipa → azonnal küldés, ne kelljen még egy gombot nyomni.
+                      void handleSubmit({ text, files: [] } as PromptInputMessage);
+                      return;
+                    }
                     const ta = textareaRef.current;
                     if (!ta) return;
                     const current = ta.value;
@@ -335,6 +340,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                   }}
                   disabled={sending}
                 />
+
                 <PromptInputSubmit status={sending ? "submitted" : undefined} />
               </div>
             </PromptInputFooter>
