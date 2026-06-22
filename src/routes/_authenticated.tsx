@@ -67,9 +67,9 @@ function AppShell({
   const { meta } = useModule();
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background text-foreground">
+      <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
         <AppSidebar />
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex h-screen min-h-0 flex-1 flex-col overflow-hidden">
           <header className="flex h-12 shrink-0 items-center justify-between border-b px-3">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
