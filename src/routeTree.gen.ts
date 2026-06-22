@@ -9,24 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as WWorkflowIdRouteImport } from './routes/w.$workflowId'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
+import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
 import { Route as ApiPublicCrossKitTaskTask_idLogRouteImport } from './routes/api/public/cross/kit/task/$task_id/log'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/_authenticated/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WWorkflowIdRoute = WWorkflowIdRouteImport.update({
-  id: '/w/$workflowId',
-  path: '/w/$workflowId',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedWWorkflowIdRoute =
+  AuthenticatedWWorkflowIdRouteImport.update({
+    id: '/_authenticated/w/$workflowId',
+    path: '/w/$workflowId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerCompleteRoute = ApiPublicWorkerCompleteRouteImport.update({
   id: '/api/public/worker/complete',
   path: '/api/public/worker/complete',
@@ -56,8 +57,8 @@ const ApiPublicCrossKitTaskTask_idLogRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/w/$workflowId': typeof WWorkflowIdRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -65,8 +66,8 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/w/$workflowId': typeof WWorkflowIdRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -75,8 +76,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/w/$workflowId': typeof WWorkflowIdRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -104,8 +105,8 @@ export interface FileRouteTypes {
     | '/api/public/cross/kit/task/$task_id/log'
   id:
     | '__root__'
-    | '/'
-    | '/w/$workflowId'
+    | '/_authenticated/'
+    | '/_authenticated/w/$workflowId'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -114,8 +115,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  WWorkflowIdRoute: typeof WWorkflowIdRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedWWorkflowIdRoute: typeof AuthenticatedWWorkflowIdRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
@@ -124,18 +125,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/w/$workflowId': {
-      id: '/w/$workflowId'
+    '/_authenticated/w/$workflowId': {
+      id: '/_authenticated/w/$workflowId'
       path: '/w/$workflowId'
       fullPath: '/w/$workflowId'
-      preLoaderRoute: typeof WWorkflowIdRouteImport
+      preLoaderRoute: typeof AuthenticatedWWorkflowIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/complete': {
@@ -190,8 +191,8 @@ const ApiPublicCrossKitTaskRouteWithChildren =
   )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  WWorkflowIdRoute: WWorkflowIdRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedWWorkflowIdRoute: AuthenticatedWWorkflowIdRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
