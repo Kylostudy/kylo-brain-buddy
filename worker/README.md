@@ -35,7 +35,14 @@ KyloBrain (Lovable Cloud)              KyloKit worker (saját VPS)
   `SPEC_JSON` env alapján dispatchel:
   - `monitor_type: "decathlon-stock"` → `scripts/decathlon-stock.js`
   - `platform: "tiktok"` → `scripts/tiktok.js`
+- **`recorder/`** — Külön konténer az **élő felvétel** funkcióhoz.
+  Polloz a Brain `/api/public/worker/record-claim` végpontján; minden
+  session-höz indít egy Playwright böngészőt, és a képkockákat / felhasználói
+  kattintásokat Supabase Realtime broadcast csatornán cseréli a UI-jal
+  (csatorna: `record:<sessionId>`). Részletes szerződés:
+  `docs/WORKER_CONTRACT_RECORDING.md`.
 - **`Dockerfile`** — Az executor image build receptje.
+  A recorder saját Dockerfile-t használ (`recorder/Dockerfile`).
 
 ## VPS telepítés (egyszeri)
 
