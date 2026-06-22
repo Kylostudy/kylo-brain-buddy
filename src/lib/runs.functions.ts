@@ -44,7 +44,7 @@ export const startRun = createServerFn({ method: "POST" })
     // 2) Run sor létrehozása
     const startedAt = new Date().toISOString();
     const { data: created, error: insErr } = await supabase
-      .from("workflow_runs")
+      .from("brain_workflow_runs")
       .insert({
         workflow_id: data.workflowId,
         runner: data.runner as RunnerName,
@@ -99,7 +99,7 @@ export const startRun = createServerFn({ method: "POST" })
       ];
 
       const { error: updErr } = await supabase
-        .from("workflow_runs")
+        .from("brain_workflow_runs")
         .update({
           status: result.finishedSync ? (result.finalStatus ?? "succeeded") : "running",
           external_id: result.externalId,
@@ -115,7 +115,7 @@ export const startRun = createServerFn({ method: "POST" })
     } catch (e) {
       const message = e instanceof Error ? e.message : "Ismeretlen hiba";
       await supabase
-        .from("workflow_runs")
+        .from("brain_workflow_runs")
         .update({
           status: "failed",
           error: message,
@@ -133,7 +133,7 @@ export const cancelRun = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const supabase = serverSupabase();
     const { error } = await supabase
-      .from("workflow_runs")
+      .from("brain_workflow_runs")
       .update({
         status: "cancelled",
         finished_at: new Date().toISOString(),

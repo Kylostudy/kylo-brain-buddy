@@ -47,7 +47,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
 
         // Lekérünk 1 queued sort + atomikusan running-ra állítjuk (CAS a status mezőn).
         const { data: candidate } = await sb
-          .from("workflow_runs")
+          .from("brain_workflow_runs")
           .select("id, workflow_id, spec_snapshot, runner")
           .eq("status", "queued")
           .eq("runner", "docker")
@@ -58,7 +58,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         if (!candidate) return new Response(null, { status: 204 });
 
         const { data: claimed, error: updErr } = await sb
-          .from("workflow_runs")
+          .from("brain_workflow_runs")
           .update({
             status: "running",
             external_id: `${workerId}:${candidate.id}`,

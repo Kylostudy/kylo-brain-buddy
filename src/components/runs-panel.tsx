@@ -28,7 +28,7 @@ type RunRow = {
 
 async function fetchRuns(workflowId: string): Promise<RunRow[]> {
   const { data, error } = await supabase
-    .from("workflow_runs")
+    .from("brain_workflow_runs")
     .select(
       "id, runner, status, external_id, started_at, finished_at, created_at, error",
     )
@@ -65,7 +65,7 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
   const callCancel = useServerFn(cancelRun);
 
   const { data: runs = [] } = useQuery({
-    queryKey: ["workflow_runs", workflowId],
+    queryKey: ["brain_workflow_runs", workflowId],
     queryFn: () => fetchRuns(workflowId),
     refetchInterval: 2000,
   });
@@ -79,11 +79,11 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
         {
           event: "*",
           schema: "public",
-          table: "workflow_runs",
+          table: "brain_workflow_runs",
           filter: `workflow_id=eq.${workflowId}`,
         },
         () => {
-          qc.invalidateQueries({ queryKey: ["workflow_runs", workflowId] });
+          qc.invalidateQueries({ queryKey: ["brain_workflow_runs", workflowId] });
         },
       )
       .subscribe();
@@ -135,7 +135,7 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
                     onClick={async () => {
                       await callCancel({ data: { runId: r.id } });
                       qc.invalidateQueries({
-                        queryKey: ["workflow_runs", workflowId],
+                        queryKey: ["brain_workflow_runs", workflowId],
                       });
                     }}
                   >

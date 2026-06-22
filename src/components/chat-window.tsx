@@ -173,7 +173,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
       await callResetReady({ data: { workflowId } });
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["workflow", workflowId] }),
-        qc.invalidateQueries({ queryKey: ["workflow_runs", workflowId] }),
+        qc.invalidateQueries({ queryKey: ["brain_workflow_runs", workflowId] }),
       ]);
     } catch (e) {
       console.error(e);
