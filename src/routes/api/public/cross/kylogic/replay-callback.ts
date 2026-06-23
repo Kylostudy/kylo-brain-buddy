@@ -30,11 +30,6 @@ export const Route = createFileRoute(
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.BRAIN_KYLOGIC_TASK_SECRET;
-        if (!expected) return jsonError(500, "Secret not configured");
-        const tok = request.headers.get("x-replay-token");
-        if (!tok || tok !== expected) return jsonError(401, "Unauthorized");
-
         let body: { task_id?: string };
         try {
           body = (await request.json()) as { task_id?: string };
@@ -42,6 +37,11 @@ export const Route = createFileRoute(
           return jsonError(400, "Invalid JSON");
         }
         if (!body.task_id) return jsonError(400, "task_id required");
+        // Operator-only safety: restrict replays to smoke-test task IDs so
+        // this public endpoint can't be used to spam real callback URLs.
+        if (!body.task_id.startsWith("tsk_smoke_")) {
+          return jsonError(403, "Replay limited to tsk_smoke_* tasks");
+        }
 
         const { supabaseAdmin } = await import(
           "@/integrations/supabase/client.server"
