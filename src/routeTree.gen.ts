@@ -20,6 +20,7 @@ import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
+import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './routes/api/public/cross/kylogic/replay-callback'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
 import { Route as ApiPublicCrossKitTaskTask_idLogRouteImport } from './routes/api/public/cross/kit/task/$task_id/log'
 
@@ -82,6 +83,12 @@ const ApiPublicCrossKylogicTaskRoute =
     path: '/api/public/cross/kylogic/task',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCrossKylogicReplayCallbackRoute =
+  ApiPublicCrossKylogicReplayCallbackRouteImport.update({
+    id: '/api/public/cross/kylogic/replay-callback',
+    path: '/api/public/cross/kylogic/replay-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCrossKitTaskRoute = ApiPublicCrossKitTaskRouteImport.update({
   id: '/api/public/cross/kit/task',
   path: '/api/public/cross/kit/task',
@@ -105,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -119,6 +127,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -135,6 +144,7 @@ export interface FileRoutesById {
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesByTo: FileRoutesByTo
@@ -165,6 +176,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kit/task/$task_id/log'
   id:
@@ -180,6 +192,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesById: FileRoutesById
@@ -194,6 +207,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
+  ApiPublicCrossKylogicReplayCallbackRoute: typeof ApiPublicCrossKylogicReplayCallbackRoute
   ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
 }
 
@@ -276,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrossKylogicTaskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cross/kylogic/replay-callback': {
+      id: '/api/public/cross/kylogic/replay-callback'
+      path: '/api/public/cross/kylogic/replay-callback'
+      fullPath: '/api/public/cross/kylogic/replay-callback'
+      preLoaderRoute: typeof ApiPublicCrossKylogicReplayCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/kit/task': {
       id: '/api/public/cross/kit/task'
       path: '/api/public/cross/kit/task'
@@ -330,18 +351,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
   ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,
+  ApiPublicCrossKylogicReplayCallbackRoute:
+    ApiPublicCrossKylogicReplayCallbackRoute,
   ApiPublicCrossKylogicTaskRoute: ApiPublicCrossKylogicTaskRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
