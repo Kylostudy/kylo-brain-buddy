@@ -251,6 +251,86 @@ export type Database = {
         }
         Relationships: []
       }
+      kylogic_incoming_task_log: {
+        Row: {
+          created_at: string
+          detail: Json
+          event: string
+          id: string
+          outcome: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          event: string
+          id?: string
+          outcome?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          event?: string
+          id?: string
+          outcome?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kylogic_incoming_task_log_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "kylogic_incoming_tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
+      }
+      kylogic_incoming_tasks: {
+        Row: {
+          callback_sent_at: string | null
+          created_at: string
+          error: string | null
+          kylogic_callback_url: string
+          kylogic_user_id: string | null
+          payload: Json
+          result: Json | null
+          status: string
+          task_id: string
+          task_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          callback_sent_at?: string | null
+          created_at?: string
+          error?: string | null
+          kylogic_callback_url: string
+          kylogic_user_id?: string | null
+          payload?: Json
+          result?: Json | null
+          status?: string
+          task_id: string
+          task_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          callback_sent_at?: string | null
+          created_at?: string
+          error?: string | null
+          kylogic_callback_url?: string
+          kylogic_user_id?: string | null
+          payload?: Json
+          result?: Json | null
+          status?: string
+          task_id?: string
+          task_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string

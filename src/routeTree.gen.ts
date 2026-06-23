@@ -19,6 +19,7 @@ import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/pub
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
+import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
 import { Route as ApiPublicCrossKitTaskTask_idLogRouteImport } from './routes/api/public/cross/kit/task/$task_id/log'
 
@@ -75,6 +76,12 @@ const ApiPublicCronEnqueueMonitorsRoute =
     path: '/api/public/cron/enqueue-monitors',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCrossKylogicTaskRoute =
+  ApiPublicCrossKylogicTaskRouteImport.update({
+    id: '/api/public/cross/kylogic/task',
+    path: '/api/public/cross/kylogic/task',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCrossKitTaskRoute = ApiPublicCrossKitTaskRouteImport.update({
   id: '/api/public/cross/kit/task',
   path: '/api/public/cross/kit/task',
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesByTo {
@@ -111,6 +119,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesById {
@@ -126,6 +135,7 @@ export interface FileRoutesById {
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRouteTypes {
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kit/task/$task_id/log'
   id:
     | '__root__'
@@ -168,6 +180,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesById: FileRoutesById
 }
@@ -181,6 +194,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
+  ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -255,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronEnqueueMonitorsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cross/kylogic/task': {
+      id: '/api/public/cross/kylogic/task'
+      path: '/api/public/cross/kylogic/task'
+      fullPath: '/api/public/cross/kylogic/task'
+      preLoaderRoute: typeof ApiPublicCrossKylogicTaskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/kit/task': {
       id: '/api/public/cross/kit/task'
       path: '/api/public/cross/kit/task'
@@ -309,6 +330,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
   ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,
+  ApiPublicCrossKylogicTaskRoute: ApiPublicCrossKylogicTaskRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
