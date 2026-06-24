@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { renameWorkflow } from "@/lib/chat.functions";
+import { renameWorkflow, duplicateWorkflow } from "@/lib/chat.functions";
 import { useModule } from "@/lib/module/provider";
 import type { AppModule } from "@/lib/module/types";
 import logo from "@/assets/kylo-brain-logo.png";
