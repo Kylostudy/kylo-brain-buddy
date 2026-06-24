@@ -237,6 +237,14 @@ async function runSession(payload) {
   const channel = sb.channel(session.channel, {
     config: { broadcast: { self: false, ack: false } },
   });
+  console.log(`[session ${session.id}] channel létrehozva: ${session.channel}`);
+  // DIAGNOSZTIKA: minden beérkező broadcast eventet logolunk
+  channel.on("broadcast", { event: "*" }, ({ event, payload }) => {
+    try {
+      const keys = payload ? Object.keys(payload).join(",") : "";
+      console.log(`[session ${session.id}] BROADCAST IN: event=${event} payloadKeys=[${keys}]`);
+    } catch {}
+  });
   const pushAction = (a) => {
     actions.push(a);
     channel
