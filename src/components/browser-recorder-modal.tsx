@@ -142,6 +142,24 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     return () => window.removeEventListener("keydown", onKey, { capture: true });
   }, [open]);
 
+  // Egér-görgő → továbbítjuk a workernek (passzív listener helyett saját, hogy preventDefault menjen)
+  useEffect(() => {
+    const el = imgWrapRef.current;
+    if (!el || !open) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const ch = channelRef.current;
+      if (!ch) return;
+      void ch.send({
+        type: "broadcast",
+        event: "scroll",
+        payload: { dx: e.deltaX, dy: e.deltaY },
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [open]);
+
   function sendToWorker(event: string, payload: Record<string, unknown>) {
     const ch = channelRef.current;
     if (!ch) return;
