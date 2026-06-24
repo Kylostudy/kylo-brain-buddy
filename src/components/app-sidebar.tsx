@@ -250,6 +250,18 @@ export function AppSidebar() {
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
+                            duplicateWorkflowFn(wf.id);
+                          }}
+                          className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+                          aria-label="Másolat készítése"
+                        >
+                          <Copy className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
                             deleteWorkflow(wf.id);
                           }}
                           className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
