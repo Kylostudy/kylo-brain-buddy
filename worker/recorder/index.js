@@ -352,8 +352,17 @@ async function runSession(payload) {
   });
 
   channel.on("broadcast", { event: "selectAll" }, async () => {
+    console.log(`[session ${session.id}] selectAll fogadva, kijelölés + szövegkinyerés indul`);
+    // Azonnali visszajelzés: "Folyamatban…" — így a kliens tudja, hogy a worker él
+    await channel.send({
+      type: "broadcast",
+      event: "pageText",
+      payload: { text: "Folyamatban: oldalszöveg kinyerése…" },
+    }).catch((e) => console.warn(`[session ${session.id}] ack send hiba:`, e?.message));
     try {
-      await page.keyboard.press("Control+A");
+      await page.keyboard.press("Control+A").catch((e) => {
+        console.warn(`[session ${session.id}] Control+A press hiba:`, e?.message);
+      });
       const text = await page.evaluate(() => {
         const selected = String(window.getSelection?.()?.toString?.() || "").trim();
         const title = document.title ? `Cím: ${document.title}` : "";
@@ -367,9 +376,12 @@ async function runSession(payload) {
           .join("\n\n")
           .slice(0, 60000);
       });
-      await channel.send({ type: "broadcast", event: "pageText", payload: { text } });
+      console.log(`[session ${session.id}] szöveg kinyerve, hossz=${text.length}, küldés a kliensnek`);
+      const result = await channel.send({ type: "broadcast", event: "pageText", payload: { text } });
+      console.log(`[session ${session.id}] pageText send eredmény:`, result);
       pushAction({ type: "key", key: "Control+A", t: Date.now() });
     } catch (e) {
+      console.error(`[session ${session.id}] selectAll hiba:`, e?.stack || e?.message || e);
       await channel.send({
         type: "broadcast",
         event: "pageText",
