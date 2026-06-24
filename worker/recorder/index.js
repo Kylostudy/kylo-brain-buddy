@@ -97,6 +97,7 @@ const MAX_SESSIONS = Number(process.env.RECORD_MAX_SESSIONS || 2);
 const FRAME_FPS = Number(process.env.RECORD_FPS || 5);
 const VIEWPORT_W = Number(process.env.RECORD_VIEWPORT_W || 1280);
 const VIEWPORT_H = Number(process.env.RECORD_VIEWPORT_H || 800);
+const clamp = (value, min, max) => Math.max(min, Math.min(max, Number(value) || min));
 
 if (!BRAIN_URL || !WORKER_API_TOKEN) {
   console.error("[recorder] BRAIN_URL és WORKER_API_TOKEN kötelező.");
@@ -230,6 +231,8 @@ async function runSession(payload) {
   const page = await context.newPage();
 
   let stopped = false;
+  let viewportW = VIEWPORT_W;
+  let viewportH = VIEWPORT_H;
   const actions = [];
   const channel = sb.channel(session.channel, {
     config: { broadcast: { self: false, ack: false } },
@@ -301,11 +304,51 @@ async function runSession(payload) {
   channel.on("broadcast", { event: "forward" }, () => page.goForward().catch(() => {}));
   channel.on("broadcast", { event: "reload" }, () => page.reload().catch(() => {}));
 
+  channel.on("broadcast", { event: "viewport" }, async ({ payload }) => {
+    try {
+      viewportW = clamp(payload?.w, 900, 1920);
+      viewportH = clamp(payload?.h, 620, 1200);
+      await page.setViewportSize({ width: viewportW, height: viewportH });
+      await channel.send({
+        type: "broadcast",
+        event: "ready",
+        payload: { w: viewportW, h: viewportH },
+      });
+    } catch (e) {
+      console.error(`[session ${session.id}] viewport error`, e.message);
+    }
+  });
+
   channel.on("broadcast", { event: "scroll" }, async ({ payload }) => {
     try {
       await page.mouse.wheel(payload.dx || 0, payload.dy || 0);
       pushAction({ type: "scroll", x: payload.dx || 0, y: payload.dy || 0, t: Date.now() });
     } catch {}
+  });
+
+  channel.on("broadcast", { event: "extractText" }, async () => {
+    try {
+      const text = await page.evaluate(() => {
+        const selected = String(window.getSelection?.()?.toString?.() || "").trim();
+        const title = document.title ? `Cím: ${document.title}` : "";
+        const url = location.href ? `URL: ${location.href}` : "";
+        const body = String(document.body?.innerText || "")
+          .replace(/[ \t]+/g, " ")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+        return [url, title, selected ? `Kijelölés:\n${selected}` : "", body]
+          .filter(Boolean)
+          .join("\n\n")
+          .slice(0, 30000);
+      });
+      await channel.send({ type: "broadcast", event: "pageText", payload: { text } });
+    } catch (e) {
+      await channel.send({
+        type: "broadcast",
+        event: "pageText",
+        payload: { text: `Nem sikerült kiolvasni az oldalszöveget: ${e.message}` },
+      }).catch(() => {});
+    }
   });
 
   channel.on("broadcast", { event: "stop" }, async ({ payload }) => {
@@ -333,7 +376,7 @@ async function runSession(payload) {
   await channel.send({
     type: "broadcast",
     event: "ready",
-    payload: { w: VIEWPORT_W, h: VIEWPORT_H },
+    payload: { w: viewportW, h: viewportH },
   });
 
   if (session.startUrl) {
@@ -350,14 +393,17 @@ async function runSession(payload) {
   (async () => {
     while (!stopped) {
       try {
+        const size = page.viewportSize() || { width: viewportW, height: viewportH };
+        viewportW = size.width;
+        viewportH = size.height;
         const buf = await page.screenshot({ type: "jpeg", quality: 60, fullPage: false });
         await channel.send({
           type: "broadcast",
           event: "frame",
           payload: {
             dataUrl: "data:image/jpeg;base64," + buf.toString("base64"),
-            w: VIEWPORT_W,
-            h: VIEWPORT_H,
+            w: viewportW,
+            h: viewportH,
             ts: Date.now(),
           },
         });
