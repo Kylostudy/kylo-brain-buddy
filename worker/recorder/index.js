@@ -414,6 +414,7 @@ async function runSession(payload) {
 
   await new Promise((resolve, reject) => {
     channel.subscribe((status) => {
+      console.log(`[session ${session.id}] channel subscribe status=${status}`);
       if (status === "SUBSCRIBED") resolve();
       else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT")
         reject(new Error(`realtime ${status}`));
