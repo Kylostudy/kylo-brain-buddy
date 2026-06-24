@@ -93,6 +93,18 @@ export function AppSidebar() {
     if (currentPath === `/w/${id}`) navigate({ to: "/" });
   }
 
+  async function duplicateWorkflowFn(id: string) {
+    try {
+      const { id: newId } = await callDuplicate({ data: { workflowId: id } });
+      await qc.invalidateQueries({ queryKey: ["workflows", module] });
+      navigate({ to: "/w/$workflowId", params: { workflowId: newId } });
+      toast.success("Workflow lemásolva");
+    } catch (e) {
+      console.error("duplicate failed", e);
+      toast.error(e instanceof Error ? e.message : "Másolás sikertelen");
+    }
+  }
+
 
   function startEdit(wf: Workflow, e: React.MouseEvent) {
     e.preventDefault();
