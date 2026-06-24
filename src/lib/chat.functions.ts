@@ -263,3 +263,39 @@ export const resetReadyForTest = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const duplicateWorkflow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ workflowId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+
+    const { data: original, error: fetchErr } = await supabase
+      .from("workflows")
+      .select("name, spec, module, status, tenant_id")
+      .eq("id", data.workflowId)
+      .single();
+
+    if (fetchErr || !original) {
+      throw new Error(fetchErr?.message ?? "Nem található a workflow");
+    }
+
+    const newName = `${original.name} (másolat)`;
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from("workflows")
+      .insert({
+        name: newName,
+        spec: original.spec,
+        module: original.module,
+        status: "draft",
+        tenant_id: original.tenant_id,
+      })
+      .select("id")
+      .single();
+
+    if (insertErr) throw new Error(insertErr.message);
+    return { id: inserted.id };
+  });

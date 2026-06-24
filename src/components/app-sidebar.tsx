@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, MessageSquare, Trash2, Pencil, Check, X } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Pencil, Check, X, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { renameWorkflow } from "@/lib/chat.functions";
+import { renameWorkflow, duplicateWorkflow } from "@/lib/chat.functions";
 import { useModule } from "@/lib/module/provider";
 import type { AppModule } from "@/lib/module/types";
 import logo from "@/assets/kylo-brain-logo.png";
@@ -47,6 +47,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const callRename = useServerFn(renameWorkflow);
+  const callDuplicate = useServerFn(duplicateWorkflow);
   const { module, meta } = useModule();
   const currentPath = useRouterState({
     select: (s) => s.location.pathname,
@@ -90,6 +91,18 @@ export function AppSidebar() {
     }
     await qc.invalidateQueries({ queryKey: ["workflows", module] });
     if (currentPath === `/w/${id}`) navigate({ to: "/" });
+  }
+
+  async function duplicateWorkflowFn(id: string) {
+    try {
+      const { id: newId } = await callDuplicate({ data: { workflowId: id } });
+      await qc.invalidateQueries({ queryKey: ["workflows", module] });
+      navigate({ to: "/w/$workflowId", params: { workflowId: newId } });
+      toast.success("Workflow lemásolva");
+    } catch (e) {
+      console.error("duplicate failed", e);
+      toast.error(e instanceof Error ? e.message : "Másolás sikertelen");
+    }
   }
 
 
@@ -232,6 +245,18 @@ export function AppSidebar() {
                           aria-label="Átnevezés"
                         >
                           <Pencil className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            duplicateWorkflowFn(wf.id);
+                          }}
+                          className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+                          aria-label="Másolat készítése"
+                        >
+                          <Copy className="size-3.5" />
                         </button>
                         <button
                           type="button"
