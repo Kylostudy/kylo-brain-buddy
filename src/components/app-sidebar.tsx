@@ -47,6 +47,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const callRename = useServerFn(renameWorkflow);
+  const callDuplicate = useServerFn(duplicateWorkflow);
   const { module, meta } = useModule();
   const currentPath = useRouterState({
     select: (s) => s.location.pathname,
