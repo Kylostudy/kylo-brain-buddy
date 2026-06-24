@@ -190,13 +190,18 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") e.preventDefault();
-      if (isEditableTarget(e.target)) return;
+      // Ctrl+A / Cmd+A: MINDIG fogjuk el, akkor is, ha input/textarea van fókuszban,
+      // hogy a worker oldali oldalt jelölje ki és küldje vissza a teljes szöveget.
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        // eslint-disable-next-line no-console
+        console.log("[recorder] Ctrl+A elkapva, selectAll küldése a workernek");
         e.preventDefault();
+        e.stopPropagation();
         requestSelectAllAndText();
         return;
       }
+      if (e.key === "Escape") e.preventDefault();
+      if (isEditableTarget(e.target)) return;
       const key = workerKeyFromEvent(e);
       if (!key) return;
       if (e.key.length > 1 || e.ctrlKey || e.metaKey || e.altKey) {
