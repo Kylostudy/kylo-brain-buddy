@@ -85,6 +85,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const sendToWorker = useCallback((event: string, payload: Record<string, unknown>) => {
     const ch = channelRef.current;
@@ -190,10 +191,22 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") e.preventDefault();
+      if (isEditableTarget(e.target)) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        requestSelectAllAndText();
+        return;
+      }
+      const key = workerKeyFromEvent(e);
+      if (!key) return;
+      if (e.key.length > 1 || e.ctrlKey || e.metaKey || e.altKey) {
+        e.preventDefault();
+        sendToWorker("key", { key });
+      }
     };
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [open]);
+  }, [open, sendToWorker]);
 
   // Egér-görgő → továbbítjuk a workernek (passzív listener helyett saját, hogy preventDefault menjen)
   useEffect(() => {
