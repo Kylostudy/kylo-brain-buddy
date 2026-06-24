@@ -25,6 +25,7 @@ export const startRecording = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const nowIso = new Date().toISOString();
 
     // Workflow tulajdonjogának ellenőrzése (RLS úgyis védi, de korai hibázás barátságosabb)
     const { data: wf, error: wfErr } = await supabase
@@ -43,6 +44,19 @@ export const startRecording = createServerFn({ method: "POST" })
       (spec.media_source && /^https?:\/\//i.test(spec.media_source)
         ? spec.media_source
         : undefined);
+
+    // Frissítés / bezárt modál után ne ragadjon bent régi VPS-session.
+    const { error: cleanupErr } = await supabase
+      .from("recording_sessions")
+      .update({
+        status: "cancelled",
+        ended_at: nowIso,
+        error: "Új felvétel indult, a korábbi session lezárva.",
+      })
+      .eq("workflow_id", data.workflowId)
+      .eq("tenant_id", userId)
+      .in("status", ["requested", "active"]);
+    if (cleanupErr) throw new Error(cleanupErr.message);
 
     const { data: session, error } = await supabase
       .from("recording_sessions")

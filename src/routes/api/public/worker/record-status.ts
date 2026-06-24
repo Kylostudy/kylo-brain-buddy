@@ -34,6 +34,8 @@ const Body = z.object({
     .optional(),
 });
 
+const MAX_ACTIVE_MS = 20 * 60 * 1000;
+
 export const Route = createFileRoute("/api/public/worker/record-status")({
   server: {
     handlers: {
@@ -74,9 +76,30 @@ export const Route = createFileRoute("/api/public/worker/record-status")({
 
         const { data } = await sb
           .from("recording_sessions")
-          .select("status")
+          .select("status, started_at")
           .eq("id", parsed.sessionId)
           .maybeSingle();
+
+        if (
+          data?.status === "active" &&
+          data.started_at &&
+          Date.now() - new Date(data.started_at).getTime() > MAX_ACTIVE_MS
+        ) {
+          await sb
+            .from("recording_sessions")
+            .update({
+              status: "failed",
+              error: "A felvétel túl sokáig maradt nyitva, automatikusan lezárva.",
+              ended_at: new Date().toISOString(),
+            })
+            .eq("id", parsed.sessionId)
+            .eq("status", "active");
+
+          return new Response(
+            JSON.stringify({ status: "failed" }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          );
+        }
 
         return new Response(
           JSON.stringify({ status: data?.status ?? "missing" }),
