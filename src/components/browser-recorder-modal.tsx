@@ -85,6 +85,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const sendToWorker = useCallback((event: string, payload: Record<string, unknown>) => {
     const ch = channelRef.current;
@@ -190,10 +191,22 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") e.preventDefault();
+      if (isEditableTarget(e.target)) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        requestSelectAllAndText();
+        return;
+      }
+      const key = workerKeyFromEvent(e);
+      if (!key) return;
+      if (e.key.length > 1 || e.ctrlKey || e.metaKey || e.altKey) {
+        e.preventDefault();
+        sendToWorker("key", { key });
+      }
     };
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [open]);
+  }, [open, sendToWorker]);
 
   // Egér-görgő → továbbítjuk a workernek (passzív listener helyett saját, hogy preventDefault menjen)
   useEffect(() => {
@@ -248,6 +261,13 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     window.setTimeout(() => setTextBusy(false), 5000);
   }
 
+  function requestSelectAllAndText() {
+    setTextBusy(true);
+    setTextPanelOpen(true);
+    sendToWorker("selectAll", {});
+    window.setTimeout(() => setTextBusy(false), 5000);
+  }
+
   async function copyPageText() {
     if (!pageText) return;
     try {
@@ -257,6 +277,47 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
       toast.error("Másolás sikertelen.");
     }
   }
+
+  function selectPanelText() {
+    const el = textAreaRef.current;
+    if (!el || !pageText) return;
+    el.focus();
+    el.select();
+  }
+
+  function workerKeyFromEvent(e: KeyboardEvent | React.KeyboardEvent) {
+    const modifiers: string[] = [];
+    if (e.ctrlKey || e.metaKey) modifiers.push("Control");
+    if (e.altKey) modifiers.push("Alt");
+    if (e.shiftKey) modifiers.push("Shift");
+    let key = e.key;
+    if (["Control", "Meta", "Alt", "Shift"].includes(key)) return null;
+    if (key === " ") key = "Space";
+    else if (key.length === 1) key = key.toUpperCase();
+    return [...modifiers, key].join("+");
+  }
+
+  function isEditableTarget(target: EventTarget | null) {
+    if (!(target instanceof HTMLElement)) return false;
+    const tag = target.tagName.toLowerCase();
+    return tag === "input" || tag === "textarea" || tag === "select" || target.isContentEditable;
+  }
+
+  const handleRemoteKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      e.stopPropagation();
+      requestSelectAllAndText();
+      return;
+    }
+    const key = workerKeyFromEvent(e);
+    if (!key) return;
+    if (e.key.length > 1 || e.ctrlKey || e.metaKey || e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      sendToWorker("key", { key });
+    }
+  }, [sendToWorker]);
 
   function handleFrameClick(e: React.MouseEvent<HTMLImageElement>) {
     const img = e.currentTarget;
@@ -458,7 +519,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
         {/* Böngésző-kép */}
         <div
           ref={imgWrapRef}
+          tabIndex={0}
           className="relative flex min-w-0 flex-1 items-center justify-center overflow-auto bg-black"
+          onKeyDown={handleRemoteKeyDown}
         >
           {frame ? (
             <img
@@ -530,6 +593,17 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
                 size="icon-sm"
                 variant="ghost"
                 className="text-white hover:bg-white/10"
+                onClick={selectPanelText}
+                disabled={!pageText}
+                aria-label="Oldalszöveg kijelölése"
+                title="Oldalszöveg kijelölése"
+              >
+                <ScrollText className="size-4" />
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10"
                 onClick={copyPageText}
                 disabled={!pageText}
                 aria-label="Oldalszöveg másolása"
@@ -539,6 +613,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
               </Button>
             </div>
             <textarea
+              ref={textAreaRef}
               readOnly
               value={textBusy && !pageText ? "Betöltés…" : pageText}
               placeholder="Nincs még beolvasott szöveg."

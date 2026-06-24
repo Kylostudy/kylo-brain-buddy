@@ -351,6 +351,33 @@ async function runSession(payload) {
     }
   });
 
+  channel.on("broadcast", { event: "selectAll" }, async () => {
+    try {
+      await page.keyboard.press("Control+A");
+      const text = await page.evaluate(() => {
+        const selected = String(window.getSelection?.()?.toString?.() || "").trim();
+        const title = document.title ? `Cím: ${document.title}` : "";
+        const url = location.href ? `URL: ${location.href}` : "";
+        const body = String(document.body?.innerText || "")
+          .replace(/[ \t]+/g, " ")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+        return [url, title, selected ? `Kijelölés:\n${selected}` : "", body]
+          .filter(Boolean)
+          .join("\n\n")
+          .slice(0, 60000);
+      });
+      await channel.send({ type: "broadcast", event: "pageText", payload: { text } });
+      pushAction({ type: "key", key: "Control+A", t: Date.now() });
+    } catch (e) {
+      await channel.send({
+        type: "broadcast",
+        event: "pageText",
+        payload: { text: `Nem sikerült kijelölni/kiolvasni az oldalt: ${e.message}` },
+      }).catch(() => {});
+    }
+  });
+
   channel.on("broadcast", { event: "stop" }, async ({ payload }) => {
     console.log(`[session ${session.id}] stop received (save=${payload?.save})`);
     stopped = true;
