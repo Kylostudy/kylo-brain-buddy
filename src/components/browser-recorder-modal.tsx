@@ -519,7 +519,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
         {/* Böngésző-kép */}
         <div
           ref={imgWrapRef}
+          tabIndex={0}
           className="relative flex min-w-0 flex-1 items-center justify-center overflow-auto bg-black"
+          onKeyDown={handleRemoteKeyDown}
         >
           {frame ? (
             <img
@@ -591,6 +593,17 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
                 size="icon-sm"
                 variant="ghost"
                 className="text-white hover:bg-white/10"
+                onClick={selectPanelText}
+                disabled={!pageText}
+                aria-label="Oldalszöveg kijelölése"
+                title="Oldalszöveg kijelölése"
+              >
+                <ScrollText className="size-4" />
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10"
                 onClick={copyPageText}
                 disabled={!pageText}
                 aria-label="Oldalszöveg másolása"
@@ -600,6 +613,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
               </Button>
             </div>
             <textarea
+              ref={textAreaRef}
               readOnly
               value={textBusy && !pageText ? "Betöltés…" : pageText}
               placeholder="Nincs még beolvasott szöveg."
