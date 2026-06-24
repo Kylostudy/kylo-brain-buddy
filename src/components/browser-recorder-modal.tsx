@@ -261,6 +261,13 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     window.setTimeout(() => setTextBusy(false), 5000);
   }
 
+  function requestSelectAllAndText() {
+    setTextBusy(true);
+    setTextPanelOpen(true);
+    sendToWorker("selectAll", {});
+    window.setTimeout(() => setTextBusy(false), 5000);
+  }
+
   async function copyPageText() {
     if (!pageText) return;
     try {
@@ -270,6 +277,47 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
       toast.error("Másolás sikertelen.");
     }
   }
+
+  function selectPanelText() {
+    const el = textAreaRef.current;
+    if (!el || !pageText) return;
+    el.focus();
+    el.select();
+  }
+
+  function workerKeyFromEvent(e: KeyboardEvent | React.KeyboardEvent) {
+    const modifiers: string[] = [];
+    if (e.ctrlKey || e.metaKey) modifiers.push("Control");
+    if (e.altKey) modifiers.push("Alt");
+    if (e.shiftKey) modifiers.push("Shift");
+    let key = e.key;
+    if (["Control", "Meta", "Alt", "Shift"].includes(key)) return null;
+    if (key === " ") key = "Space";
+    else if (key.length === 1) key = key.toUpperCase();
+    return [...modifiers, key].join("+");
+  }
+
+  function isEditableTarget(target: EventTarget | null) {
+    if (!(target instanceof HTMLElement)) return false;
+    const tag = target.tagName.toLowerCase();
+    return tag === "input" || tag === "textarea" || tag === "select" || target.isContentEditable;
+  }
+
+  const handleRemoteKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      e.stopPropagation();
+      requestSelectAllAndText();
+      return;
+    }
+    const key = workerKeyFromEvent(e);
+    if (!key) return;
+    if (e.key.length > 1 || e.ctrlKey || e.metaKey || e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      sendToWorker("key", { key });
+    }
+  }, [sendToWorker]);
 
   function handleFrameClick(e: React.MouseEvent<HTMLImageElement>) {
     const img = e.currentTarget;
