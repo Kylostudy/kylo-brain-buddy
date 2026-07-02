@@ -4,7 +4,7 @@
 // a SUPABASE_SERVICE_ROLE_KEY-vel csatlakozik a Realtime broadcast csatornára
 // (`record:<sessionId>`), és streameli a screenshotokat / fogadja a kattintásokat.
 //
-// Auth: Authorization: Bearer <WORKER_API_TOKEN>
+// Auth: Authorization: Bearer <WORKER_API_TOKEN> vagy x-worker-token
 // Válasz: 200 { session: {...} } vagy 204 (nincs várakozó kérés)
 
 import { createFileRoute } from "@tanstack/react-router";
@@ -13,10 +13,14 @@ import { timingSafeEqual } from "node:crypto";
 import type { Database } from "@/integrations/supabase/types";
 
 function checkAuth(request: Request): string | null {
-  const token = process.env.WORKER_API_TOKEN;
+  const token = process.env.WORKER_API_TOKEN?.trim();
   if (!token) return "WORKER_API_TOKEN nincs beállítva";
   const header = request.headers.get("authorization") ?? "";
-  const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const provided = (
+    header.startsWith("Bearer ")
+      ? header.slice(7)
+      : request.headers.get("x-worker-token") ?? request.headers.get("x-api-key") ?? ""
+  ).trim();
   const a = Buffer.from(provided);
   const b = Buffer.from(token);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return "unauthorized";
