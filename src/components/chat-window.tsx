@@ -186,7 +186,14 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     if (starting) return;
     setStarting(true);
     try {
-      const res = await callStartRun({ data: { workflowId, runner } });
+      const res = await callStartRun({
+        data: {
+          workflowId,
+          runner,
+          proxyId: selectedProxyId || null,
+        },
+      });
+
       if (res.status === "succeeded") {
         toast.success("Próbafuttatás sikeres (szimuláció).");
       } else if (res.status === "failed") {
