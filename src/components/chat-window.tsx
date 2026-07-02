@@ -104,6 +104,14 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     refetchInterval: 2000,
   });
 
+  const listProxiesFn = useServerFn(listProxies);
+  const { data: proxies = [] } = useQuery({
+    queryKey: ["proxies-for-run"],
+    queryFn: () => listProxiesFn({ data: {} }),
+    staleTime: 30_000,
+  });
+
+
   useEffect(() => {
     textareaRef.current?.focus();
     setEditingName(false);
