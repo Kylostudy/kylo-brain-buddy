@@ -138,6 +138,36 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
                     {formatTime(r.started_at ?? r.created_at)}
                     {r.error ? ` · ${r.error.slice(0, 40)}` : ""}
                   </div>
+                  {r.preflight_result && (
+                    <div
+                      className={cn(
+                        "mt-0.5 truncate text-[10px]",
+                        r.preflight_result.ok
+                          ? "text-emerald-600"
+                          : "text-destructive",
+                      )}
+                      title={
+                        r.preflight_result.error ||
+                        `IP ${r.preflight_result.ip ?? "?"} · ${r.preflight_result.country_code ?? "?"} · ${r.preflight_result.city ?? ""}`
+                      }
+                    >
+                      {r.preflight_result.ok ? "✓" : "✗"} whoer:{" "}
+                      {r.preflight_result.ip ?? "?"} ·{" "}
+                      {r.preflight_result.country_code ??
+                        r.preflight_result.country ??
+                        "?"}
+                      {r.preflight_result.city
+                        ? ` · ${r.preflight_result.city}`
+                        : ""}
+                      {r.preflight_result.expected_country &&
+                      r.preflight_result.country_code &&
+                      r.preflight_result.expected_country !==
+                        r.preflight_result.country_code
+                        ? ` (elvárt: ${r.preflight_result.expected_country})`
+                        : ""}
+                    </div>
+                  )}
+
                 </div>
                 {isActive && (
                   <Button
