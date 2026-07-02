@@ -42,7 +42,9 @@ import {
   resetReadyForTest,
 } from "@/lib/chat.functions";
 import { startRun } from "@/lib/runs.functions";
+import { listProxies } from "@/lib/proxies.functions";
 import { SpecPanel } from "@/components/spec-panel";
+
 
 type DbMessage = {
   id: string;
