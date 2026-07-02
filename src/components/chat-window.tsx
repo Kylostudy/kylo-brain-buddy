@@ -341,6 +341,23 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                       >
                         <option value="docker">Saját VPS worker (Playwright)</option>
                       </select>
+                      <select
+                        value={selectedProxyId}
+                        onChange={(e) => setSelectedProxyId(e.target.value)}
+                        disabled={starting}
+                        className="h-8 max-w-[220px] rounded-md border bg-background px-2 text-xs"
+                        title="Melyik proxyval induljon (whoer.net ellenőrzés a start előtt)"
+                      >
+                        <option value="">Proxy nélkül (nem ajánlott)</option>
+                        {proxies
+                          .filter((p) => p.is_active)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.label} · {p.country} · {p.provider}
+                            </option>
+                          ))}
+                      </select>
+
                       <Button size="sm" variant="ghost" onClick={handleEditMore} disabled={starting}>
                         Még pontosítok
                       </Button>
