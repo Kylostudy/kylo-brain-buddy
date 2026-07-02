@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Csak az executor + spec runtime deps
 COPY executor/package.json executor/package-lock.json* ./
-RUN npm ci --omit=dev
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
 COPY executor/ ./
 
