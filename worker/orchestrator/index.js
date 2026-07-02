@@ -150,7 +150,9 @@ async function processOne() {
       logs: out.logs,
       result: out.result,
       error: out.error,
+      preflight: out.preflight ?? null,
     });
+
     console.log(`[run ${job.id}] ${out.status}`);
   } catch (e) {
     await reportComplete({
