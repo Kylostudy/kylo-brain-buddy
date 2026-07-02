@@ -88,6 +88,8 @@ export type Database = {
           id: string
           logs: Json
           module: Database["public"]["Enums"]["app_module"]
+          preflight_result: Json | null
+          proxy_id: string | null
           result: Json | null
           runner: string
           spec_snapshot: Json
@@ -106,6 +108,8 @@ export type Database = {
           id?: string
           logs?: Json
           module?: Database["public"]["Enums"]["app_module"]
+          preflight_result?: Json | null
+          proxy_id?: string | null
           result?: Json | null
           runner?: string
           spec_snapshot?: Json
@@ -124,6 +128,8 @@ export type Database = {
           id?: string
           logs?: Json
           module?: Database["public"]["Enums"]["app_module"]
+          preflight_result?: Json | null
+          proxy_id?: string | null
           result?: Json | null
           runner?: string
           spec_snapshot?: Json
@@ -135,6 +141,13 @@ export type Database = {
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "brain_workflow_runs_proxy_id_fkey"
+            columns: ["proxy_id"]
+            isOneToOne: false
+            referencedRelation: "proxies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflow_runs_workflow_id_fkey"
             columns: ["workflow_id"]
