@@ -42,7 +42,9 @@ import {
   resetReadyForTest,
 } from "@/lib/chat.functions";
 import { startRun } from "@/lib/runs.functions";
+import { listProxies } from "@/lib/proxies.functions";
 import { SpecPanel } from "@/components/spec-panel";
+
 
 type DbMessage = {
   id: string;
@@ -83,6 +85,8 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
   const [runner, setRunner] = useState<"docker">("docker");
+  const [selectedProxyId, setSelectedProxyId] = useState<string>("");
+
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -99,6 +103,15 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     queryFn: () => fetchWorkflowMeta(workflowId),
     refetchInterval: 2000,
   });
+
+  const listProxiesFn = useServerFn(listProxies);
+  const { data: proxies = [] } = useQuery({
+    queryKey: ["proxies-for-run"],
+    queryFn: () => listProxiesFn(),
+    staleTime: 30_000,
+  });
+
+
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -173,7 +186,14 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     if (starting) return;
     setStarting(true);
     try {
-      const res = await callStartRun({ data: { workflowId, runner } });
+      const res = await callStartRun({
+        data: {
+          workflowId,
+          runner,
+          proxyId: selectedProxyId || null,
+        },
+      });
+
       if (res.status === "succeeded") {
         toast.success("Próbafuttatás sikeres (szimuláció).");
       } else if (res.status === "failed") {
@@ -321,6 +341,23 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                       >
                         <option value="docker">Saját VPS worker (Playwright)</option>
                       </select>
+                      <select
+                        value={selectedProxyId}
+                        onChange={(e) => setSelectedProxyId(e.target.value)}
+                        disabled={starting}
+                        className="h-8 max-w-[220px] rounded-md border bg-background px-2 text-xs"
+                        title="Melyik proxyval induljon (whoer.net ellenőrzés a start előtt)"
+                      >
+                        <option value="">Proxy nélkül (nem ajánlott)</option>
+                        {proxies
+                          .filter((p) => p.is_active)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.label} · {p.country} · {p.provider}
+                            </option>
+                          ))}
+                      </select>
+
                       <Button size="sm" variant="ghost" onClick={handleEditMore} disabled={starting}>
                         Még pontosítok
                       </Button>

@@ -15,6 +15,17 @@ import { cancelRun } from "@/lib/runs.functions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+type PreflightResult = {
+  ok?: boolean;
+  ip?: string | null;
+  country?: string | null;
+  country_code?: string | null;
+  city?: string | null;
+  gateway_country?: string | null;
+  expected_country?: string | null;
+  error?: string | null;
+} | null;
+
 type RunRow = {
   id: string;
   runner: string;
@@ -24,20 +35,22 @@ type RunRow = {
   finished_at: string | null;
   created_at: string;
   error: string | null;
+  preflight_result: PreflightResult;
 };
 
 async function fetchRuns(workflowId: string): Promise<RunRow[]> {
   const { data, error } = await supabase
     .from("brain_workflow_runs")
     .select(
-      "id, runner, status, external_id, started_at, finished_at, created_at, error",
+      "id, runner, status, external_id, started_at, finished_at, created_at, error, preflight_result",
     )
     .eq("workflow_id", workflowId)
     .order("created_at", { ascending: false })
     .limit(8);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as RunRow[];
 }
+
 
 const STATUS_META: Record<
   string,
@@ -125,6 +138,36 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
                     {formatTime(r.started_at ?? r.created_at)}
                     {r.error ? ` · ${r.error.slice(0, 40)}` : ""}
                   </div>
+                  {r.preflight_result && (
+                    <div
+                      className={cn(
+                        "mt-0.5 truncate text-[10px]",
+                        r.preflight_result.ok
+                          ? "text-emerald-600"
+                          : "text-destructive",
+                      )}
+                      title={
+                        r.preflight_result.error ||
+                        `IP ${r.preflight_result.ip ?? "?"} · ${r.preflight_result.country_code ?? "?"} · ${r.preflight_result.city ?? ""}`
+                      }
+                    >
+                      {r.preflight_result.ok ? "✓" : "✗"} whoer:{" "}
+                      {r.preflight_result.ip ?? "?"} ·{" "}
+                      {r.preflight_result.country_code ??
+                        r.preflight_result.country ??
+                        "?"}
+                      {r.preflight_result.city
+                        ? ` · ${r.preflight_result.city}`
+                        : ""}
+                      {r.preflight_result.expected_country &&
+                      r.preflight_result.country_code &&
+                      r.preflight_result.expected_country !==
+                        r.preflight_result.country_code
+                        ? ` (elvárt: ${r.preflight_result.expected_country})`
+                        : ""}
+                    </div>
+                  )}
+
                 </div>
                 {isActive && (
                   <Button

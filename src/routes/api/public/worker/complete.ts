@@ -34,6 +34,7 @@ const Body = z.object({
     .default([]),
   result: z.record(z.string(), z.unknown()).nullable().optional(),
   error: z.string().nullable().optional(),
+  preflight: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export const Route = createFileRoute("/api/public/worker/complete")({
@@ -62,16 +63,22 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         );
         const sb = supabaseAdmin as ReturnType<typeof createClient<Database>>;
 
+        const update: Record<string, unknown> = {
+          status: parsed.status,
+          logs: parsed.logs as never,
+          result: (parsed.result ?? null) as never,
+          error: parsed.error ?? null,
+          finished_at: new Date().toISOString(),
+        };
+        if (parsed.preflight !== undefined) {
+          update.preflight_result = parsed.preflight as never;
+        }
+
         const { error } = await sb
           .from("brain_workflow_runs")
-          .update({
-            status: parsed.status,
-            logs: parsed.logs as never,
-            result: (parsed.result ?? null) as never,
-            error: parsed.error ?? null,
-            finished_at: new Date().toISOString(),
-          })
+          .update(update as never)
           .eq("id", parsed.runId);
+
 
         if (error)
           return new Response(JSON.stringify({ error: error.message }), {
