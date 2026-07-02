@@ -85,6 +85,8 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
   const [runner, setRunner] = useState<"docker">("docker");
+  const [selectedProxyId, setSelectedProxyId] = useState<string>("");
+
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
