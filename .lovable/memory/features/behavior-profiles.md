@@ -1,24 +1,28 @@
 ---
 name: Behavior profiles
-description: HumanProfile (Brain, Poisson, hibázik) vs RobotProfile (Audit, determinisztikus) absztrakció a workflow futtatóhoz
+description: Minden jelenlegi workflow humanized (Brain). Audit/robot módot később aktiváljuk. humanize.js a közös modul.
 type: feature
 ---
 
-# Cél
+# Jelenlegi állapot (2026-07)
 
-A workflow futtató (Steel / docker runner) ne tudjon véletlenül "rossz" viselkedéssel futtatni egy workflow-t. A `BehaviorProfile` interfész fixálja a viselkedést a futtatás indításakor.
+MINDEN jelenlegi workflow humanized viselkedést használ, akár Brain, akár Audit modulhoz tartozik:
+- `worker/executor/scripts/humanize.js` — közös modul (Poisson wait, Bezier egér, jitter, overshoot, misclick, lognormális gépelés, elgépelés)
+- `worker/executor/scripts/tiktok.js` — humanized (Brain)
+- `worker/executor/scripts/decathlon-stock.js` — humanized (Audit, DE most Brain-típusú viselkedéssel, mert éles TikTok/FB fiókokat is fog majd tesztelni ugyanez az infra)
+- `worker/executor/scripts/bot-smoke-test.js` — humanized, cél: bot.sannysoft.com + CreepJS smoke test
 
-# Hol van
+# Miért Decathlon is humanized
 
-- `src/lib/behavior/types.ts` — `BehaviorProfile` interfész (wait, typeText, describeMouseMove, preClickDelay)
-- `src/lib/behavior/human.server.ts` — Poisson várakozás, ~2% gépelési hiba, Bézier-görbe egér jitterrel, 180-400ms reakcióidő
-- `src/lib/behavior/robot.server.ts` — fix gyors várakozás, hibamentes gépelés, egyenes egér, 0 reakcióidő
-- `src/lib/behavior/index.server.ts` — `createBehaviorProfile(module, seed)` — EZ AZ EGYETLEN HELY, ahol a modul-fogalom és a viselkedés összekötődik
+A user rendelkezése: "a Brainben akartam beállítani. A botot majd egy kicsit később fogjuk beállítani, mert azt a kylopon study oldal tesztelésére hoztam létre".
+Tehát a determinisztikus robot mód a KyloPon Study tesztelésére van fenntartva, arra amikor tudatosan bot akarunk lenni. Az összes többi (beleértve a Decathlon-t is) Brain-típusú.
 
-# Használat (jövő)
+# TODO — Robot mód (később)
 
-A runner indításakor: `const profile = createBehaviorProfile(workflow.module, runId.hashCode())` — ezután minden böngészős akció a profilon keresztül megy.
+- `worker/executor/scripts/robot.js` — determinisztikus, gyors, hibamentes viselkedésmodul
+- Workflow spec-ben `behavior: "human" | "robot"` mező, alap "human"
+- Csak akkor kapcsoljuk aktívra, amikor a KyloPon Study tesztelés indul
 
 # Szabály
 
-Soha ne példányosíts közvetlenül HumanProfile-t vagy RobotProfile-t — mindig a factory függvényen át, a workflow `module` mezőjével. Így a két viselkedés strukturálisan nem keveredhet.
+Új workflow-t úgy hozz létre, hogy alap-viselkedés a humanize.js. Robot módra csak explicit workflow spec kapcsolón át válts.
