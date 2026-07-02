@@ -71,7 +71,16 @@ export const createProxy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    const { data: prof, error: pErr } = await context.supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    const tenantId = (prof as { tenant_id: string } | null)?.tenant_id;
+    if (!tenantId) throw new Error("Nincs tenant hozzárendelve a felhasználóhoz.");
     const payload: Record<string, unknown> = {
+      tenant_id: tenantId,
       label: data.label,
       country: data.country.toUpperCase(),
       provider: data.provider,
