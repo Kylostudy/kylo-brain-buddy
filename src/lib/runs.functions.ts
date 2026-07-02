@@ -22,6 +22,7 @@ export const startRun = createServerFn({ method: "POST" })
       .object({
         workflowId: z.string().uuid(),
         runner: z.enum(["docker", "local-mock"]).default("docker"),
+        proxyId: z.string().uuid().nullable().optional(),
       })
       .parse(input),
   )
@@ -46,18 +47,20 @@ export const startRun = createServerFn({ method: "POST" })
         runner: data.runner as RunnerName,
         status: "running",
         spec_snapshot: spec as never,
+        proxy_id: data.proxyId ?? null,
         started_at: startedAt,
         logs: [
           {
             ts: startedAt,
             level: "info",
-            message: `Futtatás indítva — runner: ${data.runner}`,
+            message: `Futtatás indítva — runner: ${data.runner}${data.proxyId ? " · proxy csatolva" : " · proxy nélkül"}`,
           },
         ] as never,
       })
       .select("id")
       .single();
     if (insErr) throw new Error(insErr.message);
+
 
     const runId = created!.id;
 
