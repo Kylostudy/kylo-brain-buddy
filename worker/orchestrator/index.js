@@ -76,12 +76,16 @@ function runContainer(job) {
     if (job.credentials) {
       args.push("-e", `CREDENTIALS_JSON=${JSON.stringify(job.credentials)}`);
     }
+    if (job.proxy) {
+      args.push("-e", `PROXY_JSON=${JSON.stringify(job.proxy)}`);
+    }
     args.push(IMAGE);
 
     const proc = spawn("docker", args, { stdio: ["ignore", "pipe", "pipe"] });
 
     const logs = [];
     let finalEntry = null;
+    let preflight = null;
 
     const onLine = (line) => {
       const s = line.trim();
@@ -90,6 +94,8 @@ function runContainer(job) {
         const obj = JSON.parse(s);
         if (obj.final) {
           finalEntry = obj;
+        } else if (obj.preflight) {
+          preflight = obj.preflight;
         } else {
           logs.push({
             ts: obj.ts || new Date().toISOString(),
@@ -124,10 +130,12 @@ function runContainer(job) {
         logs,
         result: finalEntry?.result ?? null,
         error: finalEntry?.error ?? (code !== 0 ? `exit ${code}` : null),
+        preflight,
       });
     });
   });
 }
+
 
 async function processOne() {
   const job = await claimNext();
