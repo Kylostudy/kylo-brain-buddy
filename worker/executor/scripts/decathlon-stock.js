@@ -1,15 +1,8 @@
-// Decathlon stockfigyelő — egy adott termékoldalon megnézi, az adott méret
-// (pl. 4XL) kapható-e. Eredmény:
-//   { available: true|false, size, url, productName, screenshot?: base64 }
-//
-// Spec mezők (workflows.spec):
-//   product_url:   teljes Decathlon termékoldal URL
-//   size:          "4XL" (string, ahogyan a méretválasztón szerepel)
-//   timeout_ms:    opcionális, alap 30000
-//
-// Megjegyzés: a Decathlon több országban más DOM-ot ad. Itt egy robusztus
-// heurisztikát használunk: minden méretválasztó gombot felolvasunk, és
-// megnézzük, a célméret gombja "disabled" / "out of stock" jelölés nélkül van-e.
+// Decathlon stockfigyelő — Brain típusú (humanized) viselkedéssel.
+// Az ember körbenéz, scrollozik, csak azután nyúl a méretválasztóhoz.
+// Result: { available: true|false, size, url, productName }
+
+import { humanBrowseMoment, humanCasualScroll, humanClick, humanThink, humanWait, reseedHuman } from "./humanize.js";
 
 export async function runDecathlonStock({ page, spec, log }) {
   const url = spec.product_url;
@@ -17,11 +10,14 @@ export async function runDecathlonStock({ page, spec, log }) {
   const timeout = Number(spec.timeout_ms || 30000);
 
   if (!url) throw new Error("Spec.product_url hiányzik");
-  log("info", `Decathlon stock check → ${url} | méret: ${targetSize}`);
+  reseedHuman([spec.workflow_id || "", targetSize, Date.now()]);
+  log("info", `Decathlon stock check (humanized) → ${url} | méret: ${targetSize}`);
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout });
+  // Az ember először megnézi az oldalt
+  await humanBrowseMoment(page);
 
-  // Cookie banner — ha van, próbáljuk elfogadni (több variáció).
+  // Cookie banner — humanClick-kel, hogy ne bot-szerű legyen
   for (const sel of [
     'button#didomi-notice-agree-button',
     'button:has-text("Elfogadom")',
@@ -31,24 +27,21 @@ export async function runDecathlonStock({ page, spec, log }) {
     try {
       const btn = page.locator(sel).first();
       if (await btn.isVisible({ timeout: 1500 })) {
-        await btn.click({ timeout: 2000 });
+        await humanClick(page, await btn.elementHandle());
         log("info", `Cookie banner elfogadva: ${sel}`);
         break;
       }
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }
 
-  // Termék neve (best effort)
+  await humanCasualScroll(page, { rounds: 2 });
+  await humanThink(page, 900);
+
   let productName = null;
   try {
     productName = (await page.locator("h1").first().innerText({ timeout: 5000 })).trim();
-  } catch {
-    productName = null;
-  }
+  } catch { productName = null; }
 
-  // Méretválasztó gombok — több ismert szelektort próbálunk.
   const sizeCandidates = [
     '[data-testid="size-selector"] button',
     '[data-testid="product-sizes"] button',
@@ -70,7 +63,6 @@ export async function runDecathlonStock({ page, spec, log }) {
   }
 
   if (sizeButtons.length === 0) {
-    // Fallback: bármi, ami 4XL feliratot tartalmaz
     sizeButtons = await page.locator(`text=/^\\s*${targetSize}\\s*$/i`).all();
     log("info", `Fallback méretkeresés "${targetSize}" felirattal: ${sizeButtons.length} találat`);
   }
@@ -79,8 +71,7 @@ export async function runDecathlonStock({ page, spec, log }) {
   for (const btn of sizeButtons) {
     const text = ((await btn.innerText().catch(() => "")) || "").trim().toUpperCase();
     const dataSize = ((await btn.getAttribute("data-size").catch(() => "")) || "")
-      .trim()
-      .toUpperCase();
+      .trim().toUpperCase();
     if (text === targetSize || dataSize === targetSize) {
       targetEl = btn;
       break;
@@ -89,16 +80,22 @@ export async function runDecathlonStock({ page, spec, log }) {
 
   if (!targetEl) {
     log("warn", `Méret "${targetSize}" nincs a kínálatban ezen az oldalon.`);
-    return {
-      available: false,
-      size: targetSize,
-      url,
-      productName,
-      reason: "size_not_listed",
-    };
+    return { available: false, size: targetSize, url, productName, reason: "size_not_listed" };
   }
 
-  // Diszabolt-e? (aria-disabled, disabled attribútum, vagy „elfogyott" felirat a környezetben)
+  // Ránéz a méretre — hover, gondolkodik, majd (nem szükségszerűen kattint, csak ránéz)
+  try {
+    const handle = await targetEl.elementHandle();
+    if (handle) {
+      // Emberi mozgás a gombra, de NEM kattintunk — csak megnézzük az állapotát
+      const { humanClick: _hc } = { humanClick };
+      // Csak hover, kattintás nélkül: humanClick belülről kattint, ezért
+      // itt inkább scrollIntoView + drift.
+      await handle.scrollIntoViewIfNeeded().catch(() => {});
+      await humanThink(page, 600);
+    }
+  } catch { /* ignore */ }
+
   const disabled =
     (await targetEl.getAttribute("disabled").catch(() => null)) !== null ||
     (await targetEl.getAttribute("aria-disabled").catch(() => null)) === "true";
@@ -109,17 +106,10 @@ export async function runDecathlonStock({ page, spec, log }) {
     if (/disabled|out[-_ ]?of[-_ ]?stock|unavailable|sold[-_ ]?out|elfogyott/i.test(cls)) {
       outOfStockText = true;
     }
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
 
   const available = !disabled && !outOfStockText;
   log("info", `Eredmény: available=${available} (disabled=${disabled}, oosClass=${outOfStockText})`);
 
-  return {
-    available,
-    size: targetSize,
-    url,
-    productName,
-  };
+  return { available, size: targetSize, url, productName };
 }
