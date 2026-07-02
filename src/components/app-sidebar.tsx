@@ -67,17 +67,31 @@ export function AppSidebar() {
   }, [editingId]);
 
   async function createWorkflow() {
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) {
+      toast.error("Nincs bejelentkezett felhasználó.");
+      return;
+    }
+    const { data: prof, error: pErr } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", uid)
+      .maybeSingle();
+    if (pErr || !prof?.tenant_id) {
+      toast.error("Nincs tenant hozzárendelve a felhasználóhoz.");
+      return;
+    }
     const { data, error } = await supabase
       .from("workflows")
-      .insert({ name: "Új workflow", module })
+      .insert({ name: "Új workflow", module, tenant_id: prof.tenant_id })
       .select("id")
       .single();
     if (error) {
-      toast.error("Nem sikerült létrehozni a workflow-t");
+      toast.error(`Nem sikerült létrehozni a workflow-t: ${error.message}`);
       return;
     }
     await qc.invalidateQueries({ queryKey: ["workflows", module] });
-    // Open it and immediately put it into rename mode so the user can name it.
     setDraft("");
     setEditingId(data.id);
     navigate({ to: "/w/$workflowId", params: { workflowId: data.id } });
