@@ -107,9 +107,10 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const listProxiesFn = useServerFn(listProxies);
   const { data: proxies = [] } = useQuery({
     queryKey: ["proxies-for-run"],
-    queryFn: () => listProxiesFn({ data: {} }),
+    queryFn: () => listProxiesFn(),
     staleTime: 30_000,
   });
+
 
 
   useEffect(() => {
