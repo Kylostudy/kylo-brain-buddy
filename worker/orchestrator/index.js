@@ -34,6 +34,7 @@ async function brainFetch(path, body) {
     method: "POST",
     headers: {
       Authorization: `Bearer ${WORKER_API_TOKEN}`,
+      "x-worker-token": WORKER_API_TOKEN,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body ?? {}),

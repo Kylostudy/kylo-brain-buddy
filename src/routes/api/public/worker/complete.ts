@@ -1,7 +1,7 @@
 // Worker run completion endpoint — a VPS worker hívja, amikor a futás befejeződött
 // (sikeres, hibára futott, vagy megszakadt). A logokat és a végeredményt írja vissza.
 //
-// Auth: Authorization: Bearer <WORKER_API_TOKEN>
+// Auth: Authorization: Bearer <WORKER_API_TOKEN> vagy x-worker-token
 
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
@@ -10,10 +10,14 @@ import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 
 function checkAuth(request: Request): string | null {
-  const token = process.env.WORKER_API_TOKEN;
+  const token = process.env.WORKER_API_TOKEN?.trim();
   if (!token) return "WORKER_API_TOKEN nincs beállítva";
   const header = request.headers.get("authorization") ?? "";
-  const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const provided = (
+    header.startsWith("Bearer ")
+      ? header.slice(7)
+      : request.headers.get("x-worker-token") ?? request.headers.get("x-api-key") ?? ""
+  ).trim();
   const a = Buffer.from(provided);
   const b = Buffer.from(token);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return "unauthorized";
