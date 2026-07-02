@@ -13,6 +13,7 @@
 import { chromium } from "playwright";
 import { runTikTok } from "./scripts/tiktok.js";
 import { runDecathlonStock } from "./scripts/decathlon-stock.js";
+import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 
 function log(level, message, extra = {}) {
   process.stdout.write(
@@ -65,8 +66,13 @@ async function whoerPreflight(context, expectedCountry) {
       waitUntil: "domcontentloaded",
       timeout: 30000,
     });
-    // Adjunk pár másodpercet a whoer script-jeinek, hogy kitöltsék a DOM-ot.
-    await page.waitForTimeout(3500);
+    // Adjunk időt a whoer script-jeinek, hogy kitöltsék a DOM-ot — közben
+    // az "ember" néz-nézeget (kis scroll + kurzor-drift), nem áll ki
+    // tökéletesen mozdulatlanul az oldalon.
+    await humanWait(page, 1800);
+    await humanCasualScroll(page, { rounds: 2 });
+    await humanIdleDrift(page);
+    await humanWait(page, 1200);
 
     const parsed = await page.evaluate(() => {
       const pick = (selectors) => {
