@@ -48,7 +48,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         // Lekérünk 1 queued sort + atomikusan running-ra állítjuk (CAS a status mezőn).
         const { data: candidate } = await sb
           .from("brain_workflow_runs")
-          .select("id, workflow_id, spec_snapshot, runner")
+          .select("id, workflow_id, spec_snapshot, runner, proxy_id")
           .eq("status", "queued")
           .eq("runner", "docker")
           .order("created_at", { ascending: true })
@@ -66,7 +66,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           })
           .eq("id", candidate.id)
           .eq("status", "queued")
-          .select("id, workflow_id, spec_snapshot")
+          .select("id, workflow_id, spec_snapshot, proxy_id")
           .maybeSingle();
 
         if (updErr || !claimed) return new Response(null, { status: 204 });
@@ -80,31 +80,65 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           .eq("workflow_id", claimed.workflow_id)
           .maybeSingle();
 
+        const { decryptString } = await import("@/lib/credentials/crypto.server");
+        const safeDec = async (
+          ct: string | null,
+          n: string | null,
+        ): Promise<string | null> => {
+          if (!ct || !n) return null;
+          try {
+            return await decryptString(ct, n);
+          } catch {
+            return null;
+          }
+        };
+
         let credentials: Record<string, string | null> | null = null;
         if (credRow) {
-          const { decryptString } = await import("@/lib/credentials/crypto.server");
-          const safe = async (
-            ct: string | null,
-            n: string | null,
-          ): Promise<string | null> => {
-            if (!ct || !n) return null;
-            try {
-              return await decryptString(ct, n);
-            } catch {
-              return null;
-            }
-          };
           credentials = {
             platform: credRow.platform,
             username: credRow.username || null,
-            password: await safe(credRow.password_ciphertext, credRow.password_nonce),
-            cookies: await safe(credRow.cookie_ciphertext, credRow.cookie_nonce),
-            totpSecret: await safe(
+            password: await safeDec(credRow.password_ciphertext, credRow.password_nonce),
+            cookies: await safeDec(credRow.cookie_ciphertext, credRow.cookie_nonce),
+            totpSecret: await safeDec(
               credRow.totp_secret_ciphertext,
               credRow.totp_nonce,
             ),
-            proxy: await safe(credRow.proxy_ciphertext, credRow.proxy_nonce),
+            proxy: await safeDec(credRow.proxy_ciphertext, credRow.proxy_nonce),
           };
+        }
+
+        // Proxy resolve (ha a run-hoz konkrét proxyId van kötve).
+        let proxy: {
+          url: string;
+          label: string;
+          expectedCountry: string | null;
+          provider: string | null;
+        } | null = null;
+        if (claimed.proxy_id) {
+          const { data: pRow } = await sb
+            .from("proxies")
+            .select(
+              "id, label, country, provider, protocol, host, port, username_ciphertext, username_nonce, password_ciphertext, password_nonce, is_active",
+            )
+            .eq("id", claimed.proxy_id)
+            .maybeSingle();
+          if (pRow && pRow.is_active) {
+            const u = await safeDec(pRow.username_ciphertext, pRow.username_nonce);
+            const p = await safeDec(pRow.password_ciphertext, pRow.password_nonce);
+            const auth =
+              u && p
+                ? `${encodeURIComponent(u)}:${encodeURIComponent(p)}@`
+                : u
+                  ? `${encodeURIComponent(u)}@`
+                  : "";
+            proxy = {
+              url: `${pRow.protocol}://${auth}${pRow.host}:${pRow.port}`,
+              label: pRow.label,
+              expectedCountry: (pRow.country || "").toUpperCase() || null,
+              provider: pRow.provider || null,
+            };
+          }
         }
 
         return new Response(
@@ -114,6 +148,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
               workflowId: claimed.workflow_id,
               spec: claimed.spec_snapshot,
               credentials,
+              proxy,
             },
           }),
           { status: 200, headers: { "content-type": "application/json" } },
@@ -122,3 +157,4 @@ export const Route = createFileRoute("/api/public/worker/claim")({
     },
   },
 });
+
