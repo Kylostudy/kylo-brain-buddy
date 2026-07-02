@@ -393,6 +393,66 @@ export type Database = {
         }
         Relationships: []
       }
+      proxies: {
+        Row: {
+          country: string
+          created_at: string
+          host: string
+          id: string
+          is_active: boolean
+          kind: string
+          label: string
+          notes: string
+          password_ciphertext: string | null
+          password_nonce: string | null
+          port: number
+          protocol: string
+          provider: string
+          tenant_id: string
+          updated_at: string
+          username_ciphertext: string | null
+          username_nonce: string | null
+        }
+        Insert: {
+          country?: string
+          created_at?: string
+          host: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          label: string
+          notes?: string
+          password_ciphertext?: string | null
+          password_nonce?: string | null
+          port: number
+          protocol?: string
+          provider?: string
+          tenant_id?: string
+          updated_at?: string
+          username_ciphertext?: string | null
+          username_nonce?: string | null
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          host?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          label?: string
+          notes?: string
+          password_ciphertext?: string | null
+          password_nonce?: string | null
+          port?: number
+          protocol?: string
+          provider?: string
+          tenant_id?: string
+          updated_at?: string
+          username_ciphertext?: string | null
+          username_nonce?: string | null
+        }
+        Relationships: []
+      }
       recording_sessions: {
         Row: {
           action_log: Json

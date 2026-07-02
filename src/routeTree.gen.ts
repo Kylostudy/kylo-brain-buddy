@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
@@ -42,6 +43,11 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedProxiesRoute = AuthenticatedProxiesRouteImport.update({
+  id: '/proxies',
+  path: '/proxies',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedWWorkflowIdRoute =
   AuthenticatedWWorkflowIdRouteImport.update({
@@ -104,6 +110,7 @@ const ApiPublicCrossKitTaskTask_idLogRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/proxies'
     | '/api/transcribe'
     | '/w/$workflowId'
     | '/api/public/cron/enqueue-monitors'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/proxies'
     | '/api/transcribe'
     | '/'
     | '/w/$workflowId'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/proxies'
     | '/api/transcribe'
     | '/_authenticated/'
     | '/_authenticated/w/$workflowId'
@@ -240,6 +252,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/proxies': {
+      id: '/_authenticated/proxies'
+      path: '/proxies'
+      fullPath: '/proxies'
+      preLoaderRoute: typeof AuthenticatedProxiesRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/w/$workflowId': {
       id: '/_authenticated/w/$workflowId'
@@ -315,11 +334,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedWWorkflowIdRoute: typeof AuthenticatedWWorkflowIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedWWorkflowIdRoute: AuthenticatedWWorkflowIdRoute,
 }
