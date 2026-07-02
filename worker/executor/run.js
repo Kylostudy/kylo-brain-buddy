@@ -13,6 +13,7 @@
 import { chromium } from "playwright";
 import { runTikTok } from "./scripts/tiktok.js";
 import { runDecathlonStock } from "./scripts/decathlon-stock.js";
+import { runBotSmokeTest } from "./scripts/bot-smoke-test.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 
 function log(level, message, extra = {}) {
@@ -276,6 +277,8 @@ async function main() {
       result = await runTikTok({ page, context, spec, creds, log });
     } else if (monitorType === "decathlon-stock") {
       result = await runDecathlonStock({ page, spec, log });
+    } else if (monitorType === "bot-smoke-test" || monitorType === "smoke") {
+      result = await runBotSmokeTest({ page, spec, log });
     } else {
       log("warn", `Típus "${monitorType}" még nincs implementálva — demo.`);
       await page.goto("https://example.com", { waitUntil: "domcontentloaded" });
