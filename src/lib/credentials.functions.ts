@@ -72,6 +72,7 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
     return {
       exists: true,
       platform: row.platform,
+      username: u || null,
       usernameMasked: u ? masked : null,
       hasPassword: !!row.password_ciphertext,
       hasCookie: !!row.cookie_ciphertext,
