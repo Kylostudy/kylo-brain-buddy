@@ -145,12 +145,46 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           }
         }
 
+        // ---- Fingerprint audit ütemezés ---------------------------------
+        // Első futásra vagy ha >7 napja volt utoljára sikeres audit → futtatjuk
+        // a bot.sannysoft.com + CreepJS ellenőrzést a whoer preflight után.
+        // A worker a result.fingerprint_audit-ba menti — az UI onnan olvassa.
+        let runFingerprintAudit = true;
+        {
+          const sevenDaysAgo = new Date(
+            Date.now() - 7 * 24 * 60 * 60 * 1000,
+          ).toISOString();
+          const { data: recent } = await sb
+            .from("brain_workflow_runs")
+            .select("result, finished_at")
+            .eq("workflow_id", claimed.workflow_id)
+            .eq("status", "succeeded")
+            .gte("finished_at", sevenDaysAgo)
+            .order("finished_at", { ascending: false })
+            .limit(5);
+          if (recent && recent.length > 0) {
+            const hasRecentAudit = recent.some((r) => {
+              const res = r.result as { fingerprint_audit?: unknown } | null;
+              return !!res?.fingerprint_audit;
+            });
+            if (hasRecentAudit) runFingerprintAudit = false;
+          }
+        }
+
+        const specWithFlags =
+          claimed.spec_snapshot && typeof claimed.spec_snapshot === "object"
+            ? { ...(claimed.spec_snapshot as Record<string, unknown>) }
+            : {};
+        if (runFingerprintAudit) {
+          specWithFlags.run_fingerprint_audit = true;
+        }
+
         return new Response(
           JSON.stringify({
             run: {
               id: claimed.id,
               workflowId: claimed.workflow_id,
-              spec: claimed.spec_snapshot,
+              spec: specWithFlags,
               credentials,
               proxy,
             },
