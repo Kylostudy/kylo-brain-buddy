@@ -26,6 +26,24 @@ type PreflightResult = {
   error?: string | null;
 } | null;
 
+type FingerprintCheck = {
+  name?: string;
+  ok?: boolean;
+  red_flags?: string[];
+  total_tests?: number;
+  trust_score?: number | null;
+  trust_label?: string | null;
+  lies?: number | null;
+  error?: string;
+};
+
+type FingerprintAudit = {
+  all_ok?: boolean;
+  ran_at?: string;
+  checks?: FingerprintCheck[];
+  error?: string;
+} | null;
+
 type RunRow = {
   id: string;
   runner: string;
@@ -36,13 +54,14 @@ type RunRow = {
   created_at: string;
   error: string | null;
   preflight_result: PreflightResult;
+  result: { fingerprint_audit?: FingerprintAudit } | null;
 };
 
 async function fetchRuns(workflowId: string): Promise<RunRow[]> {
   const { data, error } = await supabase
     .from("brain_workflow_runs")
     .select(
-      "id, runner, status, external_id, started_at, finished_at, created_at, error, preflight_result",
+      "id, runner, status, external_id, started_at, finished_at, created_at, error, preflight_result, result",
     )
     .eq("workflow_id", workflowId)
     .order("created_at", { ascending: false })
