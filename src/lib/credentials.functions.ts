@@ -160,16 +160,21 @@ export const saveCredentials = createServerFn({ method: "POST" })
       payload.totp_nonce = existing.totp_nonce;
     }
 
-    if (data.proxy !== undefined) {
-      const { ciphertext, nonce } = await encryptString(data.proxy);
+    if (data.proxyId !== undefined && data.proxyId !== null) {
+      const url = await loadProxyUrlServer(data.proxyId);
+      if (!url) throw new Error("A kiválasztott proxy nem található.");
+      const { ciphertext, nonce } = await encryptString(url);
       payload.proxy_ciphertext = ciphertext;
       payload.proxy_nonce = nonce;
-    } else if (data.clearProxy) {
+      payload.proxy_id = data.proxyId;
+    } else if (data.clearProxy || data.proxyId === null) {
       payload.proxy_ciphertext = null;
       payload.proxy_nonce = null;
+      payload.proxy_id = null;
     } else if (existing && "proxy_ciphertext" in existing) {
       payload.proxy_ciphertext = (existing as { proxy_ciphertext?: string | null }).proxy_ciphertext ?? null;
       payload.proxy_nonce = (existing as { proxy_nonce?: string | null }).proxy_nonce ?? null;
+      payload.proxy_id = (existing as { proxy_id?: string | null }).proxy_id ?? null;
     }
 
 
