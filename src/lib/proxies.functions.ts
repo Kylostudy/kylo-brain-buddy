@@ -184,8 +184,19 @@ function serverSupabase() {
   );
 }
 
-export async function loadProxyUrlServer(proxyId: string): Promise<string | null> {
-  const supabase = serverSupabase();
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+export async function loadProxyUrlServer(
+  proxyId: string,
+  client?: SupabaseClient<Database>,
+): Promise<string | null> {
+  // Prefer the authenticated client (RLS scoped to user); fall back to admin
+  // client so background jobs / worker paths without a session still work.
+  let supabase: SupabaseClient<Database> | null = client ?? null;
+  if (!supabase) {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    supabase = supabaseAdmin as unknown as SupabaseClient<Database>;
+  }
   const { data: row, error } = await supabase
     .from("proxies")
     .select("*")
