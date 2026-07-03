@@ -563,6 +563,10 @@ export type Database = {
           cookie_ciphertext: string | null
           cookie_nonce: string | null
           created_at: string
+          gmail_connected_at: string | null
+          gmail_email: string | null
+          gmail_refresh_ciphertext: string | null
+          gmail_refresh_nonce: string | null
           id: string
           password_ciphertext: string | null
           password_nonce: string | null
@@ -581,6 +585,10 @@ export type Database = {
           cookie_ciphertext?: string | null
           cookie_nonce?: string | null
           created_at?: string
+          gmail_connected_at?: string | null
+          gmail_email?: string | null
+          gmail_refresh_ciphertext?: string | null
+          gmail_refresh_nonce?: string | null
           id?: string
           password_ciphertext?: string | null
           password_nonce?: string | null
@@ -599,6 +607,10 @@ export type Database = {
           cookie_ciphertext?: string | null
           cookie_nonce?: string | null
           created_at?: string
+          gmail_connected_at?: string | null
+          gmail_email?: string | null
+          gmail_refresh_ciphertext?: string | null
+          gmail_refresh_nonce?: string | null
           id?: string
           password_ciphertext?: string | null
           password_nonce?: string | null
