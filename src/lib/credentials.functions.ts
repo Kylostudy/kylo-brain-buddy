@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { encryptString, decryptString } from "@/lib/credentials/crypto.server";
+import { loadProxyUrlServer } from "@/lib/proxies.functions";
+
 
 function serverSupabase() {
   return createClient<Database>(
@@ -27,7 +29,7 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
     const { data: row } = await supabase
       .from("workflow_credentials")
       .select(
-        "platform, username, password_ciphertext, cookie_ciphertext, totp_secret_ciphertext, proxy_ciphertext, updated_at",
+        "platform, username, password_ciphertext, cookie_ciphertext, totp_secret_ciphertext, proxy_ciphertext, proxy_id, updated_at",
       )
       .eq("workflow_id", data.workflowId)
       .maybeSingle();
@@ -41,6 +43,8 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
         hasCookie: false,
         hasTotp: false,
         hasProxy: false,
+        proxyId: null as string | null,
+        proxyLabel: null as string | null,
         updatedAt: null as string | null,
       };
     }
@@ -51,6 +55,20 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
         ? "•".repeat(u.length || 1)
         : u[0] + "•".repeat(Math.max(1, u.length - 2)) + u[u.length - 1];
 
+    const proxyId = (row as { proxy_id?: string | null }).proxy_id ?? null;
+    let proxyLabel: string | null = null;
+    if (proxyId) {
+      const { data: p } = await supabase
+        .from("proxies")
+        .select("label, country")
+        .eq("id", proxyId)
+        .maybeSingle();
+      if (p) {
+        const pp = p as { label: string; country: string | null };
+        proxyLabel = pp.country ? `${pp.label} (${pp.country})` : pp.label;
+      }
+    }
+
     return {
       exists: true,
       platform: row.platform,
@@ -59,9 +77,12 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
       hasCookie: !!row.cookie_ciphertext,
       hasTotp: !!row.totp_secret_ciphertext,
       hasProxy: !!(row as { proxy_ciphertext?: string | null }).proxy_ciphertext,
+      proxyId,
+      proxyLabel,
       updatedAt: row.updated_at,
     };
   });
+
 
 /**
  * Mentés / felülírás. Csak azt a mezőt írja, amit kapott.
@@ -78,7 +99,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
         password: z.string().min(1).max(500).optional(),
         cookie: z.string().min(1).max(50000).optional(),
         totpSecret: z.string().min(1).max(200).optional(),
-        proxy: z.string().min(1).max(500).optional(),
+        proxyId: z.string().uuid().nullable().optional(),
         clearPassword: z.boolean().optional(),
         clearCookie: z.boolean().optional(),
         clearTotp: z.boolean().optional(),
@@ -139,16 +160,21 @@ export const saveCredentials = createServerFn({ method: "POST" })
       payload.totp_nonce = existing.totp_nonce;
     }
 
-    if (data.proxy !== undefined) {
-      const { ciphertext, nonce } = await encryptString(data.proxy);
+    if (data.proxyId !== undefined && data.proxyId !== null) {
+      const url = await loadProxyUrlServer(data.proxyId);
+      if (!url) throw new Error("A kiválasztott proxy nem található.");
+      const { ciphertext, nonce } = await encryptString(url);
       payload.proxy_ciphertext = ciphertext;
       payload.proxy_nonce = nonce;
-    } else if (data.clearProxy) {
+      payload.proxy_id = data.proxyId;
+    } else if (data.clearProxy || data.proxyId === null) {
       payload.proxy_ciphertext = null;
       payload.proxy_nonce = null;
+      payload.proxy_id = null;
     } else if (existing && "proxy_ciphertext" in existing) {
       payload.proxy_ciphertext = (existing as { proxy_ciphertext?: string | null }).proxy_ciphertext ?? null;
       payload.proxy_nonce = (existing as { proxy_nonce?: string | null }).proxy_nonce ?? null;
+      payload.proxy_id = (existing as { proxy_id?: string | null }).proxy_id ?? null;
     }
 
 

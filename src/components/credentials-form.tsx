@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { KeyRound, Lock, Cookie, ShieldCheck, Globe, Eye, EyeOff, Trash2 } from "lucide-react";
+import { KeyRound, Lock, Cookie, ShieldCheck, Globe, Eye, EyeOff, Trash2, LockKeyhole, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   saveCredentials,
   deleteCredentials,
 } from "@/lib/credentials.functions";
+import { listProxies } from "@/lib/proxies.functions";
 
 const PLATFORMS = [
   "tiktok",
@@ -42,13 +43,27 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
   const [password, setPassword] = useState("");
   const [cookie, setCookie] = useState("");
   const [totp, setTotp] = useState("");
-  const [proxy, setProxy] = useState("");
+  const [proxyId, setProxyId] = useState<string | "">("");
+  const [proxyLocked, setProxyLocked] = useState(true);
   const [showPwd, setShowPwd] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const callListProxies = useServerFn(listProxies);
+  const { data: proxies } = useQuery({
+    queryKey: ["proxies-for-credentials"],
+    queryFn: () => callListProxies({ data: undefined as never }),
+  });
 
   useEffect(() => {
     if (status?.platform) setPlatform(status.platform);
   }, [status?.platform]);
+
+  useEffect(() => {
+    if (status?.proxyId) {
+      setProxyId(status.proxyId);
+      setProxyLocked(true);
+    }
+  }, [status?.proxyId]);
 
   async function handleSave() {
     if (!username.trim()) {
@@ -69,14 +84,13 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
           password: password || undefined,
           cookie: cookie || undefined,
           totpSecret: totp || undefined,
-          proxy: proxy || undefined,
+          proxyId: proxyId ? proxyId : proxyId === "" && status?.proxyId ? null : undefined,
         },
       });
       toast.success("Hozzáférés titkosítva mentve.");
       setPassword("");
       setCookie("");
       setTotp("");
-      setProxy("");
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["credentials", workflowId] });
     } catch (e) {
@@ -85,6 +99,7 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
       setSaving(false);
     }
   }
+
 
   async function handleDelete() {
     if (!confirm("Biztosan törlöd a mentett hozzáférést?")) return;
@@ -241,17 +256,49 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
           </div>
           <div className="space-y-1">
             <Label className="text-[10px] uppercase text-muted-foreground">
-              Proxy / IP (Dolphin export, opcionális) {(status as { hasProxy?: boolean })?.hasProxy && <span className="text-muted-foreground/60">(üres = változatlan)</span>}
+              Proxy (az előre feltöltött listából)
             </Label>
-            <Input
-              value={proxy}
-              onChange={(e) => setProxy(e.target.value)}
-              placeholder="http://user:pass@host:port"
-              className="h-8 font-mono text-[10px]"
-              autoComplete="off"
-            />
+            {proxyLocked && proxyId ? (
+              <div className="flex items-center gap-2 rounded border bg-muted/40 px-2 py-1.5">
+                <LockKeyhole className="size-3.5 text-primary" />
+                <span className="flex-1 truncate text-xs font-medium">
+                  {proxies?.find((p) => p.id === proxyId)
+                    ? `${proxies.find((p) => p.id === proxyId)!.label}${
+                        proxies.find((p) => p.id === proxyId)!.country
+                          ? ` (${proxies.find((p) => p.id === proxyId)!.country})`
+                          : ""
+                      }`
+                    : (status?.proxyLabel ?? "kiválasztott proxy")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setProxyLocked(false)}
+                  className="text-[10px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                  title="Feloldás módosításhoz"
+                >
+                  <Pencil className="size-3" /> módosít
+                </button>
+              </div>
+            ) : (
+              <select
+                value={proxyId}
+                onChange={(e) => setProxyId(e.target.value)}
+                className="h-8 w-full rounded border bg-background px-2 text-xs"
+              >
+                <option value="">— nincs proxy —</option>
+                {(proxies ?? [])
+                  .filter((p) => p.is_active)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                      {p.country ? ` (${p.country})` : ""}
+                      {p.provider ? ` · ${p.provider}` : ""}
+                    </option>
+                  ))}
+              </select>
+            )}
             <p className="text-[10px] text-muted-foreground/70">
-              A Steel sessionhöz és a Docker workerhez is ezen az IP-n megy ki a forgalom, így ugyanaz az ujjlenyomat, mint a Dolphin profilban.
+              Kiválasztás után lezárva marad, hogy véletlenül ne írd át. A „módosít" gombbal oldható fel.
             </p>
           </div>
           <div className="flex gap-2 pt-1">
