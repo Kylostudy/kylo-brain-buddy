@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { finishGmailOAuth } from "@/lib/gmail.functions";
 
-export const Route = createFileRoute("/auth/google/callback")({
+export const Route = createFileRoute("/auth_/google/callback")({
   component: GoogleCallbackPage,
 });
 
