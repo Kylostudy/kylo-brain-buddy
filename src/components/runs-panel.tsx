@@ -186,6 +186,35 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
                         : ""}
                     </div>
                   )}
+                  {r.result?.fingerprint_audit && (() => {
+                    const fa = r.result!.fingerprint_audit!;
+                    const sanny = fa.checks?.find((c) => c.name === "sannysoft");
+                    const creep = fa.checks?.find((c) => c.name === "creepjs");
+                    return (
+                      <div
+                        className={cn(
+                          "mt-0.5 truncate text-[10px]",
+                          fa.all_ok ? "text-emerald-600" : "text-amber-600",
+                        )}
+                        title={[
+                          sanny
+                            ? `sannysoft: ${sanny.ok ? "ok" : "piros"}${sanny.red_flags?.length ? ` (${sanny.red_flags.length} zászló)` : ""}`
+                            : null,
+                          creep
+                            ? `creepjs: trust ${creep.trust_score ?? "?"}${creep.lies != null ? `, lies ${creep.lies}` : ""}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      >
+                        {fa.all_ok ? "✓" : "⚠"} fingerprint:
+                        {sanny ? ` sanny ${sanny.ok ? "ok" : "❌"}` : ""}
+                        {creep?.trust_score != null
+                          ? ` · creep ${creep.trust_score}%`
+                          : ""}
+                      </div>
+                    );
+                  })()}
 
                 </div>
                 {isActive && (
