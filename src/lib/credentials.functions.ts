@@ -163,7 +163,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
     }
 
     if (data.proxyId !== undefined && data.proxyId !== null) {
-      const url = await loadProxyUrlServer(data.proxyId);
+      const url = await loadProxyUrlServer(data.proxyId, supabase);
       if (!url) throw new Error("A kiválasztott proxy nem található.");
       const { ciphertext, nonce } = await encryptString(url);
       payload.proxy_ciphertext = ciphertext;
