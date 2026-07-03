@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { encryptString, decryptString } from "@/lib/credentials/crypto.server";
+import { loadProxyUrlServer } from "@/lib/proxies.functions";
+
 
 function serverSupabase() {
   return createClient<Database>(
