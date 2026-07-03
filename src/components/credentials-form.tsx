@@ -202,6 +202,10 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
         )}
       </div>
 
+      <GmailCard workflowId={workflowId} />
+
+
+
       {exists && !open ? (
         <div className="mt-2 space-y-2 rounded-md border bg-background/40 p-2.5">
           <div className="flex items-center gap-2 text-xs">
