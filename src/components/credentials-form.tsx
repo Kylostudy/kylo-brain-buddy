@@ -43,13 +43,27 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
   const [password, setPassword] = useState("");
   const [cookie, setCookie] = useState("");
   const [totp, setTotp] = useState("");
-  const [proxy, setProxy] = useState("");
+  const [proxyId, setProxyId] = useState<string | "">("");
+  const [proxyLocked, setProxyLocked] = useState(true);
   const [showPwd, setShowPwd] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const callListProxies = useServerFn(listProxies);
+  const { data: proxies } = useQuery({
+    queryKey: ["proxies-for-credentials"],
+    queryFn: () => callListProxies({ data: undefined as never }),
+  });
 
   useEffect(() => {
     if (status?.platform) setPlatform(status.platform);
   }, [status?.platform]);
+
+  useEffect(() => {
+    if (status?.proxyId) {
+      setProxyId(status.proxyId);
+      setProxyLocked(true);
+    }
+  }, [status?.proxyId]);
 
   async function handleSave() {
     if (!username.trim()) {
@@ -70,14 +84,13 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
           password: password || undefined,
           cookie: cookie || undefined,
           totpSecret: totp || undefined,
-          proxy: proxy || undefined,
+          proxyId: proxyId ? proxyId : proxyId === "" && status?.proxyId ? null : undefined,
         },
       });
       toast.success("Hozzáférés titkosítva mentve.");
       setPassword("");
       setCookie("");
       setTotp("");
-      setProxy("");
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["credentials", workflowId] });
     } catch (e) {
@@ -86,6 +99,7 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
       setSaving(false);
     }
   }
+
 
   async function handleDelete() {
     if (!confirm("Biztosan törlöd a mentett hozzáférést?")) return;
