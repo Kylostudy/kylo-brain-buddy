@@ -59,6 +59,11 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
   }, [status?.platform]);
 
   useEffect(() => {
+    if (status?.username && !username) setUsername(status.username);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.username]);
+
+  useEffect(() => {
     if (status?.proxyId) {
       setProxyId(status.proxyId);
       setProxyLocked(true);
