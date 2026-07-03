@@ -444,7 +444,7 @@ function GmailCard({ workflowId }: { workflowId: string }) {
   async function handleConnect() {
     setBusy(true);
     try {
-      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const redirectUri = `${window.location.origin}/api/public/auth/google/callback`;
       const { url } = await callStart({ data: { workflowId, redirectUri } });
       window.location.href = url;
     } catch (e) {
