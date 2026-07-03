@@ -122,7 +122,61 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
     toast.success("Hozzáférés törölve.");
   }
 
+  // TOTP előnézet — a mentett secret jelenlegi kódját mutatja, hogy
+  // ellenőrizhető legyen, hogy a Google Authenticatorral megegyezik-e.
+  const callPreviewTotp = useServerFn(previewTotp);
+  const [totpCode, setTotpCode] = useState<string | null>(null);
+  const [totpRemaining, setTotpRemaining] = useState<number>(0);
+  const [totpError, setTotpError] = useState<string | null>(null);
+  const [totpLoading, setTotpLoading] = useState(false);
+
+  async function refreshTotp() {
+    setTotpLoading(true);
+    setTotpError(null);
+    try {
+      const res = await callPreviewTotp({ data: { workflowId } });
+      if (!res.hasTotp) {
+        setTotpError("Nincs mentett TOTP secret.");
+        setTotpCode(null);
+      } else if ("error" in res && res.error) {
+        setTotpError(res.error);
+        setTotpCode(null);
+      } else if ("code" in res) {
+        setTotpCode(res.code);
+        setTotpRemaining(res.secondsRemaining);
+      }
+    } catch (e) {
+      setTotpError(e instanceof Error ? e.message : "TOTP hiba");
+    } finally {
+      setTotpLoading(false);
+    }
+  }
+
+  // Ha van látható kód, minden másodpercben csökkentjük a hátralévő időt;
+  // amikor lejár, automatikusan lekérjük az újat.
+  useEffect(() => {
+    if (totpCode === null) return;
+    const t = setInterval(() => {
+      setTotpRemaining((s) => {
+        if (s <= 1) {
+          void refreshTotp();
+          return 30;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totpCode]);
+
+  // Workflow váltáskor rejtsük el a kódot (más fiók, más titok).
+  useEffect(() => {
+    setTotpCode(null);
+    setTotpError(null);
+  }, [workflowId]);
+
   const exists = status?.exists ?? false;
+
 
   return (
     <div className="border-t px-4 py-3">
