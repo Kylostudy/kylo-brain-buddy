@@ -25,6 +25,7 @@ import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/publ
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
 import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './routes/api/public/cross/kylogic/replay-callback'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
+import { Route as ApiPublicAuthGoogleCallbackRouteImport } from './routes/api/public/auth.google.callback'
 import { Route as ApiPublicCrossKitTaskTask_idLogRouteImport } from './routes/api/public/cross/kit/task/$task_id/log'
 
 const AuthRoute = AuthRouteImport.update({
@@ -113,6 +114,12 @@ const ApiPublicCrossKitTaskRoute = ApiPublicCrossKitTaskRouteImport.update({
   path: '/api/public/cross/kit/task',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAuthGoogleCallbackRoute =
+  ApiPublicAuthGoogleCallbackRouteImport.update({
+    id: '/api/public/auth/google/callback',
+    path: '/api/public/auth/google/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCrossKitTaskTask_idLogRoute =
   ApiPublicCrossKitTaskTask_idLogRouteImport.update({
     id: '/$task_id/log',
@@ -132,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
@@ -150,6 +158,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
@@ -170,6 +179,7 @@ export interface FileRoutesById {
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/complete'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/complete'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
@@ -227,6 +239,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/complete'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
@@ -244,6 +257,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
+  ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
   ApiPublicCrossKylogicReplayCallbackRoute: typeof ApiPublicCrossKylogicReplayCallbackRoute
   ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
@@ -364,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrossKitTaskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/auth/google/callback': {
+      id: '/api/public/auth/google/callback'
+      path: '/api/public/auth/google/callback'
+      fullPath: '/api/public/auth/google/callback'
+      preLoaderRoute: typeof ApiPublicAuthGoogleCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/kit/task/$task_id/log': {
       id: '/api/public/cross/kit/task/$task_id/log'
       path: '/$task_id/log'
@@ -413,6 +434,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
+  ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
   ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,
   ApiPublicCrossKylogicReplayCallbackRoute:
     ApiPublicCrossKylogicReplayCallbackRoute,
