@@ -239,6 +239,35 @@ async function main() {
     `Preflight OK — IP ${preflight.ip ?? "?"} · ${preflight.country_code ?? "?"} · ${preflight.city ?? ""}`,
   );
 
+  // ---- 2. LÉPÉS: Fingerprint audit (első run + heti) ---------------------
+  // A claim endpoint dönt róla és a spec.run_fingerprint_audit flag-en át
+  // kéri. Nem állítja meg a futást, csak beteszi az eredményt a result-ba,
+  // hogy a UI-ban látható legyen (piros zászlók, trust score, screenshotok).
+  let fingerprintAudit = null;
+  if (spec.run_fingerprint_audit) {
+    log("info", "Fingerprint audit indul (sannysoft + CreepJS)…");
+    const auditPage = await context.newPage();
+    try {
+      fingerprintAudit = await runBotSmokeTest({
+        page: auditPage,
+        spec: { ...spec, targets: ["sannysoft", "creepjs"] },
+        log,
+      });
+      fingerprintAudit.ran_at = new Date().toISOString();
+      log(
+        "info",
+        `Fingerprint audit kész — ${fingerprintAudit.all_ok ? "ZÖLD ✅" : "PIROS ❌"}`,
+      );
+    } catch (e) {
+      log("warn", `Fingerprint audit hiba (folytatjuk): ${e.message}`);
+      fingerprintAudit = { error: e.message, ran_at: new Date().toISOString() };
+    } finally {
+      try {
+        await auditPage.close();
+      } catch {}
+    }
+  }
+
   // Session cookie-k injektálása (Dolphin / EditThisCookie JSON export)
   if (creds?.cookies) {
     try {
@@ -283,6 +312,10 @@ async function main() {
       log("warn", `Típus "${monitorType}" még nincs implementálva — demo.`);
       await page.goto("https://example.com", { waitUntil: "domcontentloaded" });
       result = { demo: true };
+    }
+
+    if (fingerprintAudit) {
+      result = { ...(result || {}), fingerprint_audit: fingerprintAudit };
     }
 
     await browser.close();
