@@ -444,7 +444,14 @@ function GmailCard({ workflowId }: { workflowId: string }) {
   async function handleConnect() {
     setBusy(true);
     try {
-      const redirectUri = `${window.location.origin}/api/public/auth/google/callback`;
+      const host = window.location.hostname;
+      const previewProjectId = host.endsWith(".lovableproject.com")
+        ? host.replace(".lovableproject.com", "")
+        : host.match(/^id-preview--([a-f0-9-]+)\.lovable\.app$/)?.[1];
+      const callbackOrigin = previewProjectId
+        ? `https://project--${previewProjectId}-dev.lovable.app`
+        : window.location.origin;
+      const redirectUri = `${callbackOrigin}/api/public/auth/google/callback`;
       const { url } = await callStart({ data: { workflowId, redirectUri } });
       window.location.href = url;
     } catch (e) {
