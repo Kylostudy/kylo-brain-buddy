@@ -141,9 +141,9 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
       } else if ("error" in res && res.error) {
         setTotpError(res.error);
         setTotpCode(null);
-      } else if ("code" in res) {
+      } else if ("code" in res && res.code) {
         setTotpCode(res.code);
-        setTotpRemaining(res.secondsRemaining);
+        setTotpRemaining(res.secondsRemaining ?? 30);
       }
     } catch (e) {
       setTotpError(e instanceof Error ? e.message : "TOTP hiba");
