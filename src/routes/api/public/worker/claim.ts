@@ -179,6 +179,19 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           specWithFlags.run_fingerprint_audit = true;
         }
 
+        // ---- Per-workflow böngésző-fingerprint ---------------------------
+        // Determinisztikusan generált UA/viewport/locale/timezone — így egy
+        // fiók mindig "ugyanarról a gépről" jelentkezik be. Csak akkor
+        // generálunk, ha a spec-ben nincs kézzel felülírva.
+        if (!specWithFlags.fingerprint) {
+          const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
+          specWithFlags.fingerprint = generateWorkflowFingerprint(
+            claimed.workflow_id,
+            proxy?.expectedCountry ?? null,
+          );
+        }
+
+
         return new Response(
           JSON.stringify({
             run: {
