@@ -256,17 +256,49 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
           </div>
           <div className="space-y-1">
             <Label className="text-[10px] uppercase text-muted-foreground">
-              Proxy / IP (Dolphin export, opcionális) {(status as { hasProxy?: boolean })?.hasProxy && <span className="text-muted-foreground/60">(üres = változatlan)</span>}
+              Proxy (az előre feltöltött listából)
             </Label>
-            <Input
-              value={proxy}
-              onChange={(e) => setProxy(e.target.value)}
-              placeholder="http://user:pass@host:port"
-              className="h-8 font-mono text-[10px]"
-              autoComplete="off"
-            />
+            {proxyLocked && proxyId ? (
+              <div className="flex items-center gap-2 rounded border bg-muted/40 px-2 py-1.5">
+                <LockKeyhole className="size-3.5 text-primary" />
+                <span className="flex-1 truncate text-xs font-medium">
+                  {proxies?.find((p) => p.id === proxyId)
+                    ? `${proxies.find((p) => p.id === proxyId)!.label}${
+                        proxies.find((p) => p.id === proxyId)!.country
+                          ? ` (${proxies.find((p) => p.id === proxyId)!.country})`
+                          : ""
+                      }`
+                    : (status?.proxyLabel ?? "kiválasztott proxy")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setProxyLocked(false)}
+                  className="text-[10px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                  title="Feloldás módosításhoz"
+                >
+                  <Pencil className="size-3" /> módosít
+                </button>
+              </div>
+            ) : (
+              <select
+                value={proxyId}
+                onChange={(e) => setProxyId(e.target.value)}
+                className="h-8 w-full rounded border bg-background px-2 text-xs"
+              >
+                <option value="">— nincs proxy —</option>
+                {(proxies ?? [])
+                  .filter((p) => p.is_active)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                      {p.country ? ` (${p.country})` : ""}
+                      {p.provider ? ` · ${p.provider}` : ""}
+                    </option>
+                  ))}
+              </select>
+            )}
             <p className="text-[10px] text-muted-foreground/70">
-              A Steel sessionhöz és a Docker workerhez is ezen az IP-n megy ki a forgalom, így ugyanaz az ujjlenyomat, mint a Dolphin profilban.
+              Kiválasztás után lezárva marad, hogy véletlenül ne írd át. A „módosít" gombbal oldható fel.
             </p>
           </div>
           <div className="flex gap-2 pt-1">
