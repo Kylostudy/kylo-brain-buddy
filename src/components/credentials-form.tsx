@@ -443,6 +443,7 @@ function GmailCard({ workflowId }: { workflowId: string }) {
 
   async function handleConnect() {
     setBusy(true);
+    const oauthWindow = window.open("about:blank", "_blank", "width=560,height=760");
     try {
       const host = window.location.hostname;
       const previewProjectId = host.endsWith(".lovableproject.com")
@@ -453,8 +454,20 @@ function GmailCard({ workflowId }: { workflowId: string }) {
         : window.location.origin;
       const redirectUri = `${callbackOrigin}/api/public/auth/google/callback`;
       const { url } = await callStart({ data: { workflowId, redirectUri } });
+      if (oauthWindow) {
+        oauthWindow.location.href = url;
+        window.addEventListener(
+          "focus",
+          () => qc.invalidateQueries({ queryKey: ["gmail-status", workflowId] }),
+          { once: true },
+        );
+        toast.success("A Google engedélyezés új ablakban nyílt meg.");
+        setBusy(false);
+        return;
+      }
       window.location.href = url;
     } catch (e) {
+      if (oauthWindow && !oauthWindow.closed) oauthWindow.close();
       toast.error(e instanceof Error ? e.message : "Nem sikerült elindítani a Google OAuth-ot.");
       setBusy(false);
     }
