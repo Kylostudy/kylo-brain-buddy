@@ -54,21 +54,29 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
     queryFn: () => callListProxies({ data: undefined as never }),
   });
 
+  // Workflow váltáskor minden mezőt üríts — új workflow = üres form.
   useEffect(() => {
-    if (status?.platform) setPlatform(status.platform);
-  }, [status?.platform]);
+    setOpen(false);
+    setPlatform("tiktok");
+    setUsername("");
+    setPassword("");
+    setCookie("");
+    setTotp("");
+    setProxyId("");
+    setProxyLocked(true);
+    setShowPwd(false);
+  }, [workflowId]);
 
+  // Csak akkor töltsd elő a mezőket, ha ehhez a workflow-hoz VAN mentett hozzáférés.
   useEffect(() => {
-    if (status?.username && !username) setUsername(status.username);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status?.username]);
-
-  useEffect(() => {
-    if (status?.proxyId) {
+    if (!status?.exists) return;
+    if (status.platform) setPlatform(status.platform);
+    if (status.username) setUsername((prev) => prev || status.username!);
+    if (status.proxyId) {
       setProxyId(status.proxyId);
       setProxyLocked(true);
     }
-  }, [status?.proxyId]);
+  }, [status?.exists, status?.platform, status?.username, status?.proxyId]);
 
   async function handleSave() {
     if (!username.trim()) {
