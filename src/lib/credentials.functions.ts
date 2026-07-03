@@ -99,7 +99,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
         password: z.string().min(1).max(500).optional(),
         cookie: z.string().min(1).max(50000).optional(),
         totpSecret: z.string().min(1).max(200).optional(),
-        proxy: z.string().min(1).max(500).optional(),
+        proxyId: z.string().uuid().nullable().optional(),
         clearPassword: z.boolean().optional(),
         clearCookie: z.boolean().optional(),
         clearTotp: z.boolean().optional(),
