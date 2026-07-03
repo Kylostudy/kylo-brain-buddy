@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { KeyRound, Lock, Cookie, ShieldCheck, Globe, Eye, EyeOff, Trash2, LockKeyhole, Pencil } from "lucide-react";
+import { KeyRound, Lock, Cookie, ShieldCheck, Globe, Eye, EyeOff, Trash2, LockKeyhole, Pencil, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   saveCredentials,
   deleteCredentials,
 } from "@/lib/credentials.functions";
+import { previewTotp } from "@/lib/totp.functions";
 import { listProxies } from "@/lib/proxies.functions";
 
 const PLATFORMS = [
@@ -121,7 +122,61 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
     toast.success("Hozzáférés törölve.");
   }
 
+  // TOTP előnézet — a mentett secret jelenlegi kódját mutatja, hogy
+  // ellenőrizhető legyen, hogy a Google Authenticatorral megegyezik-e.
+  const callPreviewTotp = useServerFn(previewTotp);
+  const [totpCode, setTotpCode] = useState<string | null>(null);
+  const [totpRemaining, setTotpRemaining] = useState<number>(0);
+  const [totpError, setTotpError] = useState<string | null>(null);
+  const [totpLoading, setTotpLoading] = useState(false);
+
+  async function refreshTotp() {
+    setTotpLoading(true);
+    setTotpError(null);
+    try {
+      const res = await callPreviewTotp({ data: { workflowId } });
+      if (!res.hasTotp) {
+        setTotpError("Nincs mentett TOTP secret.");
+        setTotpCode(null);
+      } else if ("error" in res && res.error) {
+        setTotpError(res.error);
+        setTotpCode(null);
+      } else if ("code" in res && res.code) {
+        setTotpCode(res.code);
+        setTotpRemaining(res.secondsRemaining ?? 30);
+      }
+    } catch (e) {
+      setTotpError(e instanceof Error ? e.message : "TOTP hiba");
+    } finally {
+      setTotpLoading(false);
+    }
+  }
+
+  // Ha van látható kód, minden másodpercben csökkentjük a hátralévő időt;
+  // amikor lejár, automatikusan lekérjük az újat.
+  useEffect(() => {
+    if (totpCode === null) return;
+    const t = setInterval(() => {
+      setTotpRemaining((s) => {
+        if (s <= 1) {
+          void refreshTotp();
+          return 30;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totpCode]);
+
+  // Workflow váltáskor rejtsük el a kódot (más fiók, más titok).
+  useEffect(() => {
+    setTotpCode(null);
+    setTotpError(null);
+  }, [workflowId]);
+
   const exists = status?.exists ?? false;
+
 
   return (
     <div className="border-t px-4 py-3">
@@ -171,6 +226,41 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
               </span>
             )}
           </div>
+          {status?.hasTotp && (
+            <div className="flex items-center gap-2 rounded border bg-background/60 px-2 py-1.5">
+              <ShieldCheck className="size-3.5 text-primary shrink-0" />
+              {totpCode ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(totpCode);
+                      toast.success("TOTP kód a vágólapra másolva.");
+                    }}
+                    className="font-mono text-sm tracking-widest tabular-nums hover:text-primary inline-flex items-center gap-1"
+                    title="Másolás vágólapra"
+                  >
+                    {totpCode}
+                    <Copy className="size-3 opacity-60" />
+                  </button>
+                  <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
+                    {totpRemaining}s
+                  </span>
+                </>
+              ) : totpError ? (
+                <span className="text-[11px] text-destructive">{totpError}</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={refreshTotp}
+                  disabled={totpLoading}
+                  className="text-[11px] text-muted-foreground hover:text-foreground"
+                >
+                  {totpLoading ? "Lekérés…" : "TOTP kód mutatása (teszt)"}
+                </button>
+              )}
+            </div>
+          )}
           <Button
             type="button"
             size="sm"

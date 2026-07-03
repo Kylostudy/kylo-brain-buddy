@@ -213,12 +213,29 @@ async function main() {
   }
 
   const browser = await chromium.launch(launchOpts);
-  const context = await browser.newContext({
+
+  // Per-workflow fingerprint: a claim endpoint determinisztikusan generálja
+  // (workflow id + proxy ország alapján). Ha valamiért nem jött, biztonságos
+  // fallback értékek.
+  const fp = spec.fingerprint || {};
+  const contextOpts = {
     userAgent:
+      fp.userAgent ||
       "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-    viewport: { width: 1280, height: 800 },
-    locale: spec.locale || "hu-HU",
-  });
+    viewport:
+      fp.viewport && fp.viewport.width && fp.viewport.height
+        ? { width: fp.viewport.width, height: fp.viewport.height }
+        : { width: 1280, height: 800 },
+    locale: fp.locale || spec.locale || "hu-HU",
+  };
+  if (fp.timezoneId) contextOpts.timezoneId = fp.timezoneId;
+  if (fp.deviceScaleFactor) contextOpts.deviceScaleFactor = fp.deviceScaleFactor;
+  const context = await browser.newContext(contextOpts);
+  log(
+    "info",
+    `Fingerprint: ${fp.platform || "?"} · Chrome ${fp.chromeMajor || "?"} · ${contextOpts.viewport.width}x${contextOpts.viewport.height} · ${contextOpts.locale} · ${fp.timezoneId || "default TZ"}`,
+  );
+
 
   // ---- 1. LÉPÉS: whoer.net preflight (mindig, még proxy nélkül is informatív). ----
   log("info", "Preflight indul: whoer.net IP-ellenőrzés…");
