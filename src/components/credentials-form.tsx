@@ -226,6 +226,41 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
               </span>
             )}
           </div>
+          {status?.hasTotp && (
+            <div className="flex items-center gap-2 rounded border bg-background/60 px-2 py-1.5">
+              <ShieldCheck className="size-3.5 text-primary shrink-0" />
+              {totpCode ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(totpCode);
+                      toast.success("TOTP kód a vágólapra másolva.");
+                    }}
+                    className="font-mono text-sm tracking-widest tabular-nums hover:text-primary inline-flex items-center gap-1"
+                    title="Másolás vágólapra"
+                  >
+                    {totpCode}
+                    <Copy className="size-3 opacity-60" />
+                  </button>
+                  <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
+                    {totpRemaining}s
+                  </span>
+                </>
+              ) : totpError ? (
+                <span className="text-[11px] text-destructive">{totpError}</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={refreshTotp}
+                  disabled={totpLoading}
+                  className="text-[11px] text-muted-foreground hover:text-foreground"
+                >
+                  {totpLoading ? "Lekérés…" : "TOTP kód mutatása (teszt)"}
+                </button>
+              )}
+            </div>
+          )}
           <Button
             type="button"
             size="sm"
