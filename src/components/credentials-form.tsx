@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { KeyRound, Lock, Cookie, ShieldCheck, Globe, Eye, EyeOff, Trash2, LockKeyhole, Pencil } from "lucide-react";
+import { KeyRound, Lock, Cookie, ShieldCheck, Globe, Eye, EyeOff, Trash2, LockKeyhole, Pencil, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   saveCredentials,
   deleteCredentials,
 } from "@/lib/credentials.functions";
+import { previewTotp } from "@/lib/totp.functions";
 import { listProxies } from "@/lib/proxies.functions";
 
 const PLATFORMS = [
