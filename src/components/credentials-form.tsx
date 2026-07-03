@@ -14,6 +14,12 @@ import {
 } from "@/lib/credentials.functions";
 import { previewTotp } from "@/lib/totp.functions";
 import { listProxies } from "@/lib/proxies.functions";
+import {
+  getGmailStatus,
+  startGmailOAuth,
+  disconnectGmail,
+} from "@/lib/gmail.functions";
+import { Mail } from "lucide-react";
 
 const PLATFORMS = [
   "tiktok",
