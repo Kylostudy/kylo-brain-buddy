@@ -29,7 +29,7 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
     const { data: row } = await supabase
       .from("workflow_credentials")
       .select(
-        "platform, username, password_ciphertext, cookie_ciphertext, totp_secret_ciphertext, proxy_ciphertext, updated_at",
+        "platform, username, password_ciphertext, cookie_ciphertext, totp_secret_ciphertext, proxy_ciphertext, proxy_id, updated_at",
       )
       .eq("workflow_id", data.workflowId)
       .maybeSingle();
@@ -43,6 +43,8 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
         hasCookie: false,
         hasTotp: false,
         hasProxy: false,
+        proxyId: null as string | null,
+        proxyLabel: null as string | null,
         updatedAt: null as string | null,
       };
     }
@@ -53,6 +55,20 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
         ? "•".repeat(u.length || 1)
         : u[0] + "•".repeat(Math.max(1, u.length - 2)) + u[u.length - 1];
 
+    const proxyId = (row as { proxy_id?: string | null }).proxy_id ?? null;
+    let proxyLabel: string | null = null;
+    if (proxyId) {
+      const { data: p } = await supabase
+        .from("proxies")
+        .select("label, country")
+        .eq("id", proxyId)
+        .maybeSingle();
+      if (p) {
+        const pp = p as { label: string; country: string | null };
+        proxyLabel = pp.country ? `${pp.label} (${pp.country})` : pp.label;
+      }
+    }
+
     return {
       exists: true,
       platform: row.platform,
@@ -61,9 +77,12 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
       hasCookie: !!row.cookie_ciphertext,
       hasTotp: !!row.totp_secret_ciphertext,
       hasProxy: !!(row as { proxy_ciphertext?: string | null }).proxy_ciphertext,
+      proxyId,
+      proxyLabel,
       updatedAt: row.updated_at,
     };
   });
+
 
 /**
  * Mentés / felülírás. Csak azt a mezőt írja, amit kapott.
