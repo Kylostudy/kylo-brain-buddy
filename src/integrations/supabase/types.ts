@@ -568,6 +568,7 @@ export type Database = {
           password_nonce: string | null
           platform: string
           proxy_ciphertext: string | null
+          proxy_id: string | null
           proxy_nonce: string | null
           tenant_id: string
           totp_nonce: string | null
@@ -585,6 +586,7 @@ export type Database = {
           password_nonce?: string | null
           platform?: string
           proxy_ciphertext?: string | null
+          proxy_id?: string | null
           proxy_nonce?: string | null
           tenant_id?: string
           totp_nonce?: string | null
@@ -602,6 +604,7 @@ export type Database = {
           password_nonce?: string | null
           platform?: string
           proxy_ciphertext?: string | null
+          proxy_id?: string | null
           proxy_nonce?: string | null
           tenant_id?: string
           totp_nonce?: string | null
@@ -611,6 +614,13 @@ export type Database = {
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_credentials_proxy_id_fkey"
+            columns: ["proxy_id"]
+            isOneToOne: false
+            referencedRelation: "proxies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflow_credentials_workflow_id_fkey"
             columns: ["workflow_id"]
