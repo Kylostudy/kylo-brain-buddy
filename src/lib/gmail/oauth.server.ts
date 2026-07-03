@@ -87,7 +87,7 @@ export function buildAuthUrl(params: {
   u.searchParams.set("response_type", "code");
   u.searchParams.set("scope", GMAIL_SCOPES);
   u.searchParams.set("access_type", "offline");
-  u.searchParams.set("prompt", "consent"); // refresh tokent minden esetben kapjunk
+  u.searchParams.set("prompt", "consent select_account"); // fiókválasztó + refresh token
   u.searchParams.set("include_granted_scopes", "true");
   u.searchParams.set("state", params.state);
   if (params.loginHint) u.searchParams.set("login_hint", params.loginHint);
