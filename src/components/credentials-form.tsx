@@ -427,3 +427,98 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
     </div>
   );
 }
+
+function GmailCard({ workflowId }: { workflowId: string }) {
+  const qc = useQueryClient();
+  const callStatus = useServerFn(getGmailStatus);
+  const callStart = useServerFn(startGmailOAuth);
+  const callDisconnect = useServerFn(disconnectGmail);
+
+  const { data } = useQuery({
+    queryKey: ["gmail-status", workflowId],
+    queryFn: () => callStatus({ data: { workflowId } }),
+  });
+
+  const [busy, setBusy] = useState(false);
+
+  async function handleConnect() {
+    setBusy(true);
+    try {
+      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const { url } = await callStart({ data: { workflowId, redirectUri } });
+      window.location.href = url;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Nem sikerült elindítani a Google OAuth-ot.");
+      setBusy(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    if (!confirm("Biztos leválasztod a Gmail fiókot erről a workflow-ról?")) return;
+    setBusy(true);
+    try {
+      await callDisconnect({ data: { workflowId } });
+      toast.success("Gmail leválasztva.");
+      qc.invalidateQueries({ queryKey: ["gmail-status", workflowId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Leválasztás sikertelen.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-md border bg-background/40 p-2.5">
+      <div className="flex items-center gap-2">
+        <Mail className="size-3.5 text-primary shrink-0" />
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Gmail (2FA / verifikációs kódok)
+        </div>
+      </div>
+      {data?.connected ? (
+        <div className="mt-2 space-y-2">
+          <div className="text-xs">
+            <span className="text-muted-foreground">Csatlakoztatva: </span>
+            <span className="font-mono">{data.email}</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={handleConnect}
+              disabled={busy}
+            >
+              Újracsatlakoztatás
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={handleDisconnect}
+              disabled={busy}
+            >
+              Leválasztás
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2 space-y-2">
+          <p className="text-[11px] text-muted-foreground">
+            Kösd össze ehhez a workflow-hoz tartozó Gmail címet, hogy a rendszer automatikusan ki tudja olvasni a bejövő verifikációs kódokat.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="w-full"
+            onClick={handleConnect}
+            disabled={busy}
+          >
+            {busy ? "Átirányítás…" : "Gmail csatlakoztatása"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
