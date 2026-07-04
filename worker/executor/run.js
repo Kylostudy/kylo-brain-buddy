@@ -15,6 +15,11 @@ import { runTikTok } from "./scripts/tiktok.js";
 import { runDecathlonStock } from "./scripts/decathlon-stock.js";
 import { runBotSmokeTest } from "./scripts/bot-smoke-test.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
+import {
+  isBrainTask,
+  needsBrowser,
+  runBrainTask,
+} from "./scripts/brain-tasks/index.js";
 
 function log(level, message, extra = {}) {
   process.stdout.write(
