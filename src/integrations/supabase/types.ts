@@ -648,6 +648,54 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_learned_selectors: {
+        Row: {
+          created_at: string
+          fail_count: number
+          field: string
+          id: string
+          last_failed_at: string | null
+          last_verified_at: string | null
+          learned_from: string
+          notes: string | null
+          page_type: string
+          platform: string
+          selector: string
+          success_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fail_count?: number
+          field: string
+          id?: string
+          last_failed_at?: string | null
+          last_verified_at?: string | null
+          learned_from?: string
+          notes?: string | null
+          page_type: string
+          platform: string
+          selector: string
+          success_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fail_count?: number
+          field?: string
+          id?: string
+          last_failed_at?: string | null
+          last_verified_at?: string | null
+          learned_from?: string
+          notes?: string | null
+          page_type?: string
+          platform?: string
+          selector?: string
+          success_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workflow_credentials: {
         Row: {
           cookie_ciphertext: string | null
