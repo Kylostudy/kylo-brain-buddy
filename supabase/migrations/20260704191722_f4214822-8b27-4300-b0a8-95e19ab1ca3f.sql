@@ -1,0 +1,1 @@
+UPDATE public.workflows SET spec = jsonb_set(spec, '{linkedin_company_slug}', '"127334023"') WHERE id = '10c4288f-3c00-42cd-8bb8-ef034ceb86a0';
