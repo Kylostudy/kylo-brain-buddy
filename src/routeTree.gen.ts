@@ -20,6 +20,7 @@ import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/pub
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
+import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
@@ -86,6 +87,12 @@ const ApiPublicCronEnqueueMonitorsRoute =
     path: '/api/public/cron/enqueue-monitors',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronDispatchBrainTasksRoute =
+  ApiPublicCronDispatchBrainTasksRouteImport.update({
+    id: '/api/public/cron/dispatch-brain-tasks',
+    path: '/api/public/cron/dispatch-brain-tasks',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCrossProxiesListRoute =
   ApiPublicCrossProxiesListRouteImport.update({
     id: '/api/public/cross/proxies/list',
@@ -134,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -153,6 +161,7 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -174,6 +183,7 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/api/transcribe'
     | '/w/$workflowId'
+    | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/'
     | '/w/$workflowId'
+    | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -234,6 +246,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/_authenticated/'
     | '/_authenticated/w/$workflowId'
+    | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -252,6 +265,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
@@ -344,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronEnqueueMonitorsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/dispatch-brain-tasks': {
+      id: '/api/public/cron/dispatch-brain-tasks'
+      path: '/api/public/cron/dispatch-brain-tasks'
+      fullPath: '/api/public/cron/dispatch-brain-tasks'
+      preLoaderRoute: typeof ApiPublicCronDispatchBrainTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/proxies/list': {
       id: '/api/public/cross/proxies/list'
       path: '/api/public/cross/proxies/list'
@@ -429,6 +450,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiPublicCronDispatchBrainTasksRoute: ApiPublicCronDispatchBrainTasksRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
