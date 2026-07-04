@@ -13,4 +13,5 @@ MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = 
 - [Kai Logic integráció terv](mem://features/kai-logic-integration) — Core Hub bekötés, tenant összehangolás, AirShare kiváltása
 - [Workflow UI csoportosítás](mem://features/workflow-ui-grouping) — Későbbi UI feladat: platform szerinti csoportosítás ~15-20+ workflow-nál
 - [Munkafegyelem](mem://features/work-discipline) — Egy folyamat = végigvinni, nem ugrálni másikra közben
+- [VPS worker repó](mem://features/vps-worker-repo) — worker/ mappa ebben a repóban él; deploy: git pull + docker compose build a VPS-en
 
