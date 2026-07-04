@@ -15,19 +15,19 @@ export const Route = createFileRoute("/api/public/cron/dispatch-brain-tasks")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const token = process.env.WORKER_API_TOKEN;
-        let body: { secret?: string } = {};
-        try {
-          body = (await request.json()) as { secret?: string };
-        } catch {
-          // empty body OK
-        }
-        if (!token || body.secret !== token) {
+        // Auth: expects the Supabase publishable/anon key in the `apikey`
+        // header (matches the pg_cron caller). This route lives under
+        // /api/public/* so the platform bypasses its auth — we do the check
+        // ourselves against a low-risk, non-secret key.
+        const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
+        const provided = request.headers.get("apikey")?.trim();
+        if (!expected || !provided || provided !== expected) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "content-type": "application/json" },
           });
         }
+
 
         const { supabaseAdmin } = await import(
           "@/integrations/supabase/client.server"
