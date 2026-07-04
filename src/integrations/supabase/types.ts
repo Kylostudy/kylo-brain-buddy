@@ -161,6 +161,7 @@ export type Database = {
       }
       brain_workflow_runs: {
         Row: {
+          brain_task_id: string | null
           created_at: string
           error: string | null
           external_id: string | null
@@ -181,6 +182,7 @@ export type Database = {
           workflow_id: string
         }
         Insert: {
+          brain_task_id?: string | null
           created_at?: string
           error?: string | null
           external_id?: string | null
@@ -201,6 +203,7 @@ export type Database = {
           workflow_id: string
         }
         Update: {
+          brain_task_id?: string | null
           created_at?: string
           error?: string | null
           external_id?: string | null
@@ -221,6 +224,13 @@ export type Database = {
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "brain_workflow_runs_brain_task_id_fkey"
+            columns: ["brain_task_id"]
+            isOneToOne: false
+            referencedRelation: "brain_task_queue"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "brain_workflow_runs_proxy_id_fkey"
             columns: ["proxy_id"]
