@@ -7,6 +7,7 @@ import { KeyRound, Lock, Cookie, ShieldCheck, Globe, Eye, EyeOff, Trash2, LockKe
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getCredentialsStatus,
   saveCredentials,
