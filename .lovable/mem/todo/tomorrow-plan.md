@@ -35,3 +35,18 @@ type: feature
 ## Elfogadott kockázatok
 - Az első stealth + warmup próba lehet, hogy még nem tökéletes — ha a sannysoft még piros, tovább finomítjuk a fingerprintet.
 - Ha LinkedIn/TikTok mégis kidob, nem nyomjuk tovább aznap (botgyanű-stop).
+
+## Kylogic ↔ Brain integráció befejezése (Phase 2 zárás)
+
+Kylogic oldal 100%-ban kész (task dispatch, callback, snapshot cron, komment auto-draft, válasz-posztolás UI, contract v2). Brain oldalon a `ping` executor él, a többi hiányzik.
+
+**Sorrend — a stealth + warmup UTÁN, LinkedInen tesztelve:**
+
+1. **`metrics_snapshot` (LinkedIn)** — executor már megvan (`linkedin-metrics-snapshot.js`), end-to-end teszt Kylogic valós taskkal: dispatch → claim → futás → complete → callback → `brain_metrics_snapshots` sor.
+2. **`comments_snapshot` (LinkedIn)** — új executor, ugyanaz a login + warmup + navigáció mint metricsnél, csak DOM-olvasás más. Ez élteti Noémi auto-draft triggerét.
+3. **`post_comment_reply` (LinkedIn)** — új executor, ugyanaz az alap, csak írás (parent komment megkeresése → válasz beírás emberi jitterrel → `posted_comment_id` vissza). Ez zárja a kört: draft → jóváhagyás → Brain posztol → callback.
+4. **Ha marad idő: TikTok** — ugyanezzel a három executor-sablonnal, csak más szelektorok.
+
+**Kulcs felismerés:** a 2. és 3. lépés a 1.-re épül (közös login/warmup/navigáció réteg), tehát ha a metrics stabil, a másik kettő 2–3 óra meló, nem újratervezés.
+
+**Szerződés:** `docs/BRAIN-TASK-CONTRACT.md` — véglegesített, nem változtatjuk menet közben.
