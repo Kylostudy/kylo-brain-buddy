@@ -73,6 +73,11 @@ function runContainer(job) {
       "run", "--rm",
       "--network", "bridge",
       "-e", `SPEC_JSON=${JSON.stringify(job.spec ?? {})}`,
+      // Az executor a Brain publikus worker-API-jához kapcsolódik (tanult
+      // szelektorok lekérése, Gemini vision hívás). Ugyanaz a URL és token
+      // mint az orchestrator-é.
+      "-e", `BRAIN_URL=${BRAIN_URL}`,
+      "-e", `WORKER_API_TOKEN=${WORKER_API_TOKEN}`,
     ];
     if (job.credentials) {
       args.push("-e", `CREDENTIALS_JSON=${JSON.stringify(job.credentials)}`);

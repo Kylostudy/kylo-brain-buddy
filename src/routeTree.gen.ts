@@ -15,8 +15,10 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
+import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
+import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
@@ -59,6 +61,12 @@ const AuthenticatedWWorkflowIdRoute =
     path: '/w/$workflowId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicWorkerVisionExtractRoute =
+  ApiPublicWorkerVisionExtractRouteImport.update({
+    id: '/api/public/worker/vision-extract',
+    path: '/api/public/worker/vision-extract',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerRecordStatusRoute =
   ApiPublicWorkerRecordStatusRouteImport.update({
     id: '/api/public/worker/record-status',
@@ -69,6 +77,12 @@ const ApiPublicWorkerRecordClaimRoute =
   ApiPublicWorkerRecordClaimRouteImport.update({
     id: '/api/public/worker/record-claim',
     path: '/api/public/worker/record-claim',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerLearnedSelectorsRoute =
+  ApiPublicWorkerLearnedSelectorsRouteImport.update({
+    id: '/api/public/worker/learned-selectors',
+    path: '/api/public/worker/learned-selectors',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWorkerCompleteRoute = ApiPublicWorkerCompleteRouteImport.update({
@@ -145,8 +159,10 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
+  '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
@@ -165,8 +181,10 @@ export interface FileRoutesByTo {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
+  '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
@@ -187,8 +205,10 @@ export interface FileRoutesById {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
+  '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
@@ -209,8 +229,10 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
+    | '/api/public/worker/learned-selectors'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kylogic/replay-callback'
@@ -229,8 +251,10 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
+    | '/api/public/worker/learned-selectors'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kylogic/replay-callback'
@@ -250,8 +274,10 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
+    | '/api/public/worker/learned-selectors'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kylogic/replay-callback'
@@ -269,8 +295,10 @@ export interface RootRouteChildren {
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
+  ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
+  ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
   ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
   ApiPublicCrossKylogicReplayCallbackRoute: typeof ApiPublicCrossKylogicReplayCallbackRoute
@@ -323,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWWorkflowIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/worker/vision-extract': {
+      id: '/api/public/worker/vision-extract'
+      path: '/api/public/worker/vision-extract'
+      fullPath: '/api/public/worker/vision-extract'
+      preLoaderRoute: typeof ApiPublicWorkerVisionExtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/record-status': {
       id: '/api/public/worker/record-status'
       path: '/api/public/worker/record-status'
@@ -335,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/record-claim'
       fullPath: '/api/public/worker/record-claim'
       preLoaderRoute: typeof ApiPublicWorkerRecordClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/learned-selectors': {
+      id: '/api/public/worker/learned-selectors'
+      path: '/api/public/worker/learned-selectors'
+      fullPath: '/api/public/worker/learned-selectors'
+      preLoaderRoute: typeof ApiPublicWorkerLearnedSelectorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/complete': {
@@ -454,8 +496,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
+  ApiPublicWorkerLearnedSelectorsRoute: ApiPublicWorkerLearnedSelectorsRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
+  ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
   ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
   ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,
   ApiPublicCrossKylogicReplayCallbackRoute:

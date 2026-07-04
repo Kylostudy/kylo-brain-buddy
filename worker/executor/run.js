@@ -183,15 +183,16 @@ async function main() {
     return finish("failed", null, `PROXY_JSON parse hiba: ${e.message}`);
   }
 
-  // ---- Brain task ág (Kylogic-ból érkező taszk) ----
-  // Ha spec.brain_task létezik, a workflow-specifikus futás helyett a
-  // brain_task.task_type szerinti dedikált executor script fut. A `ping`
-  // böngészőt sem nyit — azonnal visszatér.
+  // ---- Brain task rövid ág: ping ----
+  // A ping böngészőt sem nyit — még a proxy/preflight előtt visszatérünk.
+  // A böngészős brain_task-ok (metrics_snapshot stb.) a normál futás során,
+  // a proxy + preflight + cookie injektálás UTÁN dispatch-elődnek — lásd
+  // lentebb a "monitor típus dispatch" blokkban.
   if (isBrainTask(spec)) {
     const bt = spec.brain_task;
     log(
       "info",
-      `Brain task ág aktív — task_type=${bt.task_type}, kylogic_task_id=${bt.kylogic_task_id}`,
+      `Brain task ág aktív — task_type=${bt.task_type}, kylogic_task_id=${bt.kylogic_task_id ?? "n/a"}`,
     );
     if (!needsBrowser(bt)) {
       try {
@@ -202,13 +203,7 @@ async function main() {
         return finish("failed", null, e.message);
       }
     }
-    // A böngészős brain_task-ok (metrics/comments/reply) egyelőre nincsenek
-    // implementálva — explicit hibaüzenettel leállunk, hogy ne fusson félbe.
-    return finish(
-      "failed",
-      null,
-      `brain_task "${bt.task_type}" executor még nincs implementálva a workeren`,
-    );
+    // Böngészős brain_task → tovább a normál flow-ra, a main dispatch fogja futtatni.
   }
 
 
@@ -353,7 +348,18 @@ async function main() {
 
   try {
     let result;
-    if (monitorType === "tiktok") {
+    // Böngészős brain_task ág (metrics_snapshot stb.) — a page/context/creds
+    // rendelkezésre áll, mert végigment a proxy + preflight + cookie lépéseken.
+    if (isBrainTask(spec) && needsBrowser(spec.brain_task)) {
+      result = await runBrainTask({
+        brainTask: spec.brain_task,
+        page,
+        context,
+        spec,
+        creds,
+        log,
+      });
+    } else if (monitorType === "tiktok") {
       result = await runTikTok({ page, context, spec, creds, log });
     } else if (monitorType === "decathlon-stock") {
       result = await runDecathlonStock({ page, spec, log });
