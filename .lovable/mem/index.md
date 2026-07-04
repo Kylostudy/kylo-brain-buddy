@@ -9,8 +9,9 @@ MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = 
 
 
 ## Memories
+- [Holnapi terv](mem://todo/tomorrow-plan) — Stealth plugin + holland warmup + LinkedIn/TikTok bemelegített workflow (2026-07-05)
+- [LinkedIn — régi elavult](mem://todo/linkedin-tomorrow) — ELAVULT: Dolphin cookie stratégia megbukott, helyette a holnapi terv lép érvénybe
 - [Függő feladatok](mem://todo/pending) — Privacy policy + security oldalak, Kai Logic integráció, magyar IP beszerzés, Kubernetes VPS kezelés
-- [LinkedIn teszt holnap](mem://todo/linkedin-tomorrow) — LinkedIn metrics_snapshot MA leállítva (botgyanú), holnap friss cookie-val folytatás
 - [Kai Logic integráció terv](mem://features/kai-logic-integration) — Core Hub bekötés, tenant összehangolás, AirShare kiváltása
 - [Workflow UI csoportosítás](mem://features/workflow-ui-grouping) — Későbbi UI feladat: platform szerinti csoportosítás ~15-20+ workflow-nál
 - [Munkafegyelem](mem://features/work-discipline) — Egy folyamat = végigvinni, nem ugrálni másikra közben
