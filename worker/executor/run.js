@@ -183,6 +183,35 @@ async function main() {
     return finish("failed", null, `PROXY_JSON parse hiba: ${e.message}`);
   }
 
+  // ---- Brain task ág (Kylogic-ból érkező taszk) ----
+  // Ha spec.brain_task létezik, a workflow-specifikus futás helyett a
+  // brain_task.task_type szerinti dedikált executor script fut. A `ping`
+  // böngészőt sem nyit — azonnal visszatér.
+  if (isBrainTask(spec)) {
+    const bt = spec.brain_task;
+    log(
+      "info",
+      `Brain task ág aktív — task_type=${bt.task_type}, kylogic_task_id=${bt.kylogic_task_id}`,
+    );
+    if (!needsBrowser(bt)) {
+      try {
+        const result = await runBrainTask({ brainTask: bt, log });
+        return finish("succeeded", result);
+      } catch (e) {
+        log("error", `brain_task hiba: ${e.message}`);
+        return finish("failed", null, e.message);
+      }
+    }
+    // A böngészős brain_task-ok (metrics/comments/reply) egyelőre nincsenek
+    // implementálva — explicit hibaüzenettel leállunk, hogy ne fusson félbe.
+    return finish(
+      "failed",
+      null,
+      `brain_task "${bt.task_type}" executor még nincs implementálva a workeren`,
+    );
+  }
+
+
   const monitorType = (spec.monitor_type || spec.platform || "").toLowerCase();
   log(
     "info",
