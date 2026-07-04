@@ -644,36 +644,54 @@ export type Database = {
       }
       workflows: {
         Row: {
+          active: boolean
           created_at: string
+          daily_cap: number
           id: string
+          language: string | null
           module: Database["public"]["Enums"]["app_module"]
           name: string
+          platform: string | null
           ready_for_test: boolean
+          region: string | null
           spec: Json
           status: string
           tenant_id: string
+          timezone: string | null
           updated_at: string
         }
         Insert: {
+          active?: boolean
           created_at?: string
+          daily_cap?: number
           id?: string
+          language?: string | null
           module?: Database["public"]["Enums"]["app_module"]
           name?: string
+          platform?: string | null
           ready_for_test?: boolean
+          region?: string | null
           spec?: Json
           status?: string
           tenant_id?: string
+          timezone?: string | null
           updated_at?: string
         }
         Update: {
+          active?: boolean
           created_at?: string
+          daily_cap?: number
           id?: string
+          language?: string | null
           module?: Database["public"]["Enums"]["app_module"]
           name?: string
+          platform?: string | null
           ready_for_test?: boolean
+          region?: string | null
           spec?: Json
           status?: string
           tenant_id?: string
+          timezone?: string | null
           updated_at?: string
         }
         Relationships: []
