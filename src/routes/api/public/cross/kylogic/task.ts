@@ -142,7 +142,92 @@ export const Route = createFileRoute("/api/public/cross/kylogic/task")({
           console.error("[Kylogic→Brain] audit push (received) failed", err);
         });
 
-        // Only the "ping" smoke test is handled synchronously for now.
+        // publish_video: filtered-mode fan-out into brain_task_queue.
+        if (body.task_type === "publish_video") {
+          const { handlePublishVideo, validatePublishVideoPayload } =
+            await import("@/lib/kylogic-publish-video.server");
+
+          const validated = validatePublishVideoPayload(body.payload);
+          if (!validated.ok) {
+            await supabaseAdmin
+              .from("kylogic_incoming_tasks")
+              .update({ status: "failed", result: { error: validated.error } as never })
+              .eq("task_id", body.task_id);
+            await supabaseAdmin.from("kylogic_incoming_task_log").insert({
+              task_id: body.task_id,
+              event: "task.rejected",
+              outcome: "failure",
+              detail: { error: validated.error },
+            });
+            return jsonError(400, validated.error);
+          }
+
+          const result = await handlePublishVideo({
+            kylogicTaskId: body.task_id,
+            tenantId: body.tenant_id,
+            kylogicCallbackUrl: body.kylogic_callback_url,
+            payload: validated.payload,
+          });
+
+          if (!result.ok) {
+            await supabaseAdmin
+              .from("kylogic_incoming_tasks")
+              .update({ status: "failed", result: { error: result.error } as never })
+              .eq("task_id", body.task_id);
+            await supabaseAdmin.from("kylogic_incoming_task_log").insert({
+              task_id: body.task_id,
+              event: "task.failed",
+              outcome: "failure",
+              detail: { error: result.error },
+            });
+            return jsonError(result.status, result.error);
+          }
+
+          const summary = {
+            matched_workflows: result.matched_workflows,
+            fanout: result.fanout.map((r) => ({
+              workflow_id: r.workflow_id,
+              platform: r.platform,
+              scheduled_utc: r.scheduled_utc,
+              jitter_applied_seconds: r.jitter_applied_seconds,
+            })),
+          };
+
+          await supabaseAdmin
+            .from("kylogic_incoming_tasks")
+            .update({ status: "queued", result: summary as never })
+            .eq("task_id", body.task_id);
+
+          await supabaseAdmin.from("kylogic_incoming_task_log").insert({
+            task_id: body.task_id,
+            event: "task.fanned_out",
+            outcome: "success",
+            detail: summary as never,
+          });
+
+          void sendKylogicAudit({
+            tenant_id: body.tenant_id,
+            event: "task.fanned_out",
+            outcome: "success",
+            task_id: body.task_id,
+            detail: {
+              matched_workflows: result.matched_workflows,
+              scheduled_local: validated.payload.scheduled_local,
+            },
+          }).catch(() => undefined);
+
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              task_id: body.task_id,
+              status: "queued",
+              ...summary,
+            }),
+            { status: 202, headers: { "Content-Type": "application/json" } },
+          );
+        }
+
+        // Unknown task type: accepted for later async processing.
         if (body.task_type !== "ping") {
           return new Response(
             JSON.stringify({ ok: true, task_id: body.task_id, status: "pending" }),

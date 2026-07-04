@@ -79,6 +79,86 @@ export type Database = {
           },
         ]
       }
+      brain_task_queue: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          jitter_applied_seconds: number
+          kylogic_callback_url: string
+          kylogic_task_id: string
+          language: string | null
+          payload: Json
+          platform: string | null
+          region: string | null
+          result: Json | null
+          scheduled_local: string | null
+          scheduled_utc: string | null
+          started_at: string | null
+          status: string
+          task_type: string
+          tenant_id: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          jitter_applied_seconds?: number
+          kylogic_callback_url: string
+          kylogic_task_id: string
+          language?: string | null
+          payload?: Json
+          platform?: string | null
+          region?: string | null
+          result?: Json | null
+          scheduled_local?: string | null
+          scheduled_utc?: string | null
+          started_at?: string | null
+          status?: string
+          task_type: string
+          tenant_id: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          jitter_applied_seconds?: number
+          kylogic_callback_url?: string
+          kylogic_task_id?: string
+          language?: string | null
+          payload?: Json
+          platform?: string | null
+          region?: string | null
+          result?: Json | null
+          scheduled_local?: string | null
+          scheduled_utc?: string | null
+          started_at?: string | null
+          status?: string
+          task_type?: string
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_task_queue_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brain_workflow_runs: {
         Row: {
           created_at: string
