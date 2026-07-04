@@ -9,3 +9,4 @@ Recorder infrastruktúra (VPS + IPRoyal ISP proxy + Steel) működik; session-al
 ## Memories
 - [Függő feladatok](mem://todo/pending) — Privacy policy + security oldalak, Kai Logic integráció, magyar IP beszerzés, Kubernetes VPS kezelés
 - [Kai Logic integráció terv](mem://features/kai-logic-integration) — Core Hub bekötés, tenant összehangolás, AirShare kiváltása
+- [Workflow UI csoportosítás](mem://features/workflow-ui-grouping) — Későbbi UI feladat: platform szerinti csoportosítás ~15-20+ workflow-nál
