@@ -114,6 +114,10 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
   }, [status?.exists, status?.platform, status?.username, status?.proxyId]);
 
   async function handleSave() {
+    if (!platform) {
+      toast.error("Válassz platformot.");
+      return;
+    }
     if (!username.trim()) {
       toast.error("Felhasználónév kötelező.");
       return;
