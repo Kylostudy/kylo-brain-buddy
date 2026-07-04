@@ -21,6 +21,7 @@ import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
+import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
 import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './routes/api/public/cross/kylogic/replay-callback'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
@@ -91,6 +92,12 @@ const ApiPublicCrossProxiesListRoute =
     path: '/api/public/cross/proxies/list',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCrossKylogicWorkflowsRoute =
+  ApiPublicCrossKylogicWorkflowsRouteImport.update({
+    id: '/api/public/cross/kylogic/workflows',
+    path: '/api/public/cross/kylogic/workflows',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCrossKylogicTaskRoute =
   ApiPublicCrossKylogicTaskRouteImport.update({
     id: '/api/public/cross/kylogic/task',
@@ -136,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
+  '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -154,6 +162,7 @@ export interface FileRoutesByTo {
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
+  '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -174,6 +183,7 @@ export interface FileRoutesById {
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
+  '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
+    | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesByTo: FileRoutesByTo
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
+    | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/cross/kit/task/$task_id/log'
   id:
@@ -231,6 +243,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kit/task'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
+    | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesById: FileRoutesById
@@ -248,6 +261,7 @@ export interface RootRouteChildren {
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
   ApiPublicCrossKylogicReplayCallbackRoute: typeof ApiPublicCrossKylogicReplayCallbackRoute
   ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
+  ApiPublicCrossKylogicWorkflowsRoute: typeof ApiPublicCrossKylogicWorkflowsRoute
   ApiPublicCrossProxiesListRoute: typeof ApiPublicCrossProxiesListRoute
 }
 
@@ -337,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrossProxiesListRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cross/kylogic/workflows': {
+      id: '/api/public/cross/kylogic/workflows'
+      path: '/api/public/cross/kylogic/workflows'
+      fullPath: '/api/public/cross/kylogic/workflows'
+      preLoaderRoute: typeof ApiPublicCrossKylogicWorkflowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/kylogic/task': {
       id: '/api/public/cross/kylogic/task'
       path: '/api/public/cross/kylogic/task'
@@ -418,6 +439,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCrossKylogicReplayCallbackRoute:
     ApiPublicCrossKylogicReplayCallbackRoute,
   ApiPublicCrossKylogicTaskRoute: ApiPublicCrossKylogicTaskRoute,
+  ApiPublicCrossKylogicWorkflowsRoute: ApiPublicCrossKylogicWorkflowsRoute,
   ApiPublicCrossProxiesListRoute: ApiPublicCrossProxiesListRoute,
 }
 export const routeTree = rootRouteImport
