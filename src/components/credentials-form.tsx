@@ -45,8 +45,29 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
     queryFn: () => callStatus({ data: { workflowId } }),
   });
 
+  // A workflow spec-jéből deriváljuk a default platformot (pl. LinkedIn workflow → linkedin),
+  // hogy új workflow-nál ne "tiktok" jelenjen meg alapból.
+  const { data: wf } = useQuery({
+    queryKey: ["workflow-platform", workflowId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("workflows")
+        .select("spec, name")
+        .eq("id", workflowId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const specPlatform = (() => {
+    const p = (wf?.spec as { platform?: string } | null)?.platform;
+    if (p && (PLATFORMS as readonly string[]).includes(p.toLowerCase())) return p.toLowerCase();
+    const nameLower = (wf?.name ?? "").toLowerCase();
+    return (PLATFORMS as readonly string[]).find((p) => nameLower.includes(p)) ?? "";
+  })();
+
   const [open, setOpen] = useState(false);
-  const [platform, setPlatform] = useState("tiktok");
+  const [platform, setPlatform] = useState<string>("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [cookie, setCookie] = useState("");
@@ -65,7 +86,7 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
   // Workflow váltáskor minden mezőt üríts — új workflow = üres form.
   useEffect(() => {
     setOpen(false);
-    setPlatform("tiktok");
+    setPlatform("");
     setUsername("");
     setPassword("");
     setCookie("");
@@ -74,6 +95,12 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
     setProxyLocked(true);
     setShowPwd(false);
   }, [workflowId]);
+
+  // Ha nincs még kiválasztva platform, használd a spec-ből származót.
+  useEffect(() => {
+    setPlatform((prev) => prev || specPlatform);
+  }, [specPlatform]);
+
 
   // Csak akkor töltsd elő a mezőket, ha ehhez a workflow-hoz VAN mentett hozzáférés.
   useEffect(() => {
