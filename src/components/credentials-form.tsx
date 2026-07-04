@@ -332,6 +332,7 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
               onChange={(e) => setPlatform(e.target.value)}
               className="h-8 w-full rounded border bg-background px-2 text-xs"
             >
+              <option value="" disabled>Válassz platformot…</option>
               {PLATFORMS.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
