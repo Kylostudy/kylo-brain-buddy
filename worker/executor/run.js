@@ -348,7 +348,18 @@ async function main() {
 
   try {
     let result;
-    if (monitorType === "tiktok") {
+    // Böngészős brain_task ág (metrics_snapshot stb.) — a page/context/creds
+    // rendelkezésre áll, mert végigment a proxy + preflight + cookie lépéseken.
+    if (isBrainTask(spec) && needsBrowser(spec.brain_task)) {
+      result = await runBrainTask({
+        brainTask: spec.brain_task,
+        page,
+        context,
+        spec,
+        creds,
+        log,
+      });
+    } else if (monitorType === "tiktok") {
       result = await runTikTok({ page, context, spec, creds, log });
     } else if (monitorType === "decathlon-stock") {
       result = await runDecathlonStock({ page, spec, log });
