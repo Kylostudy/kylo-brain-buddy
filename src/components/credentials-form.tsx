@@ -142,6 +142,26 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
         return;
       }
     }
+
+    // Cookie jar országellenőrzés — figyelmeztetés vagy tiltás
+    if (proxyId && jarCountry) {
+      const chosen = proxies?.find((p) => p.id === proxyId);
+      const chosenCountry = chosen?.country ?? null;
+      if (chosenCountry && chosenCountry !== jarCountry) {
+        if (jarLocked) {
+          toast.error(
+            `A cookie jar ${jarCountry}-hez van zárolva. Válassz ${jarCountry} proxyt, vagy nullázd a cookie jart.`,
+          );
+          return;
+        }
+        const ok = confirm(
+          `Figyelem: a cookie jar ${jarCountry} sütiket tartalmaz (${cookieJar?.cookies ?? 0} db). ` +
+            `${chosenCountry} proxy-val a fingerprint nem fog egyezni, és a következő futás valószínűleg letiltásba fut.\n\nBiztosan váltasz?`,
+        );
+        if (!ok) return;
+      }
+    }
+
     setSaving(true);
     try {
       await callSave({
