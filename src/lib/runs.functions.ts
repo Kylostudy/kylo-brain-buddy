@@ -29,10 +29,10 @@ export const startRun = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
 
-    // 1) Spec snapshot
+    // 1) Spec snapshot + tenant_id a workflow-ból (RLS-hez kötelező)
     const { data: wf, error: wfErr } = await supabase
       .from("workflows")
-      .select("spec")
+      .select("spec, tenant_id, module")
       .eq("id", data.workflowId)
       .single();
     if (wfErr) throw new Error(wfErr.message);
@@ -44,6 +44,8 @@ export const startRun = createServerFn({ method: "POST" })
       .from("brain_workflow_runs")
       .insert({
         workflow_id: data.workflowId,
+        tenant_id: wf!.tenant_id,
+        module: wf!.module,
         runner: data.runner as RunnerName,
         status: "running",
         spec_snapshot: spec as never,
