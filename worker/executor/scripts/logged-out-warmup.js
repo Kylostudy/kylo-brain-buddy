@@ -225,13 +225,16 @@ async function googleSearchAndClick(page, query, googleDomain, cookieAcceptTexts
 export async function runLoggedOutWarmup({ page, context, spec, log }) {
   reseedHuman([spec.workflow_id || "", "warmup", Date.now()]);
 
+  const locale = resolveLocale(spec.language);
   const durationMin = Math.max(1, Math.min(120, Number(spec.duration_min) || 45));
   const durationMs = durationMin * 60 * 1000;
-  const sites = (Array.isArray(spec.sites) && spec.sites.length ? spec.sites : DEFAULT_SITES).slice();
+  const sites = (Array.isArray(spec.sites) && spec.sites.length ? spec.sites : locale.sites).slice();
   const queries = (Array.isArray(spec.search_queries) && spec.search_queries.length
     ? spec.search_queries
-    : DEFAULT_QUERIES
+    : locale.queries
   ).slice();
+  const googleDomain = spec.google_domain || locale.googleDomain;
+  const cookieAcceptTexts = locale.cookieAcceptTexts;
   const targetPlatform = String(spec.target_platform || "").toLowerCase();
   const extraBlocked = Array.isArray(spec.blacklist_hosts) ? spec.blacklist_hosts : [];
   const minDwell = Math.max(5, Number(spec.min_dwell_sec) || 20);
@@ -239,7 +242,7 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
 
   log(
     "info",
-    `Warmup indul — cél: ${targetPlatform || "általános"}, időtartam: ${durationMin} perc, oldalak: ${sites.length}, keresések: ${queries.length}`,
+    `Warmup indul — nyelv: ${spec.language || "en (default)"}, cél: ${targetPlatform || "általános"}, időtartam: ${durationMin} perc, oldalak: ${sites.length}, keresések: ${queries.length}, google: ${googleDomain}`,
   );
   log(
     "info",
