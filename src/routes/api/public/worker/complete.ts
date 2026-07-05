@@ -67,10 +67,20 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         );
         const sb = supabaseAdmin as ReturnType<typeof createClient<Database>>;
 
+        // A cookies_export nagy blob (akár több száz KB) — a brain_workflow_runs.result-ba
+        // csak a slim változatot mentjük; a valódi süti-tár titkosítva megy a
+        // workflow_credentials-be lentebb.
+        const slimResult =
+          parsed.result && typeof parsed.result === "object"
+            ? Object.fromEntries(
+                Object.entries(parsed.result).filter(([k]) => k !== "cookies_export"),
+              )
+            : parsed.result ?? null;
+
         const update: Record<string, unknown> = {
           status: parsed.status,
           logs: parsed.logs as never,
-          result: (parsed.result ?? null) as never,
+          result: slimResult as never,
           error: parsed.error ?? null,
           finished_at: new Date().toISOString(),
         };
