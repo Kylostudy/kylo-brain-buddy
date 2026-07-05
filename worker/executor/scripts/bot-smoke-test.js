@@ -86,12 +86,24 @@ async function runSannysoft(page, log) {
 
 async function runCreepJS(page, log) {
   log("info", "CreepJS: navigálás abrahamjuliot.github.io/creepjs…");
-  await page.goto(SITES.creepjs, { waitUntil: "domcontentloaded", timeout: 45000 });
-  // CreepJS-nek időre van szüksége, hogy mindent lefuttasson
-  await humanCasualScroll(page, { rounds: 2 });
-  await humanWait(page, 6000);
-  await humanCasualScroll(page, { rounds: 2 });
-  await humanWait(page, 4000);
+  await page.goto(SITES.creepjs, { waitUntil: "domcontentloaded", timeout: 60000 });
+  // A CreepJS nagyon lassan számol — összes fingerprint teszt + trust score.
+  // ~25-30 mp kell, mire a "Trust Score" szöveg megjelenik. Közben görgetünk
+  // és várunk, hogy emberi legyen és az összes lazy-load tartalom betöltsön.
+  await humanCasualScroll(page, { rounds: 3 });
+  await humanWait(page, 10000);
+  await humanCasualScroll(page, { rounds: 3 });
+  await humanWait(page, 10000);
+  // Végül várjuk meg konkrétan a "trust score" szöveget (max 20 mp).
+  try {
+    await page.waitForFunction(
+      () => /trust\s*score/i.test(document.body?.innerText || ""),
+      { timeout: 20000 },
+    );
+  } catch {
+    log("warn", "CreepJS: 'trust score' szöveg nem jelent meg a várt időben — folytatjuk a kiolvasással.");
+  }
+  await humanWait(page, 2000);
 
   const data = await page.evaluate(() => {
     const bodyText = document.body ? document.body.innerText : "";
