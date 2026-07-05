@@ -339,6 +339,9 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
         </div>
       ) : (
         <div className="mt-2 space-y-2.5 rounded-md border bg-background/40 p-3">
+          <p className="rounded bg-muted/50 px-2 py-1.5 text-[10px] leading-snug text-muted-foreground">
+            Tipp: elég csak a <b>proxyt</b> kiválasztanod és menteni — a többi mező opcionális. Vagy tölts ki egy teljes fiókot is.
+          </p>
           <div className="space-y-1">
             <Label className="text-[10px] uppercase text-muted-foreground">Platform</Label>
             <select
