@@ -119,11 +119,23 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           expectedCountry: string | null;
           provider: string | null;
         } | null = null;
+        // proxyFingerprint = a proxyhoz FIX-en rendelt virtuális ember
+        // (user-agent, viewport, locale, timezone). Ha megvan, ezt használjuk
+        // a claim végén — így 1 IP = 1 ember, több workflow ugyanarról a
+        // proxyról teljesen konzisztensnek látszik.
+        let proxyFingerprint: {
+          userAgent: string;
+          viewport: { width: number; height: number };
+          locale: string;
+          timezoneId: string;
+          platform: string;
+          seed: string;
+        } | null = null;
         if (claimed.proxy_id) {
           const { data: pRow } = await sb
             .from("proxies")
             .select(
-              "id, label, country, provider, protocol, host, port, username_ciphertext, username_nonce, password_ciphertext, password_nonce, is_active",
+              "id, label, country, provider, protocol, host, port, username_ciphertext, username_nonce, password_ciphertext, password_nonce, is_active, fingerprint_user_agent, fingerprint_locale, fingerprint_timezone, fingerprint_viewport_w, fingerprint_viewport_h, fingerprint_platform, fingerprint_seed",
             )
             .eq("id", claimed.proxy_id)
             .maybeSingle();
@@ -142,6 +154,25 @@ export const Route = createFileRoute("/api/public/worker/claim")({
               expectedCountry: (pRow.country || "").toUpperCase() || null,
               provider: pRow.provider || null,
             };
+            if (
+              pRow.fingerprint_user_agent &&
+              pRow.fingerprint_locale &&
+              pRow.fingerprint_timezone &&
+              pRow.fingerprint_viewport_w &&
+              pRow.fingerprint_viewport_h
+            ) {
+              proxyFingerprint = {
+                userAgent: pRow.fingerprint_user_agent,
+                viewport: {
+                  width: pRow.fingerprint_viewport_w,
+                  height: pRow.fingerprint_viewport_h,
+                },
+                locale: pRow.fingerprint_locale,
+                timezoneId: pRow.fingerprint_timezone,
+                platform: pRow.fingerprint_platform || "Win32",
+                seed: pRow.fingerprint_seed || pRow.id,
+              };
+            }
           }
         }
 
@@ -183,12 +214,22 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         // Determinisztikusan generált UA/viewport/locale/timezone — így egy
         // fiók mindig "ugyanarról a gépről" jelentkezik be. Csak akkor
         // generálunk, ha a spec-ben nincs kézzel felülírva.
+        // ---- Böngésző-fingerprint kiválasztása ----------------------------
+        // 1) Ha a proxyhoz van FIX rendelt fingerprint → azt használjuk
+        //    (1 IP = 1 virtuális ember, több workflow ugyanaz).
+        // 2) Ha nincs, workflow-onként determinisztikusan generálunk (régi
+        //    viselkedés kompatibilitás).
+        // 3) Ha a spec-ben már meg van adva kézzel, azt tartjuk meg.
         if (!specWithFlags.fingerprint) {
-          const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
-          specWithFlags.fingerprint = generateWorkflowFingerprint(
-            claimed.workflow_id,
-            proxy?.expectedCountry ?? null,
-          );
+          if (proxyFingerprint) {
+            specWithFlags.fingerprint = proxyFingerprint;
+          } else {
+            const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
+            specWithFlags.fingerprint = generateWorkflowFingerprint(
+              claimed.workflow_id,
+              proxy?.expectedCountry ?? null,
+            );
+          }
         }
 
 

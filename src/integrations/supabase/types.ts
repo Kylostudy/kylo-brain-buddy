@@ -500,6 +500,13 @@ export type Database = {
         Row: {
           country: string
           created_at: string
+          fingerprint_locale: string | null
+          fingerprint_platform: string | null
+          fingerprint_seed: string | null
+          fingerprint_timezone: string | null
+          fingerprint_user_agent: string | null
+          fingerprint_viewport_h: number | null
+          fingerprint_viewport_w: number | null
           host: string
           id: string
           is_active: boolean
@@ -515,10 +522,22 @@ export type Database = {
           updated_at: string
           username_ciphertext: string | null
           username_nonce: string | null
+          warmup_country_sites: string[] | null
+          warmup_language: string | null
+          warmup_last_run_at: string | null
+          warmup_next_scheduled_at: string | null
+          warmup_running_at: string | null
         }
         Insert: {
           country?: string
           created_at?: string
+          fingerprint_locale?: string | null
+          fingerprint_platform?: string | null
+          fingerprint_seed?: string | null
+          fingerprint_timezone?: string | null
+          fingerprint_user_agent?: string | null
+          fingerprint_viewport_h?: number | null
+          fingerprint_viewport_w?: number | null
           host: string
           id?: string
           is_active?: boolean
@@ -534,10 +553,22 @@ export type Database = {
           updated_at?: string
           username_ciphertext?: string | null
           username_nonce?: string | null
+          warmup_country_sites?: string[] | null
+          warmup_language?: string | null
+          warmup_last_run_at?: string | null
+          warmup_next_scheduled_at?: string | null
+          warmup_running_at?: string | null
         }
         Update: {
           country?: string
           created_at?: string
+          fingerprint_locale?: string | null
+          fingerprint_platform?: string | null
+          fingerprint_seed?: string | null
+          fingerprint_timezone?: string | null
+          fingerprint_user_agent?: string | null
+          fingerprint_viewport_h?: number | null
+          fingerprint_viewport_w?: number | null
           host?: string
           id?: string
           is_active?: boolean
@@ -553,6 +584,11 @@ export type Database = {
           updated_at?: string
           username_ciphertext?: string | null
           username_nonce?: string | null
+          warmup_country_sites?: string[] | null
+          warmup_language?: string | null
+          warmup_last_run_at?: string | null
+          warmup_next_scheduled_at?: string | null
+          warmup_running_at?: string | null
         }
         Relationships: []
       }

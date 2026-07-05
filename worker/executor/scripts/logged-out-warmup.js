@@ -36,40 +36,28 @@ import {
   reseedHuman,
 } from "./humanize.js";
 
-const DEFAULT_SITES = [
-  "https://www.google.nl/",
-  "https://nu.nl/",
-  "https://nos.nl/",
-  "https://www.ad.nl/",
-  "https://www.buienradar.nl/",
-  "https://www.weer.nl/",
-  "https://www.marktplaats.nl/",
-  "https://www.funda.nl/",
-  "https://nl.wikipedia.org/wiki/Nederland",
-];
+import enLocale from "./warmup-locales/en.js";
+import huLocale from "./warmup-locales/hu.js";
+import deLocale from "./warmup-locales/de.js";
+import esLocale from "./warmup-locales/es.js";
+import svLocale from "./warmup-locales/sv.js";
+import plLocale from "./warmup-locales/pl.js";
+import ptBRLocale from "./warmup-locales/pt-BR.js";
 
-const DEFAULT_QUERIES = [
-  "weerbericht amsterdam",
-  "ajax uitslag",
-  "recept stamppot",
-  "nieuws vandaag nederland",
-  "openingstijden hema",
-  "treinreis ns",
-  "beste restaurant utrecht",
-  "koningsdag 2026",
-  "eredivisie stand",
-  "elektrische fiets test",
-  "goedkope vakantie zomer",
-  "nl politiek nieuws",
-  "kabinet formatie",
-  "hypotheekrente actueel",
-  "hondenrassen klein",
-  "tulpen bloei keukenhof",
-  "wat te doen rotterdam",
-  "beleggen voor beginners",
-  "gasprijs vergelijken",
-  "openbaar vervoer den haag",
-];
+const LOCALES = {
+  en: enLocale,
+  hu: huLocale,
+  de: deLocale,
+  es: esLocale,
+  sv: svLocale,
+  pl: plLocale,
+  "pt-BR": ptBRLocale,
+  "pt-br": ptBRLocale,
+  pt: ptBRLocale,
+};
+
+// Fallback (angol) — ha valamiért nem érkezik spec.language.
+const DEFAULT_LOCALE = enLocale;
 
 // Ide SEMMILYEN körülmények között nem megyünk warmup közben.
 const HARD_BLACKLIST = [
@@ -85,17 +73,11 @@ const HARD_BLACKLIST = [
   "threads.net",
 ];
 
-const COOKIE_ACCEPT_TEXTS = [
-  /alles accepteren/i,
-  /accepteren/i,
-  /accepteer alle/i,
-  /akkoord/i,
-  /ik ga akkoord/i,
-  /accept all/i,
-  /accept cookies/i,
-  /i agree/i,
-  /agree/i,
-];
+function resolveLocale(language) {
+  if (!language) return DEFAULT_LOCALE;
+  const key = String(language).trim();
+  return LOCALES[key] || LOCALES[key.toLowerCase()] || DEFAULT_LOCALE;
+}
 
 function hostOf(url) {
   try {
@@ -112,9 +94,9 @@ function isBlacklisted(url, extra = []) {
   return list.some((b) => h === b || h.endsWith("." + b));
 }
 
-async function tryCloseCookieBanner(page, log) {
+async function tryCloseCookieBanner(page, cookieAcceptTexts, log) {
   try {
-    for (const rx of COOKIE_ACCEPT_TEXTS) {
+    for (const rx of cookieAcceptTexts) {
       const btn = page.getByRole("button", { name: rx }).first();
       if (await btn.count().catch(() => 0)) {
         await humanClick(page, btn, { timeout: 3000 }).catch(() => {});
@@ -126,7 +108,7 @@ async function tryCloseCookieBanner(page, log) {
     const frames = page.frames();
     for (const f of frames) {
       if (!/consent/i.test(f.url())) continue;
-      for (const rx of COOKIE_ACCEPT_TEXTS) {
+      for (const rx of cookieAcceptTexts) {
         const b = f.getByRole("button", { name: rx }).first();
         if (await b.count().catch(() => 0)) {
           await b.click({ timeout: 3000 }).catch(() => {});
@@ -198,10 +180,10 @@ async function browsePage(page, log) {
   await humanBrowseMoment(page);
 }
 
-async function googleSearchAndClick(page, query, blockedHosts, log) {
-  await safeGoto(page, "https://www.google.nl/", log);
+async function googleSearchAndClick(page, query, googleDomain, cookieAcceptTexts, blockedHosts, log) {
+  await safeGoto(page, googleDomain, log);
   await humanWait(page, 800);
-  await tryCloseCookieBanner(page, log);
+  await tryCloseCookieBanner(page, cookieAcceptTexts, log);
   await humanWait(page, 400);
 
   try {
@@ -243,13 +225,16 @@ async function googleSearchAndClick(page, query, blockedHosts, log) {
 export async function runLoggedOutWarmup({ page, context, spec, log }) {
   reseedHuman([spec.workflow_id || "", "warmup", Date.now()]);
 
+  const locale = resolveLocale(spec.language);
   const durationMin = Math.max(1, Math.min(120, Number(spec.duration_min) || 45));
   const durationMs = durationMin * 60 * 1000;
-  const sites = (Array.isArray(spec.sites) && spec.sites.length ? spec.sites : DEFAULT_SITES).slice();
+  const sites = (Array.isArray(spec.sites) && spec.sites.length ? spec.sites : locale.sites).slice();
   const queries = (Array.isArray(spec.search_queries) && spec.search_queries.length
     ? spec.search_queries
-    : DEFAULT_QUERIES
+    : locale.queries
   ).slice();
+  const googleDomain = spec.google_domain || locale.googleDomain;
+  const cookieAcceptTexts = locale.cookieAcceptTexts;
   const targetPlatform = String(spec.target_platform || "").toLowerCase();
   const extraBlocked = Array.isArray(spec.blacklist_hosts) ? spec.blacklist_hosts : [];
   const minDwell = Math.max(5, Number(spec.min_dwell_sec) || 20);
@@ -257,7 +242,7 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
 
   log(
     "info",
-    `Warmup indul — cél: ${targetPlatform || "általános"}, időtartam: ${durationMin} perc, oldalak: ${sites.length}, keresések: ${queries.length}`,
+    `Warmup indul — nyelv: ${spec.language || "en (default)"}, cél: ${targetPlatform || "általános"}, időtartam: ${durationMin} perc, oldalak: ${sites.length}, keresések: ${queries.length}, google: ${googleDomain}`,
   );
   log(
     "info",
@@ -277,8 +262,8 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
     let landingUrl;
     if (Math.random() < 0.4) {
       const q = queries[Math.floor(Math.random() * queries.length)];
-      log("info", `Google.nl keresés: "${q}"`);
-      landingUrl = await googleSearchAndClick(page, q, extraBlocked, log);
+      log("info", `Google keresés (${googleDomain}): "${q}"`);
+      landingUrl = await googleSearchAndClick(page, q, googleDomain, cookieAcceptTexts, extraBlocked, log);
       if (landingUrl) {
         if (isBlacklisted(landingUrl, extraBlocked)) {
           log("warn", `Feketelistás találat kihagyva: ${hostOf(landingUrl)}`);
@@ -302,7 +287,7 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
     visitedDomains.add(hostOf(landingUrl));
 
     await humanWait(page, 900);
-    await tryCloseCookieBanner(page, log);
+    await tryCloseCookieBanner(page, cookieAcceptTexts, log);
     await browsePage(page, log);
 
     // Belső kattintás 0-2 közötti mélységre

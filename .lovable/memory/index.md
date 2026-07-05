@@ -11,3 +11,4 @@ Dark theme, KyloKit dizájn tokenek (lásd src/styles.css). Sose használj hardc
 ## Memories
 - [Module architecture](mem://features/module-architecture) — Modul-felismerés rétegek, theme switching, run table routing
 - [Behavior profiles](mem://features/behavior-profiles) — HumanProfile vs RobotProfile, mikor mit kell használni
+- [Warmup system](mem://features/warmup-system) — 12 IP heti bemelegítés, 1 IP = 1 virtuális ember (fingerprint), 7 nyelvi sablon, óránkénti pg_cron ütemező
