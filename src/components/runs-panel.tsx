@@ -209,7 +209,7 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
                           ? ` sanny ${sanny.ok ? "ok" : `❌ (${sanny.red_flags?.length ?? 0})`}`
                           : ""}
                         {creep
-                          ? ` · creep ${creep.trust_score != null ? `${creep.trust_score}%` : "n/a"}`
+                          ? ` · creep ${creep.headless_pct != null ? `headless ${creep.headless_pct}%` : "n/a"}${creep.lies != null ? ` · lies ${creep.lies}` : ""}`
                           : ""}
                       </div>
                     )}
