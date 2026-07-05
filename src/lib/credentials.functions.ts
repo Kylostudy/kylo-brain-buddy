@@ -96,8 +96,8 @@ export const saveCredentials = createServerFn({ method: "POST" })
     z
       .object({
         workflowId: z.string().uuid(),
-        platform: z.string().min(1).max(40),
-        username: z.string().min(1).max(200),
+        platform: z.string().min(1).max(40).optional(),
+        username: z.string().min(1).max(200).optional(),
         password: z.string().min(1).max(500).optional(),
         cookie: z.string().min(1).max(50000).optional(),
         totpSecret: z.string().min(1).max(200).optional(),
@@ -122,9 +122,11 @@ export const saveCredentials = createServerFn({ method: "POST" })
 
     const payload: Record<string, unknown> = {
       workflow_id: data.workflowId,
-      platform: data.platform.trim().toLowerCase(),
-      username: data.username.trim(),
+      // platform/username mostantól opcionális — csak-proxy mentésnél üresen maradhat
+      platform: data.platform ? data.platform.trim().toLowerCase() : (existing?.platform ?? null),
+      username: data.username ? data.username.trim() : (existing?.username ?? null),
     };
+
 
     if (data.password !== undefined) {
       const { ciphertext, nonce } = await encryptString(data.password);
