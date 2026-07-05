@@ -468,22 +468,45 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
                 </button>
               </div>
             ) : (
-              <select
-                value={proxyId}
-                onChange={(e) => setProxyId(e.target.value)}
-                className="h-8 w-full rounded border bg-background px-2 text-xs"
-              >
-                <option value="">— nincs proxy —</option>
-                {(proxies ?? [])
-                  .filter((p) => p.is_active)
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                      {p.country ? ` (${p.country})` : ""}
-                      {p.provider ? ` · ${p.provider}` : ""}
-                    </option>
-                  ))}
-              </select>
+              <>
+                <select
+                  value={proxyId}
+                  onChange={(e) => setProxyId(e.target.value)}
+                  className="h-8 w-full rounded border bg-background px-2 text-xs"
+                >
+                  <option value="">— nincs proxy —</option>
+                  {(proxies ?? [])
+                    .filter((p) => p.is_active)
+                    .map((p) => {
+                      const mismatch =
+                        jarCountry && p.country && p.country !== jarCountry;
+                      const disabled = !!(mismatch && jarLocked);
+                      return (
+                        <option
+                          key={p.id}
+                          value={p.id}
+                          disabled={disabled}
+                          title={
+                            mismatch
+                              ? `A cookie jar ${jarCountry}, ez ${p.country} — nem ajánlott`
+                              : undefined
+                          }
+                        >
+                          {mismatch ? "⚠ " : ""}
+                          {p.label}
+                          {p.country ? ` (${p.country})` : ""}
+                          {p.provider ? ` · ${p.provider}` : ""}
+                          {disabled ? " — zárolva" : ""}
+                        </option>
+                      );
+                    })}
+                </select>
+                {jarCountry && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-500">
+                    Cookie jar: {jarCountry}{jarLocked ? " (zárolva)" : ""}. A ⚠-vel jelölt proxyk eltérő országúak.
+                  </p>
+                )}
+              </>
             )}
             <p className="text-[10px] text-muted-foreground/70">
               Kiválasztás után lezárva marad, hogy véletlenül ne írd át. A „módosít" gombbal oldható fel.
