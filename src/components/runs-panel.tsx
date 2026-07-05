@@ -32,9 +32,12 @@ type FingerprintCheck = {
   ok?: boolean;
   red_flags?: string[];
   total_tests?: number;
-  trust_score?: number | null;
-  trust_label?: string | null;
+  // CreepJS mezők
+  headless_pct?: number | null;
+  like_headless_pct?: number | null;
+  stealth_pct?: number | null;
   lies?: number | null;
+  fp_id?: string | null;
   error?: string;
 };
 
