@@ -1,14 +1,16 @@
-# Project Memory
+# Projekt Memória
 
 ## Core
-Kylo Brain és Kylo Audit egy kódbázisban — modulváltó: aldomain (brain./audit.) éles, query param + dev kapcsoló preview-n.
-Brain = zöld téma + emberi viselkedés (Poisson). Audit = kék téma + determinisztikus robot.
-Két fizikailag külön log tábla: brain_workflow_runs és audit_workflow_runs. Soha ne keveredjenek (SOC 2).
-A bejelentkezést éles módban a Core Hub kezeli; /auth csak fejlesztői PIN-es hátsóajtó a tulajdonosnak.
-tenant_module_access tábla mondja meg, melyik tenant melyik modulhoz fér hozzá — service_role írja (Hub webhook + dev seed).
-Dark theme, KyloKit dizájn tokenek (lásd src/styles.css). Sose használj hardcode színeket (text-white, bg-black, hex).
+- Minden válasz magyarul. Technikai zsargon helyett egyszerű magyarázat.
+- Brain workflow-k KÖTELEZŐEN emberi módon viselkednek: Poisson időzítés, véletlen kurzor, alkalmi hibázás+javítás. Fix sleep / egyenes kurzor / tökéletes kattintás TILOS.
+- Proxy stratégia: 12 proxy, 28 (proxy_id, language) profil. Első fázis (aug-szept): csak en + de régiók. Új proxyt csak akkor veszünk, ha a jelenlegi 12 fel van töltve.
 
-## Memories
-- [Module architecture](mem://features/module-architecture) — Modul-felismerés rétegek, theme switching, run table routing
-- [Behavior profiles](mem://features/behavior-profiles) — HumanProfile vs RobotProfile, mikor mit kell használni
-- [Warmup system](mem://features/warmup-system) — 12 IP heti bemelegítés, 1 IP = 1 virtuális ember (fingerprint), 7 nyelvi sablon, óránkénti pg_cron ütemező
+## Memóriák
+- [emberi-viselkedés](mem://features/human-behavior) — Poisson időzítés, véletlen kurzor overshoot+jitter, kötelező misclick+javítás. Brain ≠ Audit (Audit nyíltan bot lehet).
+- [workflow-architektúra](mem://features/workflow-architecture) — 3 rétegű workflow rendszer: workflow, scheduled_runs, dispatcher
+- [proxy-szabályok](mem://features/proxy-rules) — Azonos IP-n azonos platform = csak 1 account egyszerre, különböző platformok mehetnek párhuzamosan
+- [proxy-nyelv-stratégia](mem://features/proxy-language-strategy) — VÉGLEGES 12 proxy → 28 nyelv/ország profil kiosztás, warmup+ütemterv
+- [minta-elkerülés](mem://features/pattern-avoidance) — Ugyanaz az időpont nem ismétlődhet X napon belül (konkrét szám megbeszélés alatt)
+- [kylogic-integráció](mem://features/kylogic-integration) — Kylogic adja az időpontokat jitterrel, Brain csak végrehajt. Konkrét paraméterek még egyeztetés alatt.
+- [moduláris-architektúra](mem://features/modular-architecture) — Minden modul és workflow másolható más tenantnak, hogy ne kelljen újraépíteni
+- [brain-univerzalitás](mem://features/brain-universality) — A Brain nem csak social media feltöltésre, hanem bármilyen automatizációra használható
