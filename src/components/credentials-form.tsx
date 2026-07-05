@@ -326,7 +326,7 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
       ) : !exists && !open ? (
         <div className="mt-2 space-y-2 rounded-md border border-dashed bg-background/40 p-2.5">
           <p className="text-[11px] text-muted-foreground">
-            Még nincs mentett hozzáférés. A jelszó titkosítva tárolódik (AES-256-GCM), a chatben sosem szerepel.
+            Még nincs beállítás. Ide vagy egy teljes fiókot (platform + felhasználó + jelszó), vagy <b>csak proxyt</b> menthetsz — mindkettő önállóan is működik. A titkos adatok AES-256-GCM-mel titkosítva tárolódnak.
           </p>
           <Button
             type="button"
@@ -334,7 +334,7 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
             className="w-full"
             onClick={() => setOpen(true)}
           >
-            Hozzáférés hozzáadása
+            Fiók vagy proxy hozzáadása
           </Button>
         </div>
       ) : (
