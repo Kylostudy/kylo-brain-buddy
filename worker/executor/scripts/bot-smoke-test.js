@@ -62,11 +62,12 @@ async function runSannysoft(page, log) {
         const result = (cells[1].textContent || "").trim();
         const bg = window.getComputedStyle(cells[1]).backgroundColor || "";
         const cls = cells[1].className || "";
-        const failed = /failed|missing|present.*(?:webdriver)/i.test(result) ||
+        const passed = /passed|ok\b|present\s*\(passed\)/i.test(result);
+        const failed = !passed && (
+          /failed|missing/i.test(result) ||
           /fail|red/i.test(cls) ||
-          /rgb\(2[45]\d,\s*\d+,\s*\d+\)/.test(bg); // piros-ish
-        out.push({ name, result, failed });
-      });
+          /rgb\(2[45]\d,\s*\d+,\s*\d+\)/.test(bg) // piros-ish
+        );
     });
     return out;
   });
