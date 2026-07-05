@@ -15,6 +15,7 @@ import {
 } from "@/lib/credentials.functions";
 import { previewTotp } from "@/lib/totp.functions";
 import { listProxies } from "@/lib/proxies.functions";
+import { getCookieJarStatus } from "@/lib/cookie-jar.functions";
 import {
   getGmailStatus,
   startGmailOAuth,
