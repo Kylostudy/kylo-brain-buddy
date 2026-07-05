@@ -21,6 +21,7 @@ import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/pub
 import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
+import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
@@ -98,6 +99,12 @@ const ApiPublicWorkerClaimRoute = ApiPublicWorkerClaimRouteImport.update({
   path: '/api/public/worker/claim',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronScheduleWarmupsRoute =
+  ApiPublicCronScheduleWarmupsRouteImport.update({
+    id: '/api/public/cron/schedule-warmups',
+    path: '/api/public/cron/schedule-warmups',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronEnqueueMonitorsRoute =
   ApiPublicCronEnqueueMonitorsRouteImport.update({
     id: '/api/public/cron/enqueue-monitors',
@@ -180,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
@@ -205,6 +213,7 @@ export interface FileRoutesByTo {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
@@ -232,6 +241,7 @@ export interface FileRoutesById {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/schedule-warmups'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/learned-selectors'
@@ -284,6 +295,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/schedule-warmups'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/learned-selectors'
@@ -310,6 +322,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/schedule-warmups'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/learned-selectors'
@@ -334,6 +347,7 @@ export interface RootRouteChildren {
   ApiPublicAuthPasswordRoute: typeof ApiPublicAuthPasswordRoute
   ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
+  ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
   ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
@@ -432,6 +446,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/claim'
       fullPath: '/api/public/worker/claim'
       preLoaderRoute: typeof ApiPublicWorkerClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/schedule-warmups': {
+      id: '/api/public/cron/schedule-warmups'
+      path: '/api/public/cron/schedule-warmups'
+      fullPath: '/api/public/cron/schedule-warmups'
+      preLoaderRoute: typeof ApiPublicCronScheduleWarmupsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cron/enqueue-monitors': {
@@ -561,6 +582,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAuthPasswordRoute: ApiPublicAuthPasswordRoute,
   ApiPublicCronDispatchBrainTasksRoute: ApiPublicCronDispatchBrainTasksRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
+  ApiPublicCronScheduleWarmupsRoute: ApiPublicCronScheduleWarmupsRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
   ApiPublicWorkerLearnedSelectorsRoute: ApiPublicWorkerLearnedSelectorsRoute,
