@@ -19,6 +19,7 @@ import type { WorkflowSpec } from "@/lib/chat.functions";
 import { cn } from "@/lib/utils";
 import { RunsPanel } from "@/components/runs-panel";
 import { CredentialsForm } from "@/components/credentials-form";
+import { CookieJarBadge } from "@/components/cookie-jar-badge";
 
 type Row = {
   key: keyof WorkflowSpec;
