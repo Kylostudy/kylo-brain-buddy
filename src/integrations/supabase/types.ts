@@ -708,7 +708,7 @@ export type Database = {
           id: string
           password_ciphertext: string | null
           password_nonce: string | null
-          platform: string
+          platform: string | null
           proxy_ciphertext: string | null
           proxy_id: string | null
           proxy_nonce: string | null
@@ -716,7 +716,7 @@ export type Database = {
           totp_nonce: string | null
           totp_secret_ciphertext: string | null
           updated_at: string
-          username: string
+          username: string | null
           workflow_id: string
         }
         Insert: {
@@ -730,7 +730,7 @@ export type Database = {
           id?: string
           password_ciphertext?: string | null
           password_nonce?: string | null
-          platform?: string
+          platform?: string | null
           proxy_ciphertext?: string | null
           proxy_id?: string | null
           proxy_nonce?: string | null
@@ -738,7 +738,7 @@ export type Database = {
           totp_nonce?: string | null
           totp_secret_ciphertext?: string | null
           updated_at?: string
-          username?: string
+          username?: string | null
           workflow_id: string
         }
         Update: {
@@ -752,7 +752,7 @@ export type Database = {
           id?: string
           password_ciphertext?: string | null
           password_nonce?: string | null
-          platform?: string
+          platform?: string | null
           proxy_ciphertext?: string | null
           proxy_id?: string | null
           proxy_nonce?: string | null
@@ -760,7 +760,7 @@ export type Database = {
           totp_nonce?: string | null
           totp_secret_ciphertext?: string | null
           updated_at?: string
-          username?: string
+          username?: string | null
           workflow_id?: string
         }
         Relationships: [
