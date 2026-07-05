@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Loader2,
   CheckCircle2 as CheckIcon,
@@ -8,6 +8,7 @@ import {
   Ban,
   Clock4,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
