@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { readStoredSupabaseSession } from "@/lib/auth-session";
 import { renameWorkflow, duplicateWorkflow } from "@/lib/chat.functions";
 import { useModule } from "@/lib/module/provider";
 import type { AppModule } from "@/lib/module/types";
@@ -67,8 +68,7 @@ export function AppSidebar() {
   }, [editingId]);
 
   async function createWorkflow() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const uid = readStoredSupabaseSession()?.user?.id;
     if (!uid) {
       toast.error("Nincs bejelentkezett felhasználó.");
       return;

@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Brain } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { readStoredSupabaseSession, saveSupabaseSession } from "@/lib/auth-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,9 +29,7 @@ function AuthPage() {
 
   // If already signed in, redirect to home.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/", replace: true });
-    });
+    if (readStoredSupabaseSession()?.user) navigate({ to: "/", replace: true });
   }, [navigate]);
 
   return (
@@ -50,7 +50,7 @@ function AuthPage() {
           </TabsList>
           <TabsContent value="signin">
             <SignInForm
-              onSuccess={() => navigate({ to: "/", replace: true })}
+              onSuccess={() => window.location.replace("/")}
             />
           </TabsContent>
           <TabsContent value="signup">
@@ -72,13 +72,28 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast.error("Sikertelen bejelentkezés", { description: error.message });
-      return;
+    try {
+      const res = await fetch("/api/public/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const payload = (await res.json().catch(() => ({}))) as {
+        session?: Session;
+        error?: string;
+      };
+      if (!res.ok || !payload.session) {
+        throw new Error(payload.error ?? "Sikertelen bejelentkezés.");
+      }
+      saveSupabaseSession(payload.session);
+      onSuccess();
+    } catch (error) {
+      toast.error("Sikertelen bejelentkezés", {
+        description: error instanceof Error ? error.message : "Ismeretlen hiba.",
+      });
+    } finally {
+      setLoading(false);
     }
-    onSuccess();
   }
 
   return (
