@@ -10,7 +10,15 @@
 // országgal, a run azonnal `failed` státusszal leáll — a cél oldal (TikTok
 // stb.) MEG SEM NYÍLIK. Így nem tudunk véletlenül rossz IP-vel belépni.
 
-import { chromium } from "playwright";
+// playwright-extra + stealth plugin — elrejti a webdriver flag-et, javítja a
+// navigator.plugins / languages / WebGL / Canvas / window.chrome / Permissions
+// fingerprinteket. A cél: bot.sannysoft.com zöld, CreepJS trust >= 60.
+// A `chromium` API-ja teljesen azonos a sima playwright-tel, csak plugin-eket
+// tud fogadni a .use() metódussal.
+import { chromium as _chromium } from "playwright-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+_chromium.use(StealthPlugin());
+const chromium = _chromium;
 import { runTikTok } from "./scripts/tiktok.js";
 import { runDecathlonStock } from "./scripts/decathlon-stock.js";
 import { runBotSmokeTest } from "./scripts/bot-smoke-test.js";
