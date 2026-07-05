@@ -102,6 +102,7 @@ function formatTime(iso: string | null) {
 export function RunsPanel({ workflowId }: { workflowId: string }) {
   const qc = useQueryClient();
   const callCancel = useServerFn(cancelRun);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const { data: runs = [] } = useQuery({
     queryKey: ["brain_workflow_runs", workflowId],
