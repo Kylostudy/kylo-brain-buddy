@@ -36,17 +36,28 @@ import {
   reseedHuman,
 } from "./humanize.js";
 
-const DEFAULT_SITES = [
-  "https://www.google.nl/",
-  "https://nu.nl/",
-  "https://nos.nl/",
-  "https://www.ad.nl/",
-  "https://www.buienradar.nl/",
-  "https://www.weer.nl/",
-  "https://www.marktplaats.nl/",
-  "https://www.funda.nl/",
-  "https://nl.wikipedia.org/wiki/Nederland",
-];
+import enLocale from "./warmup-locales/en.js";
+import huLocale from "./warmup-locales/hu.js";
+import deLocale from "./warmup-locales/de.js";
+import esLocale from "./warmup-locales/es.js";
+import svLocale from "./warmup-locales/sv.js";
+import plLocale from "./warmup-locales/pl.js";
+import ptBRLocale from "./warmup-locales/pt-BR.js";
+
+const LOCALES = {
+  en: enLocale,
+  hu: huLocale,
+  de: deLocale,
+  es: esLocale,
+  sv: svLocale,
+  pl: plLocale,
+  "pt-BR": ptBRLocale,
+  "pt-br": ptBRLocale,
+  pt: ptBRLocale,
+};
+
+// Fallback (angol) — ha valamiért nem érkezik spec.language.
+const DEFAULT_LOCALE = enLocale;
 
 const DEFAULT_QUERIES = [
   "weerbericht amsterdam",
