@@ -180,10 +180,10 @@ async function browsePage(page, log) {
   await humanBrowseMoment(page);
 }
 
-async function googleSearchAndClick(page, query, blockedHosts, log) {
-  await safeGoto(page, "https://www.google.nl/", log);
+async function googleSearchAndClick(page, query, googleDomain, cookieAcceptTexts, blockedHosts, log) {
+  await safeGoto(page, googleDomain, log);
   await humanWait(page, 800);
-  await tryCloseCookieBanner(page, log);
+  await tryCloseCookieBanner(page, cookieAcceptTexts, log);
   await humanWait(page, 400);
 
   try {
