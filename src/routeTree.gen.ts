@@ -25,6 +25,7 @@ import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/p
 import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
 import { Route as ApiPublicAdminImportBrightdataKylogicRouteImport } from './routes/api/public/admin/import-brightdata-kylogic'
+import { Route as ApiPublicAdminCreateWarmupWorkflowsRouteImport } from './routes/api/public/admin/create-warmup-workflows'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
@@ -120,6 +121,12 @@ const ApiPublicAdminImportBrightdataKylogicRoute =
     path: '/api/public/admin/import-brightdata-kylogic',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAdminCreateWarmupWorkflowsRoute =
+  ApiPublicAdminCreateWarmupWorkflowsRouteImport.update({
+    id: '/api/public/admin/create-warmup-workflows',
+    path: '/api/public/admin/create-warmup-workflows',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCrossProxiesListRoute =
   ApiPublicCrossProxiesListRouteImport.update({
     id: '/api/public/cross/proxies/list',
@@ -168,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
@@ -192,6 +200,7 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
@@ -218,6 +227,7 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
@@ -244,6 +254,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/api/transcribe'
     | '/w/$workflowId'
+    | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/'
     | '/w/$workflowId'
+    | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
@@ -293,6 +305,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/_authenticated/'
     | '/_authenticated/w/$workflowId'
+    | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
@@ -316,6 +329,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiPublicAdminCreateWarmupWorkflowsRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   ApiPublicAdminImportBrightdataKylogicRoute: typeof ApiPublicAdminImportBrightdataKylogicRoute
   ApiPublicAuthPasswordRoute: typeof ApiPublicAuthPasswordRoute
   ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
@@ -448,6 +462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAdminImportBrightdataKylogicRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/admin/create-warmup-workflows': {
+      id: '/api/public/admin/create-warmup-workflows'
+      path: '/api/public/admin/create-warmup-workflows'
+      fullPath: '/api/public/admin/create-warmup-workflows'
+      preLoaderRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/proxies/list': {
       id: '/api/public/cross/proxies/list'
       path: '/api/public/cross/proxies/list'
@@ -533,6 +554,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiPublicAdminCreateWarmupWorkflowsRoute:
+    ApiPublicAdminCreateWarmupWorkflowsRoute,
   ApiPublicAdminImportBrightdataKylogicRoute:
     ApiPublicAdminImportBrightdataKylogicRoute,
   ApiPublicAuthPasswordRoute: ApiPublicAuthPasswordRoute,
