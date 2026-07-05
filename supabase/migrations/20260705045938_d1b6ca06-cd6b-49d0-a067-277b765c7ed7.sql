@@ -1,0 +1,1 @@
+ALTER TABLE public.workflow_credentials ALTER COLUMN platform DROP NOT NULL; ALTER TABLE public.workflow_credentials ALTER COLUMN username DROP NOT NULL;
