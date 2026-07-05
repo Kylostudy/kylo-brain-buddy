@@ -7,6 +7,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { clearStoredSupabaseSession, readStoredSupabaseSession } from "@/lib/auth-session";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -20,11 +21,11 @@ import { LogOut } from "lucide-react";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
+    const session = readStoredSupabaseSession();
+    if (!session?.user) {
       throw redirect({ to: "/auth" });
     }
-    return { user: data.user };
+    return { user: session.user };
   },
   component: AuthenticatedLayout,
 });
@@ -43,7 +44,8 @@ function AuthenticatedLayout() {
   }, [navigate]);
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
+    clearStoredSupabaseSession();
     navigate({ to: "/auth", replace: true });
   }
 
