@@ -54,7 +54,13 @@ type RunRow = {
   created_at: string;
   error: string | null;
   preflight_result: PreflightResult;
-  result: { fingerprint_audit?: FingerprintAudit } | null;
+  result:
+    | ({
+        fingerprint_audit?: FingerprintAudit;
+        checks?: FingerprintCheck[];
+        all_ok?: boolean;
+      } & Record<string, unknown>)
+    | null;
 };
 
 async function fetchRuns(workflowId: string): Promise<RunRow[]> {
@@ -186,8 +192,15 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
                         : ""}
                     </div>
                   )}
-                  {r.result?.fingerprint_audit && (() => {
-                    const fa = r.result!.fingerprint_audit!;
+                  {(() => {
+                    // Smoke test közvetlenül a result gyökerébe teszi a {checks, all_ok}-t,
+                    // más futtatás a fingerprint_audit alá.
+                    const fa: FingerprintAudit =
+                      r.result?.fingerprint_audit ??
+                      (Array.isArray(r.result?.checks)
+                        ? { checks: r.result!.checks, all_ok: r.result!.all_ok }
+                        : null);
+                    if (!fa) return null;
                     const sanny = fa.checks?.find((c) => c.name === "sannysoft");
                     const creep = fa.checks?.find((c) => c.name === "creepjs");
                     return (
@@ -198,19 +211,21 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
                         )}
                         title={[
                           sanny
-                            ? `sannysoft: ${sanny.ok ? "ok" : "piros"}${sanny.red_flags?.length ? ` (${sanny.red_flags.length} zászló)` : ""}`
+                            ? `sannysoft: ${sanny.ok ? "ok" : "piros"}${sanny.red_flags?.length ? ` — ${sanny.red_flags.join("; ")}` : ""}${sanny.total_tests ? ` (${sanny.total_tests} teszt)` : ""}`
                             : null,
                           creep
-                            ? `creepjs: trust ${creep.trust_score ?? "?"}${creep.lies != null ? `, lies ${creep.lies}` : ""}`
+                            ? `creepjs: trust ${creep.trust_score ?? "?"}${creep.lies != null ? `, lies ${creep.lies}` : ""}${creep.trust_label ? ` — ${creep.trust_label}` : ""}`
                             : null,
                         ]
                           .filter(Boolean)
                           .join(" · ")}
                       >
                         {fa.all_ok ? "✓" : "⚠"} fingerprint:
-                        {sanny ? ` sanny ${sanny.ok ? "ok" : "❌"}` : ""}
-                        {creep?.trust_score != null
-                          ? ` · creep ${creep.trust_score}%`
+                        {sanny
+                          ? ` sanny ${sanny.ok ? "ok" : `❌ (${sanny.red_flags?.length ?? 0})`}`
+                          : ""}
+                        {creep
+                          ? ` · creep ${creep.trust_score != null ? `${creep.trust_score}%` : "n/a"}`
                           : ""}
                       </div>
                     );
