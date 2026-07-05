@@ -24,6 +24,7 @@ import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/wo
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
+import { Route as ApiPublicAdminImportBrightdataKylogicRouteImport } from './routes/api/public/admin/import-brightdata-kylogic'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
@@ -113,6 +114,12 @@ const ApiPublicAuthPasswordRoute = ApiPublicAuthPasswordRouteImport.update({
   path: '/api/public/auth/password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAdminImportBrightdataKylogicRoute =
+  ApiPublicAdminImportBrightdataKylogicRouteImport.update({
+    id: '/api/public/admin/import-brightdata-kylogic',
+    path: '/api/public/admin/import-brightdata-kylogic',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCrossProxiesListRoute =
   ApiPublicCrossProxiesListRouteImport.update({
     id: '/api/public/cross/proxies/list',
@@ -161,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
@@ -184,6 +192,7 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
@@ -209,6 +218,7 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/api/transcribe'
     | '/w/$workflowId'
+    | '/api/public/admin/import-brightdata-kylogic'
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/'
     | '/w/$workflowId'
+    | '/api/public/admin/import-brightdata-kylogic'
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
@@ -281,6 +293,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/_authenticated/'
     | '/_authenticated/w/$workflowId'
+    | '/api/public/admin/import-brightdata-kylogic'
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
@@ -303,6 +316,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiPublicAdminImportBrightdataKylogicRoute: typeof ApiPublicAdminImportBrightdataKylogicRoute
   ApiPublicAuthPasswordRoute: typeof ApiPublicAuthPasswordRoute
   ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
@@ -427,6 +441,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAuthPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/admin/import-brightdata-kylogic': {
+      id: '/api/public/admin/import-brightdata-kylogic'
+      path: '/api/public/admin/import-brightdata-kylogic'
+      fullPath: '/api/public/admin/import-brightdata-kylogic'
+      preLoaderRoute: typeof ApiPublicAdminImportBrightdataKylogicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/proxies/list': {
       id: '/api/public/cross/proxies/list'
       path: '/api/public/cross/proxies/list'
@@ -512,6 +533,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiPublicAdminImportBrightdataKylogicRoute:
+    ApiPublicAdminImportBrightdataKylogicRoute,
   ApiPublicAuthPasswordRoute: ApiPublicAuthPasswordRoute,
   ApiPublicCronDispatchBrainTasksRoute: ApiPublicCronDispatchBrainTasksRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
@@ -532,13 +555,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
