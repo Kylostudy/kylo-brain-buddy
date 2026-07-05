@@ -59,29 +59,6 @@ const LOCALES = {
 // Fallback (angol) — ha valamiért nem érkezik spec.language.
 const DEFAULT_LOCALE = enLocale;
 
-const DEFAULT_QUERIES = [
-  "weerbericht amsterdam",
-  "ajax uitslag",
-  "recept stamppot",
-  "nieuws vandaag nederland",
-  "openingstijden hema",
-  "treinreis ns",
-  "beste restaurant utrecht",
-  "koningsdag 2026",
-  "eredivisie stand",
-  "elektrische fiets test",
-  "goedkope vakantie zomer",
-  "nl politiek nieuws",
-  "kabinet formatie",
-  "hypotheekrente actueel",
-  "hondenrassen klein",
-  "tulpen bloei keukenhof",
-  "wat te doen rotterdam",
-  "beleggen voor beginners",
-  "gasprijs vergelijken",
-  "openbaar vervoer den haag",
-];
-
 // Ide SEMMILYEN körülmények között nem megyünk warmup közben.
 const HARD_BLACKLIST = [
   "linkedin.com",
@@ -96,17 +73,11 @@ const HARD_BLACKLIST = [
   "threads.net",
 ];
 
-const COOKIE_ACCEPT_TEXTS = [
-  /alles accepteren/i,
-  /accepteren/i,
-  /accepteer alle/i,
-  /akkoord/i,
-  /ik ga akkoord/i,
-  /accept all/i,
-  /accept cookies/i,
-  /i agree/i,
-  /agree/i,
-];
+function resolveLocale(language) {
+  if (!language) return DEFAULT_LOCALE;
+  const key = String(language).trim();
+  return LOCALES[key] || LOCALES[key.toLowerCase()] || DEFAULT_LOCALE;
+}
 
 function hostOf(url) {
   try {
