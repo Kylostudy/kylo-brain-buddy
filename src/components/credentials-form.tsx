@@ -114,32 +114,41 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
   }, [status?.exists, status?.platform, status?.username, status?.proxyId]);
 
   async function handleSave() {
-    if (!platform) {
-      toast.error("Válassz platformot.");
-      return;
-    }
-    if (!username.trim()) {
-      toast.error("Felhasználónév kötelező.");
-      return;
-    }
-    if (!password && !cookie && !status?.hasPassword && !status?.hasCookie) {
-      toast.error("Adj meg jelszót vagy mentett cookie-t.");
-      return;
+    // Csak-proxy mentés: ha nincs platform / username / jelszó / cookie, de proxy be van állítva → OK.
+    const onlyProxy =
+      !platform && !username.trim() && !password && !cookie && proxyId;
+
+    if (!onlyProxy) {
+      // Ha bármelyik fiókmező ki van töltve, kérjük be a teljes minimumot.
+      if (!platform) {
+        toast.error("Válassz platformot (vagy hagyj mindent üresen és csak proxyt ments).");
+        return;
+      }
+      if (!username.trim()) {
+        toast.error("Felhasználónév kötelező (vagy hagyj mindent üresen és csak proxyt ments).");
+        return;
+      }
+      if (!password && !cookie && !status?.hasPassword && !status?.hasCookie) {
+        toast.error("Adj meg jelszót vagy mentett cookie-t.");
+        return;
+      }
     }
     setSaving(true);
     try {
       await callSave({
         data: {
           workflowId,
-          platform,
-          username: username.trim(),
+          platform: platform || undefined,
+          username: username.trim() || undefined,
           password: password || undefined,
           cookie: cookie || undefined,
           totpSecret: totp || undefined,
           proxyId: proxyId ? proxyId : proxyId === "" && status?.proxyId ? null : undefined,
         },
       });
-      toast.success("Hozzáférés titkosítva mentve.");
+      toast.success(
+        onlyProxy ? "Proxy titkosítva mentve." : "Hozzáférés titkosítva mentve.",
+      );
       setPassword("");
       setCookie("");
       setTotp("");
@@ -151,6 +160,7 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
       setSaving(false);
     }
   }
+
 
 
   async function handleDelete() {
