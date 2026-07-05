@@ -68,6 +68,8 @@ async function runSannysoft(page, log) {
           /fail|red/i.test(cls) ||
           /rgb\(2[45]\d,\s*\d+,\s*\d+\)/.test(bg) // piros-ish
         );
+        out.push({ name, result, failed });
+      });
     });
     return out;
   });
