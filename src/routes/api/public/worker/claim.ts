@@ -214,12 +214,22 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         // Determinisztikusan generált UA/viewport/locale/timezone — így egy
         // fiók mindig "ugyanarról a gépről" jelentkezik be. Csak akkor
         // generálunk, ha a spec-ben nincs kézzel felülírva.
+        // ---- Böngésző-fingerprint kiválasztása ----------------------------
+        // 1) Ha a proxyhoz van FIX rendelt fingerprint → azt használjuk
+        //    (1 IP = 1 virtuális ember, több workflow ugyanaz).
+        // 2) Ha nincs, workflow-onként determinisztikusan generálunk (régi
+        //    viselkedés kompatibilitás).
+        // 3) Ha a spec-ben már meg van adva kézzel, azt tartjuk meg.
         if (!specWithFlags.fingerprint) {
-          const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
-          specWithFlags.fingerprint = generateWorkflowFingerprint(
-            claimed.workflow_id,
-            proxy?.expectedCountry ?? null,
-          );
+          if (proxyFingerprint) {
+            specWithFlags.fingerprint = proxyFingerprint;
+          } else {
+            const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
+            specWithFlags.fingerprint = generateWorkflowFingerprint(
+              claimed.workflow_id,
+              proxy?.expectedCountry ?? null,
+            );
+          }
         }
 
 
