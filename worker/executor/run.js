@@ -22,6 +22,7 @@ const chromium = _chromium;
 import { runTikTok } from "./scripts/tiktok.js";
 import { runDecathlonStock } from "./scripts/decathlon-stock.js";
 import { runBotSmokeTest } from "./scripts/bot-smoke-test.js";
+import { runLoggedOutWarmup } from "./scripts/logged-out-warmup.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 import {
   isBrainTask,
@@ -405,6 +406,12 @@ async function main() {
       result = await runDecathlonStock({ page, spec, log });
     } else if (monitorType === "bot-smoke-test" || monitorType === "smoke") {
       result = await runBotSmokeTest({ page, spec, log });
+    } else if (
+      monitorType === "logged-out-warmup" ||
+      monitorType === "warmup" ||
+      spec.monitor_type === "logged-out-warmup"
+    ) {
+      result = await runLoggedOutWarmup({ page, context, spec, log });
     } else {
       log("warn", `Típus "${monitorType}" még nincs implementálva — demo.`);
       await page.goto("https://example.com", { waitUntil: "domcontentloaded" });

@@ -1,90 +1,82 @@
-# Workflow Teszt futtatás + whoer.net preflight
+# Kijelentkezett warmup — terv
 
 ## Cél
+A négy NL workflow (LinkedIn / Instagram / Pinterest / TikTok) mindegyike egy 30–60 perces "civil böngészés" futtatással indul. A böngésző emberi módon járkál holland oldalakon (hírek, időjárás, Google.nl, wiki stb.), sütiket gyűjt, és a végén ezeket a sütiket elmenti a workflow "sütitárába". A célplatform (linkedin.com, instagram.com, tiktok.com, pinterest.com) URL-je **fekete listán** van — a script akkor sem lép rá, ha valaki linket kattint oda.
 
-A workflow oldalon egy **Teszt futtatás** gomb elindítja a teljes flow-t
-a finn VPS-en. A flow legelső lépése kötelezően a **whoer.net preflight**:
-a böngésző a kijelölt proxyn keresztül megnyitja a whoer.net-et, kiolvassa
-a valódi kimenő IP-t, az országot és a várost, és összeveti azzal, amit a
-proxynál elvárunk. Ha nem stimmel, a run azonnal `failed` státusszal
-leáll, és a TikTok / Pinterest **meg sem nyílik**.
+Ugyanaz a script mind a négyen — a proxy, fingerprint és a mentett sütitár különbözik.
 
-## Felhasználói folyamat
+## Mit lát a felhasználó
+1. Az érintett workflow specjében megjelenik: típus = `logged-out-warmup`, cél-platform, várható időtartam, forgatókönyv-oldalak listája (szerkeszthető).
+2. "Indítás" gomb ugyanúgy működik, mint eddig — a Runs panelen élőben látszik, hogy épp melyik oldalon van, hány sütit gyűjtött.
+3. A futás után a workflow "sütitárában" számol egy badge: pl. "142 süti · 12 domain".
+4. A négy workflow párhuzamosan is indítható, mert külön VPS worker-slotot használnak.
 
-1. Workflow oldalon a Spec panelben proxy kiválasztva (pl. Amsterdam ISP).
-2. "Teszt futtatás" gomb megnyomva.
-3. Rendszer létrehoz egy runt `queued` státusszal, a finn VPS elkapja.
-4. Böngésző elindul a proxyval, megnyitja a `https://whoer.net/`-et.
-5. Kiolvassa az IP-t, országot, várost, gateway országot.
-6. Összeveti a proxy `country` mezőjével (pl. `NL`).
-7. **Eltérés esetén**: run `failed`, hibaüzenet a UI-ban ("Elvárt NL, kapott FI"),
-   böngésző bezárul, semmi más nem történik.
-8. **Egyezés esetén**: preflight `ok`, a workflow folytatódik a cookie-k
-   betöltésével és a felvett lépések lejátszásával.
-9. Az UI mutatja a preflight eredményt (whoer screenshot + IP/ország/város).
+## Forgatókönyv egy futásra
+- Belépés `google.nl`-lel, cookie banner kezelése (Elfogadás / bezárás emberi módon).
+- Véletlenszerű holland kereső-kifejezés (időjárás, focimeccs, recept, hírek).
+- Kiválaszt egy találatot a listából (nem az első — kisebb súllyal az első kettő).
+- Az adott oldalon: 20–90 mp olvasás, görgetés, 0–2 belső link kattintás, néha visszalépés.
+- Vissza `google.nl`-re vagy át egy másik "portál" oldalra (`nu.nl`, `nos.nl`, `buienradar.nl`, `marktplaats.nl`, `funda.nl`, `wikipedia.org/wiki/Nederland` stb.).
+- Ismétlés, amíg a teljes idő le nem telik.
+- Végig `humanize.js` (Poisson időzítés, kurzor overshoot, néha misclick + javítás — a memóriában rögzített szabály szerint).
 
-## Mit építek
+## Feketelista
+Minden navigáció előtt szűrünk. Ha az URL host-ja tartalmazza:
+`linkedin.com`, `instagram.com`, `tiktok.com`, `pinterest.com`, `facebook.com`, `x.com`, `twitter.com` — a lépést eldobjuk és másik linket választunk. Ez akkor is véd, ha egy hírportál social embed-je odalinkelne.
 
-### 1. Adatbázis migráció
-- `workflow_runs` tábla (ha még nincs playback runs tábla): `id, workflow_id,
-  tenant_id, status, proxy_id, preflight_result jsonb, error text,
-  created_at, started_at, completed_at`.
-- Ha van már megfelelő tábla (`audit_workflow_runs` / `brain_workflow_runs`),
-  azt bővítem a `preflight_result` és `proxy_id` mezőkkel.
-- RLS + GRANT a tenant-hez.
+## Süti-életciklus
+- **Futás elején**: ha a workflow-nak van már mentett sütitára, injektáljuk a Playwright kontextusba (folytatólagos melegítés).
+- **Futás alatt**: a böngésző természetesen gyűjt (nem nyúlunk hozzá).
+- **Futás végén**: `context.cookies()` → titkosítva visszaírjuk a workflow-hoz. Így a következő futás onnan folytatja, és később, amikor tényleg belépünk a platformra, ez a "kikoptatott" böngésző lép be, nem szűz.
 
-### 2. Server function: `startWorkflowRun`
-- `src/lib/runs.functions.ts` (vagy új `test-run.functions.ts`).
-- `requireSupabaseAuth` middleware.
-- Létrehoz egy `queued` runt a workflow-hoz, kiválasztott proxy-val.
-- Visszaadja a run ID-t.
+## Technikai részletek (fejlesztőknek)
 
-### 3. UI: "Teszt futtatás" gomb
-- `src/routes/_authenticated.w.$workflowId.tsx` vagy `spec-panel.tsx`.
-- Egy nagy Play gomb a proxy választó alatt.
-- Csak akkor aktív, ha van proxy hozzárendelve.
-- Kattintás után: toast + real-time státusz frissítés (queued → preflight → running → done/failed).
-- Preflight eredmény doboz: IP, ország, város, screenshot thumbnail.
+### Új worker script
+`worker/executor/scripts/logged-out-warmup.js` — export `runLoggedOutWarmup({ page, context, spec, log })`.
 
-### 4. Worker executor bővítés
-- A recorder helyett a `worker/executor/run.js` (playback) kap preflight fázist.
-- Új függvény `whoerPreflight(page, expectedCountry)`:
-  - `page.goto('https://whoer.net/', { waitUntil: 'networkidle' })`
-  - Kiolvassa a DOM-ból: IP (`.your-ip .num`), Country (`.your-country .value`),
-    City, Gateway country.
-  - Screenshot mentése.
-  - Ha `country !== expectedCountry` → dob egy `PreflightMismatchError`-t.
-- A worker a preflight eredményt (JSON + screenshot base64) visszaküldi a
-  Brain-nek a `record-status` / új `run-status` endpoint-on.
-- Csak sikeres preflight után folytatódik a cookie load + recorded actions.
+Spec mezők (mind opcionális, van default):
+- `duration_min` (alap: 45)
+- `sites`: portál lista (alap: `["google.nl","nu.nl","nos.nl","buienradar.nl","weer.nl","ad.nl","marktplaats.nl","funda.nl","wikipedia.org"]`)
+- `search_queries`: NL kifejezések (alap: 20 elemes lista, időjárás/hírek/recept/sport)
+- `target_platform`: csak címke a UI-nak (`linkedin` | `instagram` | `pinterest` | `tiktok`)
+- `blacklist_hosts`: alap-lista + custom
+- `min_dwell_sec` / `max_dwell_sec` oldalanként (alap: 20 / 90)
 
-### 5. Új public endpoint
-- `POST /api/public/worker/run-claim` — playback runt igényel.
-- `POST /api/public/worker/run-status` — státusz + preflight eredmény
-  frissítése.
-- Ugyanaz a `WORKER_API_TOKEN` bearer auth, mint a recorder-nél.
+Return shape: `{ duration_sec, pages_visited, cookies_collected, domains, blacklist_blocks }`.
 
-## Technikai részletek
+### run.js elágazás
+`worker/executor/run.js` ~406. sor táján új ág: `else if (monitorType === "logged-out-warmup")` → `runLoggedOutWarmup(...)`.
 
-- **whoer.net parsing**: az oldal HTML-ből kiszedhető szelektorokkal; ha a
-  weboldal változik, a script tolerálja (fallback: page.content() regex).
-- **Timeout**: preflight max 30 mp; ezután automatikus fail.
-- **Nincs 3rd-party API kulcs** — whoer publikus weboldal, ingyenes.
-- **Cookie hardening**: `--disable-blink-features=AutomationControlled` +
-  stealth plugin már megvan a workerben.
+### Süti persistálás
+Brain oldalon a `/api/public/worker/complete` már ír `result`-ot. Kiegészítjük: ha a result-ban van `cookies_export`, azt titkosítjuk (`src/lib/credentials/crypto.server.ts`) és beírjuk a `workflow_credentials.cookie_ciphertext` mezőbe (workflow_id-ra). Ha még nincs sor a workflow-hoz, létrehozzuk egy "warmup" ál-platformmal (`username: 'warmup-jar'`), hogy a meglévő credential-modellt ne kelljen bántani.
 
-## Mit NEM építek most
+Betöltés a run indításkor: `startRun` már átadja a `hasCredentials`-t, és a worker `claim` endpoint már küld cookie-t. Kiterjesztjük, hogy warmup runnál a cookie-t akkor is átadja, ha nincs "igazi" login credential (csak sütitár).
 
-- Nem cserélem le a meglévő recorder flow-t.
-- Nem indítok éles TikTok/Pinterest feltöltést — csak a preflight + a
-  felvett lépések replay-e.
-- Nem építek külön "Teszt proxy" gombot a Proxy oldalra (nem kell).
-- Kylogic időzítés-integráció külön lépés, később.
+### UI változás
+`spec-panel.tsx` — új sor: "Sütitár állapota" (X süti · Y domain · utoljára frissítve). A `CredentialsForm` fölé kerül, mert a warmup nem igényel jelszót.
 
-## Elfogadási kritérium
+### A négy workflow specjének feltöltése
+Egyszeri művelet a chat vagy egy kis migrációs seed által:
+```
+NL Linkedin    → type: logged-out-warmup, target_platform: linkedin,  duration_min: 45
+NL Instagram   → type: logged-out-warmup, target_platform: instagram, duration_min: 45
+NL Pinterest   → type: logged-out-warmup, target_platform: pinterest, duration_min: 45
+NL TikTok      → type: logged-out-warmup, target_platform: tiktok,    duration_min: 45
+```
 
-- Workflow oldalon látszik a Teszt gomb.
-- Nyomásra 5–15 mp-en belül megjelenik a whoer.net screenshot + IP-adatok.
-- Ha az amszterdami ISP proxy jól van beállítva → preflight `ok` (NL).
-- Ha véletlenül nincs proxy vagy rossz proxy → preflight `failed` látható
-  hibaüzenettel, és a workflow lépések **nem** futnak le.
+## Kockázatok / amit tudni kell
+- **Cookie banner-ek**: minden portálon más. Első körben egy kis "gyakori gombok" heurisztika (`Accepteren`, `Alles accepteren`, `Akkoord`); ha nem találja, elrejti a banner-t CSS-ből és megy tovább — nem áll meg emiatt.
+- **YouTube-ot nem tesszük a listára**, mert az `HU YouTube` workflow miatt egyértelműség kedvéért különítjük.
+- **Nagyon hosszú futás (60+ perc)** a VPS worker slot-ot foglalja. Négyet párhuzamosan futtatva 4 slot kell — ha most csak 1-2 van, sorosítva fut. Ez rendben van, csak jelzem.
+- **Fingerprint az első warmup-nál még "szűz"**: a proxy IP-t azonban ez már "használtnak" mutatja a második futásra. Ez a szándék.
+
+## Amit NEM csinálunk ebben a körben
+- Semmilyen belépés, regisztráció, kattintás social platformon.
+- Nem mentünk el jelszót/2FA-t — warmup-nak nincs rá szüksége.
+- Nem futtatunk Matrix / metrics snapshot-ot, amíg a warmup nem produkált értelmes sütitárat legalább 2–3 körön keresztül.
+
+## Következő lépés a jóváhagyás után
+1. Script megírása + run.js elágazás.
+2. Cookie persistálás worker/complete oldalon.
+3. Négy workflow specjének feltöltése.
+4. Egyet indítunk élesben (mondjuk NL Instagram), megnézzük a logot + a sütiszámot; ha rendben, a másik hármat is elindítjuk.

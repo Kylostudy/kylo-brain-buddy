@@ -67,10 +67,20 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         );
         const sb = supabaseAdmin as ReturnType<typeof createClient<Database>>;
 
+        // A cookies_export nagy blob (akár több száz KB) — a brain_workflow_runs.result-ba
+        // csak a slim változatot mentjük; a valódi süti-tár titkosítva megy a
+        // workflow_credentials-be lentebb.
+        const slimResult =
+          parsed.result && typeof parsed.result === "object"
+            ? Object.fromEntries(
+                Object.entries(parsed.result).filter(([k]) => k !== "cookies_export"),
+              )
+            : parsed.result ?? null;
+
         const update: Record<string, unknown> = {
           status: parsed.status,
           logs: parsed.logs as never,
-          result: (parsed.result ?? null) as never,
+          result: slimResult as never,
           error: parsed.error ?? null,
           finished_at: new Date().toISOString(),
         };
@@ -91,6 +101,48 @@ export const Route = createFileRoute("/api/public/worker/complete")({
             status: 500,
             headers: { "content-type": "application/json" },
           });
+
+        // Warmup cookie-jar persist — ha a worker `cookies_export`-tal tért vissza,
+        // titkosítva beírjuk a workflow_credentials.cookie_ciphertext mezőbe.
+        // Fontos: a workflows.tenant_id-t használjuk (RLS + NOT NULL a credentials-en).
+        try {
+          const res = parsed.result as { cookies_export?: unknown } | null;
+          const cookiesExport =
+            res && typeof res.cookies_export === "string" ? res.cookies_export : null;
+          if (parsed.status === "succeeded" && cookiesExport && runRow?.id) {
+            const { data: runFull } = await sb
+              .from("brain_workflow_runs")
+              .select("workflow_id, tenant_id")
+              .eq("id", parsed.runId)
+              .maybeSingle();
+            if (runFull?.workflow_id && runFull.tenant_id) {
+              const { encryptString } = await import(
+                "@/lib/credentials/crypto.server"
+              );
+              const { ciphertext, nonce } = await encryptString(cookiesExport);
+
+              const { data: existing } = await sb
+                .from("workflow_credentials")
+                .select("id, platform, username")
+                .eq("workflow_id", runFull.workflow_id)
+                .maybeSingle();
+
+              const payload = {
+                workflow_id: runFull.workflow_id,
+                tenant_id: runFull.tenant_id,
+                platform: existing?.platform ?? "warmup",
+                username: existing?.username ?? "warmup-jar",
+                cookie_ciphertext: ciphertext,
+                cookie_nonce: nonce,
+              };
+              await sb
+                .from("workflow_credentials")
+                .upsert(payload as never, { onConflict: "workflow_id" });
+            }
+          }
+        } catch (e) {
+          console.error("warmup cookie persist error", e);
+        }
 
         // Monitor workflow utófeldolgozás (Decathlon stb.) — később bővül.
         try {
