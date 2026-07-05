@@ -139,6 +139,7 @@ export function SpecPanel({ workflowId }: { workflowId: string }) {
           })}
         </div>
 
+        <CookieJarBadge workflowId={workflowId} />
         <CredentialsForm workflowId={workflowId} />
         <RunsPanel workflowId={workflowId} />
       </div>
