@@ -230,7 +230,7 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
     <div className="border-t px-4 py-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Fiók hozzáférés
+          Fiók & proxy
         </h2>
         {exists && (
           <button
