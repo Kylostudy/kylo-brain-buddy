@@ -94,9 +94,9 @@ function isBlacklisted(url, extra = []) {
   return list.some((b) => h === b || h.endsWith("." + b));
 }
 
-async function tryCloseCookieBanner(page, log) {
+async function tryCloseCookieBanner(page, cookieAcceptTexts, log) {
   try {
-    for (const rx of COOKIE_ACCEPT_TEXTS) {
+    for (const rx of cookieAcceptTexts) {
       const btn = page.getByRole("button", { name: rx }).first();
       if (await btn.count().catch(() => 0)) {
         await humanClick(page, btn, { timeout: 3000 }).catch(() => {});
@@ -108,7 +108,7 @@ async function tryCloseCookieBanner(page, log) {
     const frames = page.frames();
     for (const f of frames) {
       if (!/consent/i.test(f.url())) continue;
-      for (const rx of COOKIE_ACCEPT_TEXTS) {
+      for (const rx of cookieAcceptTexts) {
         const b = f.getByRole("button", { name: rx }).first();
         if (await b.count().catch(() => 0)) {
           await b.click({ timeout: 3000 }).catch(() => {});
