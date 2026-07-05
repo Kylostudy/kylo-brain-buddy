@@ -151,12 +151,36 @@ async function whoerPreflight(context, expectedCountry) {
       out.screenshot_b64 = buf.toString("base64");
     } catch {}
 
+    // Fallback: ha a whoer.net UI-ból nem tudtuk kiolvasni az országot
+    // (a HTML struktúrája időnként változik), lekérjük ugyanazon a proxyn
+    // keresztül egy megbízható JSON API-ból. Ugyanez az IP, ugyanaz a proxy.
+    if (!out.country_code || !out.ip) {
+      try {
+        const json = await page.evaluate(async () => {
+          try {
+            const r = await fetch("https://ipapi.co/json/", { cache: "no-store" });
+            if (!r.ok) return null;
+            return await r.json();
+          } catch {
+            return null;
+          }
+        });
+        if (json) {
+          out.ip = out.ip || json.ip || null;
+          out.country_code =
+            out.country_code || (json.country_code ? String(json.country_code).toUpperCase() : null);
+          out.country = out.country || json.country_name || json.country || null;
+          out.city = out.city || json.city || null;
+        }
+      } catch {}
+    }
+
     // Egyeztetés
     if (expectedCountry) {
       const seen = (out.country_code || "").toUpperCase();
       const exp = expectedCountry.toUpperCase();
       if (!seen) {
-        out.error = `Nem sikerült kiolvasni az országot a whoer.net-ről (elvárt: ${exp}).`;
+        out.error = `Nem sikerült kiolvasni az országot (elvárt: ${exp}). IP: ${out.ip ?? "?"}`;
       } else if (seen !== exp) {
         out.error = `IP ország eltérés — elvárt: ${exp}, kapott: ${seen}${out.city ? " (" + out.city + ")" : ""}. Rossz proxy / szivárog a valódi IP.`;
       } else {
