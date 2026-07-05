@@ -287,7 +287,7 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
     visitedDomains.add(hostOf(landingUrl));
 
     await humanWait(page, 900);
-    await tryCloseCookieBanner(page, log);
+    await tryCloseCookieBanner(page, cookieAcceptTexts, log);
     await browsePage(page, log);
 
     // Belső kattintás 0-2 közötti mélységre
