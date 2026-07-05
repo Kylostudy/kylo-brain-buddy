@@ -90,46 +90,59 @@ async function runSannysoft(page, log) {
 async function runCreepJS(page, log) {
   log("info", "CreepJS: navigálás abrahamjuliot.github.io/creepjs…");
   await page.goto(SITES.creepjs, { waitUntil: "domcontentloaded", timeout: 60000 });
-  // A CreepJS nagyon lassan számol — a trust score gyakran csak 40-60 mp után
-  // jelenik meg. Adunk neki bőven időt, közben emberi módon görgetünk.
+  // A CreepJS lassan számol — adjunk neki bőven időt, közben emberi módon görgetünk.
   for (let i = 0; i < 6; i++) {
     await humanCasualScroll(page, { rounds: 2 });
     await humanWait(page, 10000);
   }
-  // Végül várjuk meg konkrétan a "trust score" szöveget (max 60 mp).
+  // Várjuk meg amíg az FP ID megjelenik — az a jel, hogy készen van a mérés.
   try {
     await page.waitForFunction(
-      () => /trust\s*score/i.test(document.body?.innerText || ""),
+      () => /FP\s*ID/i.test(document.body?.innerText || ""),
       { timeout: 60000 },
     );
   } catch {
-    log("warn", "CreepJS: 'trust score' szöveg nem jelent meg a várt időben — folytatjuk a kiolvasással.");
+    log("warn", "CreepJS: 'FP ID' nem jelent meg a várt időben — folytatjuk a kiolvasással.");
   }
   await humanWait(page, 3000);
 
-
   const data = await page.evaluate(() => {
     const bodyText = document.body ? document.body.innerText : "";
-    // "Trust Score: 72.5% (Good)" — több formátumot kereskedünk
-    const scoreMatch = bodyText.match(/trust\s*score[^\d\-]*(-?\d+(?:\.\d+)?)/i);
-    const label = bodyText.match(/trust\s*score[^\n]*/i)?.[0] || null;
-    const lies = bodyText.match(/lies:?\s*(\d+)/i)?.[1] || null;
+    // A CreepJS ezeket írja ki (nem "trust score"):
+    //   "94% like headless", "100% headless", "0% stealth", "lies: N"
+    const likeHeadless = bodyText.match(/(\d+(?:\.\d+)?)\s*%\s*like\s*headless/i)?.[1];
+    const headless = bodyText.match(/(\d+(?:\.\d+)?)\s*%\s*headless(?!\s*like)/i)?.[1];
+    const stealth = bodyText.match(/(\d+(?:\.\d+)?)\s*%\s*stealth/i)?.[1];
+    const lies = bodyText.match(/lies:?\s*(\d+)/i)?.[1];
+    const fpId = bodyText.match(/FP\s*ID:\s*([a-f0-9]+)/i)?.[1] || null;
     return {
-      trust_score: scoreMatch ? parseFloat(scoreMatch[1]) : null,
-      label,
+      headless_pct: headless ? parseFloat(headless) : null,
+      like_headless_pct: likeHeadless ? parseFloat(likeHeadless) : null,
+      stealth_pct: stealth ? parseFloat(stealth) : null,
       lies: lies ? parseInt(lies, 10) : null,
+      fp_id: fpId,
     };
   });
 
-  const ok = data.trust_score !== null && data.trust_score >= 60 && (data.lies ?? 0) < 3;
-  log("info", `CreepJS: trust=${data.trust_score}, lies=${data.lies}`);
+  // Zöld feltétel: FP ID megvan, headless < 30%, hazugságok < 3.
+  const ok =
+    data.fp_id !== null &&
+    data.headless_pct !== null &&
+    data.headless_pct < 30 &&
+    (data.lies ?? 0) < 3;
+  log(
+    "info",
+    `CreepJS: headless=${data.headless_pct}%, like_headless=${data.like_headless_pct}%, stealth=${data.stealth_pct}%, lies=${data.lies}, fp=${data.fp_id ? data.fp_id.slice(0, 8) : "null"}`,
+  );
   return {
     name: "creepjs",
     url: SITES.creepjs,
     ok,
-    trust_score: data.trust_score,
-    trust_label: data.label,
+    headless_pct: data.headless_pct,
+    like_headless_pct: data.like_headless_pct,
+    stealth_pct: data.stealth_pct,
     lies: data.lies,
+    fp_id: data.fp_id,
     screenshot_b64: await shot(page),
   };
 }
