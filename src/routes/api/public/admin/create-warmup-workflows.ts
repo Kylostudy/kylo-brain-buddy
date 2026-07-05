@@ -85,7 +85,7 @@ export const Route = createFileRoute("/api/public/admin/create-warmup-workflows"
         for (const p of sorted) {
           const country = (p.country || "").toUpperCase();
           const label = COUNTRY_LABELS[country] || country;
-          const name = `Warmup — ${label} (${country})`;
+          const name = `${label} (${country}) — Warmup`;
 
           // Idempotens: már létezik-e warmup workflow ehhez a proxyhoz?
           const { data: existing } = await supabaseAdmin
