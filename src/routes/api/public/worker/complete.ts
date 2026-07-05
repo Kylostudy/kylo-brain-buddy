@@ -204,6 +204,36 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           console.error("warmup cookie persist error", e);
         }
 
+        // Warmup ütemezés megújítása — ha ez egy warmup run volt (spec.is_warmup),
+        // beállítjuk a következő futást ~7 nap múlvára (6-8 nap random),
+        // és feloldjuk a running jelzőt a proxyn.
+        try {
+          const { data: runFull } = await sb
+            .from("brain_workflow_runs")
+            .select("proxy_id, spec_snapshot")
+            .eq("id", parsed.runId)
+            .maybeSingle();
+          const spec = (runFull?.spec_snapshot ?? {}) as Record<string, unknown>;
+          const isWarmup = spec.is_warmup === true;
+          if (isWarmup && runFull?.proxy_id) {
+            const daysFromNow = 6 + Math.random() * 2; // 6-8 nap
+            const hourJitter = 9 + Math.random() * 11; // 9-20 óra UTC-ben (elég közel a nappalhoz)
+            const next = new Date(Date.now() + daysFromNow * 86400 * 1000);
+            next.setUTCHours(Math.floor(hourJitter), Math.floor(Math.random() * 60), 0, 0);
+
+            await sb
+              .from("proxies")
+              .update({
+                warmup_running_at: null,
+                warmup_last_run_at: new Date().toISOString(),
+                warmup_next_scheduled_at: next.toISOString(),
+              })
+              .eq("id", runFull.proxy_id);
+          }
+        } catch (e) {
+          console.error("warmup reschedule error", e);
+        }
+
         // Monitor workflow utófeldolgozás (Decathlon stb.) — később bővül.
         try {
           const { handleRunCompletion } = await import(
