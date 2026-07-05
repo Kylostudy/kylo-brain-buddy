@@ -332,13 +332,18 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
                                 : ""}
                             </div>
                           )}
-                          {c.trust_score != null && (
+                          {c.headless_pct != null && (
                             <div>
                               <span className="text-muted-foreground">
-                                Trust score:{" "}
+                                Headless:{" "}
                               </span>
-                              {c.trust_score}%
-                              {c.trust_label ? ` — ${c.trust_label}` : ""}
+                              {c.headless_pct}%
+                              {c.like_headless_pct != null
+                                ? ` · like headless: ${c.like_headless_pct}%`
+                                : ""}
+                              {c.stealth_pct != null
+                                ? ` · stealth: ${c.stealth_pct}%`
+                                : ""}
                             </div>
                           )}
                           {c.lies != null && (
@@ -349,12 +354,23 @@ export function RunsPanel({ workflowId }: { workflowId: string }) {
                               {c.lies}
                             </div>
                           )}
-                          {c.trust_score == null &&
+                          {c.fp_id && (
+                            <div className="truncate">
+                              <span className="text-muted-foreground">
+                                FP ID:{" "}
+                              </span>
+                              <span className="font-mono text-[10px]">
+                                {c.fp_id.slice(0, 16)}…
+                              </span>
+                            </div>
+                          )}
+                          {c.headless_pct == null &&
                             c.name === "creepjs" &&
                             !c.error && (
                               <div className="text-amber-600">
-                                A CreepJS nem tudta időben kiszámolni a trust
-                                score-t (timeout). A screenshot elmentődött.
+                                A CreepJS nem tudta időben kiszámolni a
+                                fingerprint értékeket (timeout). A screenshot
+                                elmentődött.
                               </div>
                             )}
                           {c.red_flags && c.red_flags.length > 0 && (
