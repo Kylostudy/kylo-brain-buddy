@@ -84,6 +84,14 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
     queryFn: () => callListProxies({ data: undefined as never }),
   });
 
+  const callCookieJar = useServerFn(getCookieJarStatus);
+  const { data: cookieJar } = useQuery({
+    queryKey: ["cookie-jar", workflowId],
+    queryFn: () => callCookieJar({ data: { workflowId } }),
+  });
+  const jarCountry = cookieJar?.country ?? null;
+  const jarLocked = !!cookieJar?.locked;
+
   // Workflow váltáskor minden mezőt üríts — új workflow = üres form.
   useEffect(() => {
     setOpen(false);
