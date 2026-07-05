@@ -43,16 +43,24 @@ function emitPreflight(payload) {
 }
 
 function finish(status, result = null, error = null) {
-  process.stdout.write(
+  const line =
     JSON.stringify({
       ts: new Date().toISOString(),
       final: true,
       status,
       result,
       error,
-    }) + "\n",
-  );
-  process.exit(status === "succeeded" ? 0 : 1);
+    }) + "\n";
+  // FONTOS: process.stdout.write ASYNC egy pipe-on. Nagy base64 payloadnál
+  // (bot-smoke-test screenshotok) a puffer nem ürül ki, mielőtt process.exit()
+  // megölné a folyamatot — így a final rekord elveszne. Megvárjuk a flush-t.
+  const code = status === "succeeded" ? 0 : 1;
+  const doExit = () => process.exit(code);
+  const ok = process.stdout.write(line, () => doExit());
+  if (!ok) {
+    // A stream tele van; várunk a drain-re, aztán a callback amúgy is lefut.
+    process.stdout.once("drain", doExit);
+  }
 }
 
 // ---- whoer.net preflight ----
