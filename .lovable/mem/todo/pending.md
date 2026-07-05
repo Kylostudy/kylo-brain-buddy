@@ -4,15 +4,23 @@ description: Még el nem végzett, de a felhasználó által megrendelt feladato
 type: feature
 ---
 
-## Megcsinálandó
+## Következő napok feladatai (visszatartva)
 
-1. **LinkedIn metrics_snapshot BEFEJEZÉSE** — holnap folytatás friss cookie-val (lásd [LinkedIn holnap](mem://todo/linkedin-tomorrow)). NEM ELFELEJTENI, mielőtt más platformra ugranánk véglegesen.
-2. **Privacy Policy oldal** — a Brain publikus oldalához kell.
-3. **Security / Trust oldal** — adatkezelési és biztonsági nyilatkozat.
-4. **Magyar IP / proxy beszerzése** — a jelenlegi IPRoyal nem magyar; FB/TikTok HU fiókokhoz magyar lakossági IP kell. (Felhasználói feladat, nem fejlesztési.)
-5. **Kai Logic ↔ Kylo Brain integráció** — lásd külön memória.
-6. **Kubernetes VPS kezelés** — hosszú távú feladat: a recorder és egyéb szolgáltatások Kubernetes alapú orchestrációja a jelenlegi docker compose helyett/skálázhatóság érdekében.
+1. **LinkedIn Matrix beállítás** (metrics_snapshot befejezése — friss cookie-val).
+2. **TikTok Matrix beállítás**.
+3. **Pinterest Matrix beállítás**.
+4. **Facebook** integráció / feltöltési workflow.
+5. **YouTube** integráció / feltöltési workflow.
+6. **Metrikák** (cross-platform analytics: követő szám, engagement, stb.).
+
+## Egyéb korábbi tételek
+
+- **Privacy Policy oldal** — a Brain publikus oldalához kell.
+- **Security / Trust oldal** — adatkezelési és biztonsági nyilatkozat.
+- **Magyar IP / proxy beszerzése** — a jelenlegi IPRoyal nem magyar; FB/TikTok HU fiókokhoz magyar lakossági IP kell. (Felhasználói feladat.)
+- **Kai Logic ↔ Kylo Brain integráció** — lásd külön memória.
+- **Kubernetes VPS kezelés** — hosszú távú: recorder és egyéb szolgáltatások Kubernetes alapú orchestrációja a docker compose helyett.
 
 ## Háttér
-- Felhasználónak van Amsterdam VPS-e, onnan IPRoyal ISP proxyval FB/TikTok login korábban működött.
-- Jelenleg a videófeltöltést Kai Logic + GCS + AirShare csinálja; a Brain hivatott ezt kiváltani.
+- Videógyártás jelenleg Kai Logic + eresen fut (19-éig él); a Brain feltöltés még nem sürgős.
+- 12/12 warmup ország heti rotációban fut, IP-nként 45 perc, 6-8 nap random cadence.
