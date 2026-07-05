@@ -262,8 +262,8 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
     let landingUrl;
     if (Math.random() < 0.4) {
       const q = queries[Math.floor(Math.random() * queries.length)];
-      log("info", `Google.nl keresés: "${q}"`);
-      landingUrl = await googleSearchAndClick(page, q, extraBlocked, log);
+      log("info", `Google keresés (${googleDomain}): "${q}"`);
+      landingUrl = await googleSearchAndClick(page, q, googleDomain, cookieAcceptTexts, extraBlocked, log);
       if (landingUrl) {
         if (isBlacklisted(landingUrl, extraBlocked)) {
           log("warn", `Feketelistás találat kihagyva: ${hostOf(landingUrl)}`);
