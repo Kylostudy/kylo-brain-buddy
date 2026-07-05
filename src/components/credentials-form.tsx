@@ -15,6 +15,7 @@ import {
 } from "@/lib/credentials.functions";
 import { previewTotp } from "@/lib/totp.functions";
 import { listProxies } from "@/lib/proxies.functions";
+import { getCookieJarStatus } from "@/lib/cookie-jar.functions";
 import {
   getGmailStatus,
   startGmailOAuth,
@@ -83,6 +84,14 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
     queryFn: () => callListProxies({ data: undefined as never }),
   });
 
+  const callCookieJar = useServerFn(getCookieJarStatus);
+  const { data: cookieJar } = useQuery({
+    queryKey: ["cookie-jar", workflowId],
+    queryFn: () => callCookieJar({ data: { workflowId } }),
+  });
+  const jarCountry = cookieJar?.country ?? null;
+  const jarLocked = !!cookieJar?.locked;
+
   // Workflow váltáskor minden mezőt üríts — új workflow = üres form.
   useEffect(() => {
     setOpen(false);
@@ -133,6 +142,26 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
         return;
       }
     }
+
+    // Cookie jar országellenőrzés — figyelmeztetés vagy tiltás
+    if (proxyId && jarCountry) {
+      const chosen = proxies?.find((p) => p.id === proxyId);
+      const chosenCountry = chosen?.country ?? null;
+      if (chosenCountry && chosenCountry !== jarCountry) {
+        if (jarLocked) {
+          toast.error(
+            `A cookie jar ${jarCountry}-hez van zárolva. Válassz ${jarCountry} proxyt, vagy nullázd a cookie jart.`,
+          );
+          return;
+        }
+        const ok = confirm(
+          `Figyelem: a cookie jar ${jarCountry} sütiket tartalmaz (${cookieJar?.cookies ?? 0} db). ` +
+            `${chosenCountry} proxy-val a fingerprint nem fog egyezni, és a következő futás valószínűleg letiltásba fut.\n\nBiztosan váltasz?`,
+        );
+        if (!ok) return;
+      }
+    }
+
     setSaving(true);
     try {
       await callSave({
@@ -439,22 +468,45 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
                 </button>
               </div>
             ) : (
-              <select
-                value={proxyId}
-                onChange={(e) => setProxyId(e.target.value)}
-                className="h-8 w-full rounded border bg-background px-2 text-xs"
-              >
-                <option value="">— nincs proxy —</option>
-                {(proxies ?? [])
-                  .filter((p) => p.is_active)
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                      {p.country ? ` (${p.country})` : ""}
-                      {p.provider ? ` · ${p.provider}` : ""}
-                    </option>
-                  ))}
-              </select>
+              <>
+                <select
+                  value={proxyId}
+                  onChange={(e) => setProxyId(e.target.value)}
+                  className="h-8 w-full rounded border bg-background px-2 text-xs"
+                >
+                  <option value="">— nincs proxy —</option>
+                  {(proxies ?? [])
+                    .filter((p) => p.is_active)
+                    .map((p) => {
+                      const mismatch =
+                        jarCountry && p.country && p.country !== jarCountry;
+                      const disabled = !!(mismatch && jarLocked);
+                      return (
+                        <option
+                          key={p.id}
+                          value={p.id}
+                          disabled={disabled}
+                          title={
+                            mismatch
+                              ? `A cookie jar ${jarCountry}, ez ${p.country} — nem ajánlott`
+                              : undefined
+                          }
+                        >
+                          {mismatch ? "⚠ " : ""}
+                          {p.label}
+                          {p.country ? ` (${p.country})` : ""}
+                          {p.provider ? ` · ${p.provider}` : ""}
+                          {disabled ? " — zárolva" : ""}
+                        </option>
+                      );
+                    })}
+                </select>
+                {jarCountry && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-500">
+                    Cookie jar: {jarCountry}{jarLocked ? " (zárolva)" : ""}. A ⚠-vel jelölt proxyk eltérő országúak.
+                  </p>
+                )}
+              </>
             )}
             <p className="text-[10px] text-muted-foreground/70">
               Kiválasztás után lezárva marad, hogy véletlenül ne írd át. A „módosít" gombbal oldható fel.

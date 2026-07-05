@@ -783,6 +783,10 @@ export type Database = {
       workflows: {
         Row: {
           active: boolean
+          cookie_jar_country: string | null
+          cookie_jar_locked: boolean
+          cookie_jar_stats: Json | null
+          cookie_jar_updated_at: string | null
           created_at: string
           daily_cap: number
           id: string
@@ -800,6 +804,10 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          cookie_jar_country?: string | null
+          cookie_jar_locked?: boolean
+          cookie_jar_stats?: Json | null
+          cookie_jar_updated_at?: string | null
           created_at?: string
           daily_cap?: number
           id?: string
@@ -817,6 +825,10 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          cookie_jar_country?: string | null
+          cookie_jar_locked?: boolean
+          cookie_jar_stats?: Json | null
+          cookie_jar_updated_at?: string | null
           created_at?: string
           daily_cap?: number
           id?: string

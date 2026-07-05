@@ -1,82 +1,65 @@
-# Kijelentkezett warmup — terv
 
-## Cél
-A négy NL workflow (LinkedIn / Instagram / Pinterest / TikTok) mindegyike egy 30–60 perces "civil böngészés" futtatással indul. A böngésző emberi módon járkál holland oldalakon (hírek, időjárás, Google.nl, wiki stb.), sütiket gyűjt, és a végén ezeket a sütiket elmenti a workflow "sütitárába". A célplatform (linkedin.com, instagram.com, tiktok.com, pinterest.com) URL-je **fekete listán** van — a script akkor sem lép rá, ha valaki linket kattint oda.
+# Cookie jar országvédelem
 
-Ugyanaz a script mind a négyen — a proxy, fingerprint és a mentett sütitár különbözik.
+Cél: ha egy workflow-hoz már gyűjtöttünk sütiket adott ország proxyval (pl. NL), ne lehessen véletlenül más ország proxyjával elrontani. Az NL Instagram warmup közben ez fut a háttérben — nem érintjük.
 
 ## Mit lát a felhasználó
-1. Az érintett workflow specjében megjelenik: típus = `logged-out-warmup`, cél-platform, várható időtartam, forgatókönyv-oldalak listája (szerkeszthető).
-2. "Indítás" gomb ugyanúgy működik, mint eddig — a Runs panelen élőben látszik, hogy épp melyik oldalon van, hány sütit gyűjtött.
-3. A futás után a workflow "sütitárában" számol egy badge: pl. "142 süti · 12 domain".
-4. A négy workflow párhuzamosan is indítható, mert külön VPS worker-slotot használnak.
 
-## Forgatókönyv egy futásra
-- Belépés `google.nl`-lel, cookie banner kezelése (Elfogadás / bezárás emberi módon).
-- Véletlenszerű holland kereső-kifejezés (időjárás, focimeccs, recept, hírek).
-- Kiválaszt egy találatot a listából (nem az első — kisebb súllyal az első kettő).
-- Az adott oldalon: 20–90 mp olvasás, görgetés, 0–2 belső link kattintás, néha visszalépés.
-- Vissza `google.nl`-re vagy át egy másik "portál" oldalra (`nu.nl`, `nos.nl`, `buienradar.nl`, `marktplaats.nl`, `funda.nl`, `wikipedia.org/wiki/Nederland` stb.).
-- Ismétlés, amíg a teljes idő le nem telik.
-- Végig `humanize.js` (Poisson időzítés, kurzor overshoot, néha misclick + javítás — a memóriában rögzített szabály szerint).
+1. **Cookie jar badge a workflow fejlécében**
+   ```
+   [🇳🇱 NL] Cookie jar · 47 süti · 6 domain · 12 perce
+   ```
+   Ha még nincs süti: *„Cookie jar üres"* semleges badge.
 
-## Feketelista
-Minden navigáció előtt szűrünk. Ha az URL host-ja tartalmazza:
-`linkedin.com`, `instagram.com`, `tiktok.com`, `pinterest.com`, `facebook.com`, `x.com`, `twitter.com` — a lépést eldobjuk és másik linket választunk. Ez akkor is véd, ha egy hírportál social embed-je odalinkelne.
+2. **Puha figyelmeztetés a proxy dropdown-ban (alapértelmezett)**
+   Ha a workflow cookie jar-jának országa NL, és USA proxyt választanál:
+   - A dropdownban a más országhoz tartozó proxyk sárga háromszöggel jelennek meg.
+   - Mentéskor egy megerősítő ablak: *„A cookie jar NL sütiket tartalmaz. Egy USA proxyval a fingerprint nem fog egyezni, és a következő futás valószínűleg letiltásba fut. Biztosan váltasz?"* — Mégse / Váltok.
 
-## Süti-életciklus
-- **Futás elején**: ha a workflow-nak van már mentett sütitára, injektáljuk a Playwright kontextusba (folytatólagos melegítés).
-- **Futás alatt**: a böngésző természetesen gyűjt (nem nyúlunk hozzá).
-- **Futás végén**: `context.cookies()` → titkosítva visszaírjuk a workflow-hoz. Így a következő futás onnan folytatja, és később, amikor tényleg belépünk a platformra, ez a "kikoptatott" böngésző lép be, nem szűz.
+3. **„Cookie jar védelem" kapcsoló a workflow beállításokban (kemény zár)**
+   - Alapból KI.
+   - Ha BE, a proxy dropdown csak a cookie jar országához illeszkedő proxykat mutatja. A más országúak szürkék és nem választhatók.
+   - Ha meg akarod törni: külön gomb *„Cookie jar nullázása"* → megerősítés → titkosított sütik törölve, védelem automatikusan kikapcsol.
 
-## Technikai részletek (fejlesztőknek)
+## Technikai megvalósítás
 
-### Új worker script
-`worker/executor/scripts/logged-out-warmup.js` — export `runLoggedOutWarmup({ page, context, spec, log })`.
+### Adatbázis (migráció)
+`workflows` táblához:
+- `cookie_jar_country` text — nullable, ISO country kód (pl. „NL")
+- `cookie_jar_locked` boolean default false
+- `cookie_jar_updated_at` timestamptz
+- `cookie_jar_stats` jsonb — `{ cookies: 47, domains: 6 }` (opcionális gyors megjelenítéshez)
 
-Spec mezők (mind opcionális, van default):
-- `duration_min` (alap: 45)
-- `sites`: portál lista (alap: `["google.nl","nu.nl","nos.nl","buienradar.nl","weer.nl","ad.nl","marktplaats.nl","funda.nl","wikipedia.org"]`)
-- `search_queries`: NL kifejezések (alap: 20 elemes lista, időjárás/hírek/recept/sport)
-- `target_platform`: csak címke a UI-nak (`linkedin` | `instagram` | `pinterest` | `tiktok`)
-- `blacklist_hosts`: alap-lista + custom
-- `min_dwell_sec` / `max_dwell_sec` oldalanként (alap: 20 / 90)
+### Worker complete endpoint
+`src/routes/api/public/worker/complete.ts` — amikor a `cookies_export`-ot lementi:
+1. Lekéri a run `proxy_id`-jét → a proxy `country`-ját.
+2. A workflow-ra írja: `cookie_jar_country`, `cookie_jar_updated_at = now()`, `cookie_jar_stats` (méret + egyedi domain szám a sütiken).
+3. Ha `cookie_jar_locked = true` ÉS a futott proxy országa ≠ tárolt cookie jar ország → figyelmeztetést logol, de a sütiket akkor is menti (a védelem a UI-oldali választásra vonatkozik, nem az API-ra).
 
-Return shape: `{ duration_sec, pages_visited, cookies_collected, domains, blacklist_blocks }`.
+### UI
+- **`src/components/credentials-form.tsx`** — a proxy dropdown már létezik. Kiegészítés:
+  - Load workflow cookie_jar_country és cookie_jar_locked.
+  - Dropdown item render: ha ország ≠ cookie_jar_country → sárga ikon + `title` figyelmeztetés. Ha locked, `disabled`.
+  - Mentés előtt confirm dialog, ha ország eltér és nincs lock.
+- **`src/components/workflow/*` (spec panel környék)** — új komponens: `CookieJarBadge` a fejlécbe.
+- **Cookie jar védelem kapcsoló** — a spec panelbe egy kis szekció: kapcsoló + „Cookie jar nullázása" gomb.
 
-### run.js elágazás
-`worker/executor/run.js` ~406. sor táján új ág: `else if (monitorType === "logged-out-warmup")` → `runLoggedOutWarmup(...)`.
+### Cookie jar nullázás
+Új szerver függvény `src/lib/credentials.functions.ts`-ben:
+- `clearCookieJar(workflowId)` — `workflow_credentials.cookie_ciphertext = NULL`, workflow `cookie_jar_country = NULL`, `cookie_jar_locked = false`, `cookie_jar_stats = NULL`.
+- Auth: `requireSupabaseAuth`, tenant ellenőrzés.
 
-### Süti persistálás
-Brain oldalon a `/api/public/worker/complete` már ír `result`-ot. Kiegészítjük: ha a result-ban van `cookies_export`, azt titkosítjuk (`src/lib/credentials/crypto.server.ts`) és beírjuk a `workflow_credentials.cookie_ciphertext` mezőbe (workflow_id-ra). Ha még nincs sor a workflow-hoz, létrehozzuk egy "warmup" ál-platformmal (`username: 'warmup-jar'`), hogy a meglévő credential-modellt ne kelljen bántani.
+## Építési sorrend
 
-Betöltés a run indításkor: `startRun` már átadja a `hasCredentials`-t, és a worker `claim` endpoint már küld cookie-t. Kiterjesztjük, hogy warmup runnál a cookie-t akkor is átadja, ha nincs "igazi" login credential (csak sütitár).
+1. Migráció: új mezők a `workflows` táblán.
+2. `complete.ts` — cookie jar metadata írása mentéskor.
+3. `CookieJarBadge` komponens + beillesztés a workflow fejlécbe.
+4. `credentials-form.tsx` proxy dropdown figyelmeztetés + confirm dialog.
+5. Spec panelbe kapcsoló + nullázás gomb + szerver függvény.
+6. Az NL Instagram warmup végén magától megkapja az NL címkét — nem kell semmit tenni utólag.
 
-### UI változás
-`spec-panel.tsx` — új sor: "Sütitár állapota" (X süti · Y domain · utoljára frissítve). A `CredentialsForm` fölé kerül, mert a warmup nem igényel jelszót.
+## Amit NEM változtatunk
 
-### A négy workflow specjének feltöltése
-Egyszeri művelet a chat vagy egy kis migrációs seed által:
-```
-NL Linkedin    → type: logged-out-warmup, target_platform: linkedin,  duration_min: 45
-NL Instagram   → type: logged-out-warmup, target_platform: instagram, duration_min: 45
-NL Pinterest   → type: logged-out-warmup, target_platform: pinterest, duration_min: 45
-NL TikTok      → type: logged-out-warmup, target_platform: tiktok,    duration_min: 45
-```
-
-## Kockázatok / amit tudni kell
-- **Cookie banner-ek**: minden portálon más. Első körben egy kis "gyakori gombok" heurisztika (`Accepteren`, `Alles accepteren`, `Akkoord`); ha nem találja, elrejti a banner-t CSS-ből és megy tovább — nem áll meg emiatt.
-- **YouTube-ot nem tesszük a listára**, mert az `HU YouTube` workflow miatt egyértelműség kedvéért különítjük.
-- **Nagyon hosszú futás (60+ perc)** a VPS worker slot-ot foglalja. Négyet párhuzamosan futtatva 4 slot kell — ha most csak 1-2 van, sorosítva fut. Ez rendben van, csak jelzem.
-- **Fingerprint az első warmup-nál még "szűz"**: a proxy IP-t azonban ez már "használtnak" mutatja a második futásra. Ez a szándék.
-
-## Amit NEM csinálunk ebben a körben
-- Semmilyen belépés, regisztráció, kattintás social platformon.
-- Nem mentünk el jelszót/2FA-t — warmup-nak nincs rá szüksége.
-- Nem futtatunk Matrix / metrics snapshot-ot, amíg a warmup nem produkált értelmes sütitárat legalább 2–3 körön keresztül.
-
-## Következő lépés a jóváhagyás után
-1. Script megírása + run.js elágazás.
-2. Cookie persistálás worker/complete oldalon.
-3. Négy workflow specjének feltöltése.
-4. Egyet indítunk élesben (mondjuk NL Instagram), megnézzük a logot + a sütiszámot; ha rendben, a másik hármat is elindítjuk.
+- A most futó NL Instagram warmup zavartalanul megy tovább.
+- A worker script (`logged-out-warmup.js`) és a scheduled_runs dispatcher érintetlen.
+- Egyéb workflow-k, proxy táblák, futási history — nincs változás.

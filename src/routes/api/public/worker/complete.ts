@@ -106,13 +106,19 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         // titkosítva beírjuk a workflow_credentials.cookie_ciphertext mezőbe.
         // Fontos: a workflows.tenant_id-t használjuk (RLS + NOT NULL a credentials-en).
         try {
-          const res = parsed.result as { cookies_export?: unknown } | null;
+          const res = parsed.result as
+            | {
+                cookies_export?: unknown;
+                cookies_collected?: unknown;
+                cookie_domains?: unknown;
+              }
+            | null;
           const cookiesExport =
             res && typeof res.cookies_export === "string" ? res.cookies_export : null;
           if (parsed.status === "succeeded" && cookiesExport && runRow?.id) {
             const { data: runFull } = await sb
               .from("brain_workflow_runs")
-              .select("workflow_id, tenant_id")
+              .select("workflow_id, tenant_id, proxy_id")
               .eq("id", parsed.runId)
               .maybeSingle();
             if (runFull?.workflow_id && runFull.tenant_id) {
@@ -138,6 +144,60 @@ export const Route = createFileRoute("/api/public/worker/complete")({
               await sb
                 .from("workflow_credentials")
                 .upsert(payload as never, { onConflict: "workflow_id" });
+
+              // Cookie jar meta: melyik ország proxyval gyűjtöttük + statisztika.
+              let proxyCountry: string | null = null;
+              if (runFull.proxy_id) {
+                const { data: proxyRow } = await sb
+                  .from("proxies")
+                  .select("country")
+                  .eq("id", runFull.proxy_id)
+                  .maybeSingle();
+                proxyCountry =
+                  proxyRow && typeof proxyRow.country === "string"
+                    ? proxyRow.country
+                    : null;
+              }
+              const cookiesCount =
+                typeof res?.cookies_collected === "number"
+                  ? res.cookies_collected
+                  : null;
+              const domainsCount = Array.isArray(res?.cookie_domains)
+                ? (res.cookie_domains as unknown[]).length
+                : null;
+
+              const { data: currentWorkflow } = await sb
+                .from("workflows")
+                .select("cookie_jar_country, cookie_jar_locked")
+                .eq("id", runFull.workflow_id)
+                .maybeSingle();
+
+              if (
+                currentWorkflow?.cookie_jar_locked &&
+                currentWorkflow.cookie_jar_country &&
+                proxyCountry &&
+                currentWorkflow.cookie_jar_country !== proxyCountry
+              ) {
+                console.warn(
+                  `[cookie-jar] LOCK WARNING: workflow ${runFull.workflow_id} locked to ${currentWorkflow.cookie_jar_country} but run used ${proxyCountry} proxy — cookies still saved`,
+                );
+              }
+
+              const workflowUpdate: Record<string, unknown> = {
+                cookie_jar_updated_at: new Date().toISOString(),
+                cookie_jar_stats: {
+                  cookies: cookiesCount,
+                  domains: domainsCount,
+                },
+              };
+              // Csak akkor írjuk felül az országot, ha ismert.
+              if (proxyCountry) {
+                workflowUpdate.cookie_jar_country = proxyCountry;
+              }
+              await sb
+                .from("workflows")
+                .update(workflowUpdate as never)
+                .eq("id", runFull.workflow_id);
             }
           }
         } catch (e) {
