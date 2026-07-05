@@ -54,7 +54,13 @@ type RunRow = {
   created_at: string;
   error: string | null;
   preflight_result: PreflightResult;
-  result: { fingerprint_audit?: FingerprintAudit } | null;
+  result:
+    | ({
+        fingerprint_audit?: FingerprintAudit;
+        checks?: FingerprintCheck[];
+        all_ok?: boolean;
+      } & Record<string, unknown>)
+    | null;
 };
 
 async function fetchRuns(workflowId: string): Promise<RunRow[]> {
