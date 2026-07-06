@@ -215,19 +215,50 @@ async function runSession(payload) {
   });
 
   const br = await getBrowser();
-  const proxy = nextProxy();
-  const userAgent = pickUA();
-  if (proxy) {
-    console.log(`[session ${session.id}] using ${proxy.label} + UA ${userAgent.slice(0, 40)}…`);
+
+  // A Brain által küldött (workflow-hoz kötött) proxy elsőbbséget élvez a
+  // recorder saját pool-jával szemben. Ez KRITIKUS: a bejelentkezésnek
+  // ugyanarról az IP-ről kell történnie, amit a workflow futásidőben is
+  // használ, különben az adott platform (LinkedIn, TikTok stb.) "új
+  // helyről bejelentkezés" figyelmeztetést dob vagy captchát kér.
+  let proxy = null;
+  if (payload.proxy && payload.proxy.server) {
+    proxy = {
+      server: payload.proxy.server,
+      username: payload.proxy.username || undefined,
+      password: payload.proxy.password || undefined,
+      label: payload.proxy.label || "workflow-proxy",
+    };
   } else {
-    console.warn(`[session ${session.id}] NINCS proxy konfigurálva (PROXY_1..N env hiányzik) — direkt IP-vel megy!`);
+    proxy = nextProxy();
+  }
+
+  const userAgent = pickUA();
+  const locale = payload.locale || "hu-HU";
+  const timezoneId = payload.timezone || "Europe/Budapest";
+  if (proxy) {
+    console.log(
+      `[session ${session.id}] using ${proxy.label} (${proxy.server}) · locale=${locale} · tz=${timezoneId}`,
+    );
+  } else {
+    console.warn(
+      `[session ${session.id}] NINCS proxy — direkt IP-vel megy (nem javasolt)!`,
+    );
   }
   const context = await br.newContext({
     viewport: { width: VIEWPORT_W, height: VIEWPORT_H },
     userAgent,
-    locale: "hu-HU",
-    timezoneId: "Europe/Budapest",
-    ...(proxy ? { proxy } : {}),
+    locale,
+    timezoneId,
+    ...(proxy
+      ? {
+          proxy: {
+            server: proxy.server,
+            username: proxy.username,
+            password: proxy.password,
+          },
+        }
+      : {}),
   });
   const page = await context.newPage();
 
