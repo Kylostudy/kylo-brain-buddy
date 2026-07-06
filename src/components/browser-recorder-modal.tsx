@@ -139,6 +139,18 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
       setStatus(p.status);
       if (p.error) toast.error(p.error);
     });
+    ch.on("broadcast", { event: "cookiesSaved" }, ({ payload }) => {
+      const p = payload as { savedCount?: number; platform?: string | null };
+      toast.success(
+        `Sütik mentve a workflow-hoz (${p.savedCount ?? "?"} db${p.platform ? ` · ${p.platform}` : ""}).`,
+      );
+      setCookieBusy(false);
+    });
+    ch.on("broadcast", { event: "cookieSaveError" }, ({ payload }) => {
+      const p = payload as { error?: string };
+      toast.error(`Süti mentés sikertelen: ${p.error ?? "ismeretlen hiba"}`);
+      setCookieBusy(false);
+    });
 
     ch.subscribe();
     channelRef.current = ch;
