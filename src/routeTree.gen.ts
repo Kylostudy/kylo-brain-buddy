@@ -16,6 +16,7 @@ import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
+import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
 import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
@@ -69,6 +70,12 @@ const ApiPublicWorkerVisionExtractRoute =
   ApiPublicWorkerVisionExtractRouteImport.update({
     id: '/api/public/worker/vision-extract',
     path: '/api/public/worker/vision-extract',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerSaveCookiesRoute =
+  ApiPublicWorkerSaveCookiesRouteImport.update({
+    id: '/api/public/worker/save-cookies',
+    path: '/api/public/worker/save-cookies',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWorkerRecordStatusRoute =
@@ -193,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
@@ -219,6 +227,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
@@ -247,6 +256,7 @@ export interface FileRoutesById {
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/save-cookies'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/save-cookies'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
@@ -328,6 +340,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/save-cookies'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
@@ -353,6 +366,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
+  ApiPublicWorkerSaveCookiesRoute: typeof ApiPublicWorkerSaveCookiesRoute
   ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
   ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
@@ -411,6 +425,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/vision-extract'
       fullPath: '/api/public/worker/vision-extract'
       preLoaderRoute: typeof ApiPublicWorkerVisionExtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/save-cookies': {
+      id: '/api/public/worker/save-cookies'
+      path: '/api/public/worker/save-cookies'
+      fullPath: '/api/public/worker/save-cookies'
+      preLoaderRoute: typeof ApiPublicWorkerSaveCookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/record-status': {
@@ -588,6 +609,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerLearnedSelectorsRoute: ApiPublicWorkerLearnedSelectorsRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
+  ApiPublicWorkerSaveCookiesRoute: ApiPublicWorkerSaveCookiesRoute,
   ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
   ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
   ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,

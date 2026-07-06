@@ -26,6 +26,7 @@ import {
   ArrowRight,
   ArrowUp,
   Camera,
+  Cookie,
   Check,
   Copy,
   Loader2,
@@ -82,6 +83,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const [textPanelOpen, setTextPanelOpen] = useState(false);
   const [pageText, setPageText] = useState("");
   const [textBusy, setTextBusy] = useState(false);
+  const [cookieBusy, setCookieBusy] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
@@ -138,6 +140,18 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
       const p = payload as { status: typeof status; error?: string };
       setStatus(p.status);
       if (p.error) toast.error(p.error);
+    });
+    ch.on("broadcast", { event: "cookiesSaved" }, ({ payload }) => {
+      const p = payload as { savedCount?: number; platform?: string | null };
+      toast.success(
+        `Sütik mentve a workflow-hoz (${p.savedCount ?? "?"} db${p.platform ? ` · ${p.platform}` : ""}).`,
+      );
+      setCookieBusy(false);
+    });
+    ch.on("broadcast", { event: "cookieSaveError" }, ({ payload }) => {
+      const p = payload as { error?: string };
+      toast.error(`Süti mentés sikertelen: ${p.error ?? "ismeretlen hiba"}`);
+      setCookieBusy(false);
     });
 
     ch.subscribe();
@@ -363,6 +377,15 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     }
   }
 
+  function handleSaveCookies() {
+    if (!sessionId) return;
+    setCookieBusy(true);
+    sendToWorker("saveCookies", {});
+    // A siker/hiba a channel-en jön vissza (cookiesSaved / cookieSaveError),
+    // ami leveszi a cookieBusy-t. Biztonsági timeout 15 mp után.
+    setTimeout(() => setCookieBusy(false), 15000);
+  }
+
   async function handleCancel() {
     if (!sessionId) {
       onClose();
@@ -497,6 +520,22 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
         <span className="hidden md:inline px-2 text-xs text-white/60">
           {statusLabel} · {actions.length} lépés
         </span>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="bg-emerald-700 text-white hover:bg-emerald-600"
+          onClick={handleSaveCookies}
+          disabled={cookieBusy || status !== "active"}
+          aria-label="Sütik mentése a workflow-ba"
+          title="Sütik mentése a workflow-ba (bejelentkezés után)"
+        >
+          {cookieBusy ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Cookie className="size-4" />
+          )}
+          <span className="ml-1 hidden md:inline">Sütik mentése</span>
+        </Button>
         <Button
           size="sm"
           variant="ghost"

@@ -1,79 +1,60 @@
+## Cél
 
-# Warmup rendszer 12 IP-re
+Ma este a LinkedIn Company Page metrikákat elindítjuk. A felhasználó NEM lép be a Dolphinból, hanem a Brain saját recorder böngészőjéből lép be manuálisan LinkedInre — és a session sütiket a rendszer automatikusan elmenti a workflow credential-be. Ezután a `metrics_snapshot` executor már a friss sütikkel fut.
 
-## Döntések összefoglalva
+## Két nyitott hiányosság, amit előbb pótolni kell
 
-- **12 IP** (10 BrightData + Amsterdam IPRoyal + US IPRoyal), mindegyikhez 1 warmup workflow.
-- **Nyelvek per ország:** NL/US/CA/AU/GB → angol · HU → magyar · CH → német · ES/MX → spanyol · SE → svéd · PL → lengyel · BR → portugál (brazil).
-- **Gyakoriság:** hetente 1×, véletlen napon, az adott ország időzónájában nappal.
-- **Hossz:** 45 perc / IP.
-- **Sorrend:** először az angol blokk (NL, US, CA, AU, GB), utána a többi. Nem kell egy éjszaka alatt végezni.
-- **Fingerprint tárolás:** a `proxies` táblához új oszlopok (1 IP = 1 fix virtuális ember). Több account is „ráülhet" ugyanarra a fingerprintre.
-- **Süti-jar:** IP+fingerprint szinten közös, nem másoljuk IP-k között.
+1. **A recorder ma nem a workflow proxyját használja.** A `worker/recorder/index.js` a saját `PROXY_1..N` pooljából választ körkörösen. Ha a LinkedIn NL account eddig a `188.215.81.43` IP-n élt, és most más IP-ről lépünk be, azonnali bot-gyanú → captcha vagy checkpoint.
+   → A recordernek **ugyanazt a proxyt** kell használnia, ami a workflow-hoz van rendelve (`workflow_credentials.proxy_id` → `proxies` tábla).
+
+2. **A recorder ma nem menti a sütiket.** A frame loop és action log van csak. A stop után a browser context becsukódik, minden süti elveszik.
+   → Kell egy "cookie capture" lépés: mielőtt a recorder becsukja a contextet, olvassa ki `context.cookies()`-t, és küldje POST-tal a Brainnek egy új végponton, ami titkosítva beírja a `workflow_credentials.cookie_ciphertext`-be.
 
 ## Lépések
 
-### 1. Adatbázis — `proxies` tábla bővítése (migráció)
+### 1. Backend — új cookie-mentő végpont
+- `src/routes/api/public/worker/save-cookies.ts` (worker-token auth, mint a többi worker végpont).
+- Bemenet: `{ sessionId, cookies: [...] }`. Kikeresi a session-t → workflow_id → tenant_id. A LinkedIn-releváns sütiket (`li_at`, `JSESSIONID`, `lidc`, `bcookie`, `bscookie`, stb.) JSON-ba szerializálja, és a meglévő `encryptString`-gel titkosítva beírja a workflow `workflow_credentials` sorába (upsert, ha még nincs credential row). Ha nincs elég süti (pl. csak 2 db, `li_at` nélkül) → 400-as hibaválasz, hogy a recorder ne mentsen félsikeres sessiont.
 
-Új oszlopok:
-- `fingerprint_user_agent` (text) — pl. Chrome 131 Windows
-- `fingerprint_locale` (text) — pl. `hu-HU`, `en-US`, `de-CH`
-- `fingerprint_timezone` (text) — pl. `Europe/Budapest`
-- `fingerprint_viewport_w`, `fingerprint_viewport_h` (int)
-- `fingerprint_platform` (text) — `Win32` / `MacIntel`
-- `fingerprint_seed` (text) — stabil véletlen mag további jelekhez (WebGL, canvas)
-- `warmup_language` (text) — `hu`, `en`, `de`, `es`, `sv`, `pl`, `pt-BR`
-- `warmup_country_sites` (text[]) — portál lista (nullable, sablonból default)
-- `warmup_last_run_at`, `warmup_next_scheduled_at` (timestamptz)
+### 2. Backend — proxy visszaadása a recordernek
+- `src/routes/api/public/worker/record-claim.ts` bővítése: miután megkapjuk a session-t, betöltjük a workflow-hoz tartozó proxyt (`workflow_credentials.proxy_id` → `proxies` tábla), és a válaszban visszaadjuk `proxy: { server, username, password }` formában. Ha nincs proxy hozzárendelve → hibaüzenettel visszautasítjuk a claim-et (nem indul el a session olyan workflow-hoz, ahol nincs kijelölt IP).
 
-### 2. Fingerprint feltöltés (adat)
+### 3. Worker — recorder javítása
+- `worker/recorder/index.js`:
+  - Ha a Brain claim válaszban van `proxy`, azt használjuk a `browser.newContext({ proxy })`-hoz a random pool helyett.
+  - A locale/timezone-t is a workflow `language`/`timezone` mezőjéből vesszük (Brain küldi le, default: `hu-HU`/`Europe/Budapest`, hogy a mostani viselkedés ne törjön).
+  - Új broadcast event: `saveCookies` — amikor a modal "Süti mentése" gombját nyomjuk, a recorder kiolvassa `context.cookies()`-t, és POST-olja a `/api/public/worker/save-cookies`-nak. Sikerre visszaküldi channelre `cookiesSaved` eventet, hibára `cookieSaveError`-t.
 
-12 proxyhoz egyszeri `UPDATE` — mindegyikhez konzisztens virtuális ember (nyelv + időzóna + reális UA + viewport). Egyszerűen, kézzel megírt sorok, nem generátor.
+### 4. Frontend — recorder modal új gomb
+- `src/components/browser-recorder-modal.tsx`: új "Sütik mentése workflow-ba" gomb (csak akkor aktív, ha a session `active`), ami a `saveCookies` broadcastot küldi. Visszajelzés toast-tal.
 
-### 3. Warmup szkript általánosítása (VPS oldal)
+### 5. LinkedIn metrics workflow rendbetétele
+- A jelen "NL Linkedin" (id: `10c4288f-...`) valójában egy warmup workflow (`monitor_type: logged-out-warmup`, `duration_min: 45`). A metrics-hez KÜLÖN workflow kell:
+  - Új workflow: **"NL LinkedIn – Company Metrics"**, `module=brain`, `platform=linkedin`, `spec.brain_task.task_type=metrics_snapshot`, `spec.linkedin_company_slug=127334023`, `spec.post_limit=15`.
+  - Ehhez rendeljük a **holland proxyt** (ugyanaz az IP, amin a NL warmup megy — `188.215.81.43` a memória szerint). Egy tenant × egy platform × egy IP = egy account, tehát a warmup és a metrics ugyanazon a proxyn ugyanazt az accountot használja, ami helyes.
+  - A süti a bejelentkezés után ide kerül majd.
 
-`worker/executor/scripts/logged-out-warmup.js` már 90%-ban jó. Módosítások:
-- A `spec.language` alapján válasszon **országsablont** (portál lista + Google domain + keresőszavak).
-- Új fájl: `worker/executor/scripts/warmup-locales/{en,hu,de,es,sv,pl,pt-BR}.js` — mindegyik exportál `sites` + `queries` + `google_domain` + `cookie_accept_texts`.
-- A worker a proxy fingerprintjét a Playwright kontextusra alkalmazza (user-agent, viewport, locale, timezone). Ez a `worker/executor/run.js`-ben történik, ahol a browser context létrejön.
+### 6. Élesítés (a fenti kód után)
+1. Megnyitod a "NL LinkedIn – Company Metrics" workflow-t.
+2. Rákattintasz "Böngésző felvétel indítása"-ra.
+3. A recorder betölti a `linkedin.com/login`-t **a NL proxyn keresztül**.
+4. Beírod az emailt, jelszót, 2FA-t (ha van).
+5. Ellenőrzöd, hogy admin jogod van-e a `127334023` company page-en.
+6. Megnyomod a **"Sütik mentése workflow-ba"** gombot → toast: "Sütik elmentve (N db)".
+7. Bezárod a recordert.
+8. Kézzel sorba teszed a metrics_snapshot taszkot (vagy megvárod a scheduled dispatch-et) → a worker a friss sütikkel lefut, elmenti az utolsó 15 poszt impressions/reactions/comments/reposts adatait.
 
-### 4. 12 warmup workflow létrehozása (adat)
+## Miért így és nem másképp
 
-Egy admin route: `src/routes/api/public/admin/create-warmup-workflows.ts`
-- Végigmegy a 12 proxyn.
-- Mindegyikhez létrehoz egy `workflows` sort:
-  - `name`: „Warmup — {ország}"
-  - `spec_json`: `{ script: "logged-out-warmup", duration_min: 45, language: "..", proxy_id: "..", target_platform: null }`
-  - `schedule`: heti 1× (a dispatcher tudja értelmezni)
-- Idempotens: ha már van „Warmup —" prefixű workflow az adott proxyhoz, kihagyja.
+- **Miért nem headless auto-login?** LinkedIn 2FA challenge-t dobhat (email vagy SMS), amit headless-ból nagyon nehéz kezelni, és ma reggel épp kidobta a session-t → most a legrosszabb pillanat lenne headless próbálkozásra.
+- **Miért a workflow proxya, nem random?** Mert a LinkedIn az account × IP párost figyeli. Új IP-ről bejelentkezés = "new sign-in from unusual location" mail + potenciális checkpoint.
+- **Miért külön workflow a metrics-re?** Mert a warmup és a metrics teljesen más `monitor_type`/`brain_task` — ugyanabba a spec-be zsúfolva átláthatatlan. A memóriabeli architektúra is külön workflow-t ír elő különböző feladatokra.
 
-### 5. Heti ütemező (cron + dispatcher)
+## Kockázatok, amiket most vállalunk
 
-Két megközelítés közül a **meglévő dispatcher** kibővítése:
-- `src/lib/monitors/dispatch.server.ts` már fut cron alól (`/api/public/cron/dispatch-brain-tasks`).
-- Kiegészítés: minden warmup workflow-nál kiszámol egy `warmup_next_scheduled_at`-ot (aktuális hét + random nap + random időpont az ország időzónájában, 9–20 óra között), és amikor lejár, betolja a `brain_task_queue`-ba.
-- Egyszerre max 1 warmup fut IP-nként (a proxy amúgy is „foglalt" lesz). Ha ütközne, csúsztat.
+- Ha az NL warmup workflow-hoz még nincs proxy hozzárendelve a `workflow_credentials`-ban, akkor először azt kell megadni (proxy dropdown a workflow oldalon). Ez 1 kattintás, de ma este ellenőrizni kell.
+- A recorder mostani HU locale/TZ default-ja NL bejelentkezésnél nem életszerű — a 3. lépéssel `nl-NL`/`Europe/Amsterdam`-ra állítjuk NL workflow esetén.
 
-### 6. UI (opcionális, most nem építek)
+## Utána (nem ma)
 
-A `_authenticated.proxies.tsx` oldalon később hozzáadhatunk egy kis oszlopot: „Utolsó warmup", „Következő warmup". Most csak DB-szinten megy, később UI-t rakok rá, ha kéred.
-
-## Technikai jegyzet
-
-- Fingerprint konzisztencia: a `proxy_id`-hez tartozó fingerprintet a claim endpoint (`/api/public/worker/claim.ts`) adja át a workernek a task payloadjában, így a VPS worker nem generál semmit véletlenül.
-- Cookie-jar mentés: a warmup végén a `workflow_credentials.cookie_ciphertext`-be íródik (már megvan a mechanizmus a `logged-out-warmup.js`-ben), de a kulcs a **proxy_id + language**, nem az account, hogy több account is örökölhesse.
-- Heti gyakoriság: a `workflows` táblához nem kell séma-módosítás, a `spec_json`-be teszem be a `warmup_cadence: "weekly"` mezőt, a dispatcher ezt olvassa.
-
-## Amit MOST fogok csinálni
-
-1. Migráció: `proxies` táblához fingerprint + warmup oszlopok.
-2. Adatfeltöltés: 12 proxyhoz fingerprint + nyelv beállítása (SQL insert-tool).
-3. Nyelvi sablonfájlok (7 db) a workerben.
-4. `logged-out-warmup.js` általánosítása a `language` paraméterre.
-5. `run.js`-ben fingerprint alkalmazása a browser contextre.
-6. Admin route: 12 warmup workflow létrehozása.
-7. Dispatcher kibővítése heti ütemezéssel.
-
-Amit **később** csinálok, csak ha kéred: UI a proxies oldalon (utolsó/következő warmup mutatása), manuális „Warmup most" gomb.
-
-Amint jóváhagyod, nekiállok.
+- Ugyanez a folyamat automatikusan használható lesz TikTok / Pinterest / Instagram cookie-frissítésre is — a recorder oldali `saveCookies` platform-független.

@@ -215,19 +215,50 @@ async function runSession(payload) {
   });
 
   const br = await getBrowser();
-  const proxy = nextProxy();
-  const userAgent = pickUA();
-  if (proxy) {
-    console.log(`[session ${session.id}] using ${proxy.label} + UA ${userAgent.slice(0, 40)}…`);
+
+  // A Brain által küldött (workflow-hoz kötött) proxy elsőbbséget élvez a
+  // recorder saját pool-jával szemben. Ez KRITIKUS: a bejelentkezésnek
+  // ugyanarról az IP-ről kell történnie, amit a workflow futásidőben is
+  // használ, különben az adott platform (LinkedIn, TikTok stb.) "új
+  // helyről bejelentkezés" figyelmeztetést dob vagy captchát kér.
+  let proxy = null;
+  if (payload.proxy && payload.proxy.server) {
+    proxy = {
+      server: payload.proxy.server,
+      username: payload.proxy.username || undefined,
+      password: payload.proxy.password || undefined,
+      label: payload.proxy.label || "workflow-proxy",
+    };
   } else {
-    console.warn(`[session ${session.id}] NINCS proxy konfigurálva (PROXY_1..N env hiányzik) — direkt IP-vel megy!`);
+    proxy = nextProxy();
+  }
+
+  const userAgent = pickUA();
+  const locale = payload.locale || "hu-HU";
+  const timezoneId = payload.timezone || "Europe/Budapest";
+  if (proxy) {
+    console.log(
+      `[session ${session.id}] using ${proxy.label} (${proxy.server}) · locale=${locale} · tz=${timezoneId}`,
+    );
+  } else {
+    console.warn(
+      `[session ${session.id}] NINCS proxy — direkt IP-vel megy (nem javasolt)!`,
+    );
   }
   const context = await br.newContext({
     viewport: { width: VIEWPORT_W, height: VIEWPORT_H },
     userAgent,
-    locale: "hu-HU",
-    timezoneId: "Europe/Budapest",
-    ...(proxy ? { proxy } : {}),
+    locale,
+    timezoneId,
+    ...(proxy
+      ? {
+          proxy: {
+            server: proxy.server,
+            username: proxy.username,
+            password: proxy.password,
+          },
+        }
+      : {}),
   });
   const page = await context.newPage();
 
@@ -402,6 +433,76 @@ async function runSession(payload) {
   channel.on("broadcast", { event: "stop" }, async ({ payload }) => {
     console.log(`[session ${session.id}] stop received (save=${payload?.save})`);
     stopped = true;
+  });
+
+  // saveCookies: a modal a "Sütik mentése workflow-ba" gombra ezt küldi.
+  // A recorder kiolvassa a böngésző context.cookies() állományát, majd
+  // POST-tal átadja a Brainnek, ami titkosítva beírja a workflow_credentials
+  // cookie mezőibe. Nem zárja le a sessiont — a felhasználó folytathatja,
+  // pl. újabb sütiket gyűjthet, vagy egyből leállíthatja.
+  channel.on("broadcast", { event: "saveCookies" }, async () => {
+    console.log(`[session ${session.id}] saveCookies fogadva`);
+    try {
+      const cookies = await context.cookies();
+      // Csak a Playwright által visszaadott, biztonságosan szerializálható
+      // mezőket adjuk tovább; szűkítés a Brain oldalán Zod-dal is történik.
+      const payload = cookies.map((c) => ({
+        name: c.name,
+        value: c.value,
+        domain: c.domain,
+        path: c.path,
+        expires: c.expires,
+        httpOnly: c.httpOnly,
+        secure: c.secure,
+        sameSite: c.sameSite,
+      }));
+      const res = await brainPost("/api/public/worker/save-cookies", {
+        sessionId: session.id,
+        cookies: payload,
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        let msg = text;
+        try {
+          msg = JSON.parse(text).error || text;
+        } catch {}
+        console.error(`[session ${session.id}] cookieSave hiba: ${msg}`);
+        await channel
+          .send({
+            type: "broadcast",
+            event: "cookieSaveError",
+            payload: { error: msg },
+          })
+          .catch(() => {});
+        return;
+      }
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch {}
+      console.log(
+        `[session ${session.id}] cookieSave OK: ${data?.savedCount ?? payload.length} süti`,
+      );
+      await channel
+        .send({
+          type: "broadcast",
+          event: "cookiesSaved",
+          payload: {
+            savedCount: data?.savedCount ?? payload.length,
+            platform: data?.platform ?? null,
+          },
+        })
+        .catch(() => {});
+    } catch (e) {
+      console.error(`[session ${session.id}] saveCookies exception`, e.message);
+      await channel
+        .send({
+          type: "broadcast",
+          event: "cookieSaveError",
+          payload: { error: e.message },
+        })
+        .catch(() => {});
+    }
   });
 
   page.on("framenavigated", async (f) => {
