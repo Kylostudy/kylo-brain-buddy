@@ -200,6 +200,90 @@ const SELECTOR_FN = `(x, y) => {
   return { selector: path.join(' > '), text: (el.innerText||'').slice(0,80) };
 }`;
 
+// A távoli kép csak screenshot. LinkedIn-szerű oldalaknál előfordul, hogy a
+// sima Playwright egérkattintás nem hagy stabil fókuszt a mezőn (különösen
+// password / 2FA mezőknél). Ez a segéd a kattintott pontnál megkeresi az
+// érdemi beviteli mezőt, és explicit fókuszt + kurzort tesz bele.
+const FOCUS_EDITABLE_AT_FN = `(x, y) => {
+  function isEditable(el) {
+    if (!el || !el.matches) return false;
+    if (el.matches('textarea:not([disabled]):not([readonly])')) return true;
+    if (el.matches('[contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]')) return true;
+    if (!el.matches('input:not([disabled]):not([readonly])')) return false;
+    const type = String(el.getAttribute('type') || 'text').toLowerCase();
+    return !['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(type);
+  }
+  function editableFrom(el) {
+    if (!el) return null;
+    if (isEditable(el)) return el;
+    const label = el.closest && el.closest('label');
+    if (label) {
+      const forId = label.getAttribute('for');
+      const byFor = forId ? document.getElementById(forId) : null;
+      if (isEditable(byFor)) return byFor;
+      const inside = label.querySelector('input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]');
+      if (isEditable(inside)) return inside;
+    }
+    const closest = el.closest && el.closest('input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]');
+    return isEditable(closest) ? closest : null;
+  }
+  function focus(el) {
+    try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch {}
+    try { el.focus({ preventScroll: true }); } catch { try { el.focus(); } catch {} }
+    try {
+      if (typeof el.value === 'string' && typeof el.setSelectionRange === 'function') {
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+      }
+    } catch {}
+    return document.activeElement === el || el.matches(':focus');
+  }
+
+  let target = editableFrom(document.elementFromPoint(x, y));
+  if (!target && document.elementsFromPoint) {
+    for (const el of document.elementsFromPoint(x, y)) {
+      target = editableFrom(el);
+      if (target) break;
+    }
+  }
+  // Utolsó mentőöv: ha a kattintás pár pixellel a mező mellé ment, keressünk
+  // közeli látható inputot. Ez nem választ távoli mezőt, csak a kattintás
+  // környezetében lévőt.
+  if (!target) {
+    const candidates = Array.from(document.querySelectorAll('input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]'))
+      .filter(isEditable)
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const dx = Math.max(r.left - x, 0, x - r.right);
+        const dy = Math.max(r.top - y, 0, y - r.bottom);
+        return { el, r, edgeDistance: Math.hypot(dx, dy), centerDistance: Math.hypot(cx - x, cy - y) };
+      })
+      .filter((c) => c.r.width > 8 && c.r.height > 8 && c.edgeDistance <= 48)
+      .sort((a, b) => a.edgeDistance - b.edgeDistance || a.centerDistance - b.centerDistance);
+    target = candidates[0]?.el || null;
+  }
+  if (!target) return { focused: false };
+  const ok = focus(target);
+  return {
+    focused: ok,
+    tag: target.tagName,
+    type: target.getAttribute('type') || null,
+    role: target.getAttribute('role') || null,
+  };
+}`;
+
+const ACTIVE_EDITABLE_FN = `() => {
+  const el = document.activeElement;
+  if (!el || !el.matches) return false;
+  if (el.matches('textarea:not([disabled]):not([readonly])')) return true;
+  if (el.matches('[contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]')) return true;
+  if (!el.matches('input:not([disabled]):not([readonly])')) return false;
+  const type = String(el.getAttribute('type') || 'text').toLowerCase();
+  return !['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(type);
+}`;
+
 async function runSession(payload) {
   const { session, supabaseUrl, supabasePublishableKey } = payload;
   if (!supabaseUrl || !supabasePublishableKey) {
@@ -292,13 +376,41 @@ async function runSession(payload) {
     }
   }
 
+  async function focusEditableAt(x, y) {
+    try {
+      return await page.evaluate(`(${FOCUS_EDITABLE_AT_FN})(${x}, ${y})`);
+    } catch (e) {
+      console.warn(`[session ${session.id}] focusEditableAt hiba`, e?.message || e);
+      return null;
+    }
+  }
+
+  async function hasEditableFocus() {
+    try {
+      return await page.evaluate(`(${ACTIVE_EDITABLE_FN})()`);
+    } catch {
+      return false;
+    }
+  }
+
+  let lastClickPoint = null;
+
+  async function ensureEditableFocusFromLastClick() {
+    if (!lastClickPoint || Date.now() - lastClickPoint.t > 8000) return;
+    if (await hasEditableFocus()) return;
+    await focusEditableAt(lastClickPoint.x, lastClickPoint.y);
+  }
+
   channel.on("broadcast", { event: "click" }, async ({ payload }) => {
     try {
       const vs = page.viewportSize();
       const x = payload.x * vs.width;
       const y = payload.y * vs.height;
+      lastClickPoint = { x, y, t: Date.now() };
       const desc = await describeAt(x, y);
       await page.mouse.click(x, y);
+      await page.waitForTimeout(40).catch(() => {});
+      await focusEditableAt(x, y);
       pushAction({
         type: "click",
         selector: desc?.selector ?? null,
@@ -314,6 +426,7 @@ async function runSession(payload) {
 
   channel.on("broadcast", { event: "type" }, async ({ payload }) => {
     try {
+      await ensureEditableFocusFromLastClick();
       await page.keyboard.type(payload.text || "");
       pushAction({ type: "type", value: payload.text || "", t: Date.now() });
     } catch (e) {
@@ -323,6 +436,7 @@ async function runSession(payload) {
 
   channel.on("broadcast", { event: "key" }, async ({ payload }) => {
     try {
+      await ensureEditableFocusFromLastClick();
       await page.keyboard.press(payload.key);
       pushAction({ type: "key", key: payload.key, t: Date.now() });
     } catch (e) {
