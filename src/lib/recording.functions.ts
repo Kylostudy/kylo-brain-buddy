@@ -93,7 +93,7 @@ const ActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("navigate"), url: z.string(), t: z.number() }),
   z.object({
     type: z.literal("click"),
-    selector: z.string(),
+    selector: z.string().optional(),
     x: z.number().optional(),
     y: z.number().optional(),
     text: z.string().optional(),
@@ -101,8 +101,9 @@ const ActionSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("type"),
-    selector: z.string(),
-    value: z.string(),
+    selector: z.string().optional(),
+    value: z.string().optional(),
+    text: z.string().optional(),
     t: z.number(),
   }),
   z.object({ type: z.literal("key"), key: z.string(), t: z.number() }),
