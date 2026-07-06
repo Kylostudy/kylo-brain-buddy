@@ -88,6 +88,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const typeInputRef = useRef<HTMLInputElement | null>(null);
   const statusRef = useRef(status);
   useEffect(() => { statusRef.current = status; }, [status]);
 
@@ -355,14 +356,35 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
     sendToWorker("click", { x, y });
+    // A kép csak egy kép — a gépeléshez a rejtett input kell hogy fókuszban legyen.
+    // A kattintás után átvesszük a fókuszt, hogy azonnal írhasson a felhasználó.
+    window.setTimeout(() => typeInputRef.current?.focus(), 0);
   }
 
+  // Élő gépelés: minden karakter azonnal megy a workernek (nem várunk Enterre).
+  // A rejtett input értékét kiürítjük, csak eseményforrásként használjuk.
   function handleType(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      const txt = (e.target as HTMLInputElement).value;
-      sendToWorker("type", { text: txt + "\n" });
-      (e.target as HTMLInputElement).value = "";
+    const target = e.target as HTMLInputElement;
+    // Speciális billentyűk: preventDefault + key event a workernek
+    const specialKeys = new Set([
+      "Backspace", "Delete", "Enter", "Tab",
+      "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+      "Home", "End", "PageUp", "PageDown",
+    ]);
+    if (specialKeys.has(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
+      const key = workerKeyFromEvent(e);
+      if (key) {
+        e.preventDefault();
+        sendToWorker("key", { key });
+      }
+      target.value = "";
+      return;
+    }
+    // Nyomtatható egy-karakteres billentyű → azonnal küldjük típusként
+    if (e.key.length === 1) {
       e.preventDefault();
+      sendToWorker("type", { text: e.key });
+      target.value = "";
     }
   }
 
@@ -686,17 +708,22 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
         )}
       </div>
 
-      {/* Alsó sáv: rejtett input a gépeléshez */}
+      {/* Alsó sáv: élő gépelést rögzítő input (fókuszba kerül képre kattintáskor) */}
       <div className="flex items-center gap-2 border-t border-white/10 bg-zinc-950 px-3 py-2">
         <span className="text-xs text-white/50">Gépelés:</span>
         <input
+          ref={typeInputRef}
           type="text"
           onKeyDown={handleType}
-          placeholder="Írj ide és nyomj Entert — a worker böngészőjébe megy"
+          placeholder="Kattints a képen a mezőbe, aztán gépelj — minden leütés azonnal megy át"
           className="flex-1 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/30"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
         />
         <span className="text-xs text-white/40">
-          Tipp: a képre kattintva navigálsz; az URL sáv navigál URL-re.
+          Tipp: a képen a mezőre kattintasz, majd gépelsz — Enter is átmegy.
         </span>
       </div>
     </div>
