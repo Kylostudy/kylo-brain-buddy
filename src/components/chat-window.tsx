@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Brain, Play, Pencil, Video } from "lucide-react";
+import { Brain, Play, Pencil, Video, KeyRound } from "lucide-react";
 import { MicButton } from "@/components/mic-button";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
 import { startRecording } from "@/lib/recording.functions";
@@ -41,7 +41,7 @@ import {
   renameWorkflow,
   resetReadyForTest,
 } from "@/lib/chat.functions";
-import { startRun } from "@/lib/runs.functions";
+import { startRun, startReplayLoginRun } from "@/lib/runs.functions";
 import { listProxies } from "@/lib/proxies.functions";
 import { SpecPanel } from "@/components/spec-panel";
 
@@ -66,11 +66,13 @@ async function fetchMessages(workflowId: string): Promise<DbMessage[]> {
 async function fetchWorkflowMeta(workflowId: string) {
   const { data, error } = await supabase
     .from("workflows")
-    .select("name, ready_for_test")
+    .select("name, ready_for_test, spec")
     .eq("id", workflowId)
     .single();
   if (error) throw error;
-  return data;
+  const spec = (data?.spec as { recorded_actions?: unknown[] } | null) ?? {};
+  const stepCount = Array.isArray(spec.recorded_actions) ? spec.recorded_actions.length : 0;
+  return { name: data.name, ready_for_test: data.ready_for_test, recordedStepCount: stepCount };
 }
 
 export function ChatWindow({ workflowId }: { workflowId: string }) {
@@ -79,9 +81,11 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const callRename = useServerFn(renameWorkflow);
   const callResetReady = useServerFn(resetReadyForTest);
   const callStartRun = useServerFn(startRun);
+  const callStartReplayLogin = useServerFn(startReplayLoginRun);
   const callStartRecording = useServerFn(startRecording);
   const [sending, setSending] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [replayLoginStarting, setReplayLoginStarting] = useState(false);
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
   const [runner, setRunner] = useState<"docker">("docker");
