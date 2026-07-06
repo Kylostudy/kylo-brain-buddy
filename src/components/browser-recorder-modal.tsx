@@ -738,7 +738,13 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
           ref={typeInputRef}
           type="text"
           onKeyDown={handleType}
-          placeholder="Kattints a képen a mezőbe, aztán gépelj — minden leütés azonnal megy át"
+          onPaste={(e) => {
+            const text = e.clipboardData.getData("text");
+            e.preventDefault();
+            if (text) sendToWorker("type", { text });
+            (e.target as HTMLInputElement).value = "";
+          }}
+          placeholder="Kattints a képen a mezőbe, aztán gépelj vagy Ctrl+V-vel illessz be"
           className="flex-1 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/30"
           autoComplete="off"
           autoCorrect="off"
