@@ -214,7 +214,16 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
         requestSelectAllAndText();
         return;
       }
-      if (e.key === "Escape") e.preventDefault();
+      // Ha a session még "requested" (worker sosem jelentkezett), engedjük az ESC-et:
+      // így nem ragadunk be egy fekete ablakba, amikor pl. a VPS le van állítva.
+      if (e.key === "Escape") {
+        if (status === "requested") {
+          e.preventDefault();
+          void handleCancel();
+          return;
+        }
+        e.preventDefault();
+      }
       if (isEditableTarget(e.target)) return;
       const key = workerKeyFromEvent(e);
       if (!key) return;
