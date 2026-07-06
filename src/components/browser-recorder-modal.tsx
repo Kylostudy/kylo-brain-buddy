@@ -708,17 +708,22 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
         )}
       </div>
 
-      {/* Alsó sáv: rejtett input a gépeléshez */}
+      {/* Alsó sáv: élő gépelést rögzítő input (fókuszba kerül képre kattintáskor) */}
       <div className="flex items-center gap-2 border-t border-white/10 bg-zinc-950 px-3 py-2">
         <span className="text-xs text-white/50">Gépelés:</span>
         <input
+          ref={typeInputRef}
           type="text"
           onKeyDown={handleType}
-          placeholder="Írj ide és nyomj Entert — a worker böngészőjébe megy"
+          placeholder="Kattints a képen a mezőbe, aztán gépelj — minden leütés azonnal megy át"
           className="flex-1 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/30"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
         />
         <span className="text-xs text-white/40">
-          Tipp: a képre kattintva navigálsz; az URL sáv navigál URL-re.
+          Tipp: a képen a mezőre kattintasz, majd gépelsz — Enter is átmegy.
         </span>
       </div>
     </div>
