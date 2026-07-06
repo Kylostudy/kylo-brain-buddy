@@ -88,6 +88,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const statusRef = useRef(status);
+  useEffect(() => { statusRef.current = status; }, [status]);
 
   const sendToWorker = useCallback((event: string, payload: Record<string, unknown>) => {
     const ch = channelRef.current;
