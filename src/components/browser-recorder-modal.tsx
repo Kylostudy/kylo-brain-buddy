@@ -203,10 +203,33 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     setTextBusy(false);
   }, [open, sessionId]);
 
+  // Vágólap → worker: Ctrl+V / Cmd+V esetén beolvassuk a local vágólapot és
+  // karakterláncként átküldjük type eseményként. Így Bitwarden-ből kimásolt
+  // jelszó egy pillanat alatt bekerül a távoli mezőbe.
+  const pasteFromClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) {
+        toast.error("A vágólap üres.");
+        return;
+      }
+      sendToWorker("type", { text });
+    } catch {
+      toast.error("Vágólap olvasás sikertelen — engedélyezd a böngészőben.");
+    }
+  }, [sendToWorker]);
+
   // ESC ne zárja be véletlenül — csak az X gomb
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
+      // Ctrl+V / Cmd+V: MINDIG fogjuk el, akkor is ha input van fókuszban.
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        e.stopPropagation();
+        void pasteFromClipboard();
+        return;
+      }
       // Ctrl+A / Cmd+A: MINDIG fogjuk el, akkor is, ha input/textarea van fókuszban,
       // hogy a worker oldali oldalt jelölje ki és küldje vissza a teljes szöveget.
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
@@ -237,7 +260,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     };
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [open, sendToWorker]);
+  }, [open, sendToWorker, pasteFromClipboard]);
 
   // Egér-görgő → továbbítjuk a workernek (passzív listener helyett saját, hogy preventDefault menjen)
   useEffect(() => {
@@ -715,7 +738,13 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
           ref={typeInputRef}
           type="text"
           onKeyDown={handleType}
-          placeholder="Kattints a képen a mezőbe, aztán gépelj — minden leütés azonnal megy át"
+          onPaste={(e) => {
+            const text = e.clipboardData.getData("text");
+            e.preventDefault();
+            if (text) sendToWorker("type", { text });
+            (e.target as HTMLInputElement).value = "";
+          }}
+          placeholder="Kattints a képen a mezőbe, aztán gépelj vagy Ctrl+V-vel illessz be"
           className="flex-1 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/30"
           autoComplete="off"
           autoCorrect="off"
