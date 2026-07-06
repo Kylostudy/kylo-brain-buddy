@@ -11,6 +11,7 @@
 
 import { runBrainPing } from "./ping.js";
 import { runLinkedInMetricsSnapshot } from "./linkedin-metrics-snapshot.js";
+import { runRecordReplay } from "./record-replay.js";
 
 export function isBrainTask(spec) {
   return !!(spec && spec.brain_task && spec.brain_task.task_type);
@@ -32,6 +33,9 @@ export async function runBrainTask(args) {
   switch (t) {
     case "ping":
       return await runBrainPing({ brainTask, log: args.log });
+
+    case "record_replay_login":
+      return await runRecordReplay(args);
 
     case "metrics_snapshot": {
       const platform = (brainTask.platform || args.spec?.platform || "").toLowerCase();
