@@ -1,60 +1,66 @@
-## Cél
+# Terv: A verzió — Felvétel egyszeri lejátszása, cookie mentés, utána cookie-ból megy
 
-Ma este a LinkedIn Company Page metrikákat elindítjuk. A felhasználó NEM lép be a Dolphinból, hanem a Brain saját recorder böngészőjéből lép be manuálisan LinkedInre — és a session sütiket a rendszer automatikusan elmenti a workflow credential-be. Ezután a `metrics_snapshot` executor már a friss sütikkel fut.
+## Mit akarunk elérni
 
-## Két nyitott hiányosság, amit előbb pótolni kell
+A most rögzített 84 lépéses felvételt (cookie elfogadás → email → jelszó → 2FA → navigáció) **egyszer** lejátsszuk a saját workerünkkel. Amint bent vagyunk a LinkedIn-en, elmentjük a session cookie-kat a workflow credentialjébe. Onnantól a már meglévő `linkedin-metrics-snapshot` executor cookie-ból tud dolgozni — nem kell minden futásnál újra belépni.
 
-1. **A recorder ma nem a workflow proxyját használja.** A `worker/recorder/index.js` a saját `PROXY_1..N` pooljából választ körkörösen. Ha a LinkedIn NL account eddig a `188.215.81.43` IP-n élt, és most más IP-ről lépünk be, azonnali bot-gyanú → captcha vagy checkpoint.
-   → A recordernek **ugyanazt a proxyt** kell használnia, ami a workflow-hoz van rendelve (`workflow_credentials.proxy_id` → `proxies` tábla).
+Ha a cookie lejár (jellemzően pár hét múlva), akkor újra lejátszatjuk a felvételt egyszer.
 
-2. **A recorder ma nem menti a sütiket.** A frame loop és action log van csak. A stop után a browser context becsukódik, minden süti elveszik.
-   → Kell egy "cookie capture" lépés: mielőtt a recorder becsukja a contextet, olvassa ki `context.cookies()`-t, és küldje POST-tal a Brainnek egy új végponton, ami titkosítva beírja a `workflow_credentials.cookie_ciphertext`-be.
+## A négy építőkocka
 
-## Lépések
+### 1. Új executor: `record-replay.js`
+Új fájl a worker oldalon: `worker/executor/scripts/brain-tasks/record-replay.js`.
 
-### 1. Backend — új cookie-mentő végpont
-- `src/routes/api/public/worker/save-cookies.ts` (worker-token auth, mint a többi worker végpont).
-- Bemenet: `{ sessionId, cookies: [...] }`. Kikeresi a session-t → workflow_id → tenant_id. A LinkedIn-releváns sütiket (`li_at`, `JSESSIONID`, `lidc`, `bcookie`, `bscookie`, stb.) JSON-ba szerializálja, és a meglévő `encryptString`-gel titkosítva beírja a workflow `workflow_credentials` sorába (upsert, ha még nincs credential row). Ha nincs elég süti (pl. csak 2 db, `li_at` nélkül) → 400-as hibaválasz, hogy a recorder ne mentsen félsikeres sessiont.
+Mit csinál sorban:
+- Betölti a workflow `spec.recorded_actions` tömbjét (amit épp most mentettünk).
+- Új Playwright böngészőt indít a workflow proxyján.
+- Sorra végigmegy a lépéseken: `navigate`, `click` (koordináta alapján), `type` (szövegbeírás emberi ritmussal), `key` (Enter, Tab stb.), `scroll`, `wait`.
+- **Emberi viselkedés kötelező** (memory szabály): a lépések között nem az eredeti `t` időpont, hanem Poisson-jitter; kattintás előtt kurzor overshoot; gépeléskor karakter-szintű random delay; alkalmi elgépelés + backspace.
+- Ahol a spec `bitwarden_field`-et mond (jelszó, TOTP), ott nem a felvett szöveget írja be, hanem a workflow credentialból húzza (jelszó) vagy TOTP-t generál (`src/lib/credentials/totp.server.ts` már megvan).
+- Végén: `page.context().cookies()` → visszaadja a fő doménre (`.linkedin.com`) szűrt cookie-listát.
 
-### 2. Backend — proxy visszaadása a recordernek
-- `src/routes/api/public/worker/record-claim.ts` bővítése: miután megkapjuk a session-t, betöltjük a workflow-hoz tartozó proxyt (`workflow_credentials.proxy_id` → `proxies` tábla), és a válaszban visszaadjuk `proxy: { server, username, password }` formában. Ha nincs proxy hozzárendelve → hibaüzenettel visszautasítjuk a claim-et (nem indul el a session olyan workflow-hoz, ahol nincs kijelölt IP).
+### 2. Automatikus cookie-mentés a task végén
+A worker `complete` callbackja már létezik (`/api/public/worker/save-cookies.ts`). A replay executor a végén ezen keresztül visszaküldi a friss cookie-kat, és a `workflow_credentials.value_encrypted.cookies` mezőbe kerül titkosítva.
 
-### 3. Worker — recorder javítása
-- `worker/recorder/index.js`:
-  - Ha a Brain claim válaszban van `proxy`, azt használjuk a `browser.newContext({ proxy })`-hoz a random pool helyett.
-  - A locale/timezone-t is a workflow `language`/`timezone` mezőjéből vesszük (Brain küldi le, default: `hu-HU`/`Europe/Budapest`, hogy a mostani viselkedés ne törjön).
-  - Új broadcast event: `saveCookies` — amikor a modal "Süti mentése" gombját nyomjuk, a recorder kiolvassa `context.cookies()`-t, és POST-olja a `/api/public/worker/save-cookies`-nak. Sikerre visszaküldi channelre `cookiesSaved` eventet, hibára `cookieSaveError`-t.
+Onnantól a `linkedin-metrics-snapshot.js` (ami már cookie-ból dolgozik) minden futásnál ezt olvassa.
 
-### 4. Frontend — recorder modal új gomb
-- `src/components/browser-recorder-modal.tsx`: új "Sütik mentése workflow-ba" gomb (csak akkor aktív, ha a session `active`), ami a `saveCookies` broadcastot küldi. Visszajelzés toast-tal.
+### 3. Új task típus: `record_replay_login`
+- Új sor a `brain_task_queue`-ba `kind = 'record_replay_login'` értékkel.
+- A dispatcher és a worker executor-router (`worker/executor/scripts/brain-tasks/index.js`) tudjon róla.
 
-### 5. LinkedIn metrics workflow rendbetétele
-- A jelen "NL Linkedin" (id: `10c4288f-...`) valójában egy warmup workflow (`monitor_type: logged-out-warmup`, `duration_min: 45`). A metrics-hez KÜLÖN workflow kell:
-  - Új workflow: **"NL LinkedIn – Company Metrics"**, `module=brain`, `platform=linkedin`, `spec.brain_task.task_type=metrics_snapshot`, `spec.linkedin_company_slug=127334023`, `spec.post_limit=15`.
-  - Ehhez rendeljük a **holland proxyt** (ugyanaz az IP, amin a NL warmup megy — `188.215.81.43` a memória szerint). Egy tenant × egy platform × egy IP = egy account, tehát a warmup és a metrics ugyanazon a proxyn ugyanazt az accountot használja, ami helyes.
-  - A süti a bejelentkezés után ide kerül majd.
+### 4. UI gomb: „Login lejátszása és cookie mentése"
+A workflow chat oldalán egy gomb, ami:
+- Ellenőrzi hogy van-e mentett felvétel + email + jelszó credential.
+- Sorba tesz egy `record_replay_login` taskot.
+- Élőben mutatja a task progress-ét (a `brain_workflow_runs` táblát már figyeljük).
 
-### 6. Élesítés (a fenti kód után)
-1. Megnyitod a "NL LinkedIn – Company Metrics" workflow-t.
-2. Rákattintasz "Böngésző felvétel indítása"-ra.
-3. A recorder betölti a `linkedin.com/login`-t **a NL proxyn keresztül**.
-4. Beírod az emailt, jelszót, 2FA-t (ha van).
-5. Ellenőrzöd, hogy admin jogod van-e a `127334023` company page-en.
-6. Megnyomod a **"Sütik mentése workflow-ba"** gombot → toast: "Sütik elmentve (N db)".
-7. Bezárod a recordert.
-8. Kézzel sorba teszed a metrics_snapshot taszkot (vagy megvárod a scheduled dispatch-et) → a worker a friss sütikkel lefut, elmenti az utolsó 15 poszt impressions/reactions/comments/reposts adatait.
+Így holnap **egyetlen gombnyomással** lefut a login egyszer, és utána a rendszeres metrics futás cookie-ból megy.
 
-## Miért így és nem másképp
+## Mit NEM csinálunk most (holnapra hagyjuk)
 
-- **Miért nem headless auto-login?** LinkedIn 2FA challenge-t dobhat (email vagy SMS), amit headless-ból nagyon nehéz kezelni, és ma reggel épp kidobta a session-t → most a legrosszabb pillanat lenne headless próbálkozásra.
-- **Miért a workflow proxya, nem random?** Mert a LinkedIn az account × IP párost figyeli. Új IP-ről bejelentkezés = "new sign-in from unusual location" mail + potenciális checkpoint.
-- **Miért külön workflow a metrics-re?** Mert a warmup és a metrics teljesen más `monitor_type`/`brain_task` — ugyanabba a spec-be zsúfolva átláthatatlan. A memóriabeli architektúra is külön workflow-t ír elő különböző feladatokra.
+- Nem indítunk éles LinkedIn futást ma (botgyanú-stop).
+- A `record-replay.js`-t először egy ártalmatlan oldalon (pl. saját teszt-oldal, vagy `example.com`) próbáljuk ki üresben, hogy a lejátszó logika stabil.
+- Az éles LinkedIn login-t holnap indítjuk kézzel a gombbal, én figyelem a logot, ha kidob akkor B verzió.
 
-## Kockázatok, amiket most vállalunk
+## Kockázatok, amiket vállalunk
 
-- Ha az NL warmup workflow-hoz még nincs proxy hozzárendelve a `workflow_credentials`-ban, akkor először azt kell megadni (proxy dropdown a workflow oldalon). Ez 1 kattintás, de ma este ellenőrizni kell.
-- A recorder mostani HU locale/TZ default-ja NL bejelentkezésnél nem életszerű — a 3. lépéssel `nl-NL`/`Europe/Amsterdam`-ra állítjuk NL workflow esetén.
+- Ha a felvétel a jelszót/TOTP-t is konkrét karakterekként rögzítette (a felvétel során valós billentyűleütés volt), akkor **a spec ma tartalmazhatja plain szövegben a jelszót**. Ezt a replay executor első dolga kell hogy legyen letakarni: a `type` lépéseknél a jelszó és 2FA mezőknél nem a felvett `value`-t használjuk, hanem a credentialból/TOTP-ből. A felvétel spec-ben lévő plain jelszót viszont felül kell írnunk (biztonsági javítás). — ezt a Terv részeként megcsinálom.
+- Cookie lejárat: pár hét múlva újra le kell játszani a login-t. Ez elfogadott, a Dolphin cookie-nál sem volt jobb.
 
-## Utána (nem ma)
+## Sorrend
 
-- Ugyanez a folyamat automatikusan használható lesz TikTok / Pinterest / Instagram cookie-frissítésre is — a recorder oldali `saveCookies` platform-független.
+1. Biztonsági javítás: felvétel mentésénél a jelszó/2FA-jellegű `type` lépések `value`/`text` mezőjét nullázzuk és megjelöljük `bitwarden_field`-del (backfill a mostani felvételre is).
+2. `record-replay.js` executor megírása humanize-ált lejátszóval.
+3. `brain-tasks/index.js` router bővítése az új task-típussal.
+4. Cookie-mentő callback illesztése a replay végére (a meglévő `/save-cookies` endpointra).
+5. UI: „Login lejátszása" gomb a workflow oldalon.
+6. Száraz teszt egy ártalmatlan oldalon (nem LinkedIn).
+7. **HOLNAP:** éles LinkedIn login egy gombnyomással, cookie mentés, majd metrics teszt.
+
+## Ha ez működik → Pinterest
+
+A `record-replay.js` és a cookie-flow **platformfüggetlen**. Pinterestnél is ugyanez: felvétel a modálban → egyszer lejátszatjuk → cookie mentve → a Pinterest metrics/pin-poszt executorok cookie-ból mennek. Nem kell külön Pinterest-login kódot írni.
+
+---
+
+Rendben van így? Ha jóváhagyod, elkezdem az 1–6. pontokat még ma, és holnap csak a gombot kell megnyomni.

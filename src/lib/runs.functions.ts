@@ -145,3 +145,71 @@ export const cancelRun = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Felvétel-lejátszó login futás. A workflow spec-jébe injektál egy
+ * `brain_task: { task_type: "record_replay_login" }` blokkot, majd a normál
+ * `queued` run flow-n keresztül a saját VPS workerünk elveszi és lejátssza
+ * a `recorded_actions` sorozatot. A végén a friss cookie-k automatikusan
+ * beíródnak titkosítva a workflow_credentials-be (worker/complete flow).
+ */
+export const startReplayLoginRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        workflowId: z.string().uuid(),
+        proxyId: z.string().uuid().nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+
+    const { data: wf, error: wfErr } = await supabase
+      .from("workflows")
+      .select("spec, tenant_id, module")
+      .eq("id", data.workflowId)
+      .single();
+    if (wfErr) throw new Error(wfErr.message);
+    const baseSpec = (wf?.spec as WorkflowSpec | null) ?? {};
+    const actions = (baseSpec as { recorded_actions?: unknown[] }).recorded_actions;
+    if (!Array.isArray(actions) || actions.length === 0) {
+      throw new Error("Nincs felvett flow ezen a workflow-n — előbb rögzíts egy login felvételt.");
+    }
+
+    // Beleinjektáljuk a brain_task jelzőt — a router ebből dönt.
+    const specSnapshot = {
+      ...baseSpec,
+      brain_task: {
+        task_type: "record_replay_login",
+        platform: baseSpec.platform || null,
+      },
+    };
+
+    const startedAt = new Date().toISOString();
+    const { data: created, error: insErr } = await supabase
+      .from("brain_workflow_runs")
+      .insert({
+        workflow_id: data.workflowId,
+        tenant_id: wf!.tenant_id,
+        module: wf!.module,
+        runner: "docker",
+        status: "queued",
+        spec_snapshot: specSnapshot as never,
+        proxy_id: data.proxyId ?? null,
+        started_at: startedAt,
+        logs: [
+          {
+            ts: startedAt,
+            level: "info",
+            message: `Login-felvétel lejátszása sorba téve — ${actions.length} lépés, a worker fogja végrehajtani.`,
+          },
+        ] as never,
+      })
+      .select("id")
+      .single();
+    if (insErr) throw new Error(insErr.message);
+
+    return { runId: created!.id, status: "queued" as const, stepCount: actions.length };
+  });

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Brain, Play, Pencil, Video } from "lucide-react";
+import { Brain, Play, Pencil, Video, KeyRound } from "lucide-react";
 import { MicButton } from "@/components/mic-button";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
 import { startRecording } from "@/lib/recording.functions";
@@ -41,7 +41,7 @@ import {
   renameWorkflow,
   resetReadyForTest,
 } from "@/lib/chat.functions";
-import { startRun } from "@/lib/runs.functions";
+import { startRun, startReplayLoginRun } from "@/lib/runs.functions";
 import { listProxies } from "@/lib/proxies.functions";
 import { SpecPanel } from "@/components/spec-panel";
 
@@ -66,11 +66,13 @@ async function fetchMessages(workflowId: string): Promise<DbMessage[]> {
 async function fetchWorkflowMeta(workflowId: string) {
   const { data, error } = await supabase
     .from("workflows")
-    .select("name, ready_for_test")
+    .select("name, ready_for_test, spec")
     .eq("id", workflowId)
     .single();
   if (error) throw error;
-  return data;
+  const spec = (data?.spec as { recorded_actions?: unknown[] } | null) ?? {};
+  const stepCount = Array.isArray(spec.recorded_actions) ? spec.recorded_actions.length : 0;
+  return { name: data.name, ready_for_test: data.ready_for_test, recordedStepCount: stepCount };
 }
 
 export function ChatWindow({ workflowId }: { workflowId: string }) {
@@ -79,9 +81,11 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const callRename = useServerFn(renameWorkflow);
   const callResetReady = useServerFn(resetReadyForTest);
   const callStartRun = useServerFn(startRun);
+  const callStartReplayLogin = useServerFn(startReplayLoginRun);
   const callStartRecording = useServerFn(startRecording);
   const [sending, setSending] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [replayLoginStarting, setReplayLoginStarting] = useState(false);
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
   const [runner, setRunner] = useState<"docker">("docker");
@@ -224,6 +228,35 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     textareaRef.current?.focus();
   }
 
+  async function handleReplayLogin() {
+    if (replayLoginStarting) return;
+    const steps = meta?.recordedStepCount ?? 0;
+    if (steps === 0) {
+      toast.error("Nincs mentett felvétel — előbb rögzíts egy login flow-t a Felvétel gombbal.");
+      return;
+    }
+    if (!confirm(
+      `Lejátsszam a mentett ${steps} lépéses login felvételt a proxyn? \n\nA lejátszás emberi tempóval kb. 3–8 percig tart. A végén a friss süti automatikusan mentődik, és onnantól a rendszeres futások cookie-ból mennek.`,
+    )) return;
+    setReplayLoginStarting(true);
+    try {
+      const res = await callStartReplayLogin({
+        data: { workflowId, proxyId: selectedProxyId || null },
+      });
+      toast.success(
+        `Login-lejátszás sorba téve (${res.stepCount} lépés) — kövesd a jobb oldali Futások panelen.`,
+      );
+      await qc.invalidateQueries({ queryKey: ["brain_workflow_runs", workflowId] });
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? `Lejátszás indítása sikertelen: ${e.message}` : "Lejátszás indítása sikertelen",
+      );
+    } finally {
+      setReplayLoginStarting(false);
+    }
+  }
+
+
   return (
     <div className="flex h-full min-h-0">
       <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -260,6 +293,23 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
               type="button"
               size="sm"
               variant="outline"
+              disabled={replayLoginStarting || (meta?.recordedStepCount ?? 0) === 0}
+              onClick={handleReplayLogin}
+              title={
+                (meta?.recordedStepCount ?? 0) === 0
+                  ? "Nincs mentett felvétel — előbb rögzíts egy login flow-t"
+                  : `Lejátssza a mentett ${meta?.recordedStepCount} lépéses felvételt és elmenti a friss cookie-kat`
+              }
+            >
+              <KeyRound className="size-4" />
+              <span className="ml-1.5 hidden sm:inline">
+                {replayLoginStarting ? "Indítás…" : "Login lejátszása"}
+              </span>
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
               onClick={async () => {
                 try {
                   const session = await callStartRecording({
@@ -282,6 +332,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
             </Button>
           </div>
         </div>
+
 
 
         <Conversation className="flex-1 min-h-0 overflow-auto">
