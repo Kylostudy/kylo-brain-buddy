@@ -82,6 +82,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const [textPanelOpen, setTextPanelOpen] = useState(false);
   const [pageText, setPageText] = useState("");
   const [textBusy, setTextBusy] = useState(false);
+  const [cookieBusy, setCookieBusy] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
