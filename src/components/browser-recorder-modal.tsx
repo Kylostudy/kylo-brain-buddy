@@ -26,6 +26,7 @@ import {
   ArrowRight,
   ArrowUp,
   Camera,
+  Cookie,
   Check,
   Copy,
   Loader2,
