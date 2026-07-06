@@ -377,6 +377,15 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     }
   }
 
+  function handleSaveCookies() {
+    if (!sessionId) return;
+    setCookieBusy(true);
+    sendToWorker("saveCookies", {});
+    // A siker/hiba a channel-en jön vissza (cookiesSaved / cookieSaveError),
+    // ami leveszi a cookieBusy-t. Biztonsági timeout 15 mp után.
+    setTimeout(() => setCookieBusy(false), 15000);
+  }
+
   async function handleCancel() {
     if (!sessionId) {
       onClose();
