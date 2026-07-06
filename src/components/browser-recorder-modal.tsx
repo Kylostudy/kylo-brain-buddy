@@ -219,7 +219,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
       // Ha a session még "requested" (worker sosem jelentkezett), engedjük az ESC-et:
       // így nem ragadunk be egy fekete ablakba, amikor pl. a VPS le van állítva.
       if (e.key === "Escape") {
-        if (status === "requested") {
+        if (statusRef.current === "requested") {
           e.preventDefault();
           void handleCancel();
           return;
