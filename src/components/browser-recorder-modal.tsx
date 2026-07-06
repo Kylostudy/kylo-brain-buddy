@@ -356,14 +356,35 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
     sendToWorker("click", { x, y });
+    // A kép csak egy kép — a gépeléshez a rejtett input kell hogy fókuszban legyen.
+    // A kattintás után átvesszük a fókuszt, hogy azonnal írhasson a felhasználó.
+    window.setTimeout(() => typeInputRef.current?.focus(), 0);
   }
 
+  // Élő gépelés: minden karakter azonnal megy a workernek (nem várunk Enterre).
+  // A rejtett input értékét kiürítjük, csak eseményforrásként használjuk.
   function handleType(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      const txt = (e.target as HTMLInputElement).value;
-      sendToWorker("type", { text: txt + "\n" });
-      (e.target as HTMLInputElement).value = "";
+    const target = e.target as HTMLInputElement;
+    // Speciális billentyűk: preventDefault + key event a workernek
+    const specialKeys = new Set([
+      "Backspace", "Delete", "Enter", "Tab",
+      "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+      "Home", "End", "PageUp", "PageDown",
+    ]);
+    if (specialKeys.has(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
+      const key = workerKeyFromEvent(e);
+      if (key) {
+        e.preventDefault();
+        sendToWorker("key", { key });
+      }
+      target.value = "";
+      return;
+    }
+    // Nyomtatható egy-karakteres billentyű → azonnal küldjük típusként
+    if (e.key.length === 1) {
       e.preventDefault();
+      sendToWorker("type", { text: e.key });
+      target.value = "";
     }
   }
 
