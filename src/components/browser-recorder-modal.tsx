@@ -88,6 +88,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const statusRef = useRef(status);
+  useEffect(() => { statusRef.current = status; }, [status]);
 
   const sendToWorker = useCallback((event: string, payload: Record<string, unknown>) => {
     const ch = channelRef.current;
@@ -214,7 +216,16 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
         requestSelectAllAndText();
         return;
       }
-      if (e.key === "Escape") e.preventDefault();
+      // Ha a session még "requested" (worker sosem jelentkezett), engedjük az ESC-et:
+      // így nem ragadunk be egy fekete ablakba, amikor pl. a VPS le van állítva.
+      if (e.key === "Escape") {
+        if (statusRef.current === "requested") {
+          e.preventDefault();
+          void handleCancel();
+          return;
+        }
+        e.preventDefault();
+      }
       if (isEditableTarget(e.target)) return;
       const key = workerKeyFromEvent(e);
       if (!key) return;
@@ -581,13 +592,21 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
               draggable={false}
             />
           ) : (
-            <div className="flex flex-col items-center gap-3 text-white/70">
+            <div className="flex max-w-md flex-col items-center gap-3 px-4 text-center text-white/70">
               <Camera className="size-10 opacity-50" />
               <div className="text-sm">
                 {status === "requested"
                   ? "Várjuk, hogy a worker felvegye a felvételt…"
                   : "Még nem érkezett képkocka a workertől."}
               </div>
+              {status === "requested" && (
+                <div className="rounded border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  Ha a worker (VPS Recorder konténer) nincs elindítva, ez az ablak sosem fog képet mutatni.
+                  Nyomj <kbd className="rounded bg-white/10 px-1">Esc</kbd>-et vagy kattints a jobb felső
+                  <span className="mx-1 inline-flex items-center rounded bg-white/10 px-1">Elvet</span>
+                  gombra a bezáráshoz.
+                </div>
+              )}
               <div className="text-xs text-white/40">
                 Session: <code>{sessionId}</code>
               </div>
