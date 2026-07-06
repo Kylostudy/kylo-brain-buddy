@@ -513,6 +513,22 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
         </span>
         <Button
           size="sm"
+          variant="secondary"
+          className="bg-emerald-700 text-white hover:bg-emerald-600"
+          onClick={handleSaveCookies}
+          disabled={cookieBusy || status !== "active"}
+          aria-label="Sütik mentése a workflow-ba"
+          title="Sütik mentése a workflow-ba (bejelentkezés után)"
+        >
+          {cookieBusy ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Cookie className="size-4" />
+          )}
+          <span className="ml-1 hidden md:inline">Sütik mentése</span>
+        </Button>
+        <Button
+          size="sm"
           variant="ghost"
           className="text-white hover:bg-white/10"
           onClick={handleCancel}
