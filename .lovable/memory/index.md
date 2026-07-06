@@ -14,3 +14,4 @@
 - [kylogic-integráció](mem://features/kylogic-integration) — Kylogic adja az időpontokat jitterrel, Brain csak végrehajt. Konkrét paraméterek még egyeztetés alatt.
 - [moduláris-architektúra](mem://features/modular-architecture) — Minden modul és workflow másolható más tenantnak, hogy ne kelljen újraépíteni
 - [brain-univerzalitás](mem://features/brain-universality) — A Brain nem csak social media feltöltésre, hanem bármilyen automatizációra használható
+- [kylogic-feltöltés-hiány](mem://features/kylogic-upload-gap) — Kylogic ma csak metrics/comments taskot küld; feltöltéshez hiányzó payload mezők (video_url, caption, scheduled_at, account_id, kétszálas elérhetőség) — egyeztetni Kylogic-kal
