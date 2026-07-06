@@ -18,18 +18,20 @@ A Reddit ugyanolyan paranoid, mint a Meta/TikTok/LinkedIn:
 - 11 nyelvi account = 11× lebukási felület. Egy is bukik → a történet hitelessége odavan, újraindulni gyakorlatilag lehetetlen (ugyanaz a személyes sztori, más account = azonnal duplikátum).
 - Ezért: **a Brain read-only megfigyelő. Semmit nem ír Redditre.**
 
-## Kimeneti csatorna: EMAIL (Gmail API-n át)
+## Kimeneti csatorna: EMAIL (Gmail API-n át) — MINDEN MAGYARUL
 - **Nem UI, hanem email.** Indoklás: a felhasználó napközben, telefonról is tudjon reagálni, nem kell a Brain dashboardot megnyitnia.
 - Gmail API már be van kötve a projektbe (`GOOGLE_MAIL_API_KEY`, lásd `src/lib/gmail.functions.ts`). Erre fut a kiküldés — nem Lovable Emails, nem Resend, nem SMTP.
 - **Egy összesített email cím** kap minden digest-et (a felhasználó email címe; nem külön workflow-nkénti email).
+- **NYELV: a felhasználó csak magyarul olvas és ír.** A Gemini oda-vissza fordít:
+  - Bejövő irány: a Reddit kommenteket (11 nyelvről) a Gemini **magyarra fordítja**, mielőtt az email digestbe kerülnek. Az eredeti nyelvű szöveg is ott van kis szürke idézetként a magyar fordítás alatt (későbbi ellenőrzés végett), de a főszöveg magyar.
+  - Kimenő irány: a felhasználó magyarul ír választ emailben → Gemini lefordítja az adott komment eredeti nyelvére → piszkozat visszaküldve emailben → **a felhasználó másolja be és posztolja kézzel** Redditbe.
 - Email tartalma per workflow (per Reddit account) egy szekció:
   - subreddit + poszt link
   - új komment darabszám (delta az előző digesthez képest)
-  - hangulat összefoglaló (Gemini)
-  - válaszra érdemes kommentek kiemelve (Gemini szűrő)
+  - hangulat összefoglaló (Gemini, magyarul)
+  - válaszra érdemes kommentek kiemelve, **magyar fordítással + eredeti szöveggel**
   - screenshot csatolmány vagy inline kép
   - moderátori jelzések, downvote arány, ha van
-- Felhasználó válaszol emailre magyarul → külön Brain funkció (később): Gemini lefordítja 11 nyelvre, piszkozat visszaküldve emailben, **a felhasználó posztolja kézzel** subredditbe.
 
 ## Ütemezés
 - Alapból napi 1 digest email, emberi jitterrel (nem fix órában megy a Reddit olvasás).
