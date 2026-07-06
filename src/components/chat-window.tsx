@@ -228,6 +228,35 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     textareaRef.current?.focus();
   }
 
+  async function handleReplayLogin() {
+    if (replayLoginStarting) return;
+    const steps = meta?.recordedStepCount ?? 0;
+    if (steps === 0) {
+      toast.error("Nincs mentett felvétel — előbb rögzíts egy login flow-t a Felvétel gombbal.");
+      return;
+    }
+    if (!confirm(
+      `Lejátsszam a mentett ${steps} lépéses login felvételt a proxyn? \n\nA lejátszás emberi tempóval kb. 3–8 percig tart. A végén a friss süti automatikusan mentődik, és onnantól a rendszeres futások cookie-ból mennek.`,
+    )) return;
+    setReplayLoginStarting(true);
+    try {
+      const res = await callStartReplayLogin({
+        data: { workflowId, proxyId: selectedProxyId || null },
+      });
+      toast.success(
+        `Login-lejátszás sorba téve (${res.stepCount} lépés) — kövesd a jobb oldali Futások panelen.`,
+      );
+      await qc.invalidateQueries({ queryKey: ["brain_workflow_runs", workflowId] });
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? `Lejátszás indítása sikertelen: ${e.message}` : "Lejátszás indítása sikertelen",
+      );
+    } finally {
+      setReplayLoginStarting(false);
+    }
+  }
+
+
   return (
     <div className="flex h-full min-h-0">
       <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -264,6 +293,23 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
               type="button"
               size="sm"
               variant="outline"
+              disabled={replayLoginStarting || (meta?.recordedStepCount ?? 0) === 0}
+              onClick={handleReplayLogin}
+              title={
+                (meta?.recordedStepCount ?? 0) === 0
+                  ? "Nincs mentett felvétel — előbb rögzíts egy login flow-t"
+                  : `Lejátssza a mentett ${meta?.recordedStepCount} lépéses felvételt és elmenti a friss cookie-kat`
+              }
+            >
+              <KeyRound className="size-4" />
+              <span className="ml-1.5 hidden sm:inline">
+                {replayLoginStarting ? "Indítás…" : "Login lejátszása"}
+              </span>
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
               onClick={async () => {
                 try {
                   const session = await callStartRecording({
@@ -286,6 +332,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
             </Button>
           </div>
         </div>
+
 
 
         <Conversation className="flex-1 min-h-0 overflow-auto">
