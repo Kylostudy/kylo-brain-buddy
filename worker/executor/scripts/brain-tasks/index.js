@@ -43,6 +43,9 @@ export async function runBrainTask(args) {
       if (platform === "linkedin") {
         return await runLinkedInMetricsSnapshot(args);
       }
+      if (platform === "pinterest") {
+        return await runPinterestMetricsSnapshot(args);
+      }
       throw new Error(
         `metrics_snapshot: platform "${platform || "?"}" executor még nincs implementálva`,
       );
