@@ -446,9 +446,30 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     if (!sessionId) return;
     setBusy(true);
     try {
+      const normalizedActions = actions.map((action) => {
+        if (action.type === "click") {
+          return {
+            ...action,
+            selector:
+              typeof action.selector === "string" && action.selector.trim()
+                ? action.selector
+                : `point:${Math.round((action.x ?? 0) * 10000)},${Math.round((action.y ?? 0) * 10000)}`,
+          };
+        }
+        if (action.type === "type") {
+          return {
+            ...action,
+            selector:
+              typeof action.selector === "string" && action.selector.trim()
+                ? action.selector
+                : "activeElement",
+          };
+        }
+        return action;
+      });
       sendToWorker("stop", { save: true });
-      await callSave({ data: { sessionId, actions } });
-      toast.success(`Felvétel mentve (${actions.length} lépés).`);
+      await callSave({ data: { sessionId, actions: normalizedActions } });
+      toast.success(`Felvétel mentve (${normalizedActions.length} lépés).`);
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Mentés sikertelen");
