@@ -18,6 +18,7 @@ import { chromium as _extraChromium } from "playwright-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
+import { buildFingerprintInitScript } from "../executor/scripts/fingerprint-patch.js";
 
 // Stealth plugin: álcázza a headless böngészőt valódi böngészőnek
 // (Cloudflare / DataDome / PerimeterX bot-detektorok ellen).
