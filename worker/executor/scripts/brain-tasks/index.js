@@ -11,6 +11,7 @@
 
 import { runBrainPing } from "./ping.js";
 import { runLinkedInMetricsSnapshot } from "./linkedin-metrics-snapshot.js";
+import { runPinterestMetricsSnapshot } from "./pinterest-metrics-snapshot.js";
 import { runRecordReplay } from "./record-replay.js";
 
 export function isBrainTask(spec) {
