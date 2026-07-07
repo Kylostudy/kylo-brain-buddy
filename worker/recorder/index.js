@@ -106,6 +106,7 @@ if (!BRAIN_URL || !WORKER_API_TOKEN) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const PINTEREST_LOGIN_URL = "https://www.pinterest.com/login/";
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
@@ -163,10 +164,38 @@ async function humanClick(page, from, to) {
 }
 
 function normalizeUrl(rawUrl) {
-  const url = String(rawUrl || "").trim();
-  if (!url) return null;
-  if (/^https?:\/\//i.test(url)) return url;
-  return "https://" + url;
+  const raw = String(rawUrl || "").trim();
+  if (!raw) return null;
+  const compact = raw.replace(/\s+/g, "");
+  const pinterestish = /pinterest/i.test(compact);
+
+  // Megfogja az összeragasztott / autocomplete által elrontott Pinterest címeket,
+  // pl. `www.pinterest.nl.login.pinterest.comcom`.
+  if (pinterestish && (/\.comcom(?:\/|$)/i.test(compact) || /login\.pinterest\./i.test(compact))) {
+    return PINTEREST_LOGIN_URL;
+  }
+
+  const withProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(compact)
+    ? compact
+    : /^localhost(?::\d+)?(?:\/|$)/i.test(compact)
+      ? `http://${compact}`
+      : `https://${compact}`;
+
+  try {
+    const parsed = new URL(withProtocol);
+    if (pinterestish) {
+      const host = parsed.hostname.toLowerCase();
+      const official =
+        host === "pinterest.com" ||
+        host.endsWith(".pinterest.com") ||
+        host === "pin.it" ||
+        host.endsWith(".pin.it");
+      if (!official) return PINTEREST_LOGIN_URL;
+    }
+    return parsed.toString();
+  } catch {
+    return pinterestish ? PINTEREST_LOGIN_URL : null;
+  }
 }
 
 async function brainPost(path, body) {

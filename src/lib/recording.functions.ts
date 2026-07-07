@@ -7,6 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { RecordedAction, WorkflowSpec } from "@/lib/chat.functions";
+import { normalizeRecordingStartUrl } from "@/lib/recording-url";
 
 export const startRecording = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -16,7 +17,6 @@ export const startRecording = createServerFn({ method: "POST" })
         workflowId: z.string().uuid(),
         startUrl: z
           .string()
-          .url()
           .max(2048)
           .optional()
           .or(z.literal("").transform(() => undefined)),
@@ -38,12 +38,14 @@ export const startRecording = createServerFn({ method: "POST" })
 
     // Ha nem kaptunk start URL-t, vegyük a spec-ből (media_source vagy start_url).
     const spec = (wf.spec as WorkflowSpec | null) ?? {};
-    const startUrl =
+    const startUrl = normalizeRecordingStartUrl(
       data.startUrl?.trim() ||
       spec.start_url ||
       (spec.media_source && /^https?:\/\//i.test(spec.media_source)
         ? spec.media_source
-        : undefined);
+        : undefined),
+      spec.platform,
+    );
 
     // Frissítés / bezárt modál után ne ragadjon bent régi VPS-session.
     const { error: cleanupErr } = await supabase
