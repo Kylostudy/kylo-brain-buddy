@@ -85,6 +85,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const [textBusy, setTextBusy] = useState(false);
   const [cookieBusy, setCookieBusy] = useState(false);
   const [inputStatus, setInputStatus] = useState("");
+  const [workerTimeout, setWorkerTimeout] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
@@ -211,6 +212,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     if (!open) return;
     setStatus("requested");
     setFrame(null);
+    setWorkerTimeout(false);
     setCurrentUrl("");
     setUrlDraft("");
     setActions([]);
@@ -218,6 +220,12 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     setTextBusy(false);
     setInputStatus("");
   }, [open, sessionId]);
+
+  useEffect(() => {
+    if (!open || !sessionId || status !== "requested" || frame) return;
+    const timer = window.setTimeout(() => setWorkerTimeout(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [open, sessionId, status, frame]);
 
   // Vágólap → worker: nem navigator.clipboard.readText()-tel olvasunk, mert
   // iframe / preview környezetben ezt a böngésző gyakran tiltja. A valódi
@@ -693,10 +701,19 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
               </div>
               {status === "requested" && (
                 <div className="rounded border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                  Ha a worker (VPS Recorder konténer) nincs elindítva, ez az ablak sosem fog képet mutatni.
-                  Nyomj <kbd className="rounded bg-white/10 px-1">Esc</kbd>-et vagy kattints a jobb felső
-                  <span className="mx-1 inline-flex items-center rounded bg-white/10 px-1">Elvet</span>
-                  gombra a bezáráshoz.
+                  {workerTimeout ? (
+                    <>
+                      A VPS recorder nem vette fel ezt a felvételt. Ellenőrizd a szerveren:
+                      <code className="mx-1 rounded bg-white/10 px-1">docker compose logs recorder --tail=80</code>
+                    </>
+                  ) : (
+                    <>
+                      Ha a worker (VPS Recorder konténer) nincs elindítva, ez az ablak sosem fog képet mutatni.
+                      Nyomj <kbd className="rounded bg-white/10 px-1">Esc</kbd>-et vagy kattints a jobb felső
+                      <span className="mx-1 inline-flex items-center rounded bg-white/10 px-1">Elvet</span>
+                      gombra a bezáráshoz.
+                    </>
+                  )}
                 </div>
               )}
               <div className="text-xs text-white/40">
