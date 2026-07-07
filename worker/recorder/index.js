@@ -18,6 +18,7 @@ import { chromium as _extraChromium } from "playwright-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
+import { buildFingerprintInitScript } from "../executor/scripts/fingerprint-patch.js";
 
 // Stealth plugin: álcázza a headless böngészőt valódi böngészőnek
 // (Cloudflare / DataDome / PerimeterX bot-detektorok ellen).
@@ -383,12 +384,16 @@ async function runSession(payload) {
     proxy = nextProxy();
   }
 
-  const userAgent = pickUA();
-  const locale = payload.locale || "hu-HU";
-  const timezoneId = payload.timezone || "Europe/Budapest";
+  // A Brain által küldött fingerprint elsőbbséget élvez: UA + locale + tz
+  // ugyanaz, mint amit a workflow futásidőben is használ. Ha nincs (régi
+  // Brain), esik vissza a recorder saját pool-jára.
+  const fp = payload.fingerprint || null;
+  const userAgent = fp?.userAgent || pickUA();
+  const locale = fp?.locale || payload.locale || "hu-HU";
+  const timezoneId = fp?.timezoneId || payload.timezone || "Europe/Budapest";
   if (proxy) {
     console.log(
-      `[session ${session.id}] using ${proxy.label} (${proxy.server}) · locale=${locale} · tz=${timezoneId}`,
+      `[session ${session.id}] using ${proxy.label} (${proxy.server}) · locale=${locale} · tz=${timezoneId} · fp=${fp ? `Chrome${fp.chromeMajor}/${fp.platform}` : "recorder-default"}`,
     );
   } else {
     console.warn(
@@ -410,6 +415,17 @@ async function runSession(payload) {
         }
       : {}),
   });
+  // Fingerprint spoof (WebGL vendor/renderer, hardwareConcurrency,
+  // deviceMemory, platform, WebRTC leak-védelem) — hogy a recorderrel
+  // felvett első bejelentkezés is UGYANOLYAN böngészőnek látsszon, mint
+  // a későbbi workflow futások.
+  if (fp) {
+    try {
+      await context.addInitScript(buildFingerprintInitScript(fp));
+    } catch (e) {
+      console.warn(`[session ${session.id}] fingerprint init-script hiba: ${e.message}`);
+    }
+  }
   // Pinterest és hasonló oldalak nem csak azt nézik, hogy `navigator.webdriver`
   // false-e, hanem azt is, hogy a getter egyáltalán létezik-e. Ezért a propertyt
   // teljesen töröljük minden oldal betöltése előtt.

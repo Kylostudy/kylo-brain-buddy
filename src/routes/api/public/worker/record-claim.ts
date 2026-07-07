@@ -242,6 +242,17 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
 
         if (updErr || !claimed) return new Response(null, { status: 204 });
 
+        // Ugyanaz a fingerprint mint a workflow futásoknál (workflow_id +
+        // proxy ország alapján determinisztikus) — így a recorderrel felvett
+        // session és a későbbi éles futás UGYANANNAK a "virtuális gépnek"
+        // látszik (Windows Chrome 148 + NVIDIA GPU stb.), nem vált a
+        // fingerprint az első bejelentkezés után.
+        const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
+        const fingerprint = generateWorkflowFingerprint(
+          claimed.workflow_id,
+          proxy?.country ?? null,
+        );
+
         return new Response(
           JSON.stringify({
             session: {
@@ -252,8 +263,9 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
               startedAt: claimed.started_at,
             },
             proxy,
-            locale,
-            timezone,
+            locale: locale || fingerprint.locale,
+            timezone: timezone || fingerprint.timezoneId,
+            fingerprint,
             cookies,
             // A worker ezekkel csatlakozik a Realtime broadcast csatornára.
             supabaseUrl: process.env.SUPABASE_URL,
