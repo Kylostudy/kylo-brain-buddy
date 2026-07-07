@@ -219,33 +219,30 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     setInputStatus("");
   }, [open, sessionId]);
 
-  // Vágólap → worker: Ctrl+V / Cmd+V esetén beolvassuk a local vágólapot és
-  // karakterláncként átküldjük type eseményként. Így Bitwarden-ből kimásolt
-  // jelszó egy pillanat alatt bekerül a távoli mezőbe.
-  const pasteFromClipboard = useCallback(async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (!text) {
-        toast.error("A vágólap üres.");
-        return;
-      }
+  // Vágólap → worker: nem navigator.clipboard.readText()-tel olvasunk, mert
+  // iframe / preview környezetben ezt a böngésző gyakran tiltja. A valódi
+  // paste esemény clipboardData-ja viszont engedély nélkül elérhető.
+  useEffect(() => {
+    if (!open) return;
+    const onPaste = (e: ClipboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+      const text = e.clipboardData?.getData("text") ?? "";
+      if (!text) return;
+      e.preventDefault();
+      e.stopPropagation();
       sendToWorker("type", { text });
-    } catch {
-      toast.error("Vágólap olvasás sikertelen — engedélyezd a böngészőben.");
-    }
-  }, [sendToWorker]);
+    };
+    window.addEventListener("paste", onPaste, { capture: true });
+    return () => window.removeEventListener("paste", onPaste, { capture: true });
+  }, [open, sendToWorker]);
 
   // ESC ne zárja be véletlenül — csak az X gomb
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      // Ctrl+V / Cmd+V: MINDIG fogjuk el, akkor is ha input van fókuszban.
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "v") {
-        e.preventDefault();
-        e.stopPropagation();
-        void pasteFromClipboard();
-        return;
-      }
+      // Ctrl+V / Cmd+V: hagyjuk, hogy a böngésző valódi paste eseményt adjon.
+      // A paste listener kezeli a távoli böngészőbe küldést, az URL-sorban
+      // pedig így normálisan működik a beillesztés.
       // Ctrl+A / Cmd+A: MINDIG fogjuk el, akkor is, ha input/textarea van fókuszban,
       // hogy a worker oldali oldalt jelölje ki és küldje vissza a teljes szöveget.
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
@@ -276,7 +273,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     };
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [open, sendToWorker, pasteFromClipboard]);
+  }, [open, sendToWorker]);
 
   // Egér-görgő → továbbítjuk a workernek (passzív listener helyett saját, hogy preventDefault menjen)
   useEffect(() => {
@@ -791,6 +788,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
           onPaste={(e) => {
             const text = e.clipboardData.getData("text");
             e.preventDefault();
+            e.stopPropagation();
             if (text) sendToWorker("type", { text });
             (e.target as HTMLInputElement).value = "";
           }}
