@@ -220,18 +220,23 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         // 2) Ha nincs, workflow-onként determinisztikusan generálunk (régi
         //    viselkedés kompatibilitás).
         // 3) Ha a spec-ben már meg van adva kézzel, azt tartjuk meg.
-        if (!specWithFlags.fingerprint) {
-          // Mindig teljes, friss fingerprintet generálunk (UA, WebGL, cores,
-          // mem, fontok). Ha van proxyhoz mentett fingerprint, annak csak a
-          // seedjét használjuk, így 1 proxy = 1 stabil virtuális ember marad,
-          // de a régi Chrome/130 + Intel Iris értékek nem tudnak visszajönni.
-          const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
-          const fingerprintSeed = proxyFingerprint?.seed || claimed.workflow_id;
-          specWithFlags.fingerprint = generateWorkflowFingerprint(
-            fingerprintSeed,
-            proxy?.expectedCountry ?? null,
-          );
-        }
+        // Mindig teljes, friss fingerprintet generálunk (UA, WebGL, cores,
+        // mem, fontok). Ha van proxyhoz mentett fingerprint, annak csak a
+        // seedjét használjuk, így 1 proxy = 1 stabil virtuális ember marad,
+        // de a régi Chrome/130 + Intel Iris értékek nem tudnak visszajönni.
+        const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
+        const existingFingerprint =
+          specWithFlags.fingerprint && typeof specWithFlags.fingerprint === "object"
+            ? (specWithFlags.fingerprint as { seed?: unknown })
+            : null;
+        const fingerprintSeed =
+          proxyFingerprint?.seed ||
+          (typeof existingFingerprint?.seed === "string" ? existingFingerprint.seed : null) ||
+          claimed.workflow_id;
+        specWithFlags.fingerprint = generateWorkflowFingerprint(
+          fingerprintSeed,
+          proxy?.expectedCountry ?? null,
+        );
 
 
         return new Response(
