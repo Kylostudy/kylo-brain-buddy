@@ -48,6 +48,7 @@ import {
   cancelRecording,
   saveRecording,
 } from "@/lib/recording.functions";
+import { normalizeRecordingStartUrl } from "@/lib/recording-url";
 import type { RecordedAction } from "@/lib/chat.functions";
 
 type Props = {
@@ -59,11 +60,7 @@ type Props = {
 type Frame = { dataUrl: string; w: number; h: number; ts: number };
 
 function normalizeBrowserUrl(rawUrl: string) {
-  const url = rawUrl.trim();
-  if (!url) return "";
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) return url;
-  if (/^localhost(?::\d+)?(?:\/|$)/i.test(url)) return `http://${url}`;
-  return `https://${url}`;
+  return normalizeRecordingStartUrl(rawUrl, undefined) ?? "";
 }
 
 export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
