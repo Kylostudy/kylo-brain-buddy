@@ -284,6 +284,39 @@ const ACTIVE_EDITABLE_FN = `() => {
   return !['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(type);
 }`;
 
+const TARGETED_CLICK_FALLBACK_FN = `(x, y) => {
+  const keyword = /(log\s*in|login|sign\s*in|continue|next|submit|bejelentkez|belép|tovább|folytatás)/i;
+  function textOf(el) {
+    return [
+      el.innerText,
+      el.textContent,
+      el.getAttribute && el.getAttribute('aria-label'),
+      el.getAttribute && el.getAttribute('title'),
+      el.getAttribute && el.getAttribute('value'),
+    ].filter(Boolean).join(' ').trim();
+  }
+  function clickableFrom(el) {
+    if (!el || !el.closest) return null;
+    const target = el.closest('button, a[href], [role="button"], input[type="button"], input[type="submit"], [tabindex]');
+    if (!target) return null;
+    if (target.disabled || target.getAttribute('aria-disabled') === 'true') return null;
+    const text = textOf(target);
+    if (!keyword.test(text)) return null;
+    return target;
+  }
+  let target = clickableFrom(document.elementFromPoint(x, y));
+  if (!target && document.elementsFromPoint) {
+    for (const el of document.elementsFromPoint(x, y)) {
+      target = clickableFrom(el);
+      if (target) break;
+    }
+  }
+  if (!target) return { clicked: false };
+  try { target.focus({ preventScroll: true }); } catch { try { target.focus(); } catch {} }
+  try { target.click(); } catch { return { clicked: false }; }
+  return { clicked: true, text: textOf(target).slice(0, 80), tag: target.tagName };
+}`;
+
 async function runSession(payload) {
   const { session, supabaseUrl, supabasePublishableKey } = payload;
   if (!supabaseUrl || !supabasePublishableKey) {
@@ -385,6 +418,15 @@ async function runSession(payload) {
     }
   }
 
+  async function targetedClickFallbackAt(x, y) {
+    try {
+      return await page.evaluate(`(${TARGETED_CLICK_FALLBACK_FN})(${x}, ${y})`);
+    } catch (e) {
+      console.warn(`[session ${session.id}] targetedClickFallbackAt hiba`, e?.message || e);
+      return null;
+    }
+  }
+
   async function hasEditableFocus() {
     try {
       return await page.evaluate(`(${ACTIVE_EDITABLE_FN})()`);
@@ -408,19 +450,39 @@ async function runSession(payload) {
       const y = payload.y * vs.height;
       lastClickPoint = { x, y, t: Date.now() };
       const desc = await describeAt(x, y);
-      await page.mouse.click(x, y);
-      await page.waitForTimeout(40).catch(() => {});
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "click", status: "received", x: Math.round(x), y: Math.round(y) },
+      }).catch(() => {});
+      await page.mouse.move(x, y);
+      await page.waitForTimeout(25).catch(() => {});
+      await page.mouse.down();
+      await page.waitForTimeout(45).catch(() => {});
+      await page.mouse.up();
+      await page.waitForTimeout(180).catch(() => {});
+      const fallback = await targetedClickFallbackAt(x, y);
       await focusEditableAt(x, y);
       pushAction({
         type: "click",
         selector: desc?.selector ?? null,
         x: payload.x,
         y: payload.y,
-        text: desc?.text ?? null,
+        text: fallback?.clicked ? `${desc?.text ?? ""} ${fallback.text ?? ""}`.trim() : desc?.text ?? null,
         t: Date.now(),
       });
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "click", status: "done", x: Math.round(x), y: Math.round(y), fallback: !!fallback?.clicked },
+      }).catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] click error`, e.message);
+      await channel.send({
+        type: "broadcast",
+        event: "inputError",
+        payload: { kind: "click", error: e.message },
+      }).catch(() => {});
     }
   });
 
