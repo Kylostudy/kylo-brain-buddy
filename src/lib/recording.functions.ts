@@ -146,9 +146,30 @@ export const saveRecording = createServerFn({ method: "POST" })
     if (wErr) throw new Error(wErr.message);
 
     const currentSpec = (wf?.spec as WorkflowSpec | null) ?? {};
+    const normalizedActions = data.actions.map((action) => {
+      if (action.type === "click") {
+        return {
+          ...action,
+          selector:
+            typeof action.selector === "string" && action.selector.trim()
+              ? action.selector
+              : `point:${Math.round((action.x ?? 0) * 10000)},${Math.round((action.y ?? 0) * 10000)}`,
+        };
+      }
+      if (action.type === "type") {
+        return {
+          ...action,
+          selector:
+            typeof action.selector === "string" && action.selector.trim()
+              ? action.selector
+              : "activeElement",
+        };
+      }
+      return action;
+    }) as RecordedAction[];
     const nextSpec: WorkflowSpec = {
       ...currentSpec,
-      recorded_actions: data.actions as RecordedAction[],
+      recorded_actions: normalizedActions,
     };
 
     const nowIso = new Date().toISOString();
@@ -161,7 +182,7 @@ export const saveRecording = createServerFn({ method: "POST" })
         .from("recording_sessions")
         .update({
           status: "completed",
-          action_log: data.actions,
+          action_log: normalizedActions,
           ended_at: nowIso,
         })
         .eq("id", data.sessionId),
@@ -169,5 +190,5 @@ export const saveRecording = createServerFn({ method: "POST" })
     if (e1) throw new Error(e1.message);
     if (e2) throw new Error(e2.message);
 
-    return { ok: true, savedCount: data.actions.length };
+    return { ok: true, savedCount: normalizedActions.length };
   });
