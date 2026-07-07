@@ -377,7 +377,47 @@ async function runSession(payload) {
         }
       : {}),
   });
+  // Ha a Brain küldött mentett cookie-kat (workflow_credentials-ből), töltsük
+  // be MIELŐTT bármit navigálunk — így a felhasználó egyből bejelentkezve
+  // nyitja meg pl. a Pinterestet, és nem kell újra belépnie.
+  if (Array.isArray(payload.cookies) && payload.cookies.length > 0) {
+    const validSameSite = new Set(["Strict", "Lax", "None"]);
+    const normalized = payload.cookies
+      .map((c) => {
+        if (!c || !c.name || typeof c.value !== "string") return null;
+        const out = {
+          name: c.name,
+          value: c.value,
+          path: c.path || "/",
+          httpOnly: !!c.httpOnly,
+          secure: !!c.secure,
+        };
+        if (c.domain) out.domain = c.domain;
+        // Playwright vagy `url`-t vagy `domain`-t vár; ha nincs domain, kihagyjuk.
+        if (!out.domain) return null;
+        if (typeof c.expires === "number" && c.expires > 0) out.expires = c.expires;
+        if (c.sameSite) {
+          const s = String(c.sameSite);
+          const cap = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+          if (validSameSite.has(cap)) out.sameSite = cap;
+        }
+        return out;
+      })
+      .filter(Boolean);
+    if (normalized.length > 0) {
+      try {
+        await context.addCookies(normalized);
+        console.log(
+          `[session ${session.id}] ${normalized.length} mentett cookie betöltve (${payload.cookies.length} kapott)`,
+        );
+      } catch (e) {
+        console.warn(`[session ${session.id}] cookie betöltés hiba:`, e?.message);
+      }
+    }
+  }
+
   const page = await context.newPage();
+
 
   let stopped = false;
   let viewportW = VIEWPORT_W;
