@@ -17,3 +17,4 @@
 - [kylogic-feltöltés-hiány](mem://features/kylogic-upload-gap) — Kylogic ma csak metrics/comments taskot küld; feltöltéshez hiányzó payload mezők (video_url, caption, scheduled_at, account_id, kétszálas elérhetőség) — egyeztetni Kylogic-kal
 - [reddit-story-monitoring](mem://features/reddit-story-monitoring) — 11 nyelvű személyes történet Reddit posztok, Brain READ-ONLY: napi digest+screenshot, válasz mindig kézi, Gemini fordít
 - [streaming-upload](mem://features/streaming-upload) — GCS→platform videó feltöltés: MOST #1 (memória-buffer, nincs lemezírás), KÉSŐBB #3 (régiónkénti upload worker 200+ videó/nap fölött). #2/b kihagyva.
+- [account-separation](mem://features/account-separation) — Brain-only accountok kötelező. User saját profiljai SOHA nem futnak a VPS-en. FB: Kovács László profil külön HU telefonszámmal admin az összes HU Kylo oldalon. User saját FB feketelistás. TikTok/Instagram: usernek nincs is személyes, párhuzam-probléma eleve nem játszik.
