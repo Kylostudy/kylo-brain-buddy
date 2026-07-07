@@ -9,6 +9,7 @@ COPY recorder/package.json recorder/package-lock.json* ./
 RUN npm install --omit=dev
 
 COPY recorder/ ./
+COPY executor/scripts/fingerprint-patch.js ./fingerprint-patch.js
 
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
