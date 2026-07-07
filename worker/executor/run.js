@@ -24,6 +24,7 @@ import { runDecathlonStock } from "./scripts/decathlon-stock.js";
 import { runBotSmokeTest } from "./scripts/bot-smoke-test.js";
 import { runLoggedOutWarmup } from "./scripts/logged-out-warmup.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
+import { buildFingerprintInitScript } from "./scripts/fingerprint-patch.js";
 import {
   isBrainTask,
   needsBrowser,
@@ -264,6 +265,15 @@ async function main() {
       "--disable-blink-features=AutomationControlled",
       "--no-sandbox",
       "--disable-dev-shm-usage",
+      // WebRTC IP-szivárgás elleni védelem: a Chrome csak a proxyn keresztül
+      // engedjen UDP-t, ne a valódi VPS IP-ről. A patch script emellett
+      // JS-szinten is levágja a candidate sorokat az SDP-ből.
+      "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+      "--webrtc-ip-handling-policy=disable_non_proxied_udp",
+      // WebGPU-t kényszerítsük "on"-ra a Dolphin mintája szerint — headlessben
+      // amúgy default off, ami botjel.
+      "--enable-unsafe-webgpu",
+      "--enable-features=Vulkan,WebGPU",
     ],
   };
   if (proxyUrl) {
@@ -301,9 +311,20 @@ async function main() {
   if (fp.timezoneId) contextOpts.timezoneId = fp.timezoneId;
   if (fp.deviceScaleFactor) contextOpts.deviceScaleFactor = fp.deviceScaleFactor;
   const context = await browser.newContext(contextOpts);
+
+  // Fingerprint init-script: WebGL vendor/renderer, hardwareConcurrency,
+  // deviceMemory, platform és WebRTC leak-védelem a böngészőben. Minden page
+  // ELŐTT injektáljuk, hogy már az első fingerprint-lekérdezéskor is a mi
+  // értékeink látsszanak.
+  try {
+    await context.addInitScript(buildFingerprintInitScript(fp));
+  } catch (e) {
+    log("warn", `Fingerprint init-script inject hiba: ${e.message}`);
+  }
+
   log(
     "info",
-    `Fingerprint: ${fp.platform || "?"} · Chrome ${fp.chromeMajor || "?"} · ${contextOpts.viewport.width}x${contextOpts.viewport.height} · ${contextOpts.locale} · ${fp.timezoneId || "default TZ"}`,
+    `Fingerprint: ${fp.platform || "?"} · Chrome ${fp.chromeMajor || "?"} · ${contextOpts.viewport.width}x${contextOpts.viewport.height} · ${contextOpts.locale} · ${fp.timezoneId || "default TZ"} · WebGL:${fp.webglRenderer ? "spoof" : "raw"} · cores:${fp.hardwareConcurrency ?? "?"} · mem:${fp.deviceMemory ?? "?"}GB`,
   );
 
 
