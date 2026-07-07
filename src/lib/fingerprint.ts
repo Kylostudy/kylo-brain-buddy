@@ -3,7 +3,9 @@
 // kombinációt minden futáson — így egy fiók mindig "ugyanarról a gépről" jelentkezik be.
 // Nincs külső függőség, tisztán JS.
 //
-// Kimenet mezők a Playwright browser.newContext() paramétereivel kompatibilisek.
+// Kimenet mezők a Playwright browser.newContext() paramétereivel kompatibilisek,
+// PLUSZ extra spoof-mezők, amelyeket a worker init-script-ben a böngészőben
+// visszaad (WebGL, hardwareConcurrency, deviceMemory, WebGPU, fontok).
 
 export interface WorkflowFingerprint {
   userAgent: string;
@@ -12,19 +14,29 @@ export interface WorkflowFingerprint {
   timezoneId: string;
   platform: "Win32" | "MacIntel" | "Linux x86_64";
   deviceScaleFactor: number;
-  // Chromium major version — a UA-val konzisztens legyen.
   chromeMajor: number;
+  // ---- Extra spoof mezők (a worker init-script-ben injektálódnak) ----
+  webglVendor: string;
+  webglRenderer: string;
+  hardwareConcurrency: number;
+  deviceMemory: number;
+  // "real" (a Dolphin default is ez) vagy "noise"
+  canvasMode: "real" | "noise";
+  audioMode: "real" | "noise";
+  // Fontok — a "Fonts: Auto" alatt a Dolphin egy reális OS-fontlistát ad.
+  fonts: string[];
 }
 
-// Reális, aktuális Chrome major verziók (2025 tavasz–ősz).
-const CHROME_MAJORS = [124, 125, 126, 127, 128, 129, 130, 131];
+// Reális, aktuális Chrome major verziók (2026 tavasz–nyár).
+// A Dolphin screenshoton 148 látszik → a mi tartományunk is ide igazítva.
+const CHROME_MAJORS = [144, 145, 146, 147, 148];
 
 // Ország → locale + timezone. Ha nincs a listában, magyarra esünk vissza.
 const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
   HU: { locale: "hu-HU", tz: "Europe/Budapest" },
   DE: { locale: "de-DE", tz: "Europe/Berlin" },
   AT: { locale: "de-AT", tz: "Europe/Vienna" },
-  NL: { locale: "nl-NL", tz: "Europe/Amsterdam" },
+  NL: { locale: "en-US", tz: "Europe/Amsterdam" }, // NL proxy + EN böngésző (Dolphin mintája)
   FR: { locale: "fr-FR", tz: "Europe/Paris" },
   IT: { locale: "it-IT", tz: "Europe/Rome" },
   ES: { locale: "es-ES", tz: "Europe/Madrid" },
@@ -37,6 +49,7 @@ const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
   US: { locale: "en-US", tz: "America/New_York" },
   CA: { locale: "en-CA", tz: "America/Toronto" },
   AU: { locale: "en-AU", tz: "Australia/Sydney" },
+  NZ: { locale: "en-NZ", tz: "Pacific/Auckland" },
   CH: { locale: "de-CH", tz: "Europe/Zurich" },
   BE: { locale: "nl-BE", tz: "Europe/Brussels" },
   SE: { locale: "sv-SE", tz: "Europe/Stockholm" },
@@ -45,6 +58,9 @@ const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
   FI: { locale: "fi-FI", tz: "Europe/Helsinki" },
   PT: { locale: "pt-PT", tz: "Europe/Lisbon" },
   GR: { locale: "el-GR", tz: "Europe/Athens" },
+  IL: { locale: "en-US", tz: "Asia/Jerusalem" },
+  BR: { locale: "pt-BR", tz: "America/Sao_Paulo" },
+  MX: { locale: "es-MX", tz: "America/Mexico_City" },
 };
 
 // Reális desktop viewport-ok (a leggyakoribbak a StatCounter szerint).
@@ -56,6 +72,79 @@ const VIEWPORTS: { w: number; h: number; dsf: number }[] = [
   { w: 1600, h: 900, dsf: 1 },
   { w: 1680, h: 1050, dsf: 2 }, // Mac
   { w: 1280, h: 800, dsf: 1 },
+];
+
+// Reális WebGL vendor/renderer párok platformonként. A Dolphin Pinterest NL
+// profilja pl. `ANGLE (NVIDIA, RTX 4060 ... Direct3D11)`-t hazudik.
+const WEBGL_WIN: { vendor: string; renderer: string }[] = [
+  {
+    vendor: "Google Inc. (NVIDIA)",
+    renderer:
+      "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 (0x00002808) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  },
+  {
+    vendor: "Google Inc. (NVIDIA)",
+    renderer:
+      "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002504) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  },
+  {
+    vendor: "Google Inc. (NVIDIA)",
+    renderer:
+      "ANGLE (NVIDIA, NVIDIA GeForce GTX 1660 (0x00002184) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  },
+  {
+    vendor: "Google Inc. (Intel)",
+    renderer:
+      "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  },
+  {
+    vendor: "Google Inc. (AMD)",
+    renderer:
+      "ANGLE (AMD, AMD Radeon RX 6600 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  },
+];
+const WEBGL_MAC: { vendor: string; renderer: string }[] = [
+  { vendor: "Google Inc. (Apple)", renderer: "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)" },
+  { vendor: "Google Inc. (Apple)", renderer: "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)" },
+  { vendor: "Google Inc. (Apple)", renderer: "ANGLE (Apple, ANGLE Metal Renderer: Apple M3, Unspecified Version)" },
+];
+const WEBGL_LINUX: { vendor: string; renderer: string }[] = [
+  { vendor: "Google Inc. (Intel)", renderer: "ANGLE (Intel, Mesa Intel(R) UHD Graphics 620 (KBL GT2), OpenGL 4.6)" },
+];
+
+// Tipikus Windows 10/11 rendszerfontok — a legtöbb desktop gépen ott vannak.
+const FONTS_WIN = [
+  "Arial", "Arial Black", "Arial Narrow", "Bahnschrift", "Calibri", "Cambria",
+  "Cambria Math", "Candara", "Comic Sans MS", "Consolas", "Constantia",
+  "Corbel", "Courier New", "Ebrima", "Franklin Gothic Medium", "Gabriola",
+  "Gadugi", "Georgia", "HoloLens MDL2 Assets", "Impact", "Ink Free",
+  "Javanese Text", "Leelawadee UI", "Lucida Console", "Lucida Sans Unicode",
+  "Malgun Gothic", "Marlett", "Microsoft Himalaya", "Microsoft JhengHei",
+  "Microsoft New Tai Lue", "Microsoft PhagsPa", "Microsoft Sans Serif",
+  "Microsoft Tai Le", "Microsoft YaHei", "Microsoft Yi Baiti", "MingLiU-ExtB",
+  "Mongolian Baiti", "MS Gothic", "MV Boli", "Myanmar Text",
+  "Nirmala UI", "Palatino Linotype", "Segoe MDL2 Assets", "Segoe Print",
+  "Segoe Script", "Segoe UI", "Segoe UI Emoji", "Segoe UI Historic",
+  "Segoe UI Symbol", "SimSun", "Sitka", "Sylfaen", "Symbol", "Tahoma",
+  "Times New Roman", "Trebuchet MS", "Verdana", "Webdings", "Wingdings",
+  "Yu Gothic",
+];
+const FONTS_MAC = [
+  "Andale Mono", "Arial", "Arial Black", "Arial Narrow", "Arial Unicode MS",
+  "Avenir", "Avenir Next", "Baskerville", "Big Caslon", "Bodoni 72",
+  "Bradley Hand", "Brush Script MT", "Chalkboard", "Chalkduster",
+  "Charter", "Cochin", "Comic Sans MS", "Copperplate", "Courier",
+  "Courier New", "Didot", "Futura", "Geneva", "Georgia",
+  "Gill Sans", "Helvetica", "Helvetica Neue", "Herculanum", "Hoefler Text",
+  "Impact", "Lucida Grande", "Marker Felt", "Menlo", "Monaco",
+  "Optima", "Palatino", "Papyrus", "Phosphate", "Rockwell",
+  "Savoye LET", "SignPainter", "Skia", "Snell Roundhand", "Tahoma",
+  "Times", "Times New Roman", "Trebuchet MS", "Verdana", "Zapfino",
+];
+const FONTS_LINUX = [
+  "DejaVu Sans", "DejaVu Serif", "DejaVu Sans Mono", "Liberation Sans",
+  "Liberation Serif", "Liberation Mono", "Noto Sans", "Noto Serif",
+  "Ubuntu", "Ubuntu Mono", "Cantarell", "FreeMono", "FreeSans", "FreeSerif",
 ];
 
 // Egyszerű, determinisztikus hash (FNV-1a 32-bit). Nem kriptós, csak stabil szórás kell.
@@ -111,6 +200,19 @@ export function generateWorkflowFingerprint(
 
   const userAgent = `Mozilla/5.0 (${osPart}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
 
+  // WebGL vendor + renderer platformhoz igazítva.
+  const webglPool =
+    platform === "Win32" ? WEBGL_WIN : platform === "MacIntel" ? WEBGL_MAC : WEBGL_LINUX;
+  const webgl = pick(webglPool, seed, "webgl");
+
+  // Hardware concurrency: 4/6/8/12/16 (reális asztali CPU-k).
+  const hardwareConcurrency = pick([4, 6, 8, 8, 12, 16], seed, "cores");
+  // Device memory (GB): a Chrome csak 0.25/0.5/1/2/4/8-at ad vissza.
+  const deviceMemory = pick([4, 8, 8, 16], seed, "ram");
+
+  const fonts =
+    platform === "Win32" ? FONTS_WIN : platform === "MacIntel" ? FONTS_MAC : FONTS_LINUX;
+
   return {
     userAgent,
     viewport: { width: vp.w, height: vp.h },
@@ -119,5 +221,12 @@ export function generateWorkflowFingerprint(
     platform,
     deviceScaleFactor: vp.dsf,
     chromeMajor,
+    webglVendor: webgl.vendor,
+    webglRenderer: webgl.renderer,
+    hardwareConcurrency,
+    deviceMemory,
+    canvasMode: "real",
+    audioMode: "real",
+    fonts,
   };
 }
