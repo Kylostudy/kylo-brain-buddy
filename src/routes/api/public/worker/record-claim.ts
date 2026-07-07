@@ -208,7 +208,7 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
 
         // Proxy resolve MIELŐTT claim-elnénk — ha nincs proxy, ne foglaljuk le
         // a session-t, csak jelöljük 'failed'-nek egy értelmes hibaüzenettel.
-        const { proxy, locale, timezone, error: proxyErr } = await loadWorkflowProxy(
+        const { proxy, locale, timezone, cookies, error: proxyErr } = await loadWorkflowProxy(
           sb,
           candidate.workflow_id,
         );
@@ -254,12 +254,14 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
             proxy,
             locale,
             timezone,
+            cookies,
             // A worker ezekkel csatlakozik a Realtime broadcast csatornára.
             supabaseUrl: process.env.SUPABASE_URL,
             supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         );
+
       },
     },
   },
