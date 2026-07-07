@@ -436,6 +436,7 @@ async function runSession(payload) {
   }
 
   let lastClickPoint = null;
+  let lastClickSelector = null;
 
   async function ensureEditableFocusFromLastClick() {
     if (!lastClickPoint || Date.now() - lastClickPoint.t > 8000) return;
@@ -450,6 +451,7 @@ async function runSession(payload) {
       const y = payload.y * vs.height;
       lastClickPoint = { x, y, t: Date.now() };
       const desc = await describeAt(x, y);
+      lastClickSelector = desc?.selector || `point:${Math.round(payload.x * 10000)},${Math.round(payload.y * 10000)}`;
       await channel.send({
         type: "broadcast",
         event: "inputAck",
@@ -465,7 +467,7 @@ async function runSession(payload) {
       await focusEditableAt(x, y);
       pushAction({
         type: "click",
-        selector: desc?.selector ?? null,
+        selector: lastClickSelector,
         x: payload.x,
         y: payload.y,
         text: fallback?.clicked ? `${desc?.text ?? ""} ${fallback.text ?? ""}`.trim() : desc?.text ?? null,
@@ -490,7 +492,12 @@ async function runSession(payload) {
     try {
       await ensureEditableFocusFromLastClick();
       await page.keyboard.type(payload.text || "");
-      pushAction({ type: "type", value: payload.text || "", t: Date.now() });
+      pushAction({
+        type: "type",
+        selector: lastClickSelector || "activeElement",
+        value: payload.text || "",
+        t: Date.now(),
+      });
     } catch (e) {
       console.error(`[session ${session.id}] type error`, e.message);
     }
