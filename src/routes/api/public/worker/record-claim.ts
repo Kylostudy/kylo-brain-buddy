@@ -28,6 +28,17 @@ function checkAuth(request: Request): string | null {
   return null;
 }
 
+type CookieOut = {
+  name: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: string;
+};
+
 async function loadWorkflowProxy(
   sb: ReturnType<typeof createClient<Database>>,
   workflowId: string,
@@ -41,8 +52,10 @@ async function loadWorkflowProxy(
   } | null;
   locale: string | null;
   timezone: string | null;
+  cookies: CookieOut[];
   error?: string;
 }> {
+
   // Workflow → language/region/timezone (a Playwright locale-hez)
   const { data: wf } = await sb
     .from("workflows")
@@ -60,39 +73,15 @@ async function loadWorkflowProxy(
         ? language
         : null;
 
-  // workflow_credentials → proxy_id → proxies row
-  const { data: cred } = await sb
+  // workflow_credentials → proxy_id → proxies row + minden mentett cookie
+  // (bármelyik platform során, hogy a korábban felvett Pinterest / LinkedIn
+  // sütik automatikusan betöltődjenek — így nem kell újra bejelentkezni).
+  const { data: creds } = await sb
     .from("workflow_credentials")
-    .select("proxy_id")
-    .eq("workflow_id", workflowId)
-    .maybeSingle();
+    .select("proxy_id, cookie_ciphertext, cookie_nonce")
+    .eq("workflow_id", workflowId);
 
-  if (!cred?.proxy_id) {
-    return {
-      proxy: null,
-      locale,
-      timezone,
-      error:
-        "a workflow-hoz nincs proxy rendelve (workflow_credentials.proxy_id üres). Előbb rendelj proxyt a credential formban.",
-    };
-  }
-
-  const { data: pRow } = await sb
-    .from("proxies")
-    .select(
-      "id, label, country, protocol, host, port, username_ciphertext, username_nonce, password_ciphertext, password_nonce, is_active",
-    )
-    .eq("id", cred.proxy_id)
-    .maybeSingle();
-
-  if (!pRow || !pRow.is_active) {
-    return {
-      proxy: null,
-      locale,
-      timezone,
-      error: "a hozzárendelt proxy nem található vagy inaktív",
-    };
-  }
+  const proxyId = creds?.find((c) => c.proxy_id)?.proxy_id || null;
 
   const { decryptString } = await import("@/lib/credentials/crypto.server");
   const safeDec = async (
@@ -106,6 +95,63 @@ async function loadWorkflowProxy(
       return null;
     }
   };
+
+  // Cookie-k összegyűjtése + de-duplikálás (name+domain+path kulcs)
+  const cookieMap = new Map<string, CookieOut>();
+  for (const c of creds || []) {
+    const raw = await safeDec(c.cookie_ciphertext, c.cookie_nonce);
+    if (!raw) continue;
+    try {
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) continue;
+      for (const ck of arr) {
+        if (!ck || typeof ck.name !== "string" || typeof ck.value !== "string") continue;
+        const key = `${ck.name}|${ck.domain || ""}|${ck.path || "/"}`;
+        cookieMap.set(key, {
+          name: ck.name,
+          value: ck.value,
+          domain: ck.domain,
+          path: ck.path,
+          expires: typeof ck.expires === "number" ? ck.expires : undefined,
+          httpOnly: !!ck.httpOnly,
+          secure: !!ck.secure,
+          sameSite: typeof ck.sameSite === "string" ? ck.sameSite : undefined,
+        });
+      }
+    } catch {
+      /* ignore malformed */
+    }
+  }
+  const cookies = Array.from(cookieMap.values());
+
+  if (!proxyId) {
+    return {
+      proxy: null,
+      locale,
+      timezone,
+      cookies,
+      error:
+        "a workflow-hoz nincs proxy rendelve (workflow_credentials.proxy_id üres). Előbb rendelj proxyt a credential formban.",
+    };
+  }
+
+  const { data: pRow } = await sb
+    .from("proxies")
+    .select(
+      "id, label, country, protocol, host, port, username_ciphertext, username_nonce, password_ciphertext, password_nonce, is_active",
+    )
+    .eq("id", proxyId)
+    .maybeSingle();
+
+  if (!pRow || !pRow.is_active) {
+    return {
+      proxy: null,
+      locale,
+      timezone,
+      cookies,
+      error: "a hozzárendelt proxy nem található vagy inaktív",
+    };
+  }
 
   const username = await safeDec(pRow.username_ciphertext, pRow.username_nonce);
   const password = await safeDec(pRow.password_ciphertext, pRow.password_nonce);
@@ -121,8 +167,10 @@ async function loadWorkflowProxy(
     },
     locale,
     timezone,
+    cookies,
   };
 }
+
 
 export const Route = createFileRoute("/api/public/worker/record-claim")({
   server: {
@@ -160,7 +208,7 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
 
         // Proxy resolve MIELŐTT claim-elnénk — ha nincs proxy, ne foglaljuk le
         // a session-t, csak jelöljük 'failed'-nek egy értelmes hibaüzenettel.
-        const { proxy, locale, timezone, error: proxyErr } = await loadWorkflowProxy(
+        const { proxy, locale, timezone, cookies, error: proxyErr } = await loadWorkflowProxy(
           sb,
           candidate.workflow_id,
         );
@@ -206,12 +254,14 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
             proxy,
             locale,
             timezone,
+            cookies,
             // A worker ezekkel csatlakozik a Realtime broadcast csatornára.
             supabaseUrl: process.env.SUPABASE_URL,
             supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         );
+
       },
     },
   },
