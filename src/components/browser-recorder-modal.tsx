@@ -85,6 +85,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const [textBusy, setTextBusy] = useState(false);
   const [cookieBusy, setCookieBusy] = useState(false);
   const [inputStatus, setInputStatus] = useState("");
+  const [workerTimeout, setWorkerTimeout] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
@@ -211,6 +212,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     if (!open) return;
     setStatus("requested");
     setFrame(null);
+    setWorkerTimeout(false);
     setCurrentUrl("");
     setUrlDraft("");
     setActions([]);
@@ -218,6 +220,12 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     setTextBusy(false);
     setInputStatus("");
   }, [open, sessionId]);
+
+  useEffect(() => {
+    if (!open || !sessionId || status !== "requested" || frame) return;
+    const timer = window.setTimeout(() => setWorkerTimeout(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [open, sessionId, status, frame]);
 
   // Vágólap → worker: nem navigator.clipboard.readText()-tel olvasunk, mert
   // iframe / preview környezetben ezt a böngésző gyakran tiltja. A valódi
