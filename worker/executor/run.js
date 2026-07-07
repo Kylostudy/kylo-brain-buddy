@@ -17,7 +17,13 @@
 // tud fogadni a .use() metódussal.
 import { chromium as _chromium } from "playwright-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
-_chromium.use(StealthPlugin());
+const stealth = StealthPlugin();
+// A stealth plugin alap WebGL maszkolása Intel Iris értéket ad vissza, ami
+// felülírta a saját, per-workflow fingerprintünket. Ezt az evasiont kikapcsoljuk,
+// a WebGL/CPU/RAM/platform értékeket a saját init-script kezeli.
+stealth.enabledEvasions.delete("webgl.vendor");
+stealth.enabledEvasions.delete("navigator.hardwareConcurrency");
+_chromium.use(stealth);
 const chromium = _chromium;
 import { runTikTok } from "./scripts/tiktok.js";
 import { runDecathlonStock } from "./scripts/decathlon-stock.js";
