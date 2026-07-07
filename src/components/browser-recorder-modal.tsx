@@ -84,6 +84,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const [pageText, setPageText] = useState("");
   const [textBusy, setTextBusy] = useState(false);
   const [cookieBusy, setCookieBusy] = useState(false);
+  const [inputStatus, setInputStatus] = useState("");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
@@ -94,8 +95,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
 
   const sendToWorker = useCallback((event: string, payload: Record<string, unknown>) => {
     const ch = channelRef.current;
-    if (!ch) return;
-    void ch.send({ type: "broadcast", event, payload });
+    if (!ch) return null;
+    return ch.send({ type: "broadcast", event, payload });
   }, []);
 
   const sendViewportToWorker = useCallback(() => {
@@ -138,6 +139,20 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     ch.on("broadcast", { event: "action" }, ({ payload }) => {
       const p = payload as { action: RecordedAction };
       setActions((prev) => [...prev, p.action]);
+    });
+    ch.on("broadcast", { event: "inputAck" }, ({ payload }) => {
+      const p = payload as { kind?: string; status?: string; x?: number; y?: number };
+      if (p.kind === "click") {
+        setInputStatus(
+          p.status === "done"
+            ? `Kattintás végrehajtva (${p.x ?? "?"}, ${p.y ?? "?"})`
+            : `Kattintás fogadva (${p.x ?? "?"}, ${p.y ?? "?"})`,
+        );
+      }
+    });
+    ch.on("broadcast", { event: "inputError" }, ({ payload }) => {
+      const p = payload as { error?: string };
+      setInputStatus(`Kattintási hiba: ${p.error ?? "ismeretlen"}`);
     });
     ch.on("broadcast", { event: "status" }, ({ payload }) => {
       const p = payload as { status: typeof status; error?: string };
@@ -201,6 +216,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     setActions([]);
     setPageText("");
     setTextBusy(false);
+    setInputStatus("");
   }, [open, sessionId]);
 
   // Vágólap → worker: Ctrl+V / Cmd+V esetén beolvassuk a local vágólapot és
@@ -378,7 +394,15 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     const rect = img.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
-    sendToWorker("click", { x, y });
+    setInputStatus(`Kattintás küldése (${Math.round(x * (frame?.w ?? 0))}, ${Math.round(y * (frame?.h ?? 0))})`);
+    const sent = sendToWorker("click", { x, y, frameW: frame?.w, frameH: frame?.h });
+    if (sent) {
+      void sent.then((result) => {
+        if (result !== "ok") setInputStatus("Kattintás küldése nem sikerült");
+      }).catch(() => setInputStatus("Kattintás küldése nem sikerült"));
+    } else {
+      setInputStatus("Nincs aktív kapcsolat a workerhez");
+    }
     // A kép csak egy kép — a gépeléshez a rejtett input kell hogy fókuszban legyen.
     // A kattintás után átvesszük a fókuszt, hogy azonnal írhasson a felhasználó.
     window.setTimeout(() => typeInputRef.current?.focus(), 0);
@@ -576,6 +600,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
         <span className="hidden md:inline px-2 text-xs text-white/60">
           {statusLabel} · {actions.length} lépés
         </span>
+        {inputStatus && (
+          <span className="hidden lg:inline max-w-72 truncate px-2 text-xs text-emerald-200/80">
+            {inputStatus}
+          </span>
+        )}
         <Button
           size="sm"
           variant="secondary"
@@ -752,7 +781,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
           spellCheck={false}
         />
         <span className="text-xs text-white/40">
-          Tipp: a képen a mezőre kattintasz, majd gépelsz — Enter is átmegy.
+          {inputStatus || "Tipp: a képen a mezőre kattintasz, majd gépelsz — Enter is átmegy."}
         </span>
       </div>
     </div>
