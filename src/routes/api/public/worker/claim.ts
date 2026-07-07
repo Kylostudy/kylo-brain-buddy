@@ -119,10 +119,10 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           expectedCountry: string | null;
           provider: string | null;
         } | null = null;
-        // proxyFingerprint = a proxyhoz FIX-en rendelt virtuális ember
-        // (user-agent, viewport, locale, timezone). Ha megvan, ezt használjuk
-        // a claim végén — így 1 IP = 1 ember, több workflow ugyanarról a
-        // proxyról teljesen konzisztensnek látszik.
+        // proxyFingerprint = a proxyhoz régebben mentett FIX virtuális ember.
+        // Fontos: régi rekordokban Chrome/130-as UA is lehet, ezért ezt már
+        // csak stabil seedként használjuk; a konkrét böngészőprofilt mindig az
+        // aktuális generátor építi újra.
         let proxyFingerprint: {
           userAgent: string;
           viewport: { width: number; height: number };
@@ -220,21 +220,23 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         // 2) Ha nincs, workflow-onként determinisztikusan generálunk (régi
         //    viselkedés kompatibilitás).
         // 3) Ha a spec-ben már meg van adva kézzel, azt tartjuk meg.
-        if (!specWithFlags.fingerprint) {
-          // Mindig generálunk egy teljes workflow-fingerprintet (WebGL, cores,
-          // mem, fontok is), majd ha van proxyhoz rendelt FIX fingerprint,
-          // annak mezői felülírják a UA/viewport/locale/tz/platform részt.
-          // Így a proxy-fingerprint mellett is aktív marad a WebGL/hardver
-          // spoof — enélkül a Sannysoft-on Intel default szivárgott ki.
-          const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
-          const base = generateWorkflowFingerprint(
-            claimed.workflow_id,
-            proxy?.expectedCountry ?? null,
-          );
-          specWithFlags.fingerprint = proxyFingerprint
-            ? { ...base, ...proxyFingerprint }
-            : base;
-        }
+        // Mindig teljes, friss fingerprintet generálunk (UA, WebGL, cores,
+        // mem, fontok). Ha van proxyhoz mentett fingerprint, annak csak a
+        // seedjét használjuk, így 1 proxy = 1 stabil virtuális ember marad,
+        // de a régi Chrome/130 + Intel Iris értékek nem tudnak visszajönni.
+        const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
+        const existingFingerprint =
+          specWithFlags.fingerprint && typeof specWithFlags.fingerprint === "object"
+            ? (specWithFlags.fingerprint as { seed?: unknown })
+            : null;
+        const fingerprintSeed =
+          proxyFingerprint?.seed ||
+          (typeof existingFingerprint?.seed === "string" ? existingFingerprint.seed : null) ||
+          claimed.workflow_id;
+        specWithFlags.fingerprint = generateWorkflowFingerprint(
+          fingerprintSeed,
+          proxy?.expectedCountry ?? null,
+        );
 
 
         return new Response(
