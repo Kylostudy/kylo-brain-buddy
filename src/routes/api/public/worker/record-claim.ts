@@ -28,6 +28,17 @@ function checkAuth(request: Request): string | null {
   return null;
 }
 
+type CookieOut = {
+  name: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: string;
+};
+
 async function loadWorkflowProxy(
   sb: ReturnType<typeof createClient<Database>>,
   workflowId: string,
@@ -41,8 +52,10 @@ async function loadWorkflowProxy(
   } | null;
   locale: string | null;
   timezone: string | null;
+  cookies: CookieOut[];
   error?: string;
 }> {
+
   // Workflow → language/region/timezone (a Playwright locale-hez)
   const { data: wf } = await sb
     .from("workflows")
