@@ -221,15 +221,19 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         //    viselkedés kompatibilitás).
         // 3) Ha a spec-ben már meg van adva kézzel, azt tartjuk meg.
         if (!specWithFlags.fingerprint) {
-          if (proxyFingerprint) {
-            specWithFlags.fingerprint = proxyFingerprint;
-          } else {
-            const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
-            specWithFlags.fingerprint = generateWorkflowFingerprint(
-              claimed.workflow_id,
-              proxy?.expectedCountry ?? null,
-            );
-          }
+          // Mindig generálunk egy teljes workflow-fingerprintet (WebGL, cores,
+          // mem, fontok is), majd ha van proxyhoz rendelt FIX fingerprint,
+          // annak mezői felülírják a UA/viewport/locale/tz/platform részt.
+          // Így a proxy-fingerprint mellett is aktív marad a WebGL/hardver
+          // spoof — enélkül a Sannysoft-on Intel default szivárgott ki.
+          const { generateWorkflowFingerprint } = await import("@/lib/fingerprint");
+          const base = generateWorkflowFingerprint(
+            claimed.workflow_id,
+            proxy?.expectedCountry ?? null,
+          );
+          specWithFlags.fingerprint = proxyFingerprint
+            ? { ...base, ...proxyFingerprint }
+            : base;
         }
 
 
