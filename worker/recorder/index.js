@@ -339,6 +339,17 @@ const ACTIVE_EDITABLE_FN = `() => {
   return !['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(type);
 }`;
 
+const REMOVE_WEBDRIVER_INIT = `() => {
+  try {
+    const proto = Navigator.prototype;
+    const protoDescriptor = Object.getOwnPropertyDescriptor(proto, 'webdriver');
+    if (protoDescriptor) delete proto.webdriver;
+
+    const ownDescriptor = Object.getOwnPropertyDescriptor(navigator, 'webdriver');
+    if (ownDescriptor) delete navigator.webdriver;
+  } catch {}
+}`;
+
 async function runSession(payload) {
   const { session, supabaseUrl, supabasePublishableKey } = payload;
   if (!supabaseUrl || !supabasePublishableKey) {
@@ -399,6 +410,10 @@ async function runSession(payload) {
         }
       : {}),
   });
+  // Pinterest és hasonló oldalak nem csak azt nézik, hogy `navigator.webdriver`
+  // false-e, hanem azt is, hogy a getter egyáltalán létezik-e. Ezért a propertyt
+  // teljesen töröljük minden oldal betöltése előtt.
+  await context.addInitScript(REMOVE_WEBDRIVER_INIT);
   // Ha a Brain küldött mentett cookie-kat (workflow_credentials-ből), töltsük
   // be MIELŐTT bármit navigálunk — így a felhasználó egyből bejelentkezve
   // nyitja meg pl. a Pinterestet, és nem kell újra belépnie.
