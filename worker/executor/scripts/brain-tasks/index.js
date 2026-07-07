@@ -4,8 +4,9 @@
 // task_type → executor script megfeleltetés:
 //   ping                → runBrainPing (nem nyit böngészőt)
 //   metrics_snapshot    → platform szerint dispatch:
-//                            linkedin → runLinkedInMetricsSnapshot
-//                            (tiktok/pinterest → később)
+//                            linkedin  → runLinkedInMetricsSnapshot
+//                            pinterest → runPinterestMetricsSnapshot
+//                            (tiktok   → később)
 //   comments_snapshot   → TODO
 //   post_comment_reply  → TODO
 
