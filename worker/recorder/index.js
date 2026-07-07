@@ -106,6 +106,61 @@ if (!BRAIN_URL || !WORKER_API_TOKEN) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+async function humanPause(min = 35, max = 140) {
+  await sleep(Math.round(randomBetween(min, max)));
+}
+
+async function humanMoveMouse(page, from, to) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const distance = Math.hypot(dx, dy);
+  const steps = clamp(
+    Math.round(distance / 70) + Math.floor(randomBetween(3, 8)),
+    7,
+    28,
+  );
+  const curve = randomBetween(-0.22, 0.22);
+  const jitter = Math.min(3.5, Math.max(0.8, distance / 280));
+
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const ease = t * t * (3 - 2 * t);
+    const bow = Math.sin(Math.PI * t) * curve * distance;
+    const px =
+      from.x +
+      dx * ease +
+      (-dy / Math.max(distance, 1)) * bow +
+      randomBetween(-jitter, jitter);
+    const py =
+      from.y +
+      dy * ease +
+      (dx / Math.max(distance, 1)) * bow +
+      randomBetween(-jitter, jitter);
+    await page.mouse.move(px, py);
+    await humanPause(8, 26);
+  }
+
+  if (distance > 90 && Math.random() < 0.45) {
+    await page.mouse.move(to.x + randomBetween(-5, 5), to.y + randomBetween(-4, 4));
+    await humanPause(20, 70);
+  }
+
+  await page.mouse.move(to.x, to.y);
+}
+
+async function humanClick(page, from, to) {
+  await humanMoveMouse(page, from, to);
+  await humanPause(45, 160);
+  await page.mouse.down();
+  await humanPause(70, 190);
+  await page.mouse.up();
+  await humanPause(220, 520);
+}
+
 function normalizeUrl(rawUrl) {
   const url = String(rawUrl || "").trim();
   if (!url) return null;
@@ -284,39 +339,6 @@ const ACTIVE_EDITABLE_FN = `() => {
   return !['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(type);
 }`;
 
-const TARGETED_CLICK_FALLBACK_FN = `(x, y) => {
-  const keyword = /(log\s*in|login|sign\s*in|continue|next|submit|bejelentkez|belép|tovább|folytatás)/i;
-  function textOf(el) {
-    return [
-      el.innerText,
-      el.textContent,
-      el.getAttribute && el.getAttribute('aria-label'),
-      el.getAttribute && el.getAttribute('title'),
-      el.getAttribute && el.getAttribute('value'),
-    ].filter(Boolean).join(' ').trim();
-  }
-  function clickableFrom(el) {
-    if (!el || !el.closest) return null;
-    const target = el.closest('button, a[href], [role="button"], input[type="button"], input[type="submit"], [tabindex]');
-    if (!target) return null;
-    if (target.disabled || target.getAttribute('aria-disabled') === 'true') return null;
-    const text = textOf(target);
-    if (!keyword.test(text)) return null;
-    return target;
-  }
-  let target = clickableFrom(document.elementFromPoint(x, y));
-  if (!target && document.elementsFromPoint) {
-    for (const el of document.elementsFromPoint(x, y)) {
-      target = clickableFrom(el);
-      if (target) break;
-    }
-  }
-  if (!target) return { clicked: false };
-  try { target.focus({ preventScroll: true }); } catch { try { target.focus(); } catch {} }
-  try { target.click(); } catch { return { clicked: false }; }
-  return { clicked: true, text: textOf(target).slice(0, 80), tag: target.tagName };
-}`;
-
 async function runSession(payload) {
   const { session, supabaseUrl, supabasePublishableKey } = payload;
   if (!supabaseUrl || !supabasePublishableKey) {
@@ -458,15 +480,6 @@ async function runSession(payload) {
     }
   }
 
-  async function targetedClickFallbackAt(x, y) {
-    try {
-      return await page.evaluate(`(${TARGETED_CLICK_FALLBACK_FN})(${x}, ${y})`);
-    } catch (e) {
-      console.warn(`[session ${session.id}] targetedClickFallbackAt hiba`, e?.message || e);
-      return null;
-    }
-  }
-
   async function hasEditableFocus() {
     try {
       return await page.evaluate(`(${ACTIVE_EDITABLE_FN})()`);
@@ -477,6 +490,10 @@ async function runSession(payload) {
 
   let lastClickPoint = null;
   let lastClickSelector = null;
+  let cursorPoint = {
+    x: Math.round(viewportW * randomBetween(0.25, 0.75)),
+    y: Math.round(viewportH * randomBetween(0.25, 0.75)),
+  };
 
   async function ensureEditableFocusFromLastClick() {
     if (!lastClickPoint || Date.now() - lastClickPoint.t > 8000) return;
@@ -497,26 +514,21 @@ async function runSession(payload) {
         event: "inputAck",
         payload: { kind: "click", status: "received", x: Math.round(x), y: Math.round(y) },
       }).catch(() => {});
-      await page.mouse.move(x, y);
-      await page.waitForTimeout(25).catch(() => {});
-      await page.mouse.down();
-      await page.waitForTimeout(45).catch(() => {});
-      await page.mouse.up();
-      await page.waitForTimeout(180).catch(() => {});
-      const fallback = await targetedClickFallbackAt(x, y);
+      await humanClick(page, cursorPoint, { x, y });
+      cursorPoint = { x, y };
       await focusEditableAt(x, y);
       pushAction({
         type: "click",
         selector: lastClickSelector,
         x: payload.x,
         y: payload.y,
-        text: fallback?.clicked ? `${desc?.text ?? ""} ${fallback.text ?? ""}`.trim() : desc?.text ?? null,
+        text: desc?.text ?? null,
         t: Date.now(),
       });
       await channel.send({
         type: "broadcast",
         event: "inputAck",
-        payload: { kind: "click", status: "done", x: Math.round(x), y: Math.round(y), fallback: !!fallback?.clicked },
+        payload: { kind: "click", status: "done", x: Math.round(x), y: Math.round(y) },
       }).catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] click error`, e.message);
