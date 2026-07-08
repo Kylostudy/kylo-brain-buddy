@@ -505,10 +505,12 @@ async function runSession(payload) {
   } else if (fp && isPinterestSession) {
     console.log(`[session ${session.id}] Pinterest-safe recorder mód: mély fingerprint init-script kihagyva`);
   }
-  // Pinterest és hasonló oldalak nem csak azt nézik, hogy `navigator.webdriver`
-  // false-e, hanem azt is, hogy a getter egyáltalán létezik-e. Ezért a propertyt
-  // teljesen töröljük minden oldal betöltése előtt.
-  await context.addInitScript(REMOVE_WEBDRIVER_INIT);
+  // Pinterestnél semmilyen init-scriptet nem futtatunk, mert már a legkisebb
+  // navigator-patch is elég volt ahhoz, hogy az oldal stílus nélkül essen vissza.
+  // Más platformoknál marad a minimális webdriver-törlés.
+  if (!isPinterestSession) {
+    await context.addInitScript(REMOVE_WEBDRIVER_INIT);
+  }
   // Ha a Brain küldött mentett cookie-kat (workflow_credentials-ből), töltsük
   // be MIELŐTT bármit navigálunk — így a felhasználó egyből bejelentkezve
   // nyitja meg pl. a Pinterestet, és nem kell újra belépnie.
