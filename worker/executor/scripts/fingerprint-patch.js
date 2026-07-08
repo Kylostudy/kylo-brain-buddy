@@ -23,6 +23,15 @@ export function buildFingerprintInitScript(fp) {
   const cores = Number(fp?.hardwareConcurrency || 8);
   const memory = Number(fp?.deviceMemory || 8);
   const platform = String(fp?.platform || "Win32");
+  const locale = String(fp?.locale || "en-US");
+  const languages = Array.isArray(fp?.languages) && fp.languages.length
+    ? fp.languages.map(String)
+    : [locale, String(locale).split("-")[0]].filter(Boolean);
+  const ua = String(fp?.userAgent || "");
+  const chromeMajor = Number(fp?.chromeMajor || 149);
+  const viewportWidth = Number(fp?.viewport?.width || 1280);
+  const viewportHeight = Number(fp?.viewport?.height || 800);
+  const deviceScaleFactor = Number(fp?.deviceScaleFactor || 1);
   const canvasMode = String(fp?.canvasMode || "real");
   const audioMode = String(fp?.audioMode || "real");
   const canvasSeed = Number(fp?.canvasSeed || 0) >>> 0;
@@ -38,6 +47,13 @@ export function buildFingerprintInitScript(fp) {
     const CORES = ${cores};
     const MEMORY = ${memory};
     const PLATFORM = ${JSON.stringify(platform)};
+    const LOCALE = ${JSON.stringify(locale)};
+    const LANGUAGES = ${JSON.stringify(languages)};
+    const USER_AGENT = ${JSON.stringify(ua)};
+    const CHROME_MAJOR = ${chromeMajor};
+    const VIEWPORT_WIDTH = ${viewportWidth};
+    const VIEWPORT_HEIGHT = ${viewportHeight};
+    const DEVICE_SCALE_FACTOR = ${deviceScaleFactor};
     const CANVAS_MODE = ${JSON.stringify(canvasMode)};
     const AUDIO_MODE = ${JSON.stringify(audioMode)};
     const CANVAS_SEED = ${canvasSeed};
@@ -69,6 +85,102 @@ export function buildFingerprintInitScript(fp) {
       if (protoDescriptor) delete Navigator.prototype.webdriver;
       const ownDescriptor = Object.getOwnPropertyDescriptor(navigator, "webdriver");
       if (ownDescriptor) delete navigator.webdriver;
+    } catch (_) {}
+
+    // ---- 0/b. alap böngésző-felület: UA Client Hints, chrome, nyelvek -------
+    // Egyes oldalak nem a screenshot méretét nézik, hanem ezeket az apró
+    // JS-jeleket. Ha itt Linux/headless/üres plugins látszik Windows UA mellett,
+    // azonnal gyanús lesz.
+    try {
+      const platformName = PLATFORM === "MacIntel" ? "macOS" : PLATFORM === "Win32" ? "Windows" : "Linux";
+      const brandVersion = String(CHROME_MAJOR);
+      const fullVersion = CHROME_MAJOR + ".0.7827.55";
+      const brands = [
+        { brand: "Not A(Brand", version: "99" },
+        { brand: "Google Chrome", version: brandVersion },
+        { brand: "Chromium", version: brandVersion },
+      ];
+      const fullVersionList = [
+        { brand: "Not A(Brand", version: "99.0.0.0" },
+        { brand: "Google Chrome", version: fullVersion },
+        { brand: "Chromium", version: fullVersion },
+      ];
+      const uaData = {
+        brands,
+        mobile: false,
+        platform: platformName,
+        getHighEntropyValues: async (hints = []) => {
+          const all = {
+            brands,
+            mobile: false,
+            platform: platformName,
+            architecture: PLATFORM === "MacIntel" ? "arm" : "x86",
+            bitness: PLATFORM === "MacIntel" ? "" : "64",
+            model: "",
+            platformVersion: PLATFORM === "Win32" ? "15.0.0" : PLATFORM === "MacIntel" ? "14.0.0" : "6.6.0",
+            uaFullVersion: fullVersion,
+            fullVersionList,
+            wow64: false,
+          };
+          const out = { brands, mobile: false, platform: platformName };
+          for (const hint of hints) if (hint in all) out[hint] = all[hint];
+          return out;
+        },
+        toJSON: () => ({ brands, mobile: false, platform: platformName }),
+      };
+      Object.defineProperty(Navigator.prototype, "userAgentData", {
+        get: () => uaData,
+        configurable: true,
+      });
+    } catch (_) {}
+
+    try {
+      Object.defineProperty(Navigator.prototype, "languages", {
+        get: () => LANGUAGES,
+        configurable: true,
+      });
+      Object.defineProperty(Navigator.prototype, "language", {
+        get: () => LOCALE,
+        configurable: true,
+      });
+    } catch (_) {}
+
+    try {
+      if (!window.chrome) {
+        Object.defineProperty(window, "chrome", {
+          value: { runtime: {}, loadTimes: function () {}, csi: function () {}, app: {} },
+          configurable: true,
+        });
+      }
+    } catch (_) {}
+
+    try {
+      const fakePlugin = (name, filename, description) => ({
+        name,
+        filename,
+        description,
+        length: 1,
+        0: { type: "application/pdf", suffixes: "pdf", description },
+        item: function (i) { return this[i] || null; },
+        namedItem: function () { return this[0] || null; },
+      });
+      const plugins = [
+        fakePlugin("PDF Viewer", "internal-pdf-viewer", "Portable Document Format"),
+        fakePlugin("Chrome PDF Viewer", "internal-pdf-viewer", "Portable Document Format"),
+        fakePlugin("Chromium PDF Viewer", "internal-pdf-viewer", "Portable Document Format"),
+        fakePlugin("Microsoft Edge PDF Viewer", "internal-pdf-viewer", "Portable Document Format"),
+        fakePlugin("WebKit built-in PDF", "internal-pdf-viewer", "Portable Document Format"),
+      ];
+      plugins.item = function (i) { return this[i] || null; };
+      plugins.namedItem = function (name) { return Array.prototype.find.call(this, (p) => p.name === name) || null; };
+      Object.defineProperty(Navigator.prototype, "plugins", {
+        get: () => plugins,
+        configurable: true,
+      });
+      Object.defineProperty(Navigator.prototype, "mimeTypes", {
+        get: () => plugins.map((p) => p[0]),
+        configurable: true,
+      });
     } catch (_) {}
 
     // ---- 1-2. WebGL(2) getParameter override -------------------------------
@@ -127,6 +239,27 @@ export function buildFingerprintInitScript(fp) {
       Object.defineProperty(Navigator.prototype, "platform", {
         get: () => PLATFORM, configurable: true,
       });
+    } catch (_) {}
+
+    // ---- 4/b. screen/window méretek összhangja -----------------------------
+    // A valódi viewportot a Playwright context adja, itt csak a JS screen API-kat
+    // igazítjuk hozzá, hogy ne legyen ellentmondásos fingerprint.
+    try {
+      const screenProps = {
+        width: VIEWPORT_WIDTH,
+        height: VIEWPORT_HEIGHT,
+        availWidth: VIEWPORT_WIDTH,
+        availHeight: Math.max(1, VIEWPORT_HEIGHT - 40),
+        colorDepth: 24,
+        pixelDepth: 24,
+      };
+      for (const [key, value] of Object.entries(screenProps)) {
+        try { Object.defineProperty(Screen.prototype, key, { get: () => value, configurable: true }); } catch (_) {}
+        try { Object.defineProperty(window.screen, key, { get: () => value, configurable: true }); } catch (_) {}
+      }
+      Object.defineProperty(window, "outerWidth", { get: () => VIEWPORT_WIDTH, configurable: true });
+      Object.defineProperty(window, "outerHeight", { get: () => VIEWPORT_HEIGHT, configurable: true });
+      Object.defineProperty(window, "devicePixelRatio", { get: () => DEVICE_SCALE_FACTOR, configurable: true });
     } catch (_) {}
 
     // ---- 5. WebRTC IP-szivárgás védelem ------------------------------------
