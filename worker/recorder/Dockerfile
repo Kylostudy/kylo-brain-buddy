@@ -17,4 +17,4 @@ ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 ENV DISPLAY=:99
 
-CMD ["node", "index.js"]
+CMD ["sh", "-c", "Xvfb :99 -screen 0 1280x960x24 -ac +extension GLX +render -noreset >/tmp/xvfb.log 2>&1 & node boot.js"]
