@@ -658,9 +658,14 @@ async function runSession(payload) {
 
   channel.on("broadcast", { event: "viewport" }, async ({ payload }) => {
     try {
-      viewportW = clamp(payload?.w, 900, 1920);
-      viewportH = clamp(payload?.h, 620, 1200);
-      await page.setViewportSize({ width: viewportW, height: viewportH });
+      // A kliens oldali modál/iframe mérete nem változtathatja a valódi
+      // böngésző-viewportot. Pinterestnél az indulás után érkező resize üzenet
+      // újratördelte a login modalt, ezért tűnt úgy, hogy "elugrik" az ablak.
+      // A streamelt kép skálázása kliensoldali, a kattintás normalizált koordinátával
+      // működik, így nincs szükség page.setViewportSize()-ra.
+      const size = page.viewportSize() || { width: viewportW, height: viewportH };
+      viewportW = size.width;
+      viewportH = size.height;
       await channel.send({
         type: "broadcast",
         event: "ready",
