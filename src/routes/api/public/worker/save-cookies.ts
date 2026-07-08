@@ -142,12 +142,17 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
         const cookiesJson = JSON.stringify(cookies);
         const { ciphertext, nonce } = await encryptString(cookiesJson);
 
-        // Upsert workflow_credentials — ha nincs sor, létrehozzuk; ha van, csak
-        // a cookie mezőket írjuk felül.
+        // Upsert workflow_credentials — platformonként külön sor.
+        // Egy workflow-hoz több platform is tartozhat (pl. gmail + pinterest),
+        // ezért (workflow_id, platform) párra keresünk, nem csak workflow_id-ra.
+        // Enélkül a Pinterest sütik felülírnák a Gmail sor cookie mezőit, és
+        // a platform oszlop hibásan "gmail" maradna.
+        const platformKey = (wf.platform || "unknown").toLowerCase();
         const { data: existing } = await sb
           .from("workflow_credentials")
           .select("id")
           .eq("workflow_id", wf.id)
+          .eq("platform", platformKey)
           .maybeSingle();
 
         const nowIso = new Date().toISOString();
@@ -170,7 +175,7 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
           const { error: insErr } = await sb.from("workflow_credentials").insert({
             workflow_id: wf.id,
             tenant_id: wf.tenant_id,
-            platform: wf.platform || "unknown",
+            platform: platformKey,
             cookie_ciphertext: ciphertext,
             cookie_nonce: nonce,
           });
