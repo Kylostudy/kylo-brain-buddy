@@ -210,7 +210,7 @@ export function generateWorkflowFingerprint(
   // Hardware concurrency: 4/6/8/12/16 (reális asztali CPU-k).
   const hardwareConcurrency = pick([4, 6, 8, 8, 12, 16], seed, "cores");
   // Device memory (GB): a Chrome csak 0.25/0.5/1/2/4/8-at ad vissza.
-  const deviceMemory = pick([4, 8, 8, 16], seed, "ram");
+  const deviceMemory = pick([4, 8, 8, 8], seed, "ram");
 
   const fonts =
     platform === "Win32" ? FONTS_WIN : platform === "MacIntel" ? FONTS_MAC : FONTS_LINUX;
