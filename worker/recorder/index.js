@@ -924,6 +924,47 @@ async function runSession(payload) {
     }
   }
 
+  // Automatikus cookie-mentés a session lezárása ELŐTT.
+  // Így a felhasználónak nem kell a "Sütik mentése" gombot külön megnyomnia:
+  // ha a felvétel végén bejelentkezett állapotban volt, a sütik automatikusan
+  // átkerülnek a workflow_credentials-be. Csak akkor futtatjuk, ha érdemi süti
+  // van, hogy ne írjuk felül az esetleges korábbi mentést üres listával.
+  try {
+    const cookies = await context.cookies();
+    if (Array.isArray(cookies) && cookies.length > 0) {
+      const payload = cookies.map((c) => ({
+        name: c.name,
+        value: c.value,
+        domain: c.domain,
+        path: c.path,
+        expires: c.expires,
+        httpOnly: c.httpOnly,
+        secure: c.secure,
+        sameSite: c.sameSite,
+      }));
+      const res = await brainPost("/api/public/worker/save-cookies", {
+        sessionId: session.id,
+        cookies: payload,
+      });
+      const text = await res.text().catch(() => "");
+      if (!res.ok) {
+        let msg = text;
+        try { msg = JSON.parse(text).error || text; } catch {}
+        console.error(`[session ${session.id}] auto cookieSave hiba: ${msg}`);
+      } else {
+        let data = null;
+        try { data = JSON.parse(text); } catch {}
+        console.log(
+          `[session ${session.id}] auto cookieSave OK: ${data?.savedCount ?? payload.length} süti (session vége)`,
+        );
+      }
+    } else {
+      console.log(`[session ${session.id}] auto cookieSave kihagyva: nincs süti a contextben`);
+    }
+  } catch (e) {
+    console.error(`[session ${session.id}] auto cookieSave exception:`, e?.message ?? e);
+  }
+
   try { await channel.unsubscribe(); } catch {}
   try { await sb.removeAllChannels(); } catch {}
   try { await context.close(); } catch {}
