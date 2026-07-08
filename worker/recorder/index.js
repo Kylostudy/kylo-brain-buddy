@@ -22,7 +22,13 @@ import { buildFingerprintInitScript } from "./fingerprint-patch.js";
 
 // Stealth plugin: álcázza a headless böngészőt valódi böngészőnek
 // (Cloudflare / DataDome / PerimeterX bot-detektorok ellen).
-_extraChromium.use(StealthPlugin());
+const stealth = StealthPlugin();
+// A WebGL/CPU/RAM/platform értékeket a saját, workflow-hoz kötött
+// fingerprint init-script kezeli. Ha ezeket a stealth alapértékei írják felül,
+// a recorder és a későbbi executor nem ugyanannak a gépnek látszik.
+stealth.enabledEvasions.delete("webgl.vendor");
+stealth.enabledEvasions.delete("navigator.hardwareConcurrency");
+_extraChromium.use(stealth);
 const chromium = _extraChromium;
 
 // ---- Proxy pool (residential, támogatott formátumok: host:port:user:pass vagy user:pass:host:port) ----
@@ -82,11 +88,8 @@ function nextProxy() {
 
 // ---- User-Agent pool (valódi, friss Chrome / Edge UA-k) ----
 const USER_AGENTS = [
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36",
 ];
 const pickUA = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 

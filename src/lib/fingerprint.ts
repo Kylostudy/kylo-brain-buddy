@@ -29,9 +29,9 @@ export interface WorkflowFingerprint {
   fonts: string[];
 }
 
-// Reális, aktuális Chrome major verziók (2026 tavasz–nyár).
-// A Dolphin screenshoton 148 látszik → a mi tartományunk is ide igazítva.
-const CHROME_MAJORS = [144, 145, 146, 147, 148];
+// A workerben lévő Playwright 1.61.1 Chromium 149-et futtat. Fontos, hogy a
+// user-agent ne hazudjon régebbi főverziót, mert ez botdetektálási jel lehet.
+const CHROME_MAJORS = [149];
 
 // Ország → locale + timezone. Ha nincs a listában, magyarra esünk vissza.
 const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
@@ -191,7 +191,7 @@ export function generateWorkflowFingerprint(
   const vp = pick(eligibleVps.length ? eligibleVps : VIEWPORTS, seed, "viewport");
 
   const chromeMajor = pick(CHROME_MAJORS, seed, "chrome");
-  const chromeVersion = `${chromeMajor}.0.0.0`;
+  const chromeVersion = `${chromeMajor}.0.7827.55`;
 
   const osPart =
     platform === "Win32"
@@ -210,7 +210,7 @@ export function generateWorkflowFingerprint(
   // Hardware concurrency: 4/6/8/12/16 (reális asztali CPU-k).
   const hardwareConcurrency = pick([4, 6, 8, 8, 12, 16], seed, "cores");
   // Device memory (GB): a Chrome csak 0.25/0.5/1/2/4/8-at ad vissza.
-  const deviceMemory = pick([4, 8, 8, 16], seed, "ram");
+  const deviceMemory = pick([4, 8, 8, 8], seed, "ram");
 
   const fonts =
     platform === "Win32" ? FONTS_WIN : platform === "MacIntel" ? FONTS_MAC : FONTS_LINUX;
