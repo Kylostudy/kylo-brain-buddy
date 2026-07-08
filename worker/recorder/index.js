@@ -424,9 +424,18 @@ async function runSession(payload) {
   const userAgent = fp?.userAgent || pickUA();
   const locale = fp?.locale || payload.locale || "hu-HU";
   const timezoneId = fp?.timezoneId || payload.timezone || "Europe/Budapest";
-  const viewport = fp?.viewport?.width && fp?.viewport?.height
-    ? { width: fp.viewport.width, height: fp.viewport.height }
-    : { width: VIEWPORT_W, height: VIEWPORT_H };
+  // FONTOS: a recorder böngésző-viewportját NEM a fingerprint diktálja
+  // (az gyakran 1920×1080-at ad → a login modal a modálban kilóg a jobb
+  // oldalra és nem lehet rákattintani). A tényleges viewportot a kliens
+  // (browser-recorder-modal) `viewport` eventje állítja be a modál mérete
+  // alapján. Alap: 1280×800, amit a fp-beli screen spoofing nem érint,
+  // mert a fingerprint-patch csak a JS screen/window API-kat hazudja át.
+  const viewport = { width: VIEWPORT_W, height: VIEWPORT_H };
+  if (fp?.viewport?.width && fp?.viewport?.height) {
+    console.log(
+      `[session ${session.id}] fp.viewport=${fp.viewport.width}×${fp.viewport.height} ignorálva → recorder böngésző ${viewport.width}×${viewport.height} (a spoof screen dimenziók változatlanok)`,
+    );
+  }
   if (proxy) {
     console.log(
       `[session ${session.id}] using ${proxy.label} (${proxy.server}) · locale=${locale} · tz=${timezoneId} · fp=${fp ? `Chrome${fp.chromeMajor}/${fp.platform}` : "recorder-default"}`,
