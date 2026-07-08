@@ -1,7 +1,7 @@
 # Recorder image — interaktív, élő böngésző-felvétel a felhasználónak.
 # Egy konténer-példány több párhuzamos session-t is kiszolgál
 # (külön Playwright browser-context-tel sessionönként).
-FROM mcr.microsoft.com/playwright:v1.48.0-jammy
+FROM mcr.microsoft.com/playwright:v1.61.1-noble
 
 WORKDIR /app
 

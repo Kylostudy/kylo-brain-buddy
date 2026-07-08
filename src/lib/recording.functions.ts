@@ -30,7 +30,7 @@ export const startRecording = createServerFn({ method: "POST" })
     // Workflow tulajdonjogának ellenőrzése (RLS úgyis védi, de korai hibázás barátságosabb)
     const { data: wf, error: wfErr } = await supabase
       .from("workflows")
-      .select("id, spec")
+      .select("id, platform, spec")
       .eq("id", data.workflowId)
       .maybeSingle();
     if (wfErr) throw new Error(wfErr.message);
@@ -44,7 +44,7 @@ export const startRecording = createServerFn({ method: "POST" })
       (spec.media_source && /^https?:\/\//i.test(spec.media_source)
         ? spec.media_source
         : undefined),
-      spec.platform,
+      wf.platform || spec.platform,
     );
 
     // Frissítés / bezárt modál után ne ragadjon bent régi VPS-session.

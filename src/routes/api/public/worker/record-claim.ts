@@ -13,6 +13,8 @@ import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "node:crypto";
 import type { Database } from "@/integrations/supabase/types";
 
+const PINTEREST_LOGIN_URL = "https://www.pinterest.com/login/";
+
 function checkAuth(request: Request): string | null {
   const token = process.env.WORKER_API_TOKEN?.trim();
   if (!token) return "WORKER_API_TOKEN nincs beállítva";
@@ -228,11 +230,24 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
           return new Response(null, { status: 204 });
         }
 
+        const { data: workflow } = await sb
+          .from("workflows")
+          .select("platform, spec")
+          .eq("id", candidate.workflow_id)
+          .maybeSingle();
+
+        const platform = String(workflow?.platform || "").toLowerCase();
+        const startUrl =
+          platform === "pinterest" && !candidate.start_url
+            ? PINTEREST_LOGIN_URL
+            : candidate.start_url;
+
         const { data: claimed, error: updErr } = await sb
           .from("recording_sessions")
           .update({
             status: "active",
             worker_id: workerId,
+            start_url: startUrl,
             started_at: new Date().toISOString(),
           })
           .eq("id", candidate.id)
@@ -258,7 +273,7 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
             session: {
               id: claimed.id,
               workflowId: claimed.workflow_id,
-              startUrl: claimed.start_url,
+              startUrl,
               channel: `record:${claimed.id}`,
               startedAt: claimed.started_at,
             },
