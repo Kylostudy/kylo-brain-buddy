@@ -83,6 +83,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   const [cookieBusy, setCookieBusy] = useState(false);
   const [inputStatus, setInputStatus] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
+  const [lockedFrameSize, setLockedFrameSize] = useState<{ w: number; h: number } | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
@@ -114,6 +115,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
 
     ch.on("broadcast", { event: "frame" }, ({ payload }) => {
       const p = payload as Frame;
+      setLockedFrameSize((prev) => prev ?? { w: p.w, h: p.h });
       setFrame(p);
     });
     ch.on("broadcast", { event: "ready" }, ({ payload }) => {
@@ -215,6 +217,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     setPageText("");
     setTextBusy(false);
     setInputStatus("");
+    setLockedFrameSize(null);
   }, [open, sessionId]);
 
   useEffect(() => {
@@ -675,18 +678,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
           onKeyDown={handleRemoteKeyDown}
         >
           {frame ? (
-            <img
-              src={frame.dataUrl}
-              alt="Böngésző élő kép"
-              className="cursor-crosshair object-contain"
+            <div
+              className="flex shrink-0 items-center justify-center overflow-hidden"
               style={{
-                width: zoom === 1 ? "100%" : `${frame.w * zoom}px`,
+                aspectRatio: `${lockedFrameSize?.w ?? frame.w} / ${lockedFrameSize?.h ?? frame.h}`,
+                width: zoom === 1 ? "min(100%, calc(100vh * 1.6))" : `${(lockedFrameSize?.w ?? frame.w) * zoom}px`,
                 maxWidth: zoom === 1 ? "100%" : "none",
                 maxHeight: zoom === 1 ? "100%" : "none",
               }}
-              onClick={handleFrameClick}
-              draggable={false}
-            />
+            >
+              <img
+                src={frame.dataUrl}
+                alt="Böngésző élő kép"
+                className="h-full w-full cursor-crosshair object-contain"
+                onClick={handleFrameClick}
+                draggable={false}
+              />
+            </div>
           ) : (
             <div className="flex max-w-md flex-col items-center gap-3 px-4 text-center text-white/70">
               <Camera className="size-10 opacity-50" />
