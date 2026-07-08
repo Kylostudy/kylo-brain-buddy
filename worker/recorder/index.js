@@ -82,11 +82,11 @@ function nextProxy() {
 
 // ---- User-Agent pool (valódi, friss Chrome / Edge UA-k) ----
 const USER_AGENTS = [
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
 ];
 const pickUA = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 
@@ -221,6 +221,10 @@ async function getBrowser() {
       "--disable-blink-features=AutomationControlled",
       "--no-sandbox",
       "--disable-dev-shm-usage",
+      "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+      "--webrtc-ip-handling-policy=disable_non_proxied_udp",
+      "--enable-unsafe-webgpu",
+      "--enable-features=Vulkan,WebGPU",
     ],
   });
   return browser;
@@ -420,6 +424,9 @@ async function runSession(payload) {
   const userAgent = fp?.userAgent || pickUA();
   const locale = fp?.locale || payload.locale || "hu-HU";
   const timezoneId = fp?.timezoneId || payload.timezone || "Europe/Budapest";
+  const viewport = fp?.viewport?.width && fp?.viewport?.height
+    ? { width: fp.viewport.width, height: fp.viewport.height }
+    : { width: VIEWPORT_W, height: VIEWPORT_H };
   if (proxy) {
     console.log(
       `[session ${session.id}] using ${proxy.label} (${proxy.server}) · locale=${locale} · tz=${timezoneId} · fp=${fp ? `Chrome${fp.chromeMajor}/${fp.platform}` : "recorder-default"}`,
@@ -430,10 +437,11 @@ async function runSession(payload) {
     );
   }
   const context = await br.newContext({
-    viewport: { width: VIEWPORT_W, height: VIEWPORT_H },
+    viewport,
     userAgent,
     locale,
     timezoneId,
+    ...(fp?.deviceScaleFactor ? { deviceScaleFactor: fp.deviceScaleFactor } : {}),
     ...(proxy
       ? {
           proxy: {
@@ -502,8 +510,8 @@ async function runSession(payload) {
 
 
   let stopped = false;
-  let viewportW = VIEWPORT_W;
-  let viewportH = VIEWPORT_H;
+  let viewportW = viewport.width;
+  let viewportH = viewport.height;
   const actions = [];
   const channel = sb.channel(session.channel, {
     config: { broadcast: { self: false, ack: false } },

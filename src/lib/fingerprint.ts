@@ -23,6 +23,8 @@ export interface WorkflowFingerprint {
   // "real" (a Dolphin default is ez) vagy "noise"
   canvasMode: "real" | "noise";
   audioMode: "real" | "noise";
+  canvasSeed: number;
+  audioSeed: number;
   // Fontok — a "Fonts: Auto" alatt a Dolphin egy reális OS-fontlistát ad.
   fonts: string[];
 }
@@ -225,8 +227,10 @@ export function generateWorkflowFingerprint(
     webglRenderer: webgl.renderer,
     hardwareConcurrency,
     deviceMemory,
-    canvasMode: "real",
-    audioMode: "real",
+    canvasMode: "noise",
+    audioMode: "noise",
+    canvasSeed: fnv1a(workflowId + ":canvas"),
+    audioSeed: fnv1a(workflowId + ":audio"),
     fonts,
   };
 }
