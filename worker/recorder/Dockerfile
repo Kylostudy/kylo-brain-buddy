@@ -15,5 +15,6 @@ COPY executor/scripts/fingerprint-patch.js /executor/scripts/fingerprint-patch.j
 
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV DISPLAY=:99
 
-CMD ["xvfb-run", "-a", "node", "index.js"]
+CMD ["node", "index.js"]

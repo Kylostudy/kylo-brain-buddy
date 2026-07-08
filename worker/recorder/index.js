@@ -223,11 +223,11 @@ let browser = null;
 async function getBrowser() {
   if (browser && browser.isConnected()) return browser;
   const chromium = await getChromium();
+  console.log("[recorder] Playwright böngésző indítása...");
   // 'per-context' proxy placeholder — a tényleges proxy a newContext({ proxy })-ban dől el.
   browser = await chromium.launch({
-    // A Pinterest a sima headless módot néha szétesett, "word word word"
-    // fallback oldallal bünteti. A konténerben xvfb alatt futtatjuk, ezért
-    // itt lehet headed módot használni valódi ablak nélkül is.
+    // A régi xvfb-run wrapper konténerben néha a Node indulása előtt megakadt,
+    // ezért a Playwright image saját virtual display kezelésére bízzuk.
     headless: false,
     proxy: { server: "http://per-context" },
     args: [
