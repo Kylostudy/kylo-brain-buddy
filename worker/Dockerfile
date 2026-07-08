@@ -2,7 +2,7 @@
 # Bemenet: SPEC_JSON env változó (a workflow_runs.spec_snapshot tartalma).
 # Kimenet: stdout JSON-line logok + utolsó sor { "status": "...", "result": {...} }.
 
-FROM mcr.microsoft.com/playwright:v1.48.0-jammy
+FROM mcr.microsoft.com/playwright:v1.61.1-noble
 
 WORKDIR /app
 

@@ -38,6 +38,9 @@ export function normalizeRecordingStartUrl(
         host.endsWith(".pin.it");
 
       if (!isOfficialPinterestHost) return PINTEREST_LOGIN_URL;
+      if (isPinterestWorkflow && (url.pathname === "" || url.pathname === "/")) {
+        return PINTEREST_LOGIN_URL;
+      }
     }
 
     return url.toString();
