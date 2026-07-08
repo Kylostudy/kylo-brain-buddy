@@ -237,18 +237,32 @@ async function getBrowser() {
 }
 
 const active = new Map(); // sessionId -> Promise
+let lastIdleLogAt = 0;
 
 async function claimNext() {
   try {
     const res = await brainPost("/api/public/worker/record-claim", {
       workerId: WORKER_ID,
     });
-    if (res.status === 204) return null;
+    if (res.status === 204) {
+      const now = Date.now();
+      if (now - lastIdleLogAt > 30000) {
+        console.log(`[record-claim] nincs felvehető recording session (204)`);
+        lastIdleLogAt = now;
+      }
+      return null;
+    }
     if (!res.ok) {
       console.error(`[record-claim] ${res.status} ${await res.text()}`);
       return null;
     }
-    return await res.json();
+    const payload = await res.json();
+    if (payload?.session?.id) {
+      console.log(`[record-claim] session felvéve: ${payload.session.id}`);
+    } else {
+      console.warn(`[record-claim] váratlan válasz: ${JSON.stringify(payload).slice(0, 500)}`);
+    }
+    return payload;
   } catch (e) {
     console.error("[record-claim] network error", e.message);
     return null;
@@ -906,6 +920,9 @@ async function runSession(payload) {
 async function loop() {
   console.log(
     `[${WORKER_ID}] recorder → ${BRAIN_URL} | max ${MAX_SESSIONS} párhuzamos session`,
+  );
+  console.log(
+    `[${WORKER_ID}] recording poll aktív: ${POLL_INTERVAL_MS}ms-onként nézem a /api/public/worker/record-claim végpontot`,
   );
   while (true) {
     if (active.size < MAX_SESSIONS) {
