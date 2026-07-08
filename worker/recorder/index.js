@@ -13,23 +13,29 @@
 // Semmilyen inbound portot NEM nyitunk a VPS-en.
 // Egy folyamat több párhuzamos session-t is kezel (külön browser context-tel).
 
-import { chromium as _rawChromium } from "playwright";
-import { chromium as _extraChromium } from "playwright-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { buildFingerprintInitScript } from "./fingerprint-patch.js";
 
-// Stealth plugin: álcázza a headless böngészőt valódi böngészőnek
-// (Cloudflare / DataDome / PerimeterX bot-detektorok ellen).
-const stealth = StealthPlugin();
-// A WebGL/CPU/RAM/platform értékeket a saját, workflow-hoz kötött
-// fingerprint init-script kezeli. Ha ezeket a stealth alapértékei írják felül,
-// a recorder és a későbbi executor nem ugyanannak a gépnek látszik.
-stealth.enabledEvasions.delete("webgl.vendor");
-stealth.enabledEvasions.delete("navigator.hardwareConcurrency");
-_extraChromium.use(stealth);
-const chromium = _extraChromium;
+let chromium = null;
+async function getChromium() {
+  if (chromium) return chromium;
+  // A nehéz Playwright/stealth importokat nem top-level töltjük be, mert ha
+  // ezek bármelyike megakad a VPS image-ben, a recorder a poll loopig sem jut el.
+  const [{ chromium: extraChromium }, { default: StealthPlugin }] = await Promise.all([
+    import("playwright-extra"),
+    import("puppeteer-extra-plugin-stealth"),
+  ]);
+  const stealth = StealthPlugin();
+  // A WebGL/CPU/RAM/platform értékeket a saját, workflow-hoz kötött
+  // fingerprint init-script kezeli. Ha ezeket a stealth alapértékei írják felül,
+  // a recorder és a későbbi executor nem ugyanannak a gépnek látszik.
+  stealth.enabledEvasions.delete("webgl.vendor");
+  stealth.enabledEvasions.delete("navigator.hardwareConcurrency");
+  extraChromium.use(stealth);
+  chromium = extraChromium;
+  return chromium;
+}
 
 // ---- Proxy pool (residential, támogatott formátumok: host:port:user:pass vagy user:pass:host:port) ----
 function parseProxy(raw, label) {
@@ -216,6 +222,7 @@ async function brainPost(path, body) {
 let browser = null;
 async function getBrowser() {
   if (browser && browser.isConnected()) return browser;
+  const chromium = await getChromium();
   // 'per-context' proxy placeholder — a tényleges proxy a newContext({ proxy })-ban dől el.
   browser = await chromium.launch({
     // A Pinterest a sima headless módot néha szétesett, "word word word"
@@ -237,18 +244,32 @@ async function getBrowser() {
 }
 
 const active = new Map(); // sessionId -> Promise
+let lastIdleLogAt = 0;
 
 async function claimNext() {
   try {
     const res = await brainPost("/api/public/worker/record-claim", {
       workerId: WORKER_ID,
     });
-    if (res.status === 204) return null;
+    if (res.status === 204) {
+      const now = Date.now();
+      if (now - lastIdleLogAt > 30000) {
+        console.log(`[record-claim] nincs felvehető recording session (204)`);
+        lastIdleLogAt = now;
+      }
+      return null;
+    }
     if (!res.ok) {
       console.error(`[record-claim] ${res.status} ${await res.text()}`);
       return null;
     }
-    return await res.json();
+    const payload = await res.json();
+    if (payload?.session?.id) {
+      console.log(`[record-claim] session felvéve: ${payload.session.id}`);
+    } else {
+      console.warn(`[record-claim] váratlan válasz: ${JSON.stringify(payload).slice(0, 500)}`);
+    }
+    return payload;
   } catch (e) {
     console.error("[record-claim] network error", e.message);
     return null;
@@ -906,6 +927,9 @@ async function runSession(payload) {
 async function loop() {
   console.log(
     `[${WORKER_ID}] recorder → ${BRAIN_URL} | max ${MAX_SESSIONS} párhuzamos session`,
+  );
+  console.log(
+    `[${WORKER_ID}] recording poll aktív: ${POLL_INTERVAL_MS}ms-onként nézem a /api/public/worker/record-claim végpontot`,
   );
   while (true) {
     if (active.size < MAX_SESSIONS) {

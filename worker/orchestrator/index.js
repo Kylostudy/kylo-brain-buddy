@@ -28,6 +28,7 @@ if (!BRAIN_URL || !WORKER_API_TOKEN) {
 }
 
 const inflight = new Set();
+let lastIdleLogAt = 0;
 
 async function brainFetch(path, body) {
   const res = await fetch(`${BRAIN_URL}${path}`, {
@@ -45,12 +46,24 @@ async function brainFetch(path, body) {
 async function claimNext() {
   try {
     const res = await brainFetch("/api/public/worker/claim", { workerId: WORKER_ID });
-    if (res.status === 204) return null;
+    if (res.status === 204) {
+      const now = Date.now();
+      if (now - lastIdleLogAt > 30000) {
+        console.log(`[claim] nincs felvehető workflow run (204)`);
+        lastIdleLogAt = now;
+      }
+      return null;
+    }
     if (!res.ok) {
       console.error(`[claim] ${res.status} ${await res.text()}`);
       return null;
     }
     const data = await res.json();
+    if (data.run?.id) {
+      console.log(`[claim] workflow run felvéve: ${data.run.id}`);
+    } else {
+      console.warn(`[claim] váratlan válasz: ${JSON.stringify(data).slice(0, 500)}`);
+    }
     return data.run ?? null;
   } catch (e) {
     console.error("[claim] network error", e.message);
@@ -176,6 +189,9 @@ async function processOne() {
 async function loop() {
   console.log(
     `[${WORKER_ID}] orchestrator → ${BRAIN_URL} | max ${MAX_PARALLEL} párhuzamos`,
+  );
+  console.log(
+    `[${WORKER_ID}] workflow poll aktív: ${POLL_INTERVAL_MS}ms-onként nézem a /api/public/worker/claim végpontot`,
   );
   while (true) {
     if (inflight.size < MAX_PARALLEL) {
