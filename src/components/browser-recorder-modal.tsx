@@ -98,14 +98,6 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     return ch.send({ type: "broadcast", event, payload });
   }, []);
 
-  const sendViewportToWorker = useCallback(() => {
-    // A távoli böngésző viewportját nem igazítjuk a modál aktuális méretéhez.
-    // Pinterestnél pont ez okozta, hogy a login ablak először jól jelent meg,
-    // majd a későbbi ResizeObserver esemény után oldalra/elugrott. A kép ettől
-    // még skálázódik a nézetben, a kattintás pedig normalizált koordinátával megy át.
-    return;
-  }, [sendToWorker]);
-
   // Realtime feliratkozás a session csatornájára
   useEffect(() => {
     if (!open || !sessionId) return;
@@ -307,14 +299,6 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, [open]);
 
-  useEffect(() => {
-    if (!open || !imgWrapRef.current) return;
-    const ro = new ResizeObserver(() => sendViewportToWorker());
-    ro.observe(imgWrapRef.current);
-    window.setTimeout(sendViewportToWorker, 250);
-    return () => ro.disconnect();
-  }, [open, sessionId, textPanelOpen, sendViewportToWorker]);
-
   async function toggleFullscreen() {
     try {
       if (document.fullscreenElement) {
@@ -322,7 +306,6 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
       } else {
         await rootRef.current?.requestFullscreen();
       }
-      window.setTimeout(sendViewportToWorker, 250);
     } catch {
       toast.error("A teljes képernyő nem indítható ebben a böngészőben.");
     }
@@ -690,7 +673,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
               <img
                 src={frame.dataUrl}
                 alt="Böngésző élő kép"
-                className="h-full w-full cursor-crosshair object-contain"
+                className="h-full w-full cursor-crosshair object-fill"
                 onClick={handleFrameClick}
                 draggable={false}
               />
