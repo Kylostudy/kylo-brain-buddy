@@ -426,9 +426,9 @@ async function runSession(payload) {
   const timezoneId = fp?.timezoneId || payload.timezone || "Europe/Budapest";
   // FONTOS: a recorder böngésző-viewportját NEM a fingerprint diktálja
   // (az gyakran 1920×1080-at ad → a login modal a modálban kilóg a jobb
-  // oldalra és nem lehet rákattintani). A tényleges viewportot a kliens
-  // (browser-recorder-modal) `viewport` eventje állítja be a modál mérete
-  // alapján. Alap: 1280×800, amit a fp-beli screen spoofing nem érint,
+  // oldalra és nem lehet rákattintani). A recorder fix 1280×800-as képet
+  // streamel, a kliens pedig csak megjeleníti/skálázza, nem méretezi át.
+  // Alap: 1280×800, amit a fp-beli screen spoofing nem érint,
   // mert a fingerprint-patch csak a JS screen/window API-kat hazudja át.
   const viewport = { width: VIEWPORT_W, height: VIEWPORT_H };
   if (fp?.viewport?.width && fp?.viewport?.height) {
