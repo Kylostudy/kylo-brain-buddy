@@ -218,7 +218,10 @@ async function getBrowser() {
   if (browser && browser.isConnected()) return browser;
   // 'per-context' proxy placeholder — a tényleges proxy a newContext({ proxy })-ban dől el.
   browser = await chromium.launch({
-    headless: true,
+    // A Pinterest a sima headless módot néha szétesett, "word word word"
+    // fallback oldallal bünteti. A konténerben xvfb alatt futtatjuk, ezért
+    // itt lehet headed módot használni valódi ablak nélkül is.
+    headless: false,
     proxy: { server: "http://per-context" },
     args: [
       "--disable-blink-features=AutomationControlled",
