@@ -20,20 +20,13 @@ import { buildFingerprintInitScript } from "./fingerprint-patch.js";
 let chromium = null;
 async function getChromium() {
   if (chromium) return chromium;
-  // A nehéz Playwright/stealth importokat nem top-level töltjük be, mert ha
-  // ezek bármelyike megakad a VPS image-ben, a recorder a poll loopig sem jut el.
-  const [{ chromium: extraChromium }, { default: StealthPlugin }] = await Promise.all([
-    import("playwright-extra"),
-    import("puppeteer-extra-plugin-stealth"),
-  ]);
-  const stealth = StealthPlugin();
-  // A WebGL/CPU/RAM/platform értékeket a saját, workflow-hoz kötött
-  // fingerprint init-script kezeli. Ha ezeket a stealth alapértékei írják felül,
-  // a recorder és a későbbi executor nem ugyanannak a gépnek látszik.
-  stealth.enabledEvasions.delete("webgl.vendor");
-  stealth.enabledEvasions.delete("navigator.hardwareConcurrency");
-  extraChromium.use(stealth);
-  chromium = extraChromium;
+  // A recorder célja a stabil, látható, kézzel kezelhető bejelentkezési oldal.
+  // A stealth plugin több modern oldalon (Pinterestnél biztosan) eltöri a JS/CSS
+  // inicializálást: láthatóvá válnak a belső fontmérő szövegek („word word”),
+  // az oldal pedig stílus nélkül szétesik. Az éles workflow executor továbbra is
+  // használhat külön fingerprint/stealth védelmet; a recorder legyen tiszta Chrome.
+  const { chromium: plainChromium } = await import("playwright");
+  chromium = plainChromium;
   return chromium;
 }
 
@@ -231,13 +224,10 @@ async function getBrowser() {
     headless: false,
     proxy: { server: "http://per-context" },
     args: [
-      "--disable-blink-features=AutomationControlled",
       "--no-sandbox",
       "--disable-dev-shm-usage",
       "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
       "--webrtc-ip-handling-policy=disable_non_proxied_udp",
-      "--enable-unsafe-webgpu",
-      "--enable-features=Vulkan,WebGPU",
     ],
   });
   return browser;
