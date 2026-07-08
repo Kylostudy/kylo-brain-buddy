@@ -451,16 +451,23 @@ async function runSession(payload) {
   const userAgent = fp?.userAgent || pickUA();
   const locale = fp?.locale || payload.locale || "hu-HU";
   const timezoneId = fp?.timezoneId || payload.timezone || "Europe/Budapest";
-  // FONTOS: a recorder böngésző-viewportját NEM a fingerprint diktálja
-  // (az gyakran 1920×1080-at ad → a login modal a modálban kilóg a jobb
-  // oldalra és nem lehet rákattintani). A recorder fix 1280×800-as képet
-  // streamel, a kliens pedig csak megjeleníti/skálázza, nem méretezi át.
-  // Alap: 1280×800, amit a fp-beli screen spoofing nem érint,
-  // mert a fingerprint-patch csak a JS screen/window API-kat hazudja át.
+  // FONTOS: a recorder böngésző-viewportja fix, mert ezt streameljük a
+  // kliensnek. Viszont a fingerprint init-script NEM hazudhat ettől eltérő
+  // screen/outerWidth/devicePixelRatio értékeket, mert a Pinterest ezekből
+  // számolja a responsive layoutot. Ha a valódi viewport 1280×800, de a JS
+  // 1920×1080-at vagy DPR=2-t lát, a Pinterest oldala széttörik: nagy üres
+  // felület, elszórt képek, „word word word” jellegű fallback szöveg.
   const viewport = { width: VIEWPORT_W, height: VIEWPORT_H };
+  const recorderFingerprint = fp
+    ? {
+        ...fp,
+        viewport,
+        deviceScaleFactor: 1,
+      }
+    : null;
   if (fp?.viewport?.width && fp?.viewport?.height) {
     console.log(
-      `[session ${session.id}] fp.viewport=${fp.viewport.width}×${fp.viewport.height} ignorálva → recorder böngésző ${viewport.width}×${viewport.height} (a spoof screen dimenziók változatlanok)`,
+      `[session ${session.id}] fp.viewport=${fp.viewport.width}×${fp.viewport.height}, dpr=${fp.deviceScaleFactor || 1} → recorder layout ${viewport.width}×${viewport.height}, dpr=1`,
     );
   }
   if (proxy) {
@@ -477,7 +484,9 @@ async function runSession(payload) {
     userAgent,
     locale,
     timezoneId,
-    ...(fp?.deviceScaleFactor ? { deviceScaleFactor: fp.deviceScaleFactor } : {}),
+    deviceScaleFactor: 1,
+    isMobile: false,
+    hasTouch: false,
     ...(proxy
       ? {
           proxy: {
@@ -492,9 +501,9 @@ async function runSession(payload) {
   // deviceMemory, platform, WebRTC leak-védelem) — hogy a recorderrel
   // felvett első bejelentkezés is UGYANOLYAN böngészőnek látsszon, mint
   // a későbbi workflow futások.
-  if (fp) {
+  if (recorderFingerprint) {
     try {
-      await context.addInitScript(buildFingerprintInitScript(fp));
+      await context.addInitScript(buildFingerprintInitScript(recorderFingerprint));
     } catch (e) {
       console.warn(`[session ${session.id}] fingerprint init-script hiba: ${e.message}`);
     }
