@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
-  ssr: false,
   head: () => ({
     meta: [{ title: "Bejelentkezés — KyloBrain" }],
   }),

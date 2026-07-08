@@ -9,6 +9,8 @@
 //   3. navigator.hardwareConcurrency + navigator.deviceMemory
 //   4. navigator.platform (Win32/MacIntel/Linux x86_64)
 //   5. WebRTC IP-szivárgás blokk (createOffer / SDP csere)
+//   6. navigator.webdriver getter teljes törlése
+//   7. Canvas + Audio fingerprint stabil, workflow-alapú finom zaj
 //
 // A WebRTC-t emellett Chrome launch-flag-gel is letiltjuk (lásd run.js).
 
@@ -21,6 +23,10 @@ export function buildFingerprintInitScript(fp) {
   const cores = Number(fp?.hardwareConcurrency || 8);
   const memory = Number(fp?.deviceMemory || 8);
   const platform = String(fp?.platform || "Win32");
+  const canvasMode = String(fp?.canvasMode || "real");
+  const audioMode = String(fp?.audioMode || "real");
+  const canvasSeed = Number(fp?.canvasSeed || 0) >>> 0;
+  const audioSeed = Number(fp?.audioSeed || 0) >>> 0;
 
   // A stringeket biztonságosan sorosítjuk, hogy egyetlen script-string legyen,
   // amit átadhatunk az addInitScript-nek.
@@ -32,6 +38,38 @@ export function buildFingerprintInitScript(fp) {
     const CORES = ${cores};
     const MEMORY = ${memory};
     const PLATFORM = ${JSON.stringify(platform)};
+    const CANVAS_MODE = ${JSON.stringify(canvasMode)};
+    const AUDIO_MODE = ${JSON.stringify(audioMode)};
+    const CANVAS_SEED = ${canvasSeed};
+    const AUDIO_SEED = ${audioSeed};
+
+    const hashNoise = (seed, n) => {
+      let x = (seed ^ Math.imul(n + 0x9e3779b9, 0x85ebca6b)) >>> 0;
+      x ^= x >>> 16;
+      x = Math.imul(x, 0x7feb352d) >>> 0;
+      x ^= x >>> 15;
+      x = Math.imul(x, 0x846ca68b) >>> 0;
+      x ^= x >>> 16;
+      return (x % 3) - 1;
+    };
+
+    const patchFunctionToString = (fn, name) => {
+      try {
+        Object.defineProperty(fn, "toString", {
+          value: () => "function " + name + "() { [native code] }",
+          configurable: true,
+        });
+      } catch (_) {}
+      return fn;
+    };
+
+    // ---- 0. webdriver getter teljes eltüntetése ----------------------------
+    try {
+      const protoDescriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, "webdriver");
+      if (protoDescriptor) delete Navigator.prototype.webdriver;
+      const ownDescriptor = Object.getOwnPropertyDescriptor(navigator, "webdriver");
+      if (ownDescriptor) delete navigator.webdriver;
+    } catch (_) {}
 
     // ---- 1-2. WebGL(2) getParameter override -------------------------------
     // A WEBGL_debug_renderer_info kiterjesztés két konstansát írjuk felül:
@@ -115,12 +153,121 @@ export function buildFingerprintInitScript(fp) {
         };
         return pc;
       };
+      patchFunctionToString(NewPC, "RTCPeerConnection");
       NewPC.prototype = OrigPC.prototype;
       // eslint-disable-next-line no-global-assign
       window.RTCPeerConnection = NewPC;
       if (typeof webkitRTCPeerConnection !== "undefined") {
         window.webkitRTCPeerConnection = NewPC;
       }
+    }
+
+    // ---- 6. Canvas fingerprint stabil zaj ----------------------------------
+    // Nem véletlenszerű: ugyanaz a workflow mindig ugyanazt az apró eltérést
+    // adja. Átlátszó pixeleket békén hagyunk, ezért a transparent-pixel teszt
+    // továbbra is 0 marad.
+    if (CANVAS_MODE === "noise") {
+      const applyCanvasNoise = (imageData, seed) => {
+        try {
+          const data = imageData && imageData.data;
+          if (!data || data.length < 4) return imageData;
+          const step = Math.max(4, Math.floor(data.length / 160));
+          for (let i = 0; i < data.length; i += step) {
+            const a = data[i + 3];
+            if (!a) continue;
+            const n = hashNoise(seed, i);
+            if (!n) continue;
+            data[i] = Math.max(0, Math.min(255, data[i] + n));
+            data[i + 1] = Math.max(0, Math.min(255, data[i + 1] - n));
+            data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n));
+          }
+        } catch (_) {}
+        return imageData;
+      };
+
+      const cloneWithNoise = (canvas) => {
+        try {
+          const w = canvas.width || 0;
+          const h = canvas.height || 0;
+          if (!w || !h) return canvas;
+          const copy = document.createElement("canvas");
+          copy.width = w;
+          copy.height = h;
+          const ctx = copy.getContext("2d", { willReadFrequently: true });
+          if (!ctx) return canvas;
+          ctx.drawImage(canvas, 0, 0);
+          const imageData = ctx.getImageData(0, 0, w, h);
+          applyCanvasNoise(imageData, CANVAS_SEED + w * 31 + h * 17);
+          ctx.putImageData(imageData, 0, 0);
+          return copy;
+        } catch (_) {
+          return canvas;
+        }
+      };
+
+      try {
+        const origGetImageData = CanvasRenderingContext2D.prototype.getImageData;
+        CanvasRenderingContext2D.prototype.getImageData = patchFunctionToString(function (...args) {
+          const imageData = origGetImageData.apply(this, args);
+          return applyCanvasNoise(imageData, CANVAS_SEED + (args[0] || 0) * 13 + (args[1] || 0) * 7);
+        }, "getImageData");
+      } catch (_) {}
+
+      try {
+        const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
+        HTMLCanvasElement.prototype.toDataURL = patchFunctionToString(function (...args) {
+          const copy = cloneWithNoise(this);
+          return origToDataURL.apply(copy, args);
+        }, "toDataURL");
+      } catch (_) {}
+
+      try {
+        const origToBlob = HTMLCanvasElement.prototype.toBlob;
+        HTMLCanvasElement.prototype.toBlob = patchFunctionToString(function (callback, ...args) {
+          const copy = cloneWithNoise(this);
+          return origToBlob.call(copy, callback, ...args);
+        }, "toBlob");
+      } catch (_) {}
+    }
+
+    // ---- 7. Audio fingerprint stabil zaj -----------------------------------
+    if (AUDIO_MODE === "noise") {
+      const audioDelta = (i) => hashNoise(AUDIO_SEED, i) * 0.00000012;
+      try {
+        const origGetChannelData = AudioBuffer.prototype.getChannelData;
+        AudioBuffer.prototype.getChannelData = patchFunctionToString(function (...args) {
+          const data = origGetChannelData.apply(this, args);
+          try {
+            if (!data.__kyloNoiseApplied) {
+              for (let i = 0; i < data.length; i += 97) data[i] += audioDelta(i);
+              Object.defineProperty(data, "__kyloNoiseApplied", { value: true });
+            }
+          } catch (_) {}
+          return data;
+        }, "getChannelData");
+      } catch (_) {}
+
+      try {
+        const origCopyFromChannel = AudioBuffer.prototype.copyFromChannel;
+        AudioBuffer.prototype.copyFromChannel = patchFunctionToString(function (destination, channelNumber, startInChannel = 0) {
+          const ret = origCopyFromChannel.call(this, destination, channelNumber, startInChannel);
+          try {
+            for (let i = 0; i < destination.length; i += 97) destination[i] += audioDelta(i + startInChannel);
+          } catch (_) {}
+          return ret;
+        }, "copyFromChannel");
+      } catch (_) {}
+
+      try {
+        const origFloat = AnalyserNode.prototype.getFloatFrequencyData;
+        AnalyserNode.prototype.getFloatFrequencyData = patchFunctionToString(function (array) {
+          const ret = origFloat.call(this, array);
+          try {
+            for (let i = 0; i < array.length; i += 23) array[i] += audioDelta(i);
+          } catch (_) {}
+          return ret;
+        }, "getFloatFrequencyData");
+      } catch (_) {}
     }
   } catch (e) {
     // Bármi hiba esetén ne törjük el az oldalt.
