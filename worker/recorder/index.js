@@ -20,20 +20,13 @@ import { buildFingerprintInitScript } from "./fingerprint-patch.js";
 let chromium = null;
 async function getChromium() {
   if (chromium) return chromium;
-  // A nehéz Playwright/stealth importokat nem top-level töltjük be, mert ha
-  // ezek bármelyike megakad a VPS image-ben, a recorder a poll loopig sem jut el.
-  const [{ chromium: extraChromium }, { default: StealthPlugin }] = await Promise.all([
-    import("playwright-extra"),
-    import("puppeteer-extra-plugin-stealth"),
-  ]);
-  const stealth = StealthPlugin();
-  // A WebGL/CPU/RAM/platform értékeket a saját, workflow-hoz kötött
-  // fingerprint init-script kezeli. Ha ezeket a stealth alapértékei írják felül,
-  // a recorder és a későbbi executor nem ugyanannak a gépnek látszik.
-  stealth.enabledEvasions.delete("webgl.vendor");
-  stealth.enabledEvasions.delete("navigator.hardwareConcurrency");
-  extraChromium.use(stealth);
-  chromium = extraChromium;
+  // A recorder célja a stabil, látható, kézzel kezelhető bejelentkezési oldal.
+  // A stealth plugin több modern oldalon (Pinterestnél biztosan) eltöri a JS/CSS
+  // inicializálást: láthatóvá válnak a belső fontmérő szövegek („word word”),
+  // az oldal pedig stílus nélkül szétesik. Az éles workflow executor továbbra is
+  // használhat külön fingerprint/stealth védelmet; a recorder legyen tiszta Chrome.
+  const { chromium: plainChromium } = await import("playwright");
+  chromium = plainChromium;
   return chromium;
 }
 
@@ -231,13 +224,10 @@ async function getBrowser() {
     headless: false,
     proxy: { server: "http://per-context" },
     args: [
-      "--disable-blink-features=AutomationControlled",
       "--no-sandbox",
       "--disable-dev-shm-usage",
       "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
       "--webrtc-ip-handling-policy=disable_non_proxied_udp",
-      "--enable-unsafe-webgpu",
-      "--enable-features=Vulkan,WebGPU",
     ],
   });
   return browser;
@@ -458,7 +448,8 @@ async function runSession(payload) {
   // 1920×1080-at vagy DPR=2-t lát, a Pinterest oldala széttörik: nagy üres
   // felület, elszórt képek, „word word word” jellegű fallback szöveg.
   const viewport = { width: VIEWPORT_W, height: VIEWPORT_H };
-  const isPinterestSession = /pinterest/i.test(String(session.startUrl || payload.platform || ""));
+  const effectiveStartUrl = normalizeUrl(session.startUrl || "");
+  const isPinterestSession = /pinterest/i.test(String(effectiveStartUrl || session.startUrl || payload.platform || ""));
   const recorderFingerprint =
     fp && !isPinterestSession
       ? {
@@ -514,10 +505,12 @@ async function runSession(payload) {
   } else if (fp && isPinterestSession) {
     console.log(`[session ${session.id}] Pinterest-safe recorder mód: mély fingerprint init-script kihagyva`);
   }
-  // Pinterest és hasonló oldalak nem csak azt nézik, hogy `navigator.webdriver`
-  // false-e, hanem azt is, hogy a getter egyáltalán létezik-e. Ezért a propertyt
-  // teljesen töröljük minden oldal betöltése előtt.
-  await context.addInitScript(REMOVE_WEBDRIVER_INIT);
+  // Pinterestnél semmilyen init-scriptet nem futtatunk, mert már a legkisebb
+  // navigator-patch is elég volt ahhoz, hogy az oldal stílus nélkül essen vissza.
+  // Más platformoknál marad a minimális webdriver-törlés.
+  if (!isPinterestSession) {
+    await context.addInitScript(REMOVE_WEBDRIVER_INIT);
+  }
   // Ha a Brain küldött mentett cookie-kat (workflow_credentials-ből), töltsük
   // be MIELŐTT bármit navigálunk — így a felhasználó egyből bejelentkezve
   // nyitja meg pl. a Pinterestet, és nem kell újra belépnie.
@@ -888,10 +881,9 @@ async function runSession(payload) {
     payload: { w: viewportW, h: viewportH },
   });
 
-  if (session.startUrl) {
-    const url = normalizeUrl(session.startUrl);
+  if (effectiveStartUrl) {
     try {
-      if (url) await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.goto(effectiveStartUrl, { waitUntil: "domcontentloaded" });
     } catch (e) {
       console.error(`[session ${session.id}] initial goto failed`, e.message);
     }
