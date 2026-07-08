@@ -458,13 +458,15 @@ async function runSession(payload) {
   // 1920×1080-at vagy DPR=2-t lát, a Pinterest oldala széttörik: nagy üres
   // felület, elszórt képek, „word word word” jellegű fallback szöveg.
   const viewport = { width: VIEWPORT_W, height: VIEWPORT_H };
-  const recorderFingerprint = fp
-    ? {
-        ...fp,
-        viewport,
-        deviceScaleFactor: 1,
-      }
-    : null;
+  const isPinterestSession = /pinterest/i.test(String(session.startUrl || payload.platform || ""));
+  const recorderFingerprint =
+    fp && !isPinterestSession
+      ? {
+          ...fp,
+          viewport,
+          deviceScaleFactor: 1,
+        }
+      : null;
   if (fp?.viewport?.width && fp?.viewport?.height) {
     console.log(
       `[session ${session.id}] fp.viewport=${fp.viewport.width}×${fp.viewport.height}, dpr=${fp.deviceScaleFactor || 1} → recorder layout ${viewport.width}×${viewport.height}, dpr=1`,
@@ -498,15 +500,19 @@ async function runSession(payload) {
       : {}),
   });
   // Fingerprint spoof (WebGL vendor/renderer, hardwareConcurrency,
-  // deviceMemory, platform, WebRTC leak-védelem) — hogy a recorderrel
-  // felvett első bejelentkezés is UGYANOLYAN böngészőnek látsszon, mint
-  // a későbbi workflow futások.
+  // deviceMemory, platform, WebRTC leak-védelem). Pinterest felvételnél ezt
+  // szándékosan kihagyjuk: a mély navigator/screen/canvas override-ok a
+  // Pinterest React/CSS layoutját fallback állapotba tudják lökni
+  // („word word word”, üres oldal, szétesett képek). A context UA + proxy +
+  // locale/tz marad, csak az oldaltörő init-script nem fut.
   if (recorderFingerprint) {
     try {
       await context.addInitScript(buildFingerprintInitScript(recorderFingerprint));
     } catch (e) {
       console.warn(`[session ${session.id}] fingerprint init-script hiba: ${e.message}`);
     }
+  } else if (fp && isPinterestSession) {
+    console.log(`[session ${session.id}] Pinterest-safe recorder mód: mély fingerprint init-script kihagyva`);
   }
   // Pinterest és hasonló oldalak nem csak azt nézik, hogy `navigator.webdriver`
   // false-e, hanem azt is, hogy a getter egyáltalán létezik-e. Ezért a propertyt
