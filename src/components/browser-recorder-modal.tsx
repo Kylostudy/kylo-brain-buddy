@@ -98,12 +98,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
   }, []);
 
   const sendViewportToWorker = useCallback(() => {
-    const el = imgWrapRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const w = Math.max(900, Math.min(1920, Math.floor(rect.width)));
-    const h = Math.max(620, Math.min(1200, Math.floor(rect.height)));
-    sendToWorker("viewport", { w, h });
+    // A távoli böngésző viewportját nem igazítjuk a modál aktuális méretéhez.
+    // Pinterestnél pont ez okozta, hogy a login ablak először jól jelent meg,
+    // majd a későbbi ResizeObserver esemény után oldalra/elugrott. A kép ettől
+    // még skálázódik a nézetben, a kattintás pedig normalizált koordinátával megy át.
+    return;
   }, [sendToWorker]);
 
   // Realtime feliratkozás a session csatornájára
