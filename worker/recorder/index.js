@@ -448,7 +448,8 @@ async function runSession(payload) {
   // 1920×1080-at vagy DPR=2-t lát, a Pinterest oldala széttörik: nagy üres
   // felület, elszórt képek, „word word word” jellegű fallback szöveg.
   const viewport = { width: VIEWPORT_W, height: VIEWPORT_H };
-  const isPinterestSession = /pinterest/i.test(String(session.startUrl || payload.platform || ""));
+  const effectiveStartUrl = normalizeUrl(session.startUrl || "");
+  const isPinterestSession = /pinterest/i.test(String(effectiveStartUrl || session.startUrl || payload.platform || ""));
   const recorderFingerprint =
     fp && !isPinterestSession
       ? {
@@ -878,10 +879,9 @@ async function runSession(payload) {
     payload: { w: viewportW, h: viewportH },
   });
 
-  if (session.startUrl) {
-    const url = normalizeUrl(session.startUrl);
+  if (effectiveStartUrl) {
     try {
-      if (url) await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.goto(effectiveStartUrl, { waitUntil: "domcontentloaded" });
     } catch (e) {
       console.error(`[session ${session.id}] initial goto failed`, e.message);
     }
