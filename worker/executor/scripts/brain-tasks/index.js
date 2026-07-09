@@ -13,6 +13,7 @@
 import { runBrainPing } from "./ping.js";
 import { runLinkedInMetricsSnapshot } from "./linkedin-metrics-snapshot.js";
 import { runPinterestMetricsSnapshot } from "./pinterest-metrics-snapshot.js";
+import { runPinterestUploadPin } from "./pinterest-upload-pin.js";
 import { runRecordReplay } from "./record-replay.js";
 
 export function isBrainTask(spec) {
@@ -50,6 +51,14 @@ export async function runBrainTask(args) {
       throw new Error(
         `metrics_snapshot: platform "${platform || "?"}" executor még nincs implementálva`,
       );
+    }
+
+    case "upload_pin": {
+      const platform = (brainTask.platform || args.spec?.platform || "pinterest").toLowerCase();
+      if (platform === "pinterest") {
+        return await runPinterestUploadPin(args);
+      }
+      throw new Error(`upload_pin: platform "${platform}" executor még nincs implementálva`);
     }
 
     case "comments_snapshot":
