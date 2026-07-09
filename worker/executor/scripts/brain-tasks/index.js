@@ -62,6 +62,14 @@ export async function runBrainTask(args) {
       throw new Error(`upload_pin: platform "${platform}" executor még nincs implementálva`);
     }
 
+    case "upload_video": {
+      const platform = (brainTask.platform || args.spec?.platform || "").toLowerCase();
+      if (platform === "tiktok") {
+        return await runTikTokUploadVideo(args);
+      }
+      throw new Error(`upload_video: platform "${platform || "?"}" executor még nincs implementálva`);
+    }
+
     case "comments_snapshot":
     case "post_comment_reply":
       throw new Error(
