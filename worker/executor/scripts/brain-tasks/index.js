@@ -14,6 +14,7 @@ import { runBrainPing } from "./ping.js";
 import { runLinkedInMetricsSnapshot } from "./linkedin-metrics-snapshot.js";
 import { runPinterestMetricsSnapshot } from "./pinterest-metrics-snapshot.js";
 import { runPinterestUploadPin } from "./pinterest-upload-pin.js";
+import { runTikTokUploadVideo } from "./tiktok-upload-video.js";
 import { runRecordReplay } from "./record-replay.js";
 
 export function isBrainTask(spec) {
@@ -59,6 +60,14 @@ export async function runBrainTask(args) {
         return await runPinterestUploadPin(args);
       }
       throw new Error(`upload_pin: platform "${platform}" executor még nincs implementálva`);
+    }
+
+    case "upload_video": {
+      const platform = (brainTask.platform || args.spec?.platform || "").toLowerCase();
+      if (platform === "tiktok") {
+        return await runTikTokUploadVideo(args);
+      }
+      throw new Error(`upload_video: platform "${platform || "?"}" executor még nincs implementálva`);
     }
 
     case "comments_snapshot":
