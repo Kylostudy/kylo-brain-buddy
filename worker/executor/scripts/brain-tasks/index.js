@@ -53,6 +53,14 @@ export async function runBrainTask(args) {
       );
     }
 
+    case "upload_pin": {
+      const platform = (brainTask.platform || args.spec?.platform || "pinterest").toLowerCase();
+      if (platform === "pinterest") {
+        return await runPinterestUploadPin(args);
+      }
+      throw new Error(`upload_pin: platform "${platform}" executor még nincs implementálva`);
+    }
+
     case "comments_snapshot":
     case "post_comment_reply":
       throw new Error(
