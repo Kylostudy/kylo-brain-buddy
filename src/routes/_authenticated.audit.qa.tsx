@@ -100,6 +100,9 @@ function QaPage() {
     onSuccess: (_res, runId) => {
       toast.success("Riport törölve.");
       if (selectedRunId === runId) setSelectedRunId(null);
+      qc.setQueryData<Awaited<ReturnType<typeof listAuditQaRuns>>>(["audit-qa-runs"], (old) =>
+        old ? old.filter((run) => run.id !== runId) : old,
+      );
       qc.invalidateQueries({ queryKey: ["audit-qa-runs"] });
       qc.removeQueries({ queryKey: ["audit-qa-issues", runId] });
       qc.removeQueries({ queryKey: ["audit-qa-activity", runId] });
@@ -609,8 +612,8 @@ function RunActionsMenu({
   async function handleConfirmedDelete() {
     try {
       await onDelete();
-      setConfirmOpen(false);
     } finally {
+      setConfirmOpen(false);
       restorePageInteractivity();
     }
   }
