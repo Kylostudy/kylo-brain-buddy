@@ -391,11 +391,10 @@ function StartRunDialog({
             <Label>Jelszó</Label>
             <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
           </div>
-          <Textarea
-            readOnly
-            className="text-xs h-16"
-            value="Az email/jelszó egyelőre a workflow credentials rendszerbe kell kerüljön a megbízható tároláshoz. Ezt a következő iterációban kötjük össze — most a workernek küldött specben menne, ami nem biztonságos éles adatoknál."
-          />
+          <p className="text-xs text-muted-foreground">
+            🔒 Az email és jelszó AES-titkosítva mentődik a workflow_credentials táblába. A worker a claim
+            során kapja meg dekódolva — soha nem megy át spec-en vagy logon.
+          </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
