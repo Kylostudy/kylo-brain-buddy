@@ -52,7 +52,25 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
       .single();
     if (runErr || !run) throw new Error(runErr?.message || "run insert failed");
 
-    // 2) queued brain_workflow_runs (a worker ezt claimolja)
+    // 2) Ha nincs workflow_id, létrehozunk egyet (a brain_workflow_runs FK-t igényel).
+    let wfId = data.workflowId ?? null;
+    if (!wfId) {
+      const { data: wf, error: wfErr } = await supabase
+        .from("workflows")
+        .insert({
+          tenant_id: tenantId,
+          module: "audit",
+          title: `Kylo.study QA — ${new Date().toISOString().slice(0, 16).replace("T", " ")}`,
+          spec: { monitor_type: "kylo-study-qa" } as never,
+        })
+        .select("id")
+        .single();
+      if (wfErr || !wf) throw new Error(wfErr?.message || "workflow insert failed");
+      wfId = wf.id;
+      await supabase.from("audit_qa_runs").update({ workflow_id: wfId }).eq("id", run.id);
+    }
+
+    // 3) queued brain_workflow_runs (a worker ezt claimolja)
     const spec = {
       monitor_type: "kylo-study-qa",
       audit_qa: {
@@ -65,7 +83,7 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
       },
     };
     const { error: qErr } = await supabase.from("brain_workflow_runs").insert({
-      workflow_id: data.workflowId ?? "00000000-0000-0000-0000-000000000000",
+      workflow_id: wfId,
       tenant_id: tenantId,
       module: "audit",
       runner: "docker",
