@@ -60,7 +60,7 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
         .insert({
           tenant_id: tenantId,
           module: "audit",
-          title: `Kylo.study QA — ${new Date().toISOString().slice(0, 16).replace("T", " ")}`,
+          name: `Kylo.study QA — ${new Date().toISOString().slice(0, 16).replace("T", " ")}`,
           spec: { monitor_type: "kylo-study-qa" } as never,
         })
         .select("id")
