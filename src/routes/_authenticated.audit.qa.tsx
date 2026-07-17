@@ -59,6 +59,15 @@ const SEVERITY_COLOR: Record<string, string> = {
   info: "bg-blue-500/15 text-blue-400 border-blue-500/40",
 };
 
+const ACTIVE_RUN_PROTECTION_MS = 10 * 60 * 1000;
+
+function isRecentlyActiveRun(run: { status: string; started_at: string | null; updated_at?: string | null }) {
+  if (run.status !== "running" && run.status !== "queued") return false;
+  const ts = run.updated_at ?? run.started_at;
+  const lastActivity = ts ? new Date(ts).getTime() : 0;
+  return !!lastActivity && Date.now() - lastActivity < ACTIVE_RUN_PROTECTION_MS;
+}
+
 function QaPage() {
   const startFn = useServerFn(startAuditQaRun);
   const listRunsFn = useServerFn(listAuditQaRuns);
@@ -205,7 +214,7 @@ function QaPage() {
       {/* Futások listája */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {(runsQ.data ?? []).map((r) => {
-          const isActiveRun = r.status === "running" || r.status === "queued";
+          const isActiveRun = isRecentlyActiveRun(r);
           return (
             <div
               key={r.id}

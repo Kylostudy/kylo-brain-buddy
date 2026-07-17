@@ -132,7 +132,7 @@ export const listAuditQaRuns = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("audit_qa_runs")
       .select(
-        "id, status, base_url, config, total_pages_visited, total_issues_found, total_cost_usd, cost_cap_usd, started_at, finished_at",
+        "id, status, base_url, config, total_pages_visited, total_issues_found, total_cost_usd, cost_cap_usd, started_at, updated_at, finished_at",
       )
       .order("started_at", { ascending: false })
       .limit(50);
