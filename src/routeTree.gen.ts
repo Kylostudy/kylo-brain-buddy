@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
+import { Route as AuthenticatedAuditQaRouteImport } from './routes/_authenticated.audit.qa'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
@@ -71,6 +72,11 @@ const AuthenticatedWWorkflowIdRoute =
     path: '/w/$workflowId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAuditQaRoute = AuthenticatedAuditQaRouteImport.update({
+  id: '/audit/qa',
+  path: '/audit/qa',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const ApiPublicWorkerVisionExtractRoute =
   ApiPublicWorkerVisionExtractRouteImport.update({
     id: '/api/public/worker/vision-extract',
@@ -223,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/audit/qa': typeof AuthenticatedAuditQaRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
@@ -255,6 +262,7 @@ export interface FileRoutesByTo {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
+  '/audit/qa': typeof AuthenticatedAuditQaRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
@@ -289,6 +297,7 @@ export interface FileRoutesById {
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/audit/qa': typeof AuthenticatedAuditQaRoute
   '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
@@ -323,6 +332,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/proxies'
     | '/api/transcribe'
+    | '/audit/qa'
     | '/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
@@ -355,6 +365,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/api/transcribe'
     | '/'
+    | '/audit/qa'
     | '/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
@@ -388,6 +399,7 @@ export interface FileRouteTypes {
     | '/_authenticated/proxies'
     | '/api/transcribe'
     | '/_authenticated/'
+    | '/_authenticated/audit/qa'
     | '/_authenticated/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
@@ -488,6 +500,13 @@ declare module '@tanstack/react-router' {
       path: '/w/$workflowId'
       fullPath: '/w/$workflowId'
       preLoaderRoute: typeof AuthenticatedWWorkflowIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/audit/qa': {
+      id: '/_authenticated/audit/qa'
+      path: '/audit/qa'
+      fullPath: '/audit/qa'
+      preLoaderRoute: typeof AuthenticatedAuditQaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/api/public/worker/vision-extract': {
@@ -671,12 +690,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAuditQaRoute: typeof AuthenticatedAuditQaRoute
   AuthenticatedWWorkflowIdRoute: typeof AuthenticatedWWorkflowIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAuditQaRoute: AuthenticatedAuditQaRoute,
   AuthenticatedWWorkflowIdRoute: AuthenticatedWWorkflowIdRoute,
 }
 
