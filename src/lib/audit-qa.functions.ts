@@ -65,7 +65,7 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
       },
     };
     const { error: qErr } = await supabase.from("brain_workflow_runs").insert({
-      workflow_id: data.workflowId ?? null,
+      workflow_id: data.workflowId ?? "00000000-0000-0000-0000-000000000000",
       tenant_id: tenantId,
       module: "audit",
       runner: "docker",
