@@ -363,7 +363,8 @@ export const exportAuditQaRun = createServerFn({ method: "POST" })
       .select("*")
       .eq("run_id", data.runId);
 
-    const withSigned: Array<Record<string, unknown>> = [];
+    type IssueExport = (NonNullable<typeof issues>[number]) & { screenshot_signed_url: string | null };
+    const withSigned: IssueExport[] = [];
     for (const iss of issues ?? []) {
       let signed: string | null = null;
       if (iss.screenshot_path) {
