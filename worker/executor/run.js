@@ -428,6 +428,8 @@ async function main() {
         creds,
         log,
       });
+    } else if (monitorType === "kylo-study-qa") {
+      result = await runKyloStudyQa({ page, context, spec, creds, log });
     } else if (monitorType === "tiktok") {
       result = await runTikTok({ page, context, spec, creds, log });
     } else if (monitorType === "decathlon-stock") {
