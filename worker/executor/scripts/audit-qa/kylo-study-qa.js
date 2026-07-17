@@ -299,19 +299,24 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
               } catch (e) { log("warn", `reportIssue hiba: ${e.message}`); }
             }
 
-            // Coverage + cost delta
-            const cov = await qaApi.reportCoverage({
-              run_id: runId,
-              url,
-              language,
-              skin,
-              interactions_count: 0,
-              cost_delta_usd: Number(analyzeRes?.cost_usd || 0),
-            });
-            if (cov.cost_cap_reached) {
-              log("warn", `Költségplafon elérve ($${cov.total_cost_usd.toFixed(2)}) — leállunk.`);
-              await qaApi.finishRun({ run_id: runId, status: "stopped", final_cost_usd: totalCost });
-              return { run_id: runId, status: "stopped", total_cost_usd: totalCost };
+            // Coverage + cost delta. Ha ez a progress endpoint átmenetileg 404/401-et ad,
+            // ne dobjuk el az egész auditot: a hibákat és screenshotokat már mentettük.
+            try {
+              const cov = await qaApi.reportCoverage({
+                run_id: runId,
+                url,
+                language,
+                skin,
+                interactions_count: 0,
+                cost_delta_usd: Number(analyzeRes?.cost_usd || 0),
+              });
+              if (cov.cost_cap_reached) {
+                log("warn", `Költségplafon elérve ($${Number(cov.total_cost_usd || totalCost).toFixed(2)}) — leállunk.`);
+                await safeFinishRun(qaApi, log, { run_id: runId, status: "stopped", final_cost_usd: totalCost });
+                return { run_id: runId, status: "stopped", total_cost_usd: totalCost };
+              }
+            } catch (e) {
+              log("warn", `reportCoverage hiba — folytatjuk: ${e.message}`);
             }
 
             // További linkek felderítése
@@ -328,12 +333,20 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
       }
     }
 
-    await qaApi.finishRun({ run_id: runId, status: "completed", final_cost_usd: totalCost });
+    await safeFinishRun(qaApi, log, { run_id: runId, status: "completed", final_cost_usd: totalCost });
     log("info", `Kylo.study QA befejezve — összköltség: $${totalCost.toFixed(4)}`);
     return { run_id: runId, status: "completed", total_cost_usd: totalCost };
   } catch (e) {
     log("error", `QA fatal: ${e.message}`);
-    try { await qaApi.finishRun({ run_id: runId, status: "failed", final_cost_usd: totalCost }); } catch {}
+    await safeFinishRun(qaApi, log, { run_id: runId, status: "failed", final_cost_usd: totalCost });
     throw e;
+  }
+}
+
+async function safeFinishRun(qaApi, log, payload) {
+  try {
+    await qaApi.finishRun(payload);
+  } catch (e) {
+    log("warn", `finishRun endpoint hiba — a worker eredményét akkor is visszaküldjük: ${e.message}`);
   }
 }
