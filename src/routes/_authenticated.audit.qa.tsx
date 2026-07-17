@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/audit/qa")({
@@ -79,6 +79,8 @@ function QaPage() {
           baseUrl: input.baseUrl,
           costCapUsd: input.costCapUsd,
           maxPagesPerCombo: input.maxPagesPerCombo,
+          email: input.email,
+          password: input.password,
         },
       }),
     onSuccess: (res) => {
@@ -389,11 +391,10 @@ function StartRunDialog({
             <Label>Jelszó</Label>
             <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
           </div>
-          <Textarea
-            readOnly
-            className="text-xs h-16"
-            value="Az email/jelszó egyelőre a workflow credentials rendszerbe kell kerüljön a megbízható tároláshoz. Ezt a következő iterációban kötjük össze — most a workernek küldött specben menne, ami nem biztonságos éles adatoknál."
-          />
+          <p className="text-xs text-muted-foreground">
+            🔒 Az email és jelszó AES-titkosítva mentődik a workflow_credentials táblába. A worker a claim
+            során kapja meg dekódolva — soha nem megy át spec-en vagy logon.
+          </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>

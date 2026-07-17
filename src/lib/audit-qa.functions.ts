@@ -14,6 +14,9 @@ const StartRunInput = z.object({
   credentialId: z.string().uuid().nullable().optional(),
   workflowId: z.string().uuid().nullable().optional(),
   maxPagesPerCombo: z.number().int().min(1).max(500).default(60),
+  // Új: bejelentkezéshez a UI-ból kapott email/password (titkosítva mentjük a workflow_credentials-be).
+  email: z.string().email().optional(),
+  password: z.string().min(1).max(500).optional(),
 });
 
 /** Új QA futás indítása. Létrehoz egy audit_qa_runs sort + egy queued brain_workflow_runs sort a workernek. */
@@ -68,6 +71,26 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
       if (wfErr || !wf) throw new Error(wfErr?.message || "workflow insert failed");
       wfId = wf.id;
       await supabase.from("audit_qa_runs").update({ workflow_id: wfId }).eq("id", run.id);
+    }
+
+    // 2b) Titkosított credentials mentése a workflow_credentials-be, hogy a worker
+    // claim endpointja dekódolva megkapja (soha ne a specben menjen a jelszó).
+    if (data.email && data.password) {
+      const { encryptString } = await import("@/lib/credentials/crypto.server");
+      const pw = await encryptString(data.password);
+      const { error: credErr } = await supabase
+        .from("workflow_credentials")
+        .upsert(
+          {
+            workflow_id: wfId,
+            platform: "kylo-study",
+            username: data.email.trim(),
+            password_ciphertext: pw.ciphertext,
+            password_nonce: pw.nonce,
+          } as never,
+          { onConflict: "workflow_id" },
+        );
+      if (credErr) throw new Error(`credentials mentése sikertelen: ${credErr.message}`);
     }
 
     // 3) queued brain_workflow_runs (a worker ezt claimolja)

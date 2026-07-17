@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, MessageSquare, Trash2, Pencil, Check, X, Copy, Globe } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Pencil, Check, X, Copy, Globe, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -304,6 +304,16 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {module === "audit" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath.startsWith("/audit/qa")}>
+                    <Link to="/audit/qa" className="flex items-center gap-2">
+                      <ClipboardCheck className="size-4 shrink-0" />
+                      <span className="truncate">Kylo.study QA</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
