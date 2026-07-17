@@ -136,7 +136,7 @@ export const updateAuditQaIssueStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => UpdateIssueInput.parse(i))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { status: data.status };
+    const patch: { status: typeof data.status; resolved_at?: string } = { status: data.status };
     if (data.status === "fixed") patch.resolved_at = new Date().toISOString();
     const { error } = await context.supabase
       .from("audit_qa_issues")
