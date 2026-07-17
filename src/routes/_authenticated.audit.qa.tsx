@@ -260,6 +260,75 @@ function QaPage() {
   );
 }
 
+type Activity = Awaited<ReturnType<typeof getAuditQaRunActivity>>;
+
+function LiveActivityPanel({ activity }: { activity: Activity | null }) {
+  if (!activity) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Élő aktivitás</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          Várom az első jelet a workertől… (VPS orchestrator ~2 mp-enként küld frissítést)
+        </CardContent>
+      </Card>
+    );
+  }
+  const logs = activity.logs ?? [];
+  const isRunning = activity.workerStatus === "running" || activity.workerStatus === "queued" || activity.status === "running";
+  const lastLog = logs[logs.length - 1];
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${
+              isRunning ? "bg-green-500 animate-pulse" : activity.workerStatus === "failed" ? "bg-red-500" : "bg-muted-foreground"
+            }`}
+          />
+          Élő aktivitás
+        </CardTitle>
+        <div className="text-xs text-muted-foreground">
+          worker: {activity.workerStatus ?? "—"} · {logs.length} log sor
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {activity.error && (
+          <div className="rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
+            <div className="font-semibold mb-1">Hibaüzenet a workertől</div>
+            <div className="font-mono whitespace-pre-wrap break-words text-xs">{activity.error}</div>
+          </div>
+        )}
+        {isRunning && lastLog && (
+          <div className="text-sm">
+            <span className="text-muted-foreground">Épp:</span>{" "}
+            <span className="font-medium">{lastLog.message}</span>
+          </div>
+        )}
+        <div className="max-h-64 overflow-auto rounded-md border bg-muted/30 p-2 font-mono text-xs space-y-0.5">
+          {logs.length === 0 && <div className="text-muted-foreground">Még nincs log — a konténer most indul…</div>}
+          {logs.slice(-200).map((l, i) => (
+            <div
+              key={i}
+              className={
+                l.level === "error"
+                  ? "text-red-400"
+                  : l.level === "warn"
+                    ? "text-yellow-500"
+                    : "text-foreground/80"
+              }
+            >
+              <span className="text-muted-foreground">{new Date(l.ts).toLocaleTimeString()}</span>{" "}
+              {l.message}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function StatCard({ title, value }: { title: string; value: string }) {
   return (
     <Card>
