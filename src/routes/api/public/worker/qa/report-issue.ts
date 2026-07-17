@@ -122,7 +122,7 @@ export const Route = createFileRoute("/api/public/worker/qa/report-issue")({
             detected_language: d.detected_language ?? null,
             problematic_text: d.problematic_text ?? null,
             selector: d.selector ?? null,
-            dom_context: d.dom_context ?? null,
+            dom_context: (d.dom_context ?? null) as never,
             ai_diagnosis: d.ai_diagnosis ?? null,
             ai_suggested_fix: d.ai_suggested_fix ?? null,
             screenshot_path: d.screenshot_path ?? null,
