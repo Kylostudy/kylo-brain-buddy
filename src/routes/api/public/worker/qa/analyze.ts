@@ -21,7 +21,12 @@ function checkAuth(request: Request): string | null {
   ).trim();
   const a = Buffer.from(provided);
   const b = Buffer.from(token);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return "unauthorized";
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    console.log(
+      `[qa/analyze auth] mismatch providedLen=${a.length} tokenLen=${b.length} providedPrefix=${provided.slice(0, 4)} providedSuffix=${provided.slice(-4)} tokenPrefix=${token.slice(0, 4)} tokenSuffix=${token.slice(-4)} hasBearer=${header.startsWith("Bearer ")}`,
+    );
+    return "unauthorized";
+  }
   return null;
 }
 
