@@ -204,18 +204,28 @@ function QaPage() {
 
       {/* Futások listája */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {(runsQ.data ?? []).map((r) => (
-          <button
-            key={r.id}
-            onClick={() => setSelectedRunId(r.id)}
-            className={`shrink-0 rounded-md border px-3 py-2 text-sm text-left min-w-[220px] ${activeRunId === r.id ? "border-primary bg-primary/5" : "border-border"}`}
-          >
-            <div className="font-medium">{new Date(r.started_at).toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">
-              {r.status} · {r.total_pages_visited} oldal · {r.total_issues_found} hiba · ${Number(r.total_cost_usd).toFixed(2)}
+        {(runsQ.data ?? []).map((r) => {
+          const isActiveRun = r.status === "running" || r.status === "queued";
+          return (
+            <div
+              key={r.id}
+              className={`shrink-0 rounded-md border pl-3 pr-1 py-2 text-sm min-w-[240px] flex items-start gap-1 ${activeRunId === r.id ? "border-primary bg-primary/5" : "border-border"}`}
+            >
+              <button onClick={() => setSelectedRunId(r.id)} className="flex-1 text-left">
+                <div className="font-medium">{new Date(r.started_at).toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">
+                  {r.status} · {r.total_pages_visited} oldal · {r.total_issues_found} hiba · ${Number(r.total_cost_usd).toFixed(2)}
+                </div>
+              </button>
+              <RunActionsMenu
+                runId={r.id}
+                isActive={isActiveRun}
+                onExport={() => handleExport(r.id)}
+                onDelete={() => deleteMut.mutate(r.id)}
+              />
             </div>
-          </button>
-        ))}
+          );
+        })}
         {(runsQ.data ?? []).length === 0 && (
           <div className="text-sm text-muted-foreground">Még nincs futás. Indíts egyet a jobb felső gombbal.</div>
         )}
