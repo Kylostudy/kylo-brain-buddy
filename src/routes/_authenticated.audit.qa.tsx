@@ -79,6 +79,8 @@ function QaPage() {
           baseUrl: input.baseUrl,
           costCapUsd: input.costCapUsd,
           maxPagesPerCombo: input.maxPagesPerCombo,
+          email: input.email,
+          password: input.password,
         },
       }),
     onSuccess: (res) => {
