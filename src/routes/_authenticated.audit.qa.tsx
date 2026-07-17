@@ -11,6 +11,8 @@ import {
   updateAuditQaIssueStatus,
   buildAuditQaPatchPackage,
   getAuditQaRunActivity,
+  deleteAuditQaRun,
+  exportAuditQaRun,
 } from "@/lib/audit-qa.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,24 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical, Download, Trash2 } from "lucide-react";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -46,6 +66,8 @@ function QaPage() {
   const updateIssueFn = useServerFn(updateAuditQaIssueStatus);
   const buildPatchFn = useServerFn(buildAuditQaPatchPackage);
   const activityFn = useServerFn(getAuditQaRunActivity);
+  const deleteRunFn = useServerFn(deleteAuditQaRun);
+  const exportRunFn = useServerFn(exportAuditQaRun);
   const qc = useQueryClient();
 
   const runsQ = useQuery({
@@ -56,6 +78,36 @@ function QaPage() {
 
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const activeRunId = selectedRunId ?? runsQ.data?.[0]?.id ?? null;
+
+  const deleteMut = useMutation({
+    mutationFn: (runId: string) => deleteRunFn({ data: { runId } }),
+    onSuccess: (_res, runId) => {
+      toast.success("Riport törölve.");
+      if (selectedRunId === runId) setSelectedRunId(null);
+      qc.invalidateQueries({ queryKey: ["audit-qa-runs"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
+  async function handleExport(runId: string) {
+    try {
+      const res = await exportRunFn({ data: { runId } });
+      const blob = new Blob([JSON.stringify(res, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const stamp = new Date(res.run?.started_at ?? Date.now()).toISOString().replace(/[:.]/g, "-");
+      a.download = `kylo-qa-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Riport letöltve JSON-ban.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  }
+
 
   const issuesQ = useQuery({
     queryKey: ["audit-qa-issues", activeRunId],
@@ -152,18 +204,28 @@ function QaPage() {
 
       {/* Futások listája */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {(runsQ.data ?? []).map((r) => (
-          <button
-            key={r.id}
-            onClick={() => setSelectedRunId(r.id)}
-            className={`shrink-0 rounded-md border px-3 py-2 text-sm text-left min-w-[220px] ${activeRunId === r.id ? "border-primary bg-primary/5" : "border-border"}`}
-          >
-            <div className="font-medium">{new Date(r.started_at).toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">
-              {r.status} · {r.total_pages_visited} oldal · {r.total_issues_found} hiba · ${Number(r.total_cost_usd).toFixed(2)}
+        {(runsQ.data ?? []).map((r) => {
+          const isActiveRun = r.status === "running" || r.status === "queued";
+          return (
+            <div
+              key={r.id}
+              className={`shrink-0 rounded-md border pl-3 pr-1 py-2 text-sm min-w-[240px] flex items-start gap-1 ${activeRunId === r.id ? "border-primary bg-primary/5" : "border-border"}`}
+            >
+              <button onClick={() => setSelectedRunId(r.id)} className="flex-1 text-left">
+                <div className="font-medium">{new Date(r.started_at).toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">
+                  {r.status} · {r.total_pages_visited} oldal · {r.total_issues_found} hiba · ${Number(r.total_cost_usd).toFixed(2)}
+                </div>
+              </button>
+              <RunActionsMenu
+                runId={r.id}
+                isActive={isActiveRun}
+                onExport={() => handleExport(r.id)}
+                onDelete={() => deleteMut.mutate(r.id)}
+              />
             </div>
-          </button>
-        ))}
+          );
+        })}
         {(runsQ.data ?? []).length === 0 && (
           <div className="text-sm text-muted-foreground">Még nincs futás. Indíts egyet a jobb felső gombbal.</div>
         )}
@@ -504,3 +566,67 @@ function StartRunDialog({
     </Dialog>
   );
 }
+
+function RunActionsMenu({
+  isActive,
+  onExport,
+  onDelete,
+}: {
+  runId: string;
+  isActive: boolean;
+  onExport: () => void;
+  onDelete: () => void;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Riport műveletek">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export (JSON)
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-red-500 focus:text-red-500"
+            disabled={isActive}
+            onClick={() => setConfirmOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            {isActive ? "Törlés (aktív futás)" : "Törlés"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Biztosan törlöd ezt a riportot?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ez véglegesen törli a futást, az összes hibát, a lefedettségi adatokat és a screenshotokat.
+              Exportáld előtte, ha szükséged lehet rá.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Mégse</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                onDelete();
+                setConfirmOpen(false);
+              }}
+            >
+              Törlés
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+

@@ -288,3 +288,98 @@ export const buildAuditQaPatchPackage = createServerFn({ method: "POST" })
     });
     return { markdown, count: issues.length };
   });
+
+// ─────────────────────────────────────────────────────────────
+// Riport karbantartás: törlés + export
+// ─────────────────────────────────────────────────────────────
+
+const RunIdInput = z.object({ runId: z.string().uuid() });
+
+/**
+ * Egy QA riport teljes törlése.
+ * - Futó (status='running'|'queued') futást NEM töröl.
+ * - Törli a hozzátartozó screenshotokat a storage-ból.
+ * - `audit_qa_issues` és `audit_qa_coverage` FK CASCADE-del automatikusan törlődik.
+ */
+export const deleteAuditQaRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => RunIdInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+
+    const { data: run, error: runErr } = await supabase
+      .from("audit_qa_runs")
+      .select("id, status")
+      .eq("id", data.runId)
+      .maybeSingle();
+    if (runErr) throw new Error(runErr.message);
+    if (!run) throw new Error("A riport nem található.");
+    if (run.status === "running" || run.status === "queued") {
+      throw new Error("Ez a futás még aktív — előbb várd meg, vagy állítsd le, mielőtt törlöd.");
+    }
+
+    const { data: issueRows } = await supabase
+      .from("audit_qa_issues")
+      .select("screenshot_path")
+      .eq("run_id", data.runId);
+    const paths = (issueRows ?? [])
+      .map((r) => r.screenshot_path)
+      .filter((p): p is string => !!p);
+    if (paths.length > 0) {
+      for (let i = 0; i < paths.length; i += 100) {
+        await supabase.storage.from("audit-qa-screenshots").remove(paths.slice(i, i + 100));
+      }
+    }
+
+    const { error: delErr } = await supabase.from("audit_qa_runs").delete().eq("id", data.runId);
+    if (delErr) throw new Error(delErr.message);
+    return { ok: true, deletedScreenshots: paths.length };
+  });
+
+/** Teljes riport export (run + issues + coverage) JSON-ban. Képekhez 7 napos aláírt URL. */
+export const exportAuditQaRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => RunIdInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+
+    const { data: run, error: runErr } = await supabase
+      .from("audit_qa_runs")
+      .select("*")
+      .eq("id", data.runId)
+      .maybeSingle();
+    if (runErr) throw new Error(runErr.message);
+    if (!run) throw new Error("A riport nem található.");
+
+    const { data: issues, error: issErr } = await supabase
+      .from("audit_qa_issues")
+      .select("*")
+      .eq("run_id", data.runId)
+      .order("created_at", { ascending: true });
+    if (issErr) throw new Error(issErr.message);
+
+    const { data: coverage } = await supabase
+      .from("audit_qa_coverage")
+      .select("*")
+      .eq("run_id", data.runId);
+
+    type IssueExport = (NonNullable<typeof issues>[number]) & { screenshot_signed_url: string | null };
+    const withSigned: IssueExport[] = [];
+    for (const iss of issues ?? []) {
+      let signed: string | null = null;
+      if (iss.screenshot_path) {
+        const { data: s } = await supabase.storage
+          .from("audit-qa-screenshots")
+          .createSignedUrl(iss.screenshot_path, 60 * 60 * 24 * 7);
+        signed = s?.signedUrl ?? null;
+      }
+      withSigned.push({ ...iss, screenshot_signed_url: signed });
+    }
+
+    return {
+      exportedAt: new Date().toISOString(),
+      run,
+      issues: withSigned,
+      coverage: coverage ?? [],
+    };
+  });
