@@ -14,6 +14,198 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_qa_coverage: {
+        Row: {
+          id: string
+          interactions_count: number
+          language: string | null
+          run_id: string
+          screenshot_hash: string | null
+          skin: string | null
+          tenant_id: string
+          url: string
+          visited_at: string
+        }
+        Insert: {
+          id?: string
+          interactions_count?: number
+          language?: string | null
+          run_id: string
+          screenshot_hash?: string | null
+          skin?: string | null
+          tenant_id: string
+          url: string
+          visited_at?: string
+        }
+        Update: {
+          id?: string
+          interactions_count?: number
+          language?: string | null
+          run_id?: string
+          screenshot_hash?: string | null
+          skin?: string | null
+          tenant_id?: string
+          url?: string
+          visited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_qa_coverage_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "audit_qa_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_qa_issues: {
+        Row: {
+          ai_diagnosis: string | null
+          ai_suggested_fix: string | null
+          category: string
+          created_at: string
+          dedupe_hash: string
+          detected_language: string | null
+          dom_context: Json | null
+          expected_language: string | null
+          id: string
+          language: string | null
+          occurrence_count: number
+          page_title: string | null
+          page_url: string
+          problematic_text: string | null
+          resolved_at: string | null
+          run_id: string
+          screenshot_annotated_path: string | null
+          screenshot_path: string | null
+          selector: string | null
+          severity: string
+          skin: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_diagnosis?: string | null
+          ai_suggested_fix?: string | null
+          category: string
+          created_at?: string
+          dedupe_hash: string
+          detected_language?: string | null
+          dom_context?: Json | null
+          expected_language?: string | null
+          id?: string
+          language?: string | null
+          occurrence_count?: number
+          page_title?: string | null
+          page_url: string
+          problematic_text?: string | null
+          resolved_at?: string | null
+          run_id: string
+          screenshot_annotated_path?: string | null
+          screenshot_path?: string | null
+          selector?: string | null
+          severity: string
+          skin?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_diagnosis?: string | null
+          ai_suggested_fix?: string | null
+          category?: string
+          created_at?: string
+          dedupe_hash?: string
+          detected_language?: string | null
+          dom_context?: Json | null
+          expected_language?: string | null
+          id?: string
+          language?: string | null
+          occurrence_count?: number
+          page_title?: string | null
+          page_url?: string
+          problematic_text?: string | null
+          resolved_at?: string | null
+          run_id?: string
+          screenshot_annotated_path?: string | null
+          screenshot_path?: string | null
+          selector?: string | null
+          severity?: string
+          skin?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_qa_issues_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "audit_qa_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_qa_runs: {
+        Row: {
+          base_url: string
+          config: Json
+          cost_cap_usd: number | null
+          created_at: string
+          finished_at: string | null
+          id: string
+          started_at: string
+          status: string
+          tenant_id: string
+          total_cost_usd: number
+          total_issues_found: number
+          total_pages_visited: number
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          base_url: string
+          config?: Json
+          cost_cap_usd?: number | null
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          tenant_id: string
+          total_cost_usd?: number
+          total_issues_found?: number
+          total_pages_visited?: number
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          base_url?: string
+          config?: Json
+          cost_cap_usd?: number | null
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          total_cost_usd?: number
+          total_issues_found?: number
+          total_pages_visited?: number
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_qa_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_workflow_runs: {
         Row: {
           created_at: string
