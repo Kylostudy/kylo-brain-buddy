@@ -70,6 +70,15 @@ function QaPage() {
   const exportRunFn = useServerFn(exportAuditQaRun);
   const qc = useQueryClient();
 
+  const runsQ = useQuery({
+    queryKey: ["audit-qa-runs"],
+    queryFn: () => listRunsFn(),
+    refetchInterval: 5000,
+  });
+
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const activeRunId = selectedRunId ?? runsQ.data?.[0]?.id ?? null;
+
   const deleteMut = useMutation({
     mutationFn: (runId: string) => deleteRunFn({ data: { runId } }),
     onSuccess: (_res, runId) => {
@@ -99,14 +108,6 @@ function QaPage() {
     }
   }
 
-  const runsQ = useQuery({
-    queryKey: ["audit-qa-runs"],
-    queryFn: () => listRunsFn(),
-    refetchInterval: 5000,
-  });
-
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  const activeRunId = selectedRunId ?? runsQ.data?.[0]?.id ?? null;
 
   const issuesQ = useQuery({
     queryKey: ["audit-qa-issues", activeRunId],
