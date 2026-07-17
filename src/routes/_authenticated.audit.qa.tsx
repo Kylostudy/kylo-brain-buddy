@@ -11,6 +11,8 @@ import {
   updateAuditQaIssueStatus,
   buildAuditQaPatchPackage,
   getAuditQaRunActivity,
+  deleteAuditQaRun,
+  exportAuditQaRun,
 } from "@/lib/audit-qa.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
