@@ -244,6 +244,35 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           // ne dőljön meg a worker-complete, ha az értesítés hibára fut
           console.error("monitor dispatch error", e);
         }
+        // Audit QA szinkron: ha ez egy kylo-study-qa run volt, tükrözzük a
+        // végállapotot az audit_qa_runs sorra, hogy a UI ne maradjon "running"-on.
+        try {
+          const { data: runFull } = await sb
+            .from("brain_workflow_runs")
+            .select("spec_snapshot")
+            .eq("id", parsed.runId)
+            .maybeSingle();
+          const spec = (runFull?.spec_snapshot ?? {}) as Record<string, unknown>;
+          const auditQa = (spec.audit_qa ?? null) as { run_id?: string } | null;
+          if (auditQa?.run_id) {
+            const finalStatus =
+              parsed.status === "succeeded"
+                ? "completed"
+                : parsed.status === "cancelled"
+                  ? "stopped"
+                  : "failed";
+            await sb
+              .from("audit_qa_runs")
+              .update({
+                status: finalStatus,
+                finished_at: new Date().toISOString(),
+              } as never)
+              .eq("id", auditQa.run_id);
+          }
+        } catch (e) {
+          console.error("audit_qa mirror error", e);
+        }
+
 
         // Kylogic-task callback: ha a run egy brain_task_queue sorhoz tartozik,
         // frissítjük a task státuszát és kilövünk egy callbacket Kylogicnak.
