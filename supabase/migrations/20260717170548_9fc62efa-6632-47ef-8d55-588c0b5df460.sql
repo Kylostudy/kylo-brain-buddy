@@ -1,0 +1,2 @@
+ALTER TABLE public.brain_workflow_runs DROP CONSTRAINT IF EXISTS brain_workflow_runs_module_check;
+ALTER TABLE public.brain_workflow_runs ADD CONSTRAINT brain_workflow_runs_module_check CHECK (module IN ('brain'::app_module, 'audit'::app_module));
