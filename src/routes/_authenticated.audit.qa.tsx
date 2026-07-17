@@ -45,6 +45,7 @@ function QaPage() {
   const listIssuesFn = useServerFn(listAuditQaIssues);
   const updateIssueFn = useServerFn(updateAuditQaIssueStatus);
   const buildPatchFn = useServerFn(buildAuditQaPatchPackage);
+  const activityFn = useServerFn(getAuditQaRunActivity);
   const qc = useQueryClient();
 
   const runsQ = useQuery({
