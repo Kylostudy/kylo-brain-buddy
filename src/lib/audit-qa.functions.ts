@@ -309,13 +309,19 @@ export const deleteAuditQaRun = createServerFn({ method: "POST" })
 
     const { data: run, error: runErr } = await supabase
       .from("audit_qa_runs")
-      .select("id, status")
+      .select("id, status, started_at, updated_at")
       .eq("id", data.runId)
       .maybeSingle();
     if (runErr) throw new Error(runErr.message);
     if (!run) throw new Error("A riport nem található.");
+    // Csak akkor blokkoljuk, ha a futás valóban friss (10 percen belül volt aktivitás).
+    // A megrekedt „running" runok (worker leállt / timeout) így törölhetők.
     if (run.status === "running" || run.status === "queued") {
-      throw new Error("Ez a futás még aktív — előbb várd meg, vagy állítsd le, mielőtt törlöd.");
+      const ts = (run.updated_at ?? run.started_at) as string | null;
+      const lastActivity = ts ? new Date(ts).getTime() : 0;
+      if (lastActivity && Date.now() - lastActivity < 10 * 60 * 1000) {
+        throw new Error("Ez a futás még aktív (10 percen belül volt haladás). Várd meg, vagy állítsd le, mielőtt törlöd.");
+      }
     }
 
     const { data: issueRows } = await supabase
