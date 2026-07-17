@@ -73,6 +73,26 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
       await supabase.from("audit_qa_runs").update({ workflow_id: wfId }).eq("id", run.id);
     }
 
+    // 2b) Titkosított credentials mentése a workflow_credentials-be, hogy a worker
+    // claim endpointja dekódolva megkapja (soha ne a specben menjen a jelszó).
+    if (data.email && data.password) {
+      const { encryptString } = await import("@/lib/credentials/crypto.server");
+      const pw = await encryptString(data.password);
+      const { error: credErr } = await supabase
+        .from("workflow_credentials")
+        .upsert(
+          {
+            workflow_id: wfId,
+            platform: "kylo-study",
+            username: data.email.trim(),
+            password_ciphertext: pw.ciphertext,
+            password_nonce: pw.nonce,
+          } as never,
+          { onConflict: "workflow_id" },
+        );
+      if (credErr) throw new Error(`credentials mentése sikertelen: ${credErr.message}`);
+    }
+
     // 3) queued brain_workflow_runs (a worker ezt claimolja)
     const spec = {
       monitor_type: "kylo-study-qa",
