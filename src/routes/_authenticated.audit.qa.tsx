@@ -61,6 +61,14 @@ const SEVERITY_COLOR: Record<string, string> = {
 
 const ACTIVE_RUN_PROTECTION_MS = 10 * 60 * 1000;
 
+function restorePageInteractivity() {
+  // Radix overlayeknél ritkán beragadhat a body pointer-events értéke, ha
+  // dropdownból nyitunk megerősítő ablakot. Ez okozza a „lefagyott oldal” érzést.
+  requestAnimationFrame(() => {
+    document.body.style.pointerEvents = "";
+  });
+}
+
 function isRecentlyActiveRun(run: { status: string; started_at: string | null; updated_at?: string | null }) {
   if (run.status !== "running" && run.status !== "queued") return false;
   const ts = run.updated_at ?? run.started_at;
@@ -94,8 +102,15 @@ function QaPage() {
       toast.success("Riport törölve.");
       if (selectedRunId === runId) setSelectedRunId(null);
       qc.invalidateQueries({ queryKey: ["audit-qa-runs"] });
+      qc.removeQueries({ queryKey: ["audit-qa-issues", runId] });
+      qc.removeQueries({ queryKey: ["audit-qa-activity", runId] });
+      restorePageInteractivity();
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
+    onError: (e: unknown) => {
+      toast.error(e instanceof Error ? e.message : String(e));
+      restorePageInteractivity();
+    },
+    onSettled: () => restorePageInteractivity(),
   });
 
   async function handleExport(runId: string) {
@@ -229,8 +244,9 @@ function QaPage() {
               <RunActionsMenu
                 runId={r.id}
                 isActive={isActiveRun}
+                isDeleting={deleteMut.isPending && deleteMut.variables === r.id}
                 onExport={() => handleExport(r.id)}
-                onDelete={() => deleteMut.mutate(r.id)}
+                onDelete={() => deleteMut.mutateAsync(r.id)}
               />
             </div>
           );
@@ -578,18 +594,31 @@ function StartRunDialog({
 
 function RunActionsMenu({
   isActive,
+  isDeleting,
   onExport,
   onDelete,
 }: {
   runId: string;
   isActive: boolean;
+  isDeleting: boolean;
   onExport: () => void;
-  onDelete: () => void;
+  onDelete: () => Promise<unknown>;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  async function handleConfirmedDelete() {
+    try {
+      await onDelete();
+      setConfirmOpen(false);
+    } finally {
+      restorePageInteractivity();
+    }
+  }
+
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Riport műveletek">
             <MoreVertical className="h-4 w-4" />
@@ -603,11 +632,14 @@ function RunActionsMenu({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-red-500 focus:text-red-500"
-            disabled={isActive}
-            onClick={() => setConfirmOpen(true)}
+            onSelect={(event) => {
+              event.preventDefault();
+              setMenuOpen(false);
+              window.setTimeout(() => setConfirmOpen(true), 0);
+            }}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            {isActive ? "Törlés (aktív futás)" : "Törlés"}
+            {isActive ? "Törlés kérése" : "Törlés"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -619,19 +651,18 @@ function RunActionsMenu({
             <AlertDialogDescription>
               Ez véglegesen törli a futást, az összes hibát, a lefedettségi adatokat és a screenshotokat.
               Exportáld előtte, ha szükséged lehet rá.
+              {isActive ? " Ha tényleg még fut, a rendszer nem fogja engedni a törlést." : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Mégse</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogCancel disabled={isDeleting}>Mégse</AlertDialogCancel>
+            <Button
               className="bg-red-600 hover:bg-red-700"
-              onClick={() => {
-                onDelete();
-                setConfirmOpen(false);
-              }}
+              disabled={isDeleting}
+              onClick={handleConfirmedDelete}
             >
-              Törlés
-            </AlertDialogAction>
+              {isDeleting ? "Törlés…" : "Törlés"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
