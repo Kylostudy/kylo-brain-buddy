@@ -11,6 +11,7 @@ async function post(path, body) {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${TOKEN}`,
+      "x-worker-token": TOKEN,
     },
     body: JSON.stringify(body ?? {}),
   });
