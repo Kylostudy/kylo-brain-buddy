@@ -66,7 +66,38 @@ function QaPage() {
   const updateIssueFn = useServerFn(updateAuditQaIssueStatus);
   const buildPatchFn = useServerFn(buildAuditQaPatchPackage);
   const activityFn = useServerFn(getAuditQaRunActivity);
+  const deleteRunFn = useServerFn(deleteAuditQaRun);
+  const exportRunFn = useServerFn(exportAuditQaRun);
   const qc = useQueryClient();
+
+  const deleteMut = useMutation({
+    mutationFn: (runId: string) => deleteRunFn({ data: { runId } }),
+    onSuccess: (_res, runId) => {
+      toast.success("Riport törölve.");
+      if (selectedRunId === runId) setSelectedRunId(null);
+      qc.invalidateQueries({ queryKey: ["audit-qa-runs"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
+  async function handleExport(runId: string) {
+    try {
+      const res = await exportRunFn({ data: { runId } });
+      const blob = new Blob([JSON.stringify(res, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const stamp = new Date(res.run?.started_at ?? Date.now()).toISOString().replace(/[:.]/g, "-");
+      a.download = `kylo-qa-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Riport letöltve JSON-ban.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  }
 
   const runsQ = useQuery({
     queryKey: ["audit-qa-runs"],
