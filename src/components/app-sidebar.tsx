@@ -304,6 +304,16 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {module === "audit" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath.startsWith("/audit/qa")}>
+                    <Link to="/audit/qa" className="flex items-center gap-2">
+                      <ClipboardCheck className="size-4 shrink-0" />
+                      <span className="truncate">Kylo.study QA</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
