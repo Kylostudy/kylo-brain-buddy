@@ -86,9 +86,6 @@ function runContainer(job) {
       "run", "--rm",
       "--network", "bridge",
       "-e", `SPEC_JSON=${JSON.stringify(job.spec ?? {})}`,
-      // Az executor a Brain publikus worker-API-jához kapcsolódik (tanult
-      // szelektorok lekérése, Gemini vision hívás). Ugyanaz a URL és token
-      // mint az orchestrator-é.
       "-e", `BRAIN_URL=${BRAIN_URL}`,
       "-e", `WORKER_API_TOKEN=${WORKER_API_TOKEN}`,
     ];
@@ -105,6 +102,7 @@ function runContainer(job) {
     const logs = [];
     let finalEntry = null;
     let preflight = null;
+    let dirty = false;
 
     const onLine = (line) => {
       const s = line.trim();
@@ -121,9 +119,11 @@ function runContainer(job) {
             level: obj.level || "info",
             message: obj.message ?? s,
           });
+          dirty = true;
         }
       } catch {
         logs.push({ ts: new Date().toISOString(), level: "info", message: s });
+        dirty = true;
       }
     };
 
@@ -140,9 +140,25 @@ function runContainer(job) {
         level: "error",
         message: chunk.toString().trim(),
       });
+      dirty = true;
     });
 
+    // Élő log-flush a Brain-nek ~2 mp-enként, hogy a UI-n látszódjon a folyamat.
+    const flushTimer = setInterval(async () => {
+      if (!dirty) return;
+      dirty = false;
+      try {
+        await brainFetch("/api/public/worker/progress", {
+          runId: job.id,
+          logs: logs.slice(-500),
+        });
+      } catch (e) {
+        // csendben — a végén /complete úgyis rögzíti
+      }
+    }, 2000);
+
     proc.on("close", (code) => {
+      clearInterval(flushTimer);
       const status = finalEntry?.status ?? (code === 0 ? "succeeded" : "failed");
       resolve({
         status,

@@ -20,6 +20,7 @@ import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/p
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
+import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
 import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
@@ -101,6 +102,11 @@ const ApiPublicWorkerRecordClaimRoute =
     path: '/api/public/worker/record-claim',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerProgressRoute = ApiPublicWorkerProgressRouteImport.update({
+  id: '/api/public/worker/progress',
+  path: '/api/public/worker/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWorkerLearnedSelectorsRoute =
   ApiPublicWorkerLearnedSelectorsRouteImport.update({
     id: '/api/public/worker/learned-selectors',
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
+  '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
+  '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
@@ -308,6 +316,7 @@ export interface FileRoutesById {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
+  '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
@@ -343,6 +352,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/learned-selectors'
+    | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/worker/save-cookies'
@@ -376,6 +386,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/learned-selectors'
+    | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/worker/save-cookies'
@@ -410,6 +421,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/learned-selectors'
+    | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/worker/save-cookies'
@@ -441,6 +453,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
   ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
+  ApiPublicWorkerProgressRoute: typeof ApiPublicWorkerProgressRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
   ApiPublicWorkerSaveCookiesRoute: typeof ApiPublicWorkerSaveCookiesRoute
@@ -535,6 +548,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/record-claim'
       fullPath: '/api/public/worker/record-claim'
       preLoaderRoute: typeof ApiPublicWorkerRecordClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/progress': {
+      id: '/api/public/worker/progress'
+      path: '/api/public/worker/progress'
+      fullPath: '/api/public/worker/progress'
+      preLoaderRoute: typeof ApiPublicWorkerProgressRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/learned-selectors': {
@@ -733,6 +753,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
   ApiPublicWorkerLearnedSelectorsRoute: ApiPublicWorkerLearnedSelectorsRoute,
+  ApiPublicWorkerProgressRoute: ApiPublicWorkerProgressRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
   ApiPublicWorkerSaveCookiesRoute: ApiPublicWorkerSaveCookiesRoute,
