@@ -64,6 +64,13 @@ function QaPage() {
     refetchInterval: 5000,
   });
 
+  const activityQ = useQuery({
+    queryKey: ["audit-qa-activity", activeRunId],
+    queryFn: () => (activeRunId ? activityFn({ data: { runId: activeRunId } }) : Promise.resolve(null)),
+    enabled: !!activeRunId,
+    refetchInterval: 2000,
+  });
+
   const startMut = useMutation({
     mutationFn: (input: {
       languages: string[];
