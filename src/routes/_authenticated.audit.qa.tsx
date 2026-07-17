@@ -181,6 +181,10 @@ function QaPage() {
             />
           </div>
 
+          <LiveActivityPanel activity={activityQ.data ?? null} />
+
+
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Súlyosság szerint</CardTitle>
