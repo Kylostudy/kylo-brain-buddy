@@ -266,7 +266,6 @@ export const Route = createFileRoute("/api/public/worker/complete")({
               .update({
                 status: finalStatus,
                 finished_at: new Date().toISOString(),
-                error_message: parsed.error ?? null,
               } as never)
               .eq("id", auditQa.run_id);
           }
