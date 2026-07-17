@@ -132,20 +132,18 @@ export const Route = createFileRoute("/api/public/worker/qa/report-issue")({
           .single();
         if (insErr) return json({ error: insErr.message }, 500);
 
-        // Számláló emelés a runon
-        await supabaseAdmin.rpc("audit_qa_run_bump_counts", { _run_id: d.run_id, _issues: 1, _pages: 0, _cost: 0 }).then(
-          () => {},
-          async () => {
-            // fallback: közvetlen update, ha az rpc nincs
-            const { data: r } = await supabaseAdmin.from("audit_qa_runs").select("total_issues_found").eq("id", d.run_id).single();
-            if (r) {
-              await supabaseAdmin
-                .from("audit_qa_runs")
-                .update({ total_issues_found: (r.total_issues_found ?? 0) + 1 })
-                .eq("id", d.run_id);
-            }
-          },
-        );
+        // Számláló emelés a runon (közvetlen update — nincs RPC)
+        const { data: r } = await supabaseAdmin
+          .from("audit_qa_runs")
+          .select("total_issues_found")
+          .eq("id", d.run_id)
+          .single();
+        if (r) {
+          await supabaseAdmin
+            .from("audit_qa_runs")
+            .update({ total_issues_found: (r.total_issues_found ?? 0) + 1 })
+            .eq("id", d.run_id);
+        }
 
         return json({ id: inserted?.id, deduplicated: false });
       },
