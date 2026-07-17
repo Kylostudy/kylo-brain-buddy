@@ -140,6 +140,49 @@ export const listAuditQaRuns = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+const ActivityInput = z.object({ runId: z.string().uuid() });
+
+/**
+ * Élő aktivitás egy QA futáshoz — a hozzátartozó brain_workflow_run logjait,
+ * státuszát és hibaüzenetét adja vissza, hogy a UI valós időben lássa mi folyik.
+ */
+export const getAuditQaRunActivity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => ActivityInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: qaRun, error: qaErr } = await supabase
+      .from("audit_qa_runs")
+      .select("id, workflow_id, status")
+      .eq("id", data.runId)
+      .maybeSingle();
+    if (qaErr) throw new Error(qaErr.message);
+    if (!qaRun?.workflow_id) return { logs: [], status: qaRun?.status ?? "unknown", error: null, workerStatus: null };
+
+    const { data: wfRun, error: wfErr } = await supabase
+      .from("brain_workflow_runs")
+      .select("status, logs, error, started_at, finished_at")
+      .eq("workflow_id", qaRun.workflow_id)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (wfErr) throw new Error(wfErr.message);
+
+    const logs = Array.isArray(wfRun?.logs)
+      ? (wfRun!.logs as Array<{ ts: string; level: string; message: string }>)
+      : [];
+
+    return {
+      logs,
+      status: qaRun.status,
+      workerStatus: wfRun?.status ?? null,
+      error: wfRun?.error ?? null,
+      startedAt: wfRun?.started_at ?? null,
+      finishedAt: wfRun?.finished_at ?? null,
+    };
+  });
+
+
 const IssuesInput = z.object({
   runId: z.string().uuid(),
   severity: z.array(z.string()).optional(),
