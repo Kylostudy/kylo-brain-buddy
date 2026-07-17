@@ -28,6 +28,11 @@ import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/ap
 import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
 import { Route as ApiPublicAdminImportBrightdataKylogicRouteImport } from './routes/api/public/admin/import-brightdata-kylogic'
 import { Route as ApiPublicAdminCreateWarmupWorkflowsRouteImport } from './routes/api/public/admin/create-warmup-workflows'
+import { Route as ApiPublicWorkerQaUploadScreenshotRouteImport } from './routes/api/public/worker/qa/upload-screenshot'
+import { Route as ApiPublicWorkerQaReportIssueRouteImport } from './routes/api/public/worker/qa/report-issue'
+import { Route as ApiPublicWorkerQaReportCoverageRouteImport } from './routes/api/public/worker/qa/report-coverage'
+import { Route as ApiPublicWorkerQaFinishRunRouteImport } from './routes/api/public/worker/qa/finish-run'
+import { Route as ApiPublicWorkerQaAnalyzeRouteImport } from './routes/api/public/worker/qa/analyze'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
@@ -141,6 +146,36 @@ const ApiPublicAdminCreateWarmupWorkflowsRoute =
     path: '/api/public/admin/create-warmup-workflows',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerQaUploadScreenshotRoute =
+  ApiPublicWorkerQaUploadScreenshotRouteImport.update({
+    id: '/api/public/worker/qa/upload-screenshot',
+    path: '/api/public/worker/qa/upload-screenshot',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaReportIssueRoute =
+  ApiPublicWorkerQaReportIssueRouteImport.update({
+    id: '/api/public/worker/qa/report-issue',
+    path: '/api/public/worker/qa/report-issue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaReportCoverageRoute =
+  ApiPublicWorkerQaReportCoverageRouteImport.update({
+    id: '/api/public/worker/qa/report-coverage',
+    path: '/api/public/worker/qa/report-coverage',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaFinishRunRoute =
+  ApiPublicWorkerQaFinishRunRouteImport.update({
+    id: '/api/public/worker/qa/finish-run',
+    path: '/api/public/worker/qa/finish-run',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaAnalyzeRoute =
+  ApiPublicWorkerQaAnalyzeRouteImport.update({
+    id: '/api/public/worker/qa/analyze',
+    path: '/api/public/worker/qa/analyze',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCrossProxiesListRoute =
   ApiPublicCrossProxiesListRouteImport.update({
     id: '/api/public/cross/proxies/list',
@@ -208,6 +243,11 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
+  '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
+  '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
+  '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
+  '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
+  '/api/public/worker/qa/upload-screenshot': typeof ApiPublicWorkerQaUploadScreenshotRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesByTo {
@@ -235,6 +275,11 @@ export interface FileRoutesByTo {
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
+  '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
+  '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
+  '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
+  '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
+  '/api/public/worker/qa/upload-screenshot': typeof ApiPublicWorkerQaUploadScreenshotRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesById {
@@ -264,6 +309,11 @@ export interface FileRoutesById {
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
+  '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
+  '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
+  '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
+  '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
+  '/api/public/worker/qa/upload-screenshot': typeof ApiPublicWorkerQaUploadScreenshotRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRouteTypes {
@@ -293,6 +343,11 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
+    | '/api/public/worker/qa/analyze'
+    | '/api/public/worker/qa/finish-run'
+    | '/api/public/worker/qa/report-coverage'
+    | '/api/public/worker/qa/report-issue'
+    | '/api/public/worker/qa/upload-screenshot'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -320,6 +375,11 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
+    | '/api/public/worker/qa/analyze'
+    | '/api/public/worker/qa/finish-run'
+    | '/api/public/worker/qa/report-coverage'
+    | '/api/public/worker/qa/report-issue'
+    | '/api/public/worker/qa/upload-screenshot'
     | '/api/public/cross/kit/task/$task_id/log'
   id:
     | '__root__'
@@ -348,6 +408,11 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
+    | '/api/public/worker/qa/analyze'
+    | '/api/public/worker/qa/finish-run'
+    | '/api/public/worker/qa/report-coverage'
+    | '/api/public/worker/qa/report-issue'
+    | '/api/public/worker/qa/upload-screenshot'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesById: FileRoutesById
 }
@@ -374,6 +439,11 @@ export interface RootRouteChildren {
   ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
   ApiPublicCrossKylogicWorkflowsRoute: typeof ApiPublicCrossKylogicWorkflowsRoute
   ApiPublicCrossProxiesListRoute: typeof ApiPublicCrossProxiesListRoute
+  ApiPublicWorkerQaAnalyzeRoute: typeof ApiPublicWorkerQaAnalyzeRoute
+  ApiPublicWorkerQaFinishRunRoute: typeof ApiPublicWorkerQaFinishRunRoute
+  ApiPublicWorkerQaReportCoverageRoute: typeof ApiPublicWorkerQaReportCoverageRoute
+  ApiPublicWorkerQaReportIssueRoute: typeof ApiPublicWorkerQaReportIssueRoute
+  ApiPublicWorkerQaUploadScreenshotRoute: typeof ApiPublicWorkerQaUploadScreenshotRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -511,6 +581,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/qa/upload-screenshot': {
+      id: '/api/public/worker/qa/upload-screenshot'
+      path: '/api/public/worker/qa/upload-screenshot'
+      fullPath: '/api/public/worker/qa/upload-screenshot'
+      preLoaderRoute: typeof ApiPublicWorkerQaUploadScreenshotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/report-issue': {
+      id: '/api/public/worker/qa/report-issue'
+      path: '/api/public/worker/qa/report-issue'
+      fullPath: '/api/public/worker/qa/report-issue'
+      preLoaderRoute: typeof ApiPublicWorkerQaReportIssueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/report-coverage': {
+      id: '/api/public/worker/qa/report-coverage'
+      path: '/api/public/worker/qa/report-coverage'
+      fullPath: '/api/public/worker/qa/report-coverage'
+      preLoaderRoute: typeof ApiPublicWorkerQaReportCoverageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/finish-run': {
+      id: '/api/public/worker/qa/finish-run'
+      path: '/api/public/worker/qa/finish-run'
+      fullPath: '/api/public/worker/qa/finish-run'
+      preLoaderRoute: typeof ApiPublicWorkerQaFinishRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/analyze': {
+      id: '/api/public/worker/qa/analyze'
+      path: '/api/public/worker/qa/analyze'
+      fullPath: '/api/public/worker/qa/analyze'
+      preLoaderRoute: typeof ApiPublicWorkerQaAnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/proxies/list': {
       id: '/api/public/cross/proxies/list'
       path: '/api/public/cross/proxies/list'
@@ -618,6 +723,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCrossKylogicTaskRoute: ApiPublicCrossKylogicTaskRoute,
   ApiPublicCrossKylogicWorkflowsRoute: ApiPublicCrossKylogicWorkflowsRoute,
   ApiPublicCrossProxiesListRoute: ApiPublicCrossProxiesListRoute,
+  ApiPublicWorkerQaAnalyzeRoute: ApiPublicWorkerQaAnalyzeRoute,
+  ApiPublicWorkerQaFinishRunRoute: ApiPublicWorkerQaFinishRunRoute,
+  ApiPublicWorkerQaReportCoverageRoute: ApiPublicWorkerQaReportCoverageRoute,
+  ApiPublicWorkerQaReportIssueRoute: ApiPublicWorkerQaReportIssueRoute,
+  ApiPublicWorkerQaUploadScreenshotRoute:
+    ApiPublicWorkerQaUploadScreenshotRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
