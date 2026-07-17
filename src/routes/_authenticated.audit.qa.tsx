@@ -566,3 +566,67 @@ function StartRunDialog({
     </Dialog>
   );
 }
+
+function RunActionsMenu({
+  isActive,
+  onExport,
+  onDelete,
+}: {
+  runId: string;
+  isActive: boolean;
+  onExport: () => void;
+  onDelete: () => void;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Riport műveletek">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export (JSON)
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-red-500 focus:text-red-500"
+            disabled={isActive}
+            onClick={() => setConfirmOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            {isActive ? "Törlés (aktív futás)" : "Törlés"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Biztosan törlöd ezt a riportot?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ez véglegesen törli a futást, az összes hibát, a lefedettségi adatokat és a screenshotokat.
+              Exportáld előtte, ha szükséged lehet rá.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Mégse</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                onDelete();
+                setConfirmOpen(false);
+              }}
+            >
+              Törlés
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
