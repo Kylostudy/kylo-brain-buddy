@@ -30,7 +30,10 @@ export const Route = createFileRoute("/api/public/worker/qa/finish-run")({
         if (!p.success) return new Response(JSON.stringify({ error: "bad request" }), { status: 400, headers: { "content-type": "application/json" } });
         const d = p.data;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const patch: Record<string, unknown> = { status: d.status, finished_at: new Date().toISOString() };
+        const patch: { status: typeof d.status; finished_at: string; total_cost_usd?: number } = {
+          status: d.status,
+          finished_at: new Date().toISOString(),
+        };
         if (d.final_cost_usd != null) patch.total_cost_usd = d.final_cost_usd;
         const { error } = await supabaseAdmin.from("audit_qa_runs").update(patch).eq("id", d.run_id);
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "content-type": "application/json" } });
