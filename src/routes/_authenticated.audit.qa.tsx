@@ -434,10 +434,10 @@ function LiveActivityPanel({ activity }: { activity: Activity | null }) {
 
 function StatCard({ title, value }: { title: string; value: string }) {
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="min-w-0">
+      <CardContent className="p-4 min-w-0">
         <div className="text-xs text-muted-foreground">{title}</div>
-        <div className="text-xl font-semibold mt-1">{value}</div>
+        <div className="text-xl font-semibold mt-1 truncate">{value}</div>
       </CardContent>
     </Card>
   );
