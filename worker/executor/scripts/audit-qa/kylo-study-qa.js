@@ -503,6 +503,11 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
           const pathKey = pathKeyOf(rawUrl);
           if (visited.has(pathKey)) continue;
           visited.add(pathKey);
+          if (isSkippedPath(rawUrl)) {
+            log("info", `Kihagyva (skip list): ${rawUrl}`);
+            continue;
+          }
+
 
           const url = withLangParam(rawUrl, language);
 
