@@ -509,7 +509,7 @@ function IssueRow({ issue, onMark }: { issue: IssueLike; onMark: (s: "open" | "f
   );
 }
 
-const DEFAULT_LANGS = "hu,en";
+const DEFAULT_LANGS = "hu,en-GB";
 const DEFAULT_SKINS = "magic-school,alaska,puppy-cat";
 
 function StartRunDialog({

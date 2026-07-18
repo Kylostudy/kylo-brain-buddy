@@ -24,6 +24,23 @@ import { qaApi } from "./qa-api.js";
 
 const DEFAULT_MAX_PAGES = 40;
 
+// Kylo master nyelv: en-GB. A puszta "en" nem érvényes.
+function normalizeLang(lang) {
+  if (!lang) return "en-GB";
+  const l = String(lang).trim();
+  if (l.toLowerCase() === "en" || l.toLowerCase() === "en-us") return "en-GB";
+  return l;
+}
+
+// URL-hez hozzáfűzi a ?lang=XX (vagy &lang=XX) paramétert.
+function withLangParam(rawUrl, lang) {
+  try {
+    const u = new URL(rawUrl);
+    u.searchParams.set("lang", lang);
+    return u.toString();
+  } catch { return rawUrl; }
+}
+
 function sha1(s) {
   return crypto.createHash("sha1").update(String(s)).digest("hex");
 }
@@ -187,7 +204,8 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
   const qa = spec.audit_qa || {};
   const runId = qa.run_id;
   const baseUrl = qa.base_url || "https://kylo.study";
-  const languages = Array.isArray(qa.languages) && qa.languages.length > 0 ? qa.languages : ["hu"];
+  const rawLanguages = Array.isArray(qa.languages) && qa.languages.length > 0 ? qa.languages : ["hu"];
+  const languages = rawLanguages.map(normalizeLang);
   const skins = Array.isArray(qa.skins) && qa.skins.length > 0 ? qa.skins : ["default"];
   const maxPagesPerCombo = Number(qa.max_pages_per_combo || DEFAULT_MAX_PAGES);
   if (!runId) throw new Error("audit_qa.run_id hiányzik a specből");
@@ -222,29 +240,44 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
     await tryLogin(page, creds, log);
 
-    // 2) Nyelv × skin ciklusok
+    // 2) Nyelv × skin ciklusok — a nyelvet ?lang=XX URL paraméterrel állítjuk (Kylo standard)
     for (const language of languages) {
       for (const skin of skins) {
         log("info", `--- Kombináció kezdés: ${language}/${skin} ---`);
-        await trySetLanguage(page, language, log);
+        // Skin továbbra is UI-kattintással, mert nincs URL paramétere
         await trySetSkin(page, skin, log);
 
-        const visited = new Set();
-        const queue = [page.url()];
+        const visited = new Set(); // pathname-alapú, hogy ne látogassuk többször ugyanazt más query-vel
+        const queue = [baseUrl];
         let processed = 0;
 
         while (queue.length > 0 && processed < maxPagesPerCombo) {
-          const url = queue.shift();
-          if (visited.has(url)) continue;
-          visited.add(url);
+          const rawUrl = queue.shift();
+          let pathKey = rawUrl;
+          try { const u = new URL(rawUrl); pathKey = u.origin + u.pathname; } catch {}
+          if (visited.has(pathKey)) continue;
+          visited.add(pathKey);
+
+          const url = withLangParam(rawUrl, language);
 
           try {
-            if (!samePath(page.url(), url)) {
-              await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
-            }
+            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
             await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
             const title = await page.title().catch(() => "");
             const isHome = samePath(url, baseUrl);
+
+            // A landing (/) oldal szándékosan angol nyelvű minden nyelven — kihagyjuk a nyelvi elemzést
+            if (isHome && language !== "en-GB") {
+              log("info", `Landing oldal (${url}) — szándékosan angol, kihagyjuk a ${language} elemzést.`);
+              // Csak linkgyűjtés
+              const links = await collectInternalLinks(page, baseHost);
+              for (const l of links) {
+                let lk = l; try { const u = new URL(l); lk = u.origin + u.pathname; } catch {}
+                if (!visited.has(lk) && !queue.includes(l)) queue.push(l);
+              }
+              processed++;
+              continue;
+            }
 
             // Screenshot + upload
             const b64 = await shotJpegB64(page);
@@ -299,8 +332,7 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
               } catch (e) { log("warn", `reportIssue hiba: ${e.message}`); }
             }
 
-            // Coverage + cost delta. Ha ez a progress endpoint átmenetileg 404/401-et ad,
-            // ne dobjuk el az egész auditot: a hibákat és screenshotokat már mentettük.
+            // Coverage + cost delta
             try {
               const cov = await qaApi.reportCoverage({
                 run_id: runId,
@@ -319,10 +351,11 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
               log("warn", `reportCoverage hiba — folytatjuk: ${e.message}`);
             }
 
-            // További linkek felderítése
+            // További linkek felderítése (nyers URL-ek, ?lang= majd később ráteszünk)
             const links = await collectInternalLinks(page, baseHost);
             for (const l of links) {
-              if (!visited.has(l) && !queue.includes(l)) queue.push(l);
+              let lk = l; try { const u = new URL(l); lk = u.origin + u.pathname; } catch {}
+              if (!visited.has(lk) && !queue.includes(l)) queue.push(l);
             }
             processed++;
           } catch (e) {
