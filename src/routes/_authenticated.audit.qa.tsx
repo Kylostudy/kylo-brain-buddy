@@ -16,6 +16,7 @@ import {
   getAuditQaCredentialHint,
 } from "@/lib/audit-qa.functions";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -510,7 +511,13 @@ function IssueRow({ issue, onMark }: { issue: IssueLike; onMark: (s: "open" | "f
 }
 
 const DEFAULT_LANGS = "hu,en-GB";
-const DEFAULT_SKINS = "magic-school,alaska,puppy-cat";
+const SKIN_OPTIONS = [
+  { value: "magic-school", label: "Magic School", note: "stabil" },
+  { value: "alaska", label: "Alaska", note: "teszt alatt" },
+  { value: "puppy-cat", label: "Puppy Cat", note: "teszt alatt" },
+] as const;
+
+const DEFAULT_SKINS = SKIN_OPTIONS.map((skin) => skin.value);
 
 function StartRunDialog({
   onStart,
@@ -529,7 +536,7 @@ function StartRunDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [langs, setLangs] = useState(DEFAULT_LANGS);
-  const [skins, setSkins] = useState(DEFAULT_SKINS);
+  const [skins, setSkins] = useState<string[]>(DEFAULT_SKINS);
   const [baseUrl, setBaseUrl] = useState("https://kylo.study");
   const [cost, setCost] = useState(50);
   const [email, setEmail] = useState("");
@@ -579,12 +586,34 @@ function StartRunDialog({
             <Label>Nyelvek (vesszővel)</Label>
             <Input value={langs} onChange={(e) => setLangs(e.target.value)} placeholder="hu,en" />
           </div>
-          <div>
-            <Label>Skinek (vesszővel)</Label>
-            <Input value={skins} onChange={(e) => setSkins(e.target.value)} placeholder="magic-school,alaska,puppy-cat" />
-            <p className="text-xs text-muted-foreground mt-1">
-              Elérhető: <code>magic-school</code>, <code>alaska</code>, <code>puppy-cat</code>. Vesszővel válaszd ki, mit teszteljen.
-            </p>
+          <div className="space-y-2">
+            <Label>Skinek</Label>
+            <div className="grid gap-2">
+              {SKIN_OPTIONS.map((skin) => {
+                const checked = skins.includes(skin.value);
+                return (
+                  <label
+                    key={skin.value}
+                    className="grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-md border p-3 text-sm"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(next) => {
+                        setSkins((current) => {
+                          if (next === true) return current.includes(skin.value) ? current : [...current, skin.value];
+                          const filtered = current.filter((value) => value !== skin.value);
+                          return filtered.length > 0 ? filtered : current;
+                        });
+                      }}
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{skin.label}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{skin.value} · {skin.note}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -636,7 +665,7 @@ function StartRunDialog({
             onClick={() => {
               onStart({
                 languages: langs.split(",").map((s) => s.trim()).filter(Boolean),
-                skins: skins.split(",").map((s) => s.trim()).filter(Boolean),
+                skins,
                 baseUrl,
                 costCapUsd: cost,
                 email: email.trim(),
