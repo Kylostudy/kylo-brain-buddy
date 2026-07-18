@@ -227,7 +227,7 @@ function QaPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-[1400px] mx-auto min-w-0">
+    <div className="p-4 md:p-6 space-y-6 w-full max-w-[1400px] mx-auto min-w-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Kylo.study QA riport</h1>
