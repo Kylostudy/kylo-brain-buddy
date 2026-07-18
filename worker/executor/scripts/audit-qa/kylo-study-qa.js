@@ -51,8 +51,10 @@ function isSkippedPath(rawUrl) {
   } catch { return false; }
 }
 
+const SKIN_STORAGE_VALUE = {
   "magic-school": "magic_school",
   magic_school: "magic_school",
+
   alaska: "alaszka",
   alaszka: "alaszka",
   "puppy-cat": "puppy_cat",
