@@ -24,6 +24,23 @@ import { qaApi } from "./qa-api.js";
 
 const DEFAULT_MAX_PAGES = 40;
 
+// Kylo master nyelv: en-GB. A puszta "en" nem érvényes.
+function normalizeLang(lang) {
+  if (!lang) return "en-GB";
+  const l = String(lang).trim();
+  if (l.toLowerCase() === "en" || l.toLowerCase() === "en-us") return "en-GB";
+  return l;
+}
+
+// URL-hez hozzáfűzi a ?lang=XX (vagy &lang=XX) paramétert.
+function withLangParam(rawUrl, lang) {
+  try {
+    const u = new URL(rawUrl);
+    u.searchParams.set("lang", lang);
+    return u.toString();
+  } catch { return rawUrl; }
+}
+
 function sha1(s) {
   return crypto.createHash("sha1").update(String(s)).digest("hex");
 }
