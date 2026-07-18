@@ -71,7 +71,7 @@ function AppShell({
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
         <AppSidebar />
-        <div className="flex h-screen min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex h-screen min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <header className="flex h-12 shrink-0 items-center justify-between border-b px-3">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
@@ -90,7 +90,7 @@ function AppShell({
               </Button>
             </div>
           </header>
-          <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
+          <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">{children}</main>
         </div>
       </div>
     </SidebarProvider>
