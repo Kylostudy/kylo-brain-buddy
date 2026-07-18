@@ -24,6 +24,8 @@ type ModuleContextValue = {
   meta: (typeof MODULE_META)[AppModule];
   /** Csak preview/dev környezetben enged váltani; éles aldomainen no-op. */
   setModule: (next: AppModule) => void;
+  /** Route-szintű kényszerítés preview/dev alatt, amikor az URL egyértelműen modulhoz tartozik. */
+  forceModule: (next: AppModule) => void;
   /** True, ha a hostname brain.* vagy audit.* — ekkor a dev kapcsoló rejtve marad. */
   isLockedByDomain: boolean;
 };
@@ -56,14 +58,20 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
     setModuleState(next);
   }, []);
 
+  const forceModule = useCallback((next: AppModule) => {
+    if (isProductionSubdomain(window.location.hostname)) return;
+    setModuleState(next);
+  }, []);
+
   const value = useMemo<ModuleContextValue>(
     () => ({
       module,
       meta: MODULE_META[module],
       setModule,
+      forceModule,
       isLockedByDomain,
     }),
-    [module, setModule, isLockedByDomain],
+    [module, setModule, forceModule, isLockedByDomain],
   );
 
   return <ModuleContext.Provider value={value}>{children}</ModuleContext.Provider>;
