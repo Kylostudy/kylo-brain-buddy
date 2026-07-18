@@ -116,11 +116,19 @@ export const Route = createFileRoute("/api/public/worker/qa/analyze")({
         const { screenshot_b64, page_url, page_title, expected_language, skin, dom_texts, model, mime_type, is_home_page } = parsed.data;
 
         const domSample = dom_texts.slice(0, 80).map((t, i) => `${i + 1}. [${t.selector ?? "?"}] ${t.text.slice(0, 180)}`).join("\n");
+        const isEnglish = /^en(-|$)/i.test(expected_language);
+        const langNote = isEnglish
+          ? `"${expected_language}" (British English — a Kylo master nyelve; minden más nyelv ebből származik)`
+          : `"${expected_language}"`;
         const systemPrompt = `Te egy szigorú weboldal QA elemző vagy. A képernyőképet és a DOM szöveg mintát a "${page_url}" oldalról kaptad.
 Ellenőrizd MINDET és jelentsd a hibákat strukturáltan.
 
+FONTOS KIZÁRÁSOK — ezeket SOHA ne jelentsd hibaként:
+- A Lovable "Edit with Lovable" / "Made with Lovable" jelvény (általában jobb alsó sarok) — ez platform-elem, NEM az app része.
+- ${is_home_page ? 'Ez a landing (/) oldal — szándékosan angol nyelvű MINDEN nyelvi verzióban (nemzetközi szülőknek szól). Itt SOHA ne jelents "translation_missing" vagy nyelvi hibát; csak layout / kontraszt / levágott szöveg / törött elem hibákat.' : "(landing kizárás itt nem releváns)"}
+
 Ellenőrzési kritériumok:
-1) NYELV: minden látható felhasználói szöveg az elvárt "${expected_language}" nyelven van-e? Menü, gomb, hibaüzenet, tooltip, placeholder is számít. Ha egyetlen szó is más nyelven (pl. "Submit" magyar oldalon), az translation_missing (critical).
+1) NYELV: minden látható felhasználói szöveg az elvárt ${langNote} nyelven van-e? Menü, gomb, hibaüzenet, tooltip, placeholder is számít. Ha egyetlen szó is más nyelven (pl. "Submit" magyar oldalon), az translation_missing (critical). ${isEnglish ? 'Az "en-GB" nem különböztetendő meg az "en-US"-tól szótár szinten — csak akkor jelezz, ha ténylegesen NEM angol.' : ""}
 2) KONTRASZT / LÁTHATÓSÁG: van-e olvashatatlan szöveg (túl halvány, hasonló háttér, átfedés)?
 3) LEVÁGOTT / KILÓGÓ szöveg: elemek túlnyúlnak-e a konténereiken vagy le vannak-e vágva (...)?
 4) NAVIGÁCIÓ: ${is_home_page ? "Ez a főoldal, itt nem kell vissza gomb." : 'Ez NEM főoldal — van-e VISSZA gomb, breadcrumb vagy nav a főoldalra? Ha nincs, az missing_back_button (major).'}
