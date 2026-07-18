@@ -246,7 +246,8 @@ function QaPage() {
             Robot végigmegy minden oldalon, minden nyelven és skinnel, és minden vizuális + fordítási hibát megjelöl.
           </p>
         </div>
-        <div className="min-w-0 sm:shrink-0">
+        <div className="flex flex-wrap gap-2 min-w-0 sm:shrink-0">
+          <ExpectedRoutesDialog />
           <StartRunDialog onStart={(v) => startMut.mutate(v)} pending={startMut.isPending} />
         </div>
       </div>
