@@ -566,7 +566,9 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
         // tudjuk vakon összeállítani). A landing (/) már megvolt a queue elején.
         const staticExpected = expectedRoutes
           .map((r) => (r?.path || "").trim())
-          .filter((p) => p && p.startsWith("/") && !p.includes(":") && !p.includes("*"));
+          .filter((p) => p && p.startsWith("/") && !p.includes(":") && !p.includes("*"))
+          .filter((p) => !SKIP_PATH_PREFIXES.some((pref) => p === pref || p.startsWith(pref + "/")));
+
         const visitedPathnames = new Set(
           Array.from(visited).map((k) => {
             try { return new URL(k).pathname.replace(/\/+$/, "") || "/"; } catch { return k; }
