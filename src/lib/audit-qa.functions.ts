@@ -128,7 +128,7 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
         languages: data.languages,
         skins: data.skins,
         max_pages_per_combo: data.maxPagesPerCombo,
-        max_clicks_per_page: 14,
+        max_clicks_per_page: 10,
         cost_cap_usd: data.costCapUsd,
       },
     };
