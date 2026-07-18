@@ -14,6 +14,9 @@ import {
   deleteAuditQaRun,
   exportAuditQaRun,
   getAuditQaCredentialHint,
+  listExpectedRoutes,
+  upsertExpectedRoutes,
+  getAuditQaCoverageMatrix,
 } from "@/lib/audit-qa.functions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
