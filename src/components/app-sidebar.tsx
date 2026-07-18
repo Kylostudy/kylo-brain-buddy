@@ -31,8 +31,14 @@ type Workflow = {
   name: string;
   status: string;
   updated_at: string;
-  spec: { monitor_type?: string } | null;
+  spec: unknown;
 };
+
+function getMonitorType(spec: unknown): string | null {
+  if (!spec || typeof spec !== "object" || !("monitor_type" in spec)) return null;
+  const value = (spec as { monitor_type?: unknown }).monitor_type;
+  return typeof value === "string" ? value : null;
+}
 
 async function fetchWorkflows(module: AppModule): Promise<Workflow[]> {
   const { data, error } = await supabase
@@ -199,7 +205,7 @@ export function AppSidebar() {
                 </div>
               )}
               {workflows.map((wf) => {
-                const isKyloStudyQa = module === "audit" && wf.spec?.monitor_type === "kylo-study-qa";
+                const isKyloStudyQa = module === "audit" && getMonitorType(wf.spec) === "kylo-study-qa";
                 const active = isKyloStudyQa
                   ? currentPath.startsWith("/audit/qa")
                   : currentPath === `/w/${wf.id}`;
