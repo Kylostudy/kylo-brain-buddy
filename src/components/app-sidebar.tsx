@@ -277,7 +277,7 @@ export function AppSidebar() {
                         <button
                           type="button"
                           onClick={(e) => startEdit(wf, e)}
-                          className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden"
                           aria-label="Átnevezés"
                         >
                           <Pencil className="size-3.5" />
