@@ -15,8 +15,9 @@ const StartRunInput = z.object({
   workflowId: z.string().uuid().nullable().optional(),
   maxPagesPerCombo: z.number().int().min(1).max(500).default(60),
   // Új: bejelentkezéshez a UI-ból kapott email/password (titkosítva mentjük a workflow_credentials-be).
-  email: z.string().email().optional(),
-  password: z.string().min(1).max(500).optional(),
+  // Ha üres a password, a workflow-hoz korábban mentett jelszót használjuk.
+  email: z.string().email().optional().or(z.literal("")),
+  password: z.string().max(500).optional().or(z.literal("")),
 });
 
 /** Új QA futás indítása. Létrehoz egy audit_qa_runs sort + egy queued brain_workflow_runs sort a workernek. */
