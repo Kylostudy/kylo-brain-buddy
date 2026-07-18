@@ -547,7 +547,7 @@ function StartRunDialog({
   const [cost, setCost] = useState(50);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [maxPages, setMaxPages] = useState(120);
+  const [maxPages, setMaxPages] = useState(300);
 
   // Mentett belépési adat hint (email + van-e mentett jelszó) — csak akkor
   // kérjük le, ha a dialóg nyitva van, hogy ne pörögjön feleslegesen.

@@ -13,7 +13,7 @@ const StartRunInput = z.object({
   costCapUsd: z.number().positive().max(500).default(50),
   credentialId: z.string().uuid().nullable().optional(),
   workflowId: z.string().uuid().nullable().optional(),
-  maxPagesPerCombo: z.number().int().min(1).max(500).default(120),
+  maxPagesPerCombo: z.number().int().min(1).max(1000).default(300),
   // Új: bejelentkezéshez a UI-ból kapott email/password (titkosítva mentjük a workflow_credentials-be).
   // Ha üres a password, a workflow-hoz korábban mentett jelszót használjuk.
   email: z.string().email().optional().or(z.literal("")),
@@ -128,7 +128,7 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
         languages: data.languages,
         skins: data.skins,
         max_pages_per_combo: data.maxPagesPerCombo,
-        max_clicks_per_page: 14,
+        max_clicks_per_page: 10,
         cost_cap_usd: data.costCapUsd,
       },
     };

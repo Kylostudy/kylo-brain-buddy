@@ -292,39 +292,47 @@ async function collectClickableTargets(page, maxTargets) {
   }, maxTargets).catch(() => []);
 }
 
-async function discoverLinksByClicking(page, sourceUrl, baseHost, log, maxClicks) {
+async function discoverLinksByClicking(context, page, sourceUrl, baseHost, log, maxClicks) {
+  // A célokat a fő oldalról gyűjtjük (már be van töltve), a kattintásokat
+  // egy külön aux tabon próbáljuk, hogy a fő oldal ne mozduljon el —
+  // így nem kell utána újratölteni.
   const targets = await collectClickableTargets(page, maxClicks);
   const found = new Set();
   let interactions = 0;
 
-  for (const target of targets) {
-    try {
-      await page.goto(sourceUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
-      await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
-      const before = page.url();
-      const el = await page.$(target.selector);
-      if (!el) continue;
-      await el.click({ timeout: 2500 });
-      interactions++;
-      await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
-      await page.waitForTimeout(600);
-      const after = page.url();
+  if (targets.length === 0) return { links: [], interactions: 0 };
+
+  const aux = await context.newPage();
+  try {
+    await aux.goto(sourceUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {});
+    for (const target of targets) {
       try {
-        const u = new URL(after);
-        if (u.host === baseHost && (u.protocol === "http:" || u.protocol === "https:")) {
-          u.hash = "";
-          found.add(u.toString());
+        // Csak akkor navigálunk vissza, ha az előző kattintás elvitt máshova.
+        if (pathKeyOf(aux.url()) !== pathKeyOf(sourceUrl)) {
+          await aux.goto(sourceUrl, { waitUntil: "domcontentloaded", timeout: 12000 }).catch(() => {});
         }
-      } catch {}
-
-      const links = await collectInternalLinks(page, baseHost);
-      for (const l of links) found.add(l);
-
-      if (before !== after) log("info", `Kattintás felderítés: "${target.label}" → ${after}`);
-      else log("info", `Kattintás felderítés: "${target.label}" → ugyanazon az oldalon maradt`);
-    } catch (e) {
-      log("warn", `Kattintás felderítés kihagyva ("${target.label}"): ${e.message}`);
+        const el = await aux.$(target.selector);
+        if (!el) continue;
+        await el.click({ timeout: 2000 }).catch(() => {});
+        interactions++;
+        // Nincs networkidle-várakozás — SPA-nál nem terminál rendesen. Rövid nyugvási idő elég.
+        await aux.waitForTimeout(500);
+        const after = aux.url();
+        try {
+          const u = new URL(after);
+          if (u.host === baseHost && (u.protocol === "http:" || u.protocol === "https:")) {
+            u.hash = "";
+            found.add(u.toString());
+          }
+        } catch {}
+        const links = await collectInternalLinks(aux, baseHost).catch(() => []);
+        for (const l of links) found.add(l);
+      } catch (e) {
+        log("warn", `Kattintás felderítés kihagyva ("${target.label}"): ${e.message}`);
+      }
     }
+  } finally {
+    await aux.close().catch(() => {});
   }
 
   return { links: Array.from(found), interactions };
@@ -471,15 +479,15 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
           const url = withLangParam(rawUrl, language);
 
           try {
-            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
-            await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+            // Rövid „settling" idő — a networkidle SPA-nál nem terminál rendesen.
+            await page.waitForTimeout(800);
             const title = await page.title().catch(() => "");
             const isHome = samePath(url, baseUrl);
 
             const initialLinks = await collectInternalLinks(page, baseHost);
-            const discovery = await discoverLinksByClicking(page, url, baseHost, log, maxClicksPerPage);
-            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
-            await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+            const discovery = await discoverLinksByClicking(context, page, url, baseHost, log, maxClicksPerPage);
+            // NEM navigálunk vissza — az aux tabban kattintottunk, a fő page érintetlen.
 
             // A landing (/) oldal szándékosan angol nyelvű minden nyelven — kihagyjuk a nyelvi elemzést
             const skipLanguageAnalysis = isHome && language !== "en-GB";
