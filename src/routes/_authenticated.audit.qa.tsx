@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -13,6 +13,7 @@ import {
   getAuditQaRunActivity,
   deleteAuditQaRun,
   exportAuditQaRun,
+  getAuditQaCredentialHint,
 } from "@/lib/audit-qa.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -226,15 +227,17 @@ function QaPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
+    <div className="p-4 md:p-6 space-y-6 max-w-[1400px] mx-auto min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Kylo.study QA riport</h1>
           <p className="text-sm text-muted-foreground">
             Robot végigmegy minden oldalon, minden nyelven és skinnel, és minden vizuális + fordítási hibát megjelöl.
           </p>
         </div>
-        <StartRunDialog onStart={(v) => startMut.mutate(v)} pending={startMut.isPending} />
+        <div className="shrink-0">
+          <StartRunDialog onStart={(v) => startMut.mutate(v)} pending={startMut.isPending} />
+        </div>
       </div>
 
       {/* Futások listája */}
@@ -271,7 +274,7 @@ function QaPage() {
 
       {activeRun && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard title="Státusz" value={getRunDisplayStatus(activeRun)} />
             <StatCard title="Bejárt oldal" value={String(activeRun.total_pages_visited)} />
             <StatCard title="Talált hiba" value={String(activeRun.total_issues_found)} />
@@ -406,18 +409,18 @@ function LiveActivityPanel({ activity }: { activity: Activity | null }) {
             <span className="font-medium">{lastLog.message}</span>
           </div>
         )}
-        <div className="max-h-64 overflow-auto rounded-md border bg-muted/30 p-2 font-mono text-xs space-y-0.5">
+        <div className="max-h-64 overflow-auto rounded-md border bg-muted/30 p-2 font-mono text-xs space-y-0.5 min-w-0">
           {logs.length === 0 && <div className="text-muted-foreground">Még nincs log — a konténer most indul…</div>}
           {logs.slice(-200).map((l, i) => (
             <div
               key={i}
-              className={
+              className={`break-all whitespace-pre-wrap ${
                 l.level === "error"
                   ? "text-red-400"
                   : l.level === "warn"
                     ? "text-yellow-500"
                     : "text-foreground/80"
-              }
+              }`}
             >
               <span className="text-muted-foreground">{new Date(l.ts).toLocaleTimeString()}</span>{" "}
               {l.message}
@@ -431,10 +434,10 @@ function LiveActivityPanel({ activity }: { activity: Activity | null }) {
 
 function StatCard({ title, value }: { title: string; value: string }) {
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="min-w-0">
+      <CardContent className="p-4 min-w-0">
         <div className="text-xs text-muted-foreground">{title}</div>
-        <div className="text-xl font-semibold mt-1">{value}</div>
+        <div className="text-xl font-semibold mt-1 truncate">{value}</div>
       </CardContent>
     </Card>
   );
@@ -507,7 +510,7 @@ function IssueRow({ issue, onMark }: { issue: IssueLike; onMark: (s: "open" | "f
 }
 
 const DEFAULT_LANGS = "hu,en";
-const DEFAULT_SKINS = "magic-school,alaska";
+const DEFAULT_SKINS = "magic-school,alaska,puppy-cat";
 
 function StartRunDialog({
   onStart,
@@ -533,6 +536,31 @@ function StartRunDialog({
   const [password, setPassword] = useState("");
   const [maxPages, setMaxPages] = useState(40);
 
+  // Mentett belépési adat hint (email + van-e mentett jelszó) — csak akkor
+  // kérjük le, ha a dialóg nyitva van, hogy ne pörögjön feleslegesen.
+  const hintFn = useServerFn(getAuditQaCredentialHint);
+  const hintQ = useQuery({
+    queryKey: ["audit-qa-cred-hint"],
+    queryFn: () => hintFn(),
+    enabled: open,
+    staleTime: 60_000,
+  });
+  const savedEmail = hintQ.data?.email ?? null;
+  const hasSavedPassword = !!hintQ.data?.hasSavedPassword;
+
+  // Ha nyílik a dialóg és még üres az email input, töltsük elő a mentett értékkel.
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (open && savedEmail && !prefilledRef.current) {
+      if (!email) setEmail(savedEmail);
+      prefilledRef.current = true;
+    }
+    if (!open) prefilledRef.current = false;
+  }, [open, savedEmail, email]);
+
+  const canSubmit =
+    !!email.trim() && (!!password.trim() || hasSavedPassword);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -553,7 +581,10 @@ function StartRunDialog({
           </div>
           <div>
             <Label>Skinek (vesszővel)</Label>
-            <Input value={skins} onChange={(e) => setSkins(e.target.value)} placeholder="magic-school,alaska" />
+            <Input value={skins} onChange={(e) => setSkins(e.target.value)} placeholder="magic-school,alaska,puppy-cat" />
+            <p className="text-xs text-muted-foreground mt-1">
+              Elérhető: <code>magic-school</code>, <code>alaska</code>, <code>puppy-cat</code>. Vesszővel válaszd ki, mit teszteljen.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -567,15 +598,33 @@ function StartRunDialog({
           </div>
           <div>
             <Label>Bejelentkező email</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              placeholder={savedEmail ?? "email@kylo.study"}
+            />
+            {savedEmail && email === savedEmail && (
+              <p className="text-xs text-muted-foreground mt-1">Mentett email előtöltve — bármikor felülírhatod.</p>
+            )}
           </div>
           <div>
             <Label>Jelszó</Label>
-            <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
+            <Input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              placeholder={hasSavedPassword ? "•••••••• (mentve — hagyd üresen a régihez)" : "Új jelszó"}
+            />
+            {hasSavedPassword && !password && (
+              <p className="text-xs text-muted-foreground mt-1">
+                A workflow-hoz mentett jelszó lesz használva. Csak akkor írj be újat, ha frissíteni akarod.
+              </p>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
-            🔒 Az email és jelszó AES-titkosítva mentődik a workflow_credentials táblába. A worker a claim
-            során kapja meg dekódolva — soha nem megy át spec-en vagy logon.
+            🔒 A belépési adatok AES-titkosítva mentődnek a workflow-hoz. A worker a claim
+            során kapja meg dekódolva — soha nem megy át specen vagy logon.
           </p>
         </div>
         <DialogFooter>
@@ -583,15 +632,15 @@ function StartRunDialog({
             Mégse
           </Button>
           <Button
-            disabled={pending || !email || !password}
+            disabled={pending || !canSubmit}
             onClick={() => {
               onStart({
                 languages: langs.split(",").map((s) => s.trim()).filter(Boolean),
                 skins: skins.split(",").map((s) => s.trim()).filter(Boolean),
                 baseUrl,
                 costCapUsd: cost,
-                email,
-                password,
+                email: email.trim(),
+                password: password.trim(),
                 maxPagesPerCombo: maxPages,
               });
               setOpen(false);
