@@ -25,7 +25,32 @@ import { qaApi } from "./qa-api.js";
 const DEFAULT_MAX_PAGES = 40;
 const DEFAULT_MAX_CLICKS_PER_PAGE = 14;
 
-const SKIN_STORAGE_VALUE = {
+// Az ezekre a path-okra eső oldalakat SOHA nem elemezzük — attribúciós landingek,
+// admin, standalone modulok stb. A pontos egyezés és a prefix-egyezés is számít.
+const SKIP_PATH_PREFIXES = [
+  "/kylo-landing",
+  "/kylogic/parent",
+  "/kylogic/student",
+  "/dia",
+  "/szulo",
+  "/tanar",
+  "/admin",
+  "/admin0",
+  "/admin-skynet",
+  "/kylo-app",
+  "/kylo-app2",
+  "/spark",
+  "/reklamvideok",
+  "/video-preview",
+];
+
+function isSkippedPath(rawUrl) {
+  try {
+    const p = new URL(rawUrl).pathname.replace(/\/+$/, "") || "/";
+    return SKIP_PATH_PREFIXES.some((pref) => p === pref || p.startsWith(pref + "/"));
+  } catch { return false; }
+}
+
   "magic-school": "magic_school",
   magic_school: "magic_school",
   alaska: "alaszka",
