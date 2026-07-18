@@ -526,6 +526,49 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
             log("warn", `oldal hiba (${url}): ${e.message}`);
           }
         }
+
+        // ─── Célzott bejárás: elvárt oldalak, amiket a BFS kihagyott. ───
+        // Csak a paraméter nélküli, statikus path-okat próbáljuk (a `:param`-ost nem
+        // tudjuk vakon összeállítani). A landing (/) már megvolt a queue elején.
+        const staticExpected = expectedRoutes
+          .map((r) => (r?.path || "").trim())
+          .filter((p) => p && p.startsWith("/") && !p.includes(":") && !p.includes("*"));
+        const visitedPathnames = new Set(
+          Array.from(visited).map((k) => {
+            try { return new URL(k).pathname.replace(/\/+$/, "") || "/"; } catch { return k; }
+          }),
+        );
+        const missing = staticExpected.filter((p) => {
+          const norm = p.replace(/\/+$/, "") || "/";
+          return !visitedPathnames.has(norm);
+        });
+        if (missing.length > 0) {
+          log("info", `Célzott fázis: ${missing.length} elvárt oldalt még nem érintett a BFS — direkt goto.`);
+          for (const path of missing) {
+            if (processed >= maxPagesPerCombo) break;
+            const targeted = withLangParam(urlForPath(baseUrl, path), language);
+            try {
+              await page.goto(targeted, { waitUntil: "domcontentloaded", timeout: 15000 });
+              await page.waitForTimeout(800);
+              const title = await page.title().catch(() => "");
+              const isHome = samePath(targeted, baseUrl);
+              const capped = await reportAnalyzedPage({
+                runId, page, url: targeted, title, language, skin,
+                isHome, skipLanguageAnalysis: isHome && language !== "en-GB",
+                interactions: 0, totalCostRef, log,
+              });
+              processed++;
+              if (capped) {
+                log("warn", `Költségplafon elérve célzott fázisban ($${totalCostRef.value.toFixed(2)}) — leállunk.`);
+                await safeFinishRun(qaApi, log, { run_id: runId, status: "stopped", final_cost_usd: totalCostRef.value });
+                return { run_id: runId, status: "stopped", total_cost_usd: totalCostRef.value };
+              }
+            } catch (e) {
+              log("warn", `célzott oldal hiba (${targeted}): ${e.message}`);
+            }
+          }
+        }
+
         log("info", `--- Kombináció vége: ${language}/${skin} — ${processed} oldal ---`);
       }
     }
