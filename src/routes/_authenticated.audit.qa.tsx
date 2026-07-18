@@ -510,7 +510,7 @@ function IssueRow({ issue, onMark }: { issue: IssueLike; onMark: (s: "open" | "f
 }
 
 const DEFAULT_LANGS = "hu,en";
-const DEFAULT_SKINS = "magic-school,alaska";
+const DEFAULT_SKINS = "magic-school,alaska,puppy-cat";
 
 function StartRunDialog({
   onStart,
@@ -536,6 +536,31 @@ function StartRunDialog({
   const [password, setPassword] = useState("");
   const [maxPages, setMaxPages] = useState(40);
 
+  // Mentett belépési adat hint (email + van-e mentett jelszó) — csak akkor
+  // kérjük le, ha a dialóg nyitva van, hogy ne pörögjön feleslegesen.
+  const hintFn = useServerFn(getAuditQaCredentialHint);
+  const hintQ = useQuery({
+    queryKey: ["audit-qa-cred-hint"],
+    queryFn: () => hintFn(),
+    enabled: open,
+    staleTime: 60_000,
+  });
+  const savedEmail = hintQ.data?.email ?? null;
+  const hasSavedPassword = !!hintQ.data?.hasSavedPassword;
+
+  // Ha nyílik a dialóg és még üres az email input, töltsük elő a mentett értékkel.
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (open && savedEmail && !prefilledRef.current) {
+      if (!email) setEmail(savedEmail);
+      prefilledRef.current = true;
+    }
+    if (!open) prefilledRef.current = false;
+  }, [open, savedEmail, email]);
+
+  const canSubmit =
+    !!email.trim() && (!!password.trim() || hasSavedPassword);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -556,7 +581,10 @@ function StartRunDialog({
           </div>
           <div>
             <Label>Skinek (vesszővel)</Label>
-            <Input value={skins} onChange={(e) => setSkins(e.target.value)} placeholder="magic-school,alaska" />
+            <Input value={skins} onChange={(e) => setSkins(e.target.value)} placeholder="magic-school,alaska,puppy-cat" />
+            <p className="text-xs text-muted-foreground mt-1">
+              Elérhető: <code>magic-school</code>, <code>alaska</code>, <code>puppy-cat</code>. Vesszővel válaszd ki, mit teszteljen.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -570,15 +598,33 @@ function StartRunDialog({
           </div>
           <div>
             <Label>Bejelentkező email</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              placeholder={savedEmail ?? "email@kylo.study"}
+            />
+            {savedEmail && email === savedEmail && (
+              <p className="text-xs text-muted-foreground mt-1">Mentett email előtöltve — bármikor felülírhatod.</p>
+            )}
           </div>
           <div>
             <Label>Jelszó</Label>
-            <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
+            <Input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              placeholder={hasSavedPassword ? "•••••••• (mentve — hagyd üresen a régihez)" : "Új jelszó"}
+            />
+            {hasSavedPassword && !password && (
+              <p className="text-xs text-muted-foreground mt-1">
+                A workflow-hoz mentett jelszó lesz használva. Csak akkor írj be újat, ha frissíteni akarod.
+              </p>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
-            🔒 Az email és jelszó AES-titkosítva mentődik a workflow_credentials táblába. A worker a claim
-            során kapja meg dekódolva — soha nem megy át spec-en vagy logon.
+            🔒 A belépési adatok AES-titkosítva mentődnek a workflow-hoz. A worker a claim
+            során kapja meg dekódolva — soha nem megy át specen vagy logon.
           </p>
         </div>
         <DialogFooter>
@@ -586,15 +632,15 @@ function StartRunDialog({
             Mégse
           </Button>
           <Button
-            disabled={pending || !email || !password}
+            disabled={pending || !canSubmit}
             onClick={() => {
               onStart({
                 languages: langs.split(",").map((s) => s.trim()).filter(Boolean),
                 skins: skins.split(",").map((s) => s.trim()).filter(Boolean),
                 baseUrl,
                 costCapUsd: cost,
-                email,
-                password,
+                email: email.trim(),
+                password: password.trim(),
                 maxPagesPerCombo: maxPages,
               });
               setOpen(false);
