@@ -152,6 +152,44 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
     return { runId: run.id, startedAt: run.started_at, baseUrl: run.base_url };
   });
 
+/**
+ * A QA dialóghoz: visszaadja a tenant kylo-study-qa workflow-jához mentett
+ * email címet és hogy van-e mentett jelszó. Így nem kell minden futáskor
+ * újra beírni. A jelszót SOHA nem küldjük vissza.
+ */
+export const getAuditQaCredentialHint = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .single();
+    if (!prof?.tenant_id) return { email: null as string | null, hasSavedPassword: false };
+
+    const { data: wf } = await supabase
+      .from("workflows")
+      .select("id")
+      .eq("tenant_id", prof.tenant_id)
+      .eq("module", "audit")
+      .contains("spec", { monitor_type: "kylo-study-qa" })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!wf?.id) return { email: null as string | null, hasSavedPassword: false };
+
+    const { data: cred } = await supabase
+      .from("workflow_credentials")
+      .select("username, password_ciphertext")
+      .eq("workflow_id", wf.id)
+      .maybeSingle();
+    return {
+      email: (cred?.username as string | null) ?? null,
+      hasSavedPassword: !!cred?.password_ciphertext,
+    };
+  });
+
 export const listAuditQaRuns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
