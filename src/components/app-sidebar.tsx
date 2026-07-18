@@ -31,12 +31,13 @@ type Workflow = {
   name: string;
   status: string;
   updated_at: string;
+  spec: { monitor_type?: string } | null;
 };
 
 async function fetchWorkflows(module: AppModule): Promise<Workflow[]> {
   const { data, error } = await supabase
     .from("workflows")
-    .select("id, name, status, updated_at")
+    .select("id, name, status, updated_at, spec")
     .eq("module", module)
     .order("updated_at", { ascending: false });
   if (error) throw error;
@@ -198,8 +199,12 @@ export function AppSidebar() {
                 </div>
               )}
               {workflows.map((wf) => {
-                const active = currentPath === `/w/${wf.id}`;
+                const isKyloStudyQa = module === "audit" && wf.spec?.monitor_type === "kylo-study-qa";
+                const active = isKyloStudyQa
+                  ? currentPath.startsWith("/audit/qa")
+                  : currentPath === `/w/${wf.id}`;
                 const isEditing = editingId === wf.id;
+                const ItemIcon = isKyloStudyQa ? ClipboardCheck : MessageSquare;
                 return (
                   <SidebarMenuItem key={wf.id}>
                     {isEditing ? (
@@ -242,15 +247,26 @@ export function AppSidebar() {
                     ) : (
                       <div className="group/item flex items-center gap-1">
                         <SidebarMenuButton asChild isActive={active} className="flex-1">
-                          <Link
-                            to="/w/$workflowId"
-                            params={{ workflowId: wf.id }}
-                            onDoubleClick={(e) => startEdit(wf, e)}
-                            className="flex items-center gap-2"
-                          >
-                            <MessageSquare className="size-4 shrink-0" />
-                            <span className="truncate">{wf.name}</span>
-                          </Link>
+                          {isKyloStudyQa ? (
+                            <Link
+                              to="/audit/qa"
+                              onDoubleClick={(e) => startEdit(wf, e)}
+                              className="flex items-center gap-2"
+                            >
+                              <ItemIcon className="size-4 shrink-0" />
+                              <span className="truncate">{wf.name}</span>
+                            </Link>
+                          ) : (
+                            <Link
+                              to="/w/$workflowId"
+                              params={{ workflowId: wf.id }}
+                              onDoubleClick={(e) => startEdit(wf, e)}
+                              className="flex items-center gap-2"
+                            >
+                              <ItemIcon className="size-4 shrink-0" />
+                              <span className="truncate">{wf.name}</span>
+                            </Link>
+                          )}
                         </SidebarMenuButton>
                         <button
                           type="button"
@@ -260,18 +276,20 @@ export function AppSidebar() {
                         >
                           <Pencil className="size-3.5" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            duplicateWorkflowFn(wf.id);
-                          }}
-                          className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
-                          aria-label="Másolat készítése"
-                        >
-                          <Copy className="size-3.5" />
-                        </button>
+                        {!isKyloStudyQa && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              duplicateWorkflowFn(wf.id);
+                            }}
+                            className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+                            aria-label="Másolat készítése"
+                          >
+                            <Copy className="size-3.5" />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -304,16 +322,6 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {module === "audit" && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={currentPath.startsWith("/audit/qa")}>
-                    <Link to="/audit/qa" className="flex items-center gap-2">
-                      <ClipboardCheck className="size-4 shrink-0" />
-                      <span className="truncate">Kylo.study QA</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
