@@ -479,15 +479,15 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
           const url = withLangParam(rawUrl, language);
 
           try {
-            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
-            await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+            // Rövid „settling" idő — a networkidle SPA-nál nem terminál rendesen.
+            await page.waitForTimeout(800);
             const title = await page.title().catch(() => "");
             const isHome = samePath(url, baseUrl);
 
             const initialLinks = await collectInternalLinks(page, baseHost);
-            const discovery = await discoverLinksByClicking(page, url, baseHost, log, maxClicksPerPage);
-            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
-            await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+            const discovery = await discoverLinksByClicking(context, page, url, baseHost, log, maxClicksPerPage);
+            // NEM navigálunk vissza — az aux tabban kattintottunk, a fő page érintetlen.
 
             // A landing (/) oldal szándékosan angol nyelvű minden nyelven — kihagyjuk a nyelvi elemzést
             const skipLanguageAnalysis = isHome && language !== "en-GB";
