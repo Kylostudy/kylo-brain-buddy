@@ -23,6 +23,21 @@ import crypto from "node:crypto";
 import { qaApi } from "./qa-api.js";
 
 const DEFAULT_MAX_PAGES = 40;
+const DEFAULT_MAX_CLICKS_PER_PAGE = 14;
+
+const SKIN_STORAGE_VALUE = {
+  "magic-school": "magic_school",
+  magic_school: "magic_school",
+  alaska: "alaszka",
+  alaszka: "alaszka",
+  "puppy-cat": "puppy_cat",
+  puppy_cat: "puppy_cat",
+};
+
+function normalizeSkinForKylo(skin) {
+  const raw = String(skin || "magic-school").trim();
+  return SKIN_STORAGE_VALUE[raw] || raw.replaceAll("-", "_");
+}
 
 // Kylo master nyelv: en-GB. A puszta "en" nem érvényes.
 function normalizeLang(lang) {
@@ -47,6 +62,17 @@ function sha1(s) {
 
 function safeUrl(u, base) {
   try { return new URL(u, base).toString(); } catch { return null; }
+}
+
+function urlForPath(baseUrl, pathname) {
+  try { return new URL(pathname, baseUrl).toString(); } catch { return baseUrl; }
+}
+
+function pathKeyOf(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    return `${u.origin}${u.pathname}`;
+  } catch { return String(rawUrl); }
 }
 
 function samePath(a, b) {
@@ -115,6 +141,50 @@ async function collectInternalLinks(page, baseHost) {
   }, baseHost);
 }
 
+async function acceptCookiesIfVisible(page) {
+  const buttons = [
+    'button:has-text("Elfogadom")',
+    'button:has-text("Accept")',
+    'button:has-text("OK")',
+  ];
+  for (const sel of buttons) {
+    try {
+      const btn = await page.$(sel);
+      if (btn) {
+        await btn.click({ timeout: 1500 });
+        await page.waitForTimeout(400);
+        return true;
+      }
+    } catch {}
+  }
+  return false;
+}
+
+async function setKyloSkin(page, baseUrl, skin, log) {
+  const storageValue = normalizeSkinForKylo(skin);
+  try {
+    if (!page.url().startsWith(new URL(baseUrl).origin)) {
+      await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+    }
+    await page.evaluate((value) => {
+      localStorage.setItem("selectedSkin", value);
+      document.documentElement.setAttribute("data-skin", value);
+    }, storageValue);
+    log("info", `Skin beállítva localStorage alapján: ${skin} → ${storageValue}`);
+    return true;
+  } catch (e) {
+    log("warn", `Skin beállítása nem sikerült (${skin}): ${e.message}`);
+    return false;
+  }
+}
+
+async function visibleLoginFields(page) {
+  return await page.evaluate(() => ({
+    email: !!document.querySelector('input[type="email"], input#login-email, input[name*="email" i], input[id*="email" i]'),
+    password: !!document.querySelector('input[type="password"], input#login-password'),
+  })).catch(() => ({ email: false, password: false }));
+}
+
 async function clickLogo7Times(page, log) {
   log("info", "Belépéshez: 7× kattintás a bal felső kutyás logóra…");
   // Best-effort szelektorok
@@ -153,51 +223,179 @@ async function tryLogin(page, creds, log) {
     log("warn", "Nincs email/password credential — átugorjuk a bejelentkezést.");
     return false;
   }
+  await acceptCookiesIfVisible(page);
   // Várjuk hogy megjelenjen egy email input
   try {
-    await page.waitForSelector('input[type="email"], input[name*="email" i], input[id*="email" i]', { timeout: 8000 });
+    await page.waitForSelector('input[type="email"], input#login-email, input[name*="email" i], input[id*="email" i]', { timeout: 8000 });
   } catch {
     log("warn", "Email input nem jelent meg — próbáljuk anélkül.");
     return false;
   }
-  const emailInp = await page.$('input[type="email"], input[name*="email" i], input[id*="email" i]');
-  const passInp = await page.$('input[type="password"]');
+  const emailInp = await page.$('input#login-email, input[type="email"], input[name*="email" i], input[id*="email" i]');
+  const passInp = await page.$('input#login-password, input[type="password"]');
   if (!emailInp || !passInp) { log("warn", "Login mezők nem találhatóak."); return false; }
   await emailInp.fill(email);
   await passInp.fill(password);
-  const submit = await page.$('button[type="submit"], button:has-text("Bejelentkez"), button:has-text("Login"), button:has-text("Sign in")');
+  const submit = await page.$('button[type="submit"]:has-text("Belépés"), button:has-text("Bejelentkez"), button:has-text("Login"), button:has-text("Sign in"), button[type="submit"]');
   if (submit) await submit.click();
   else await passInp.press("Enter");
   await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
-  log("info", "Belépés megtörtént (vagy megkíséreltük).");
+  await page.waitForTimeout(1200);
+  const fields = await visibleLoginFields(page);
+  if (fields.password) {
+    log("warn", "Belépés után is látszik a jelszómező — a login valószínűleg nem sikerült.");
+    return false;
+  }
+  log("info", `Belépés sikeresnek tűnik — aktuális URL: ${page.url()}`);
   return true;
 }
 
-async function trySetLanguage(page, lang, log) {
-  // Best-effort: kereszthivatkozású közös patternek
-  const tries = [
-    async () => { const btn = await page.$(`[data-lang="${lang}"]`); if (btn) { await btn.click(); return true; } return false; },
-    async () => {
-      const btn = await page.$(`button:has-text("${lang.toUpperCase()}"), a:has-text("${lang.toUpperCase()}")`);
-      if (btn) { await btn.click(); return true; } return false;
-    },
-  ];
-  for (const fn of tries) {
-    try { if (await fn()) { log("info", `Nyelv beállítva: ${lang}`); await page.waitForTimeout(500); return true; } } catch {}
-  }
-  log("warn", `Nyelv beállítása nem sikerült (${lang}) — folytatjuk a jelenlegi UI-val.`);
-  return false;
+async function collectClickableTargets(page, maxTargets) {
+  return await page.evaluate((maxTargets) => {
+    const skip = /(google|apple|lovable|dismiss|elfogadom|accept|cookie|kijelentkez|logout|törlés|delete|fizetés|payment|unsubscribe)/i;
+    function isVisible(el) {
+      const r = el.getBoundingClientRect();
+      const s = getComputedStyle(el);
+      return r.width > 4 && r.height > 4 && s.visibility !== "hidden" && s.display !== "none" && Number(s.opacity) > 0.05;
+    }
+    function cssPath(el) {
+      const parts = [];
+      let cur = el;
+      for (let depth = 0; cur && cur.nodeType === 1 && cur !== document.body && depth < 5; depth++) {
+        const id = cur.id ? `#${CSS.escape(cur.id)}` : "";
+        if (id) { parts.unshift(`${cur.tagName.toLowerCase()}${id}`); break; }
+        const parent = cur.parentElement;
+        if (!parent) break;
+        const same = Array.from(parent.children).filter((x) => x.tagName === cur.tagName);
+        const idx = same.indexOf(cur) + 1;
+        parts.unshift(`${cur.tagName.toLowerCase()}:nth-of-type(${idx})`);
+        cur = parent;
+      }
+      return parts.join(" > ");
+    }
+    const nodes = Array.from(document.querySelectorAll('a[href], button, [role="button"], [data-radix-collection-item], input[type="button"], input[type="submit"]'));
+    const out = [];
+    const seen = new Set();
+    for (const el of nodes) {
+      if (!isVisible(el) || el.disabled) continue;
+      const text = (el.innerText || el.value || el.getAttribute("aria-label") || el.getAttribute("title") || "").trim();
+      const href = el.getAttribute("href") || "";
+      const label = text || href;
+      if (!label || skip.test(label)) continue;
+      const selector = cssPath(el);
+      if (!selector || seen.has(selector)) continue;
+      seen.add(selector);
+      out.push({ selector, label: label.slice(0, 80) });
+      if (out.length >= maxTargets) break;
+    }
+    return out;
+  }, maxTargets).catch(() => []);
 }
 
-async function trySetSkin(page, skin, log) {
-  if (!skin || skin === "default") return true;
-  const tries = [
-    async () => { const el = await page.$(`[data-skin="${skin}"]`); if (el) { await el.click(); return true; } return false; },
-    async () => { const el = await page.$(`button:has-text("${skin}"), a:has-text("${skin}")`); if (el) { await el.click(); return true; } return false; },
-  ];
-  for (const fn of tries) { try { if (await fn()) { log("info", `Skin beállítva: ${skin}`); await page.waitForTimeout(400); return true; } } catch {} }
-  log("warn", `Skin beállítása nem sikerült (${skin}).`);
-  return false;
+async function discoverLinksByClicking(page, sourceUrl, baseHost, log, maxClicks) {
+  const targets = await collectClickableTargets(page, maxClicks);
+  const found = new Set();
+  let interactions = 0;
+
+  for (const target of targets) {
+    try {
+      await page.goto(sourceUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+      await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
+      const before = page.url();
+      const el = await page.$(target.selector);
+      if (!el) continue;
+      await el.click({ timeout: 2500 });
+      interactions++;
+      await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
+      await page.waitForTimeout(600);
+      const after = page.url();
+      try {
+        const u = new URL(after);
+        if (u.host === baseHost && (u.protocol === "http:" || u.protocol === "https:")) {
+          u.hash = "";
+          found.add(u.toString());
+        }
+      } catch {}
+
+      const links = await collectInternalLinks(page, baseHost);
+      for (const l of links) found.add(l);
+
+      if (before !== after) log("info", `Kattintás felderítés: "${target.label}" → ${after}`);
+      else log("info", `Kattintás felderítés: "${target.label}" → ugyanazon az oldalon maradt`);
+    } catch (e) {
+      log("warn", `Kattintás felderítés kihagyva ("${target.label}"): ${e.message}`);
+    }
+  }
+
+  return { links: Array.from(found), interactions };
+}
+
+async function reportAnalyzedPage({ runId, page, url, title, language, skin, isHome, skipLanguageAnalysis, interactions, totalCostRef, log }) {
+  let analyzeRes = null;
+  let screenshotPath = null;
+
+  if (!skipLanguageAnalysis) {
+    const b64 = await shotJpegB64(page);
+    if (b64) {
+      const fname = `${sha1(url + language + skin).slice(0, 12)}-${Date.now()}.jpg`;
+      try {
+        const up = await qaApi.uploadScreenshot({ run_id: runId, filename: fname, screenshot_b64: b64, content_type: "image/jpeg" });
+        screenshotPath = up.path;
+      } catch (e) { log("warn", `screenshot upload hiba: ${e.message}`); }
+
+      const domTexts = await extractDomTexts(page);
+      try {
+        analyzeRes = await qaApi.analyze({
+          screenshot_b64: b64,
+          page_url: url,
+          page_title: title,
+          expected_language: language,
+          skin,
+          dom_texts: domTexts,
+          is_home_page: isHome,
+        });
+        totalCostRef.value += Number(analyzeRes.cost_usd || 0);
+      } catch (e) { log("warn", `analyze hiba: ${e.message}`); }
+    }
+  }
+
+  const issues = analyzeRes?.issues || [];
+  log("info", `[${language}/${skin}] ${url} — ${skipLanguageAnalysis ? "landing nyelvi elemzés kihagyva" : `${issues.length} hiba`} · ${interactions} kattintás`);
+  for (const iss of issues) {
+    try {
+      await qaApi.reportIssue({
+        run_id: runId,
+        severity: iss.severity || "minor",
+        category: iss.category || "other",
+        language,
+        skin,
+        page_url: url,
+        page_title: title,
+        expected_language: language,
+        detected_language: iss.detected_language || null,
+        problematic_text: iss.problematic_text || null,
+        selector: iss.selector || null,
+        ai_diagnosis: iss.diagnosis || null,
+        ai_suggested_fix: iss.suggested_fix || null,
+        screenshot_path: screenshotPath,
+      });
+    } catch (e) { log("warn", `reportIssue hiba: ${e.message}`); }
+  }
+
+  try {
+    const cov = await qaApi.reportCoverage({
+      run_id: runId,
+      url,
+      language,
+      skin,
+      interactions_count: interactions,
+      cost_delta_usd: Number(analyzeRes?.cost_usd || 0),
+    });
+    return !!cov.cost_cap_reached;
+  } catch (e) {
+    log("warn", `reportCoverage hiba — folytatjuk: ${e.message}`);
+    return false;
+  }
 }
 
 export async function runKyloStudyQa({ page, context, spec, creds, log }) {
@@ -208,10 +406,12 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
   const languages = rawLanguages.map(normalizeLang);
   const skins = Array.isArray(qa.skins) && qa.skins.length > 0 ? qa.skins : ["default"];
   const maxPagesPerCombo = Number(qa.max_pages_per_combo || DEFAULT_MAX_PAGES);
+  const maxClicksPerPage = Number(qa.max_clicks_per_page || DEFAULT_MAX_CLICKS_PER_PAGE);
   if (!runId) throw new Error("audit_qa.run_id hiányzik a specből");
 
   const baseHost = new URL(baseUrl).host;
-  let totalCost = 0;
+  const totalCostRef = { value: 0 };
+  let postLoginUrl = null;
 
   log("info", `Kylo.study QA indul — run=${runId}, langs=${languages.join(",")}, skins=${skins.join(",")}, max=${maxPagesPerCombo}`);
 
@@ -234,27 +434,37 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
       }
     });
 
-    // 1) Belépés
+    // 1) Belépés — direkt a /regisztracio oldalról, mert a landing waitlist email mezője nem login.
     await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await acceptCookiesIfVisible(page);
     await clickLogo7Times(page, log);
-    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
-    await tryLogin(page, creds, log);
+    await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
+    let fields = await visibleLoginFields(page);
+    if (!fields.password) {
+      const loginUrl = withLangParam(urlForPath(baseUrl, "/regisztracio"), languages.includes("hu") ? "hu" : languages[0]);
+      log("info", `A rejtett logó-kattintás nem nyitott login formot, direkt belépési oldalra megyek: ${loginUrl}`);
+      await page.goto(loginUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+    }
+    const loggedIn = await tryLogin(page, creds, log);
+    if (loggedIn) {
+      postLoginUrl = page.url();
+    }
 
     // 2) Nyelv × skin ciklusok — a nyelvet ?lang=XX URL paraméterrel állítjuk (Kylo standard)
     for (const language of languages) {
       for (const skin of skins) {
         log("info", `--- Kombináció kezdés: ${language}/${skin} ---`);
-        // Skin továbbra is UI-kattintással, mert nincs URL paramétere
-        await trySetSkin(page, skin, log);
+        await setKyloSkin(page, baseUrl, skin, log);
 
         const visited = new Set(); // pathname-alapú, hogy ne látogassuk többször ugyanazt más query-vel
         const queue = [baseUrl];
+        if (postLoginUrl && new URL(postLoginUrl).host === baseHost) queue.push(postLoginUrl);
         let processed = 0;
 
         while (queue.length > 0 && processed < maxPagesPerCombo) {
           const rawUrl = queue.shift();
-          let pathKey = rawUrl;
-          try { const u = new URL(rawUrl); pathKey = u.origin + u.pathname; } catch {}
+          const pathKey = pathKeyOf(rawUrl);
           if (visited.has(pathKey)) continue;
           visited.add(pathKey);
 
@@ -266,95 +476,40 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
             const title = await page.title().catch(() => "");
             const isHome = samePath(url, baseUrl);
 
+            const initialLinks = await collectInternalLinks(page, baseHost);
+            const discovery = await discoverLinksByClicking(page, url, baseHost, log, maxClicksPerPage);
+            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
+            await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+
             // A landing (/) oldal szándékosan angol nyelvű minden nyelven — kihagyjuk a nyelvi elemzést
-            if (isHome && language !== "en-GB") {
+            const skipLanguageAnalysis = isHome && language !== "en-GB";
+            if (skipLanguageAnalysis) {
               log("info", `Landing oldal (${url}) — szándékosan angol, kihagyjuk a ${language} elemzést.`);
-              // Csak linkgyűjtés
-              const links = await collectInternalLinks(page, baseHost);
-              for (const l of links) {
-                let lk = l; try { const u = new URL(l); lk = u.origin + u.pathname; } catch {}
-                if (!visited.has(lk) && !queue.includes(l)) queue.push(l);
-              }
-              processed++;
-              continue;
             }
 
-            // Screenshot + upload
-            const b64 = await shotJpegB64(page);
-            let screenshotPath = null;
-            if (b64) {
-              const fname = `${sha1(url + language + skin).slice(0, 12)}-${Date.now()}.jpg`;
-              try {
-                const up = await qaApi.uploadScreenshot({ run_id: runId, filename: fname, screenshot_b64: b64, content_type: "image/jpeg" });
-                screenshotPath = up.path;
-              } catch (e) { log("warn", `screenshot upload hiba: ${e.message}`); }
+            const capped = await reportAnalyzedPage({
+              runId,
+              page,
+              url,
+              title,
+              language,
+              skin,
+              isHome,
+              skipLanguageAnalysis,
+              interactions: discovery.interactions,
+              totalCostRef,
+              log,
+            });
+            if (capped) {
+              log("warn", `Költségplafon elérve ($${totalCostRef.value.toFixed(2)}) — leállunk.`);
+              await safeFinishRun(qaApi, log, { run_id: runId, status: "stopped", final_cost_usd: totalCostRef.value });
+              return { run_id: runId, status: "stopped", total_cost_usd: totalCostRef.value };
             }
 
-            // DOM texts + analyze
-            const domTexts = await extractDomTexts(page);
-            let analyzeRes = null;
-            if (b64) {
-              try {
-                analyzeRes = await qaApi.analyze({
-                  screenshot_b64: b64,
-                  page_url: url,
-                  page_title: title,
-                  expected_language: language,
-                  skin,
-                  dom_texts: domTexts,
-                  is_home_page: isHome,
-                });
-                totalCost += Number(analyzeRes.cost_usd || 0);
-              } catch (e) { log("warn", `analyze hiba: ${e.message}`); }
-            }
-
-            // Hibák bejelentése
-            const issues = analyzeRes?.issues || [];
-            log("info", `[${language}/${skin}] ${url} — ${issues.length} hiba`);
-            for (const iss of issues) {
-              try {
-                await qaApi.reportIssue({
-                  run_id: runId,
-                  severity: iss.severity || "minor",
-                  category: iss.category || "other",
-                  language,
-                  skin,
-                  page_url: url,
-                  page_title: title,
-                  expected_language: language,
-                  detected_language: iss.detected_language || null,
-                  problematic_text: iss.problematic_text || null,
-                  selector: iss.selector || null,
-                  ai_diagnosis: iss.diagnosis || null,
-                  ai_suggested_fix: iss.suggested_fix || null,
-                  screenshot_path: screenshotPath,
-                });
-              } catch (e) { log("warn", `reportIssue hiba: ${e.message}`); }
-            }
-
-            // Coverage + cost delta
-            try {
-              const cov = await qaApi.reportCoverage({
-                run_id: runId,
-                url,
-                language,
-                skin,
-                interactions_count: 0,
-                cost_delta_usd: Number(analyzeRes?.cost_usd || 0),
-              });
-              if (cov.cost_cap_reached) {
-                log("warn", `Költségplafon elérve ($${Number(cov.total_cost_usd || totalCost).toFixed(2)}) — leállunk.`);
-                await safeFinishRun(qaApi, log, { run_id: runId, status: "stopped", final_cost_usd: totalCost });
-                return { run_id: runId, status: "stopped", total_cost_usd: totalCost };
-              }
-            } catch (e) {
-              log("warn", `reportCoverage hiba — folytatjuk: ${e.message}`);
-            }
-
-            // További linkek felderítése (nyers URL-ek, ?lang= majd később ráteszünk)
-            const links = await collectInternalLinks(page, baseHost);
+            // További linkek felderítése: statikus linkek + biztonságos gomb/menu kattintások.
+            const links = [...initialLinks, ...discovery.links];
             for (const l of links) {
-              let lk = l; try { const u = new URL(l); lk = u.origin + u.pathname; } catch {}
+              const lk = pathKeyOf(l);
               if (!visited.has(lk) && !queue.includes(l)) queue.push(l);
             }
             processed++;
@@ -366,12 +521,12 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
       }
     }
 
-    await safeFinishRun(qaApi, log, { run_id: runId, status: "completed", final_cost_usd: totalCost });
-    log("info", `Kylo.study QA befejezve — összköltség: $${totalCost.toFixed(4)}`);
-    return { run_id: runId, status: "completed", total_cost_usd: totalCost };
+    await safeFinishRun(qaApi, log, { run_id: runId, status: "completed", final_cost_usd: totalCostRef.value });
+    log("info", `Kylo.study QA befejezve — összköltség: $${totalCostRef.value.toFixed(4)}`);
+    return { run_id: runId, status: "completed", total_cost_usd: totalCostRef.value };
   } catch (e) {
     log("error", `QA fatal: ${e.message}`);
-    await safeFinishRun(qaApi, log, { run_id: runId, status: "failed", final_cost_usd: totalCost });
+    await safeFinishRun(qaApi, log, { run_id: runId, status: "failed", final_cost_usd: totalCostRef.value });
     throw e;
   }
 }
