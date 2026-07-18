@@ -204,7 +204,8 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
   const qa = spec.audit_qa || {};
   const runId = qa.run_id;
   const baseUrl = qa.base_url || "https://kylo.study";
-  const languages = Array.isArray(qa.languages) && qa.languages.length > 0 ? qa.languages : ["hu"];
+  const rawLanguages = Array.isArray(qa.languages) && qa.languages.length > 0 ? qa.languages : ["hu"];
+  const languages = rawLanguages.map(normalizeLang);
   const skins = Array.isArray(qa.skins) && qa.skins.length > 0 ? qa.skins : ["default"];
   const maxPagesPerCombo = Number(qa.max_pages_per_combo || DEFAULT_MAX_PAGES);
   if (!runId) throw new Error("audit_qa.run_id hiányzik a specből");
