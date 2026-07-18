@@ -298,6 +298,10 @@ function QaPage() {
 
           <LiveActivityPanel activity={activityQ.data ?? null} />
 
+          {activeRunId && <CoverageMatrixPanel runId={activeRunId} />}
+
+
+
 
 
           <Card>
