@@ -41,6 +41,7 @@ import {
 import { MoreVertical, Download, Trash2 } from "lucide-react";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useModule } from "@/lib/module/provider";
 
 export const Route = createFileRoute("/_authenticated/audit/qa")({
   head: () => ({
@@ -87,6 +88,7 @@ function canExportFinalRun(run: { status: string }) {
 }
 
 function QaPage() {
+  const { forceModule } = useModule();
   const startFn = useServerFn(startAuditQaRun);
   const listRunsFn = useServerFn(listAuditQaRuns);
   const listIssuesFn = useServerFn(listAuditQaIssues);
@@ -96,6 +98,10 @@ function QaPage() {
   const deleteRunFn = useServerFn(deleteAuditQaRun);
   const exportRunFn = useServerFn(exportAuditQaRun);
   const qc = useQueryClient();
+
+  useEffect(() => {
+    forceModule("audit");
+  }, [forceModule]);
 
   const runsQ = useQuery({
     queryKey: ["audit-qa-runs"],
