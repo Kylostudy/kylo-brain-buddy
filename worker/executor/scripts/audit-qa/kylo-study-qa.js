@@ -25,9 +25,36 @@ import { qaApi } from "./qa-api.js";
 const DEFAULT_MAX_PAGES = 40;
 const DEFAULT_MAX_CLICKS_PER_PAGE = 14;
 
+// Az ezekre a path-okra eső oldalakat SOHA nem elemezzük — attribúciós landingek,
+// admin, standalone modulok stb. A pontos egyezés és a prefix-egyezés is számít.
+const SKIP_PATH_PREFIXES = [
+  "/kylo-landing",
+  "/kylogic/parent",
+  "/kylogic/student",
+  "/dia",
+  "/szulo",
+  "/tanar",
+  "/admin",
+  "/admin0",
+  "/admin-skynet",
+  "/kylo-app",
+  "/kylo-app2",
+  "/spark",
+  "/reklamvideok",
+  "/video-preview",
+];
+
+function isSkippedPath(rawUrl) {
+  try {
+    const p = new URL(rawUrl).pathname.replace(/\/+$/, "") || "/";
+    return SKIP_PATH_PREFIXES.some((pref) => p === pref || p.startsWith(pref + "/"));
+  } catch { return false; }
+}
+
 const SKIN_STORAGE_VALUE = {
   "magic-school": "magic_school",
   magic_school: "magic_school",
+
   alaska: "alaszka",
   alaszka: "alaszka",
   "puppy-cat": "puppy_cat",
@@ -476,6 +503,11 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
           const pathKey = pathKeyOf(rawUrl);
           if (visited.has(pathKey)) continue;
           visited.add(pathKey);
+          if (isSkippedPath(rawUrl)) {
+            log("info", `Kihagyva (skip list): ${rawUrl}`);
+            continue;
+          }
+
 
           const url = withLangParam(rawUrl, language);
 
@@ -516,11 +548,13 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
             }
 
             // További linkek felderítése: statikus linkek + biztonságos gomb/menu kattintások.
-            const links = [...initialLinks, ...discovery.links];
-            for (const l of links) {
-              const lk = pathKeyOf(l);
-              if (!visited.has(lk) && !queue.includes(l)) queue.push(l);
-            }
+          const links = [...initialLinks, ...discovery.links];
+          for (const l of links) {
+            const lk = pathKeyOf(l);
+            if (isSkippedPath(l)) continue;
+            if (!visited.has(lk) && !queue.includes(l)) queue.push(l);
+          }
+
             processed++;
           } catch (e) {
             log("warn", `oldal hiba (${url}): ${e.message}`);
@@ -532,7 +566,9 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
         // tudjuk vakon összeállítani). A landing (/) már megvolt a queue elején.
         const staticExpected = expectedRoutes
           .map((r) => (r?.path || "").trim())
-          .filter((p) => p && p.startsWith("/") && !p.includes(":") && !p.includes("*"));
+          .filter((p) => p && p.startsWith("/") && !p.includes(":") && !p.includes("*"))
+          .filter((p) => !SKIP_PATH_PREFIXES.some((pref) => p === pref || p.startsWith(pref + "/")));
+
         const visitedPathnames = new Set(
           Array.from(visited).map((k) => {
             try { return new URL(k).pathname.replace(/\/+$/, "") || "/"; } catch { return k; }

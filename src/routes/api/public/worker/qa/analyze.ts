@@ -124,7 +124,15 @@ export const Route = createFileRoute("/api/public/worker/qa/analyze")({
 Ellenőrizd MINDET és jelentsd a hibákat strukturáltan.
 
 FONTOS KIZÁRÁSOK — ezeket SOHA ne jelentsd hibaként:
-- A Lovable "Edit with Lovable" / "Made with Lovable" jelvény (általában jobb alsó sarok) — ez platform-elem, NEM az app része.
+- Lovable / preview / development platform-jelvények (pl. "Edit with Lovable", "Made with Lovable", "Available in preview", "Open in editor") — NEM az app része.
+- Tulajdonnevek és márkanevek — nem "translation_missing" és nem "translation_wrong", akármelyik nyelvi oldalon jelennek meg:
+  * Vizsganevek: IELTS, TOEFL, TOEIC, Cambridge English, CAE, CPE, FCE, KET, PET, OET, EF SET, Duolingo English Test, Linguaskill, LCCI, Michigan English Test, ECCE, ECPE, DELF, DALF, TCF, TEF, DELE, SIELE, CILS, CELI, PLIDA, telc, Goethe-Zertifikat, ÖSD, TestDaF, DSH, HSK, HSKK, TOPIK, JLPT, CAPLE, CELPE-Bras, TORFL, ECL, Origó, Euroexam.
+  * Márka / termék: Kylo, Kylo.study, KyloBrain, KyloAudit, Magic School, Alaska, Puppy Cat, Stripe, Google, Apple, MailerLite, Quizlet, Anki, Notion.
+  * Nyelvi szintkódok: A1, A2, B1, B2, C1, C2.
+  * Nyelvtani / téma címek eredeti nyelven (pl. "Past Simple vs Present Perfect", "Konjunktiv II", "Subjuntivo", "Passé composé") — szándékosan az adott nyelven jelennek meg.
+  * Devizajelek (€, Ft, $) és számformátumok — a magyar oldalon is jelenhet € nemzetközi árnál.
+  * Felhasználó által feltöltött tananyag- / tantárgy-címek (pl. "AL-ARABIYYA-TEST") — ezek user content, nem UI szöveg.
+
 - ${is_home_page ? 'Ez a landing (/) oldal — szándékosan angol nyelvű MINDEN nyelvi verzióban (nemzetközi szülőknek szól). Itt SOHA ne jelents "translation_missing" vagy nyelvi hibát; csak layout / kontraszt / levágott szöveg / törött elem hibákat.' : "(landing kizárás itt nem releváns)"}
 
 Ellenőrzési kritériumok:
