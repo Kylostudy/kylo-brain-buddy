@@ -119,6 +119,14 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
       if (credErr) throw new Error(`credentials frissítés sikertelen: ${credErr.message}`);
     }
 
+    // 2c) Elvárt oldalak (checklista) betöltése — a worker célzottan is meglátogatja azokat,
+    // amiket a BFS nem talált meg. Csak a tenanthoz tartozó lista megy át a specbe.
+    const { data: expectedRoutes } = await supabase
+      .from("audit_qa_expected_routes")
+      .select("path, requires_auth")
+      .eq("tenant_id", tenantId)
+      .order("path", { ascending: true });
+
     // 3) queued brain_workflow_runs (a worker ezt claimolja)
     const spec = {
       monitor_type: "kylo-study-qa",
@@ -130,6 +138,10 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
         max_pages_per_combo: data.maxPagesPerCombo,
         max_clicks_per_page: 10,
         cost_cap_usd: data.costCapUsd,
+        expected_routes: (expectedRoutes ?? []).map((r) => ({
+          path: r.path,
+          requires_auth: !!r.requires_auth,
+        })),
       },
     };
     const { error: qErr } = await supabase.from("brain_workflow_runs").insert({
@@ -144,13 +156,237 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
         {
           ts: new Date().toISOString(),
           level: "info",
-          message: `Kylo.study QA futás sorba téve — run_id=${run.id}`,
+          message: `Kylo.study QA futás sorba téve — run_id=${run.id} · ${spec.audit_qa.expected_routes.length} elvárt oldal`,
         },
       ] as never,
     });
     if (qErr) throw new Error(qErr.message);
 
     return { runId: run.id, startedAt: run.started_at, baseUrl: run.base_url };
+  });
+
+// ─────────────────────────────────────────────────────────────
+// Elvárt oldalak (checklista) — CRUD + coverage mátrix
+// ─────────────────────────────────────────────────────────────
+
+export const listExpectedRoutes = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("audit_qa_expected_routes")
+      .select("id, path, note, requires_auth, created_at, updated_at")
+      .order("path", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+const UpsertExpectedRoutesInput = z.object({
+  // Egész lista, egyszerű szöveges import: soronként egy path (opcionálisan " # jegyzet").
+  // A `requires_auth` alapból `true` a `/`-től eltérőnek — a UI-ban módosítható.
+  paths: z.array(
+    z.object({
+      path: z.string().min(1).max(500),
+      note: z.string().max(500).nullable().optional(),
+      requires_auth: z.boolean().optional(),
+    }),
+  ),
+  replaceAll: z.boolean().default(true),
+});
+
+export const upsertExpectedRoutes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => UpsertExpectedRoutesInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .single();
+    if (!prof?.tenant_id) throw new Error("Nincs tenant.");
+    const tenantId = prof.tenant_id;
+
+    // normalizálás: mindig `/`-vel kezdődjön, szóközök trim
+    const clean = data.paths
+      .map((p) => ({
+        path: (p.path.startsWith("/") ? p.path : `/${p.path}`).trim().replace(/\s+/g, ""),
+        note: p.note?.trim() || null,
+        requires_auth: p.requires_auth ?? p.path !== "/",
+      }))
+      .filter((p) => p.path.length > 0);
+
+    if (data.replaceAll) {
+      const { error: delErr } = await supabase
+        .from("audit_qa_expected_routes")
+        .delete()
+        .eq("tenant_id", tenantId);
+      if (delErr) throw new Error(delErr.message);
+    }
+
+    if (clean.length === 0) return { ok: true, count: 0 };
+
+    const rows = clean.map((p) => ({
+      tenant_id: tenantId,
+      path: p.path,
+      note: p.note,
+      requires_auth: p.requires_auth,
+    }));
+    const { error } = await supabase
+      .from("audit_qa_expected_routes")
+      .upsert(rows as never, { onConflict: "tenant_id,path" });
+    if (error) throw new Error(error.message);
+    return { ok: true, count: rows.length };
+  });
+
+// Egy elvárt sablon (pl. `/kviz/:id`) illeszkedik-e egy konkrét URL path-hoz.
+function patternToRegex(pattern: string): RegExp {
+  const escaped = pattern
+    .split("/")
+    .map((seg) => {
+      if (seg.startsWith(":")) return "[^/]+";
+      if (seg === "*") return ".*";
+      return seg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    })
+    .join("/");
+  return new RegExp(`^${escaped}/?$`);
+}
+
+function urlToPath(url: string): string {
+  try {
+    return new URL(url).pathname.replace(/\/+$/, "") || "/";
+  } catch {
+    return url;
+  }
+}
+
+const CoverageMatrixInput = z.object({ runId: z.string().uuid() });
+
+/**
+ * Lefedettségi mátrix: sorok = elvárt route-ok (+ „ismeretlen" bejárt URL-ek),
+ * oszlopok = nyelv×skin kombók, cellák = { visited, issueCount, urls[] }.
+ */
+export const getAuditQaCoverageMatrix = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => CoverageMatrixInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+
+    const [{ data: run }, { data: expected }, { data: coverage }, { data: issues }] =
+      await Promise.all([
+        supabase.from("audit_qa_runs").select("config, base_url").eq("id", data.runId).maybeSingle(),
+        supabase
+          .from("audit_qa_expected_routes")
+          .select("path, note, requires_auth")
+          .order("path", { ascending: true }),
+        supabase
+          .from("audit_qa_coverage")
+          .select("url, language, skin, interactions_count, visited_at")
+          .eq("run_id", data.runId),
+        supabase
+          .from("audit_qa_issues")
+          .select("page_url, language, skin, severity, status")
+          .eq("run_id", data.runId),
+      ]);
+
+    if (!run) throw new Error("Run nem található.");
+
+    // Config-alapú combo lista (a run indulásakor kért nyelvek×skinek)
+    const cfg = (run.config ?? {}) as { languages?: string[]; skins?: string[] };
+    const langs: string[] = Array.isArray(cfg.languages) && cfg.languages.length > 0 ? cfg.languages : ["hu"];
+    const skins: string[] = Array.isArray(cfg.skins) && cfg.skins.length > 0 ? cfg.skins : ["default"];
+    const combos = langs.flatMap((l) => skins.map((s) => ({ language: l, skin: s })));
+
+    const expectedRows = expected ?? [];
+    const coverageRows = coverage ?? [];
+    const issueRows = issues ?? [];
+
+    // Előre gyorsítás: bejárt URL path-ok + lang/skin.
+    const covList = coverageRows.map((c) => ({
+      path: urlToPath(c.url as string),
+      url: c.url as string,
+      language: (c.language ?? null) as string | null,
+      skin: (c.skin ?? null) as string | null,
+    }));
+
+    // URL → open hibák száma
+    const openIssueByUrl = new Map<string, number>();
+    for (const iss of issueRows) {
+      if (iss.status !== "open") continue;
+      const key = `${urlToPath(iss.page_url as string)}|${iss.language ?? ""}|${iss.skin ?? ""}`;
+      openIssueByUrl.set(key, (openIssueByUrl.get(key) ?? 0) + 1);
+    }
+
+    type Cell = { visited: boolean; issueCount: number; urls: string[] };
+    type Row = {
+      path: string;
+      note: string | null;
+      requires_auth: boolean;
+      isExpected: boolean;
+      cells: Record<string, Cell>; // key = `${language}|${skin}`
+    };
+
+    const rows: Row[] = [];
+    const matchedCoverageIdx = new Set<number>();
+
+    for (const exp of expectedRows) {
+      const rx = patternToRegex(exp.path);
+      const cells: Record<string, Cell> = {};
+      for (const combo of combos) {
+        const cell: Cell = { visited: false, issueCount: 0, urls: [] };
+        covList.forEach((c, idx) => {
+          if (c.language !== combo.language || c.skin !== combo.skin) return;
+          if (!rx.test(c.path)) return;
+          matchedCoverageIdx.add(idx);
+          cell.visited = true;
+          cell.urls.push(c.url);
+          cell.issueCount += openIssueByUrl.get(`${c.path}|${combo.language}|${combo.skin}`) ?? 0;
+        });
+        cells[`${combo.language}|${combo.skin}`] = cell;
+      }
+      rows.push({
+        path: exp.path,
+        note: exp.note ?? null,
+        requires_auth: !!exp.requires_auth,
+        isExpected: true,
+        cells,
+      });
+    }
+
+    // „Ismeretlen" — bejárt path-ok, amik semmilyen elvárt patternhez nem passzoltak.
+    const orphanPaths = new Map<string, Row>();
+    covList.forEach((c, idx) => {
+      if (matchedCoverageIdx.has(idx)) return;
+      const key = c.path;
+      let row = orphanPaths.get(key);
+      if (!row) {
+        row = {
+          path: key,
+          note: null,
+          requires_auth: false,
+          isExpected: false,
+          cells: Object.fromEntries(combos.map((cb) => [`${cb.language}|${cb.skin}`, { visited: false, issueCount: 0, urls: [] } as Cell])),
+        };
+        orphanPaths.set(key, row);
+      }
+      const cellKey = `${c.language}|${c.skin}`;
+      const cell = row.cells[cellKey];
+      if (cell) {
+        cell.visited = true;
+        cell.urls.push(c.url);
+        cell.issueCount += openIssueByUrl.get(`${key}|${c.language}|${c.skin}`) ?? 0;
+      }
+    });
+    for (const row of orphanPaths.values()) rows.push(row);
+
+    return {
+      combos,
+      rows,
+      totals: {
+        expectedCount: expectedRows.length,
+        coveredCount: rows.filter((r) => r.isExpected && Object.values(r.cells).some((c) => c.visited)).length,
+        orphanCount: orphanPaths.size,
+      },
+    };
   });
 
 /**

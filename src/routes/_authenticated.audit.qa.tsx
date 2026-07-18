@@ -14,6 +14,9 @@ import {
   deleteAuditQaRun,
   exportAuditQaRun,
   getAuditQaCredentialHint,
+  listExpectedRoutes,
+  upsertExpectedRoutes,
+  getAuditQaCoverageMatrix,
 } from "@/lib/audit-qa.functions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,7 +41,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Download, Trash2 } from "lucide-react";
+import { MoreVertical, Download, Trash2, ListChecks, CheckCircle2, AlertCircle, MinusCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useModule } from "@/lib/module/provider";
@@ -242,7 +246,8 @@ function QaPage() {
             Robot végigmegy minden oldalon, minden nyelven és skinnel, és minden vizuális + fordítási hibát megjelöl.
           </p>
         </div>
-        <div className="min-w-0 sm:shrink-0">
+        <div className="flex flex-wrap gap-2 min-w-0 sm:shrink-0">
+          <ExpectedRoutesDialog />
           <StartRunDialog onStart={(v) => startMut.mutate(v)} pending={startMut.isPending} />
         </div>
       </div>
@@ -292,6 +297,10 @@ function QaPage() {
           </div>
 
           <LiveActivityPanel activity={activityQ.data ?? null} />
+
+          {activeRunId && <CoverageMatrixPanel runId={activeRunId} />}
+
+
 
 
 
@@ -768,4 +777,262 @@ function RunActionsMenu({
     </>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// Coverage mátrix — sorok: elvárt path, oszlopok: nyelv×skin
+// ─────────────────────────────────────────────────────────────
+
+function CoverageMatrixPanel({ runId }: { runId: string }) {
+  const fn = useServerFn(getAuditQaCoverageMatrix);
+  const q = useQuery({
+    queryKey: ["audit-qa-coverage-matrix", runId],
+    queryFn: () => fn({ data: { runId } }),
+    refetchInterval: 5000,
+  });
+
+  if (q.isLoading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base">Lefedettségi mátrix</CardTitle></CardHeader>
+        <CardContent className="text-sm text-muted-foreground">Töltés…</CardContent>
+      </Card>
+    );
+  }
+  const data = q.data;
+  if (!data) return null;
+
+  const { combos, rows, totals } = data;
+  const expectedRows = rows.filter((r) => r.isExpected);
+  const orphanRows = rows.filter((r) => !r.isExpected);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <ListChecks className="h-4 w-4" />
+          Lefedettségi mátrix
+        </CardTitle>
+        <div className="text-xs text-muted-foreground">
+          {totals.coveredCount}/{totals.expectedCount} elvárt oldal érintve
+          {totals.orphanCount > 0 && ` · ${totals.orphanCount} nem tervezett oldal`}
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {expectedRows.length === 0 && orphanRows.length === 0 && (
+          <div className="p-4 text-sm text-muted-foreground">
+            Nincs még adat. Add meg az elvárt oldalak listáját fent az „Elvárt oldalak" gombbal, és indíts egy futást.
+          </div>
+        )}
+        {expectedRows.length > 0 && (
+          <MatrixTable title="Elvárt oldalak (checklista)" combos={combos} rows={expectedRows} />
+        )}
+        {orphanRows.length > 0 && (
+          <div className="border-t">
+            <div className="px-4 py-2 text-xs text-muted-foreground">
+              Nem tervezett oldalak — a robot felfedezte, de nincsenek a checklistán. Érdemes felvenni.
+            </div>
+            <MatrixTable title="" combos={combos} rows={orphanRows} compact />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+type MatrixRow = Awaited<ReturnType<typeof getAuditQaCoverageMatrix>>["rows"][number];
+type MatrixCombo = Awaited<ReturnType<typeof getAuditQaCoverageMatrix>>["combos"][number];
+
+function MatrixTable({
+  title,
+  combos,
+  rows,
+  compact,
+}: {
+  title: string;
+  combos: MatrixCombo[];
+  rows: MatrixRow[];
+  compact?: boolean;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      {title && <div className="px-4 pt-3 pb-1 text-xs font-medium text-muted-foreground">{title}</div>}
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b">
+            <th className="text-left px-4 py-2 font-medium sticky left-0 bg-background z-10 min-w-[160px]">Route</th>
+            {combos.map((c) => (
+              <th key={`${c.language}|${c.skin}`} className="px-2 py-2 font-medium whitespace-nowrap">
+                <div>{c.language}</div>
+                <div className="text-[10px] text-muted-foreground">{c.skin}</div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.path} className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2 sticky left-0 bg-background z-10 font-mono">
+                <div className="truncate max-w-[240px]" title={row.path}>{row.path}</div>
+                {row.note && !compact && (
+                  <div className="text-[10px] text-muted-foreground truncate max-w-[240px]">{row.note}</div>
+                )}
+              </td>
+              {combos.map((c) => {
+                const key = `${c.language}|${c.skin}`;
+                const cell = row.cells[key];
+                return (
+                  <td key={key} className="px-2 py-2 text-center">
+                    <CoverageCell cell={cell} />
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CoverageCell({ cell }: { cell: { visited: boolean; issueCount: number; urls: string[] } | undefined }) {
+  if (!cell || !cell.visited) {
+    return (
+      <span title="Nem járt itt" className="inline-flex items-center text-muted-foreground/50">
+        <MinusCircle className="h-4 w-4" />
+      </span>
+    );
+  }
+  if (cell.issueCount === 0) {
+    return (
+      <span title={`Rendben (${cell.urls.length} URL)`} className="inline-flex items-center text-green-500">
+        <CheckCircle2 className="h-4 w-4" />
+      </span>
+    );
+  }
+  return (
+    <span title={`${cell.issueCount} nyitott hiba`} className="inline-flex items-center gap-1 text-orange-500">
+      <AlertCircle className="h-4 w-4" />
+      <span className="text-[10px] font-medium">{cell.issueCount}</span>
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Elvárt oldalak szerkesztő dialógus
+// ─────────────────────────────────────────────────────────────
+
+const DEFAULT_EXPECTED_ROUTES = `# Egy sor = egy oldal. A ':' paramétert jelöl (pl. /kviz/:id).
+# '#'-tal kezdődő sor jegyzet. Az útvonal után '#' jegyzet jöhet.
+# Példa:
+# /                    # landing
+# /regisztracio        # login/regisztráció
+# /dashboard
+# /olvasonaplo
+# /kviz
+# /kviz/:id
+# /beallitasok
+# /profil
+`;
+
+function parseRoutesText(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .map((line) => {
+      const [rawPath, ...rest] = line.split("#");
+      const path = rawPath.trim();
+      const note = rest.join("#").trim() || null;
+      return { path, note, requires_auth: path !== "/" };
+    })
+    .filter((r) => r.path.length > 0);
+}
+
+function formatRoutesText(rows: Array<{ path: string; note: string | null }>) {
+  if (rows.length === 0) return DEFAULT_EXPECTED_ROUTES;
+  return rows.map((r) => (r.note ? `${r.path}  # ${r.note}` : r.path)).join("\n") + "\n";
+}
+
+function ExpectedRoutesDialog() {
+  const listFn = useServerFn(listExpectedRoutes);
+  const upsertFn = useServerFn(upsertExpectedRoutes);
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+
+  const q = useQuery({
+    queryKey: ["audit-qa-expected-routes"],
+    queryFn: () => listFn(),
+    enabled: open,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (open && q.data) {
+      setText(formatRoutesText(q.data));
+    }
+  }, [open, q.data]);
+
+  const mut = useMutation({
+    mutationFn: (paths: Array<{ path: string; note: string | null; requires_auth: boolean }>) =>
+      upsertFn({ data: { paths, replaceAll: true } }),
+    onSuccess: (res) => {
+      toast.success(`Mentve: ${res.count} elvárt oldal.`);
+      qc.invalidateQueries({ queryKey: ["audit-qa-expected-routes"] });
+      qc.invalidateQueries({ queryKey: ["audit-qa-coverage-matrix"] });
+      setOpen(false);
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
+  const count = useMemo(() => parseRoutesText(text).length, [text]);
+  const savedCount = q.data?.length ?? null;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2">
+          <ListChecks className="h-4 w-4" />
+          Elvárt oldalak
+          {savedCount !== null && savedCount > 0 && (
+            <Badge variant="secondary" className="ml-1">{savedCount}</Badge>
+          )}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Elvárt oldalak — a kylo.study checklistája</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Add meg a kylo.study összes olyan útvonalát, amit szeretnél lefedni. A robot minden
+            futásnál ellenőrzi, hogy ezek mind el lettek-e érve. A statikus oldalakat (`:` nélkül)
+            célzottan is meg fogja látogatni, ha a felfedezés kihagyta őket.
+          </p>
+          <Textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="font-mono text-xs min-h-[320px]"
+            placeholder={DEFAULT_EXPECTED_ROUTES}
+          />
+          <div className="text-xs text-muted-foreground">
+            Beolvasott sorok: <span className="font-medium">{count}</span>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={mut.isPending}>
+            Mégse
+          </Button>
+          <Button
+            disabled={mut.isPending}
+            onClick={() => mut.mutate(parseRoutesText(text))}
+          >
+            {mut.isPending ? "Mentés…" : "Mentés"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 

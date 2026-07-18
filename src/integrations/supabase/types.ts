@@ -58,6 +58,36 @@ export type Database = {
           },
         ]
       }
+      audit_qa_expected_routes: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          path: string
+          requires_auth: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          path: string
+          requires_auth?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          path?: string
+          requires_auth?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_qa_issues: {
         Row: {
           ai_diagnosis: string | null
