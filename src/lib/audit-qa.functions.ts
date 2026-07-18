@@ -56,42 +56,67 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
       .single();
     if (runErr || !run) throw new Error(runErr?.message || "run insert failed");
 
-    // 2) Ha nincs workflow_id, létrehozunk egyet (a brain_workflow_runs FK-t igényel).
+    // 2) Workflow meghatározása. Ha nincs átadva, ÚJRAHASZNÁLJUK a tenant
+    // legutóbbi kylo-study-qa workflow-ját — így nem hoz létre új workflow
+    // sort minden futásnál. Csak akkor csinálunk újat, ha még egy sincs.
     let wfId = data.workflowId ?? null;
     if (!wfId) {
-      const { data: wf, error: wfErr } = await supabase
+      const { data: existing } = await supabase
         .from("workflows")
-        .insert({
-          tenant_id: tenantId,
-          module: "audit",
-          name: `Kylo.study QA — ${new Date().toISOString().slice(0, 16).replace("T", " ")}`,
-          spec: { monitor_type: "kylo-study-qa" } as never,
-        })
         .select("id")
-        .single();
-      if (wfErr || !wf) throw new Error(wfErr?.message || "workflow insert failed");
-      wfId = wf.id;
+        .eq("tenant_id", tenantId)
+        .eq("module", "audit")
+        .contains("spec", { monitor_type: "kylo-study-qa" })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        wfId = existing.id;
+      } else {
+        const { data: wf, error: wfErr } = await supabase
+          .from("workflows")
+          .insert({
+            tenant_id: tenantId,
+            module: "audit",
+            name: "Kylo.study QA — nyelv és skin tesztelés",
+            spec: { monitor_type: "kylo-study-qa" } as never,
+          })
+          .select("id")
+          .single();
+        if (wfErr || !wf) throw new Error(wfErr?.message || "workflow insert failed");
+        wfId = wf.id;
+      }
       await supabase.from("audit_qa_runs").update({ workflow_id: wfId }).eq("id", run.id);
     }
 
-    // 2b) Titkosított credentials mentése a workflow_credentials-be, hogy a worker
-    // claim endpointja dekódolva megkapja (soha ne a specben menjen a jelszó).
-    if (data.email && data.password) {
+    // 2b) Titkosított credentials mentése/frissítése a workflow_credentials-be.
+    // Csak akkor írjuk felül a jelszót, ha a UI-ban tényleg megadtak egy újat.
+    // Így legközelebb elég csak az emailt beírni (vagy azt sem, ha stimmel).
+    const emailIn = (data.email ?? "").trim();
+    const passwordIn = (data.password ?? "").trim();
+    if (emailIn && passwordIn) {
       const { encryptString } = await import("@/lib/credentials/crypto.server");
-      const pw = await encryptString(data.password);
+      const pw = await encryptString(passwordIn);
       const { error: credErr } = await supabase
         .from("workflow_credentials")
         .upsert(
           {
             workflow_id: wfId,
             platform: "kylo-study",
-            username: data.email.trim(),
+            username: emailIn,
             password_ciphertext: pw.ciphertext,
             password_nonce: pw.nonce,
           } as never,
           { onConflict: "workflow_id" },
         );
       if (credErr) throw new Error(`credentials mentése sikertelen: ${credErr.message}`);
+    } else if (emailIn && !passwordIn) {
+      // Csak az emailt frissítjük, a mentett jelszót békén hagyjuk.
+      const { error: credErr } = await supabase
+        .from("workflow_credentials")
+        .update({ username: emailIn } as never)
+        .eq("workflow_id", wfId);
+      if (credErr) throw new Error(`credentials frissítés sikertelen: ${credErr.message}`);
     }
 
     // 3) queued brain_workflow_runs (a worker ezt claimolja)
