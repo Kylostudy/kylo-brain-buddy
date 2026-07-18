@@ -548,11 +548,13 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
             }
 
             // További linkek felderítése: statikus linkek + biztonságos gomb/menu kattintások.
-            const links = [...initialLinks, ...discovery.links];
-            for (const l of links) {
-              const lk = pathKeyOf(l);
-              if (!visited.has(lk) && !queue.includes(l)) queue.push(l);
-            }
+          const links = [...initialLinks, ...discovery.links];
+          for (const l of links) {
+            const lk = pathKeyOf(l);
+            if (isSkippedPath(l)) continue;
+            if (!visited.has(lk) && !queue.includes(l)) queue.push(l);
+          }
+
             processed++;
           } catch (e) {
             log("warn", `oldal hiba (${url}): ${e.message}`);
