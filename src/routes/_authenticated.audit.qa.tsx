@@ -228,31 +228,31 @@ function QaPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 w-full max-w-[1400px] mx-auto min-w-0">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Kylo.study QA riport</h1>
           <p className="text-sm text-muted-foreground">
             Robot végigmegy minden oldalon, minden nyelven és skinnel, és minden vizuális + fordítási hibát megjelöl.
           </p>
         </div>
-        <div className="shrink-0">
+        <div className="min-w-0 sm:shrink-0">
           <StartRunDialog onStart={(v) => startMut.mutate(v)} pending={startMut.isPending} />
         </div>
       </div>
 
       {/* Futások listája */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="grid grid-cols-1 gap-2 min-[560px]:grid-cols-2 xl:grid-cols-3">
         {(runsQ.data ?? []).map((r) => {
           const isActiveRun = isRecentlyActiveRun(r);
           const displayStatus = getRunDisplayStatus(r);
           return (
             <div
               key={r.id}
-              className={`shrink-0 rounded-md border pl-3 pr-1 py-2 text-sm min-w-[240px] flex items-start gap-1 ${activeRunId === r.id ? "border-primary bg-primary/5" : "border-border"}`}
+              className={`min-w-0 rounded-md border pl-3 pr-1 py-2 text-sm flex items-start gap-1 ${activeRunId === r.id ? "border-primary bg-primary/5" : "border-border"}`}
             >
-              <button onClick={() => setSelectedRunId(r.id)} className="flex-1 text-left">
-                <div className="font-medium">{new Date(r.started_at).toLocaleString()}</div>
-                <div className="text-xs text-muted-foreground">
+              <button onClick={() => setSelectedRunId(r.id)} className="min-w-0 flex-1 text-left">
+                <div className="truncate font-medium">{new Date(r.started_at).toLocaleString()}</div>
+                <div className="truncate text-xs text-muted-foreground">
                   {displayStatus} · {r.total_pages_visited} oldal · {r.total_issues_found} hiba · ${Number(r.total_cost_usd).toFixed(2)}
                 </div>
               </button>
@@ -274,7 +274,7 @@ function QaPage() {
 
       {activeRun && (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 xl:grid-cols-4">
             <StatCard title="Státusz" value={getRunDisplayStatus(activeRun)} />
             <StatCard title="Bejárt oldal" value={String(activeRun.total_pages_visited)} />
             <StatCard title="Talált hiba" value={String(activeRun.total_issues_found)} />
@@ -325,11 +325,11 @@ function QaPage() {
               onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
               options={["open", "fixed", "wont_fix", "duplicate"]}
             />
-            <div className="ml-auto flex gap-2">
-              <Button variant="outline" onClick={() => copyPatch("filtered")}>
+            <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row">
+              <Button variant="outline" onClick={() => copyPatch("filtered")} className="min-w-0">
                 Copy AI patch (szűrt)
               </Button>
-              <Button onClick={() => copyPatch("all")}>Copy AI patch (mind)</Button>
+              <Button onClick={() => copyPatch("all")} className="min-w-0">Copy AI patch (mind)</Button>
             </div>
           </div>
 
