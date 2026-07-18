@@ -294,6 +294,7 @@ export const buildAuditQaPatchPackage = createServerFn({ method: "POST" })
 // ─────────────────────────────────────────────────────────────
 
 const RunIdInput = z.object({ runId: z.string().uuid() });
+const ExportRunInput = RunIdInput.extend({ allowSnapshot: z.boolean().default(false) });
 
 /**
  * Egy QA riport teljes törlése.
@@ -345,7 +346,7 @@ export const deleteAuditQaRun = createServerFn({ method: "POST" })
 /** Teljes riport export (run + issues + coverage) JSON-ban. Képekhez 7 napos aláírt URL. */
 export const exportAuditQaRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => RunIdInput.parse(i))
+  .inputValidator((i: unknown) => ExportRunInput.parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
 
@@ -356,6 +357,14 @@ export const exportAuditQaRun = createServerFn({ method: "POST" })
       .maybeSingle();
     if (runErr) throw new Error(runErr.message);
     if (!run) throw new Error("A riport nem található.");
+
+    const terminalStatuses = new Set(["completed", "failed", "timed_out", "cancelled"]);
+    const isFinal = terminalStatuses.has(String(run.status));
+    if (!isFinal && !data.allowSnapshot) {
+      throw new Error(
+        "Ez a riport még nem végleges, ezért nem exportálható végleges JSON-ként. Ha régi running állapotban ragadt, töröld vagy indíts új futást.",
+      );
+    }
 
     const { data: issues, error: issErr } = await supabase
       .from("audit_qa_issues")
@@ -382,10 +391,28 @@ export const exportAuditQaRun = createServerFn({ method: "POST" })
       withSigned.push({ ...iss, screenshot_signed_url: signed });
     }
 
+    const coverageRows = coverage ?? [];
+    const warnings: string[] = [];
+    if (!isFinal) warnings.push("Ez csak élő pillanatkép, nem végleges QA riport.");
+    if (Number(run.total_pages_visited ?? 0) !== coverageRows.length) {
+      warnings.push("A run számláló és a coverage sorok száma eltér, ezért a coverage lista az irányadó.");
+    }
+    if (Number(run.total_issues_found ?? 0) !== withSigned.length) {
+      warnings.push("A run hibaszámláló és az exportált issue sorok száma eltér, ezért az issues lista az irányadó.");
+    }
+
     return {
       exportedAt: new Date().toISOString(),
+      export: {
+        type: isFinal ? "final" : "snapshot",
+        is_final: isFinal,
+        status: run.status,
+        actual_issue_count: withSigned.length,
+        actual_coverage_count: coverageRows.length,
+        warnings,
+      },
       run,
       issues: withSigned,
-      coverage: coverage ?? [],
+      coverage: coverageRows,
     };
   });

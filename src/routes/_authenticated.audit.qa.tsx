@@ -75,6 +75,15 @@ function isRecentlyActiveRun(run: { status: string; started_at: string | null; u
   return !!lastActivity && Date.now() - lastActivity < ACTIVE_RUN_PROTECTION_MS;
 }
 
+function getRunDisplayStatus(run: { status: string; started_at: string | null; updated_at?: string | null }) {
+  if ((run.status === "running" || run.status === "queued") && !isRecentlyActiveRun(run)) return "elakadt";
+  return run.status;
+}
+
+function canExportFinalRun(run: { status: string }) {
+  return ["completed", "failed", "timed_out", "cancelled"].includes(run.status);
+}
+
 function QaPage() {
   const startFn = useServerFn(startAuditQaRun);
   const listRunsFn = useServerFn(listAuditQaRuns);
@@ -117,7 +126,7 @@ function QaPage() {
 
   async function handleExport(runId: string) {
     try {
-      const res = await exportRunFn({ data: { runId } });
+      const res = await exportRunFn({ data: { runId, allowSnapshot: false } });
       const blob = new Blob([JSON.stringify(res, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -128,7 +137,7 @@ function QaPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success("Riport letöltve JSON-ban.");
+      toast.success("Végleges riport letöltve JSON-ban.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     }
@@ -232,6 +241,7 @@ function QaPage() {
       <div className="flex gap-2 overflow-x-auto pb-2">
         {(runsQ.data ?? []).map((r) => {
           const isActiveRun = isRecentlyActiveRun(r);
+          const displayStatus = getRunDisplayStatus(r);
           return (
             <div
               key={r.id}
@@ -240,12 +250,13 @@ function QaPage() {
               <button onClick={() => setSelectedRunId(r.id)} className="flex-1 text-left">
                 <div className="font-medium">{new Date(r.started_at).toLocaleString()}</div>
                 <div className="text-xs text-muted-foreground">
-                  {r.status} · {r.total_pages_visited} oldal · {r.total_issues_found} hiba · ${Number(r.total_cost_usd).toFixed(2)}
+                  {displayStatus} · {r.total_pages_visited} oldal · {r.total_issues_found} hiba · ${Number(r.total_cost_usd).toFixed(2)}
                 </div>
               </button>
               <RunActionsMenu
                 runId={r.id}
                 isActive={isActiveRun}
+                canExport={canExportFinalRun(r)}
                 isDeleting={deleteMut.isPending && deleteMut.variables === r.id}
                 onExport={() => handleExport(r.id)}
                 onDelete={() => deleteMut.mutateAsync(r.id)}
@@ -261,7 +272,7 @@ function QaPage() {
       {activeRun && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <StatCard title="Státusz" value={activeRun.status} />
+            <StatCard title="Státusz" value={getRunDisplayStatus(activeRun)} />
             <StatCard title="Bejárt oldal" value={String(activeRun.total_pages_visited)} />
             <StatCard title="Talált hiba" value={String(activeRun.total_issues_found)} />
             <StatCard
@@ -596,12 +607,14 @@ function StartRunDialog({
 
 function RunActionsMenu({
   isActive,
+  canExport,
   isDeleting,
   onExport,
   onDelete,
 }: {
   runId: string;
   isActive: boolean;
+  canExport: boolean;
   isDeleting: boolean;
   onExport: () => void;
   onDelete: () => Promise<unknown>;
@@ -627,9 +640,9 @@ function RunActionsMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onExport}>
+          <DropdownMenuItem onClick={onExport} disabled={!canExport}>
             <Download className="mr-2 h-4 w-4" />
-            Export (JSON)
+            {canExport ? "Export (végleges JSON)" : "Export csak kész riportnál"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
