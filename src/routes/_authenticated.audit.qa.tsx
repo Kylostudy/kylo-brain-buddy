@@ -409,18 +409,18 @@ function LiveActivityPanel({ activity }: { activity: Activity | null }) {
             <span className="font-medium">{lastLog.message}</span>
           </div>
         )}
-        <div className="max-h-64 overflow-auto rounded-md border bg-muted/30 p-2 font-mono text-xs space-y-0.5">
+        <div className="max-h-64 overflow-auto rounded-md border bg-muted/30 p-2 font-mono text-xs space-y-0.5 min-w-0">
           {logs.length === 0 && <div className="text-muted-foreground">Még nincs log — a konténer most indul…</div>}
           {logs.slice(-200).map((l, i) => (
             <div
               key={i}
-              className={
+              className={`break-all whitespace-pre-wrap ${
                 l.level === "error"
                   ? "text-red-400"
                   : l.level === "warn"
                     ? "text-yellow-500"
                     : "text-foreground/80"
-              }
+              }`}
             >
               <span className="text-muted-foreground">{new Date(l.ts).toLocaleTimeString()}</span>{" "}
               {l.message}
