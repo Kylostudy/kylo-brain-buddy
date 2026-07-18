@@ -227,15 +227,17 @@ function QaPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
+    <div className="p-4 md:p-6 space-y-6 max-w-[1400px] mx-auto min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Kylo.study QA riport</h1>
           <p className="text-sm text-muted-foreground">
             Robot végigmegy minden oldalon, minden nyelven és skinnel, és minden vizuális + fordítási hibát megjelöl.
           </p>
         </div>
-        <StartRunDialog onStart={(v) => startMut.mutate(v)} pending={startMut.isPending} />
+        <div className="shrink-0">
+          <StartRunDialog onStart={(v) => startMut.mutate(v)} pending={startMut.isPending} />
+        </div>
       </div>
 
       {/* Futások listája */}
@@ -272,7 +274,7 @@ function QaPage() {
 
       {activeRun && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard title="Státusz" value={getRunDisplayStatus(activeRun)} />
             <StatCard title="Bejárt oldal" value={String(activeRun.total_pages_visited)} />
             <StatCard title="Talált hiba" value={String(activeRun.total_issues_found)} />
