@@ -46,6 +46,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useModule } from "@/lib/module/provider";
+import { SchedulesPanel } from "@/components/audit-qa/schedules-panel";
 
 export const Route = createFileRoute("/_authenticated/audit/qa")({
   head: () => ({
