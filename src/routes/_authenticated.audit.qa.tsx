@@ -136,7 +136,12 @@ function QaPage() {
     onSettled: () => restorePageInteractivity(),
   });
 
+  const [exportingRunId, setExportingRunId] = useState<string | null>(null);
+
   async function handleExport(runId: string) {
+    if (exportingRunId) return; // duplakattintás blokk
+    setExportingRunId(runId);
+    const toastId = toast.loading("Riport összeállítása...");
     try {
       const res = await exportRunFn({ data: { runId, allowSnapshot: false } });
       const blob = new Blob([JSON.stringify(res, null, 2)], { type: "application/json" });
@@ -149,11 +154,14 @@ function QaPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success("Végleges riport letöltve JSON-ban.");
+      toast.success("Végleges riport letöltve JSON-ban.", { id: toastId });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(e instanceof Error ? e.message : String(e), { id: toastId });
+    } finally {
+      setExportingRunId(null);
     }
   }
+
 
 
   const issuesQ = useQuery({
