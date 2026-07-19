@@ -28,4 +28,5 @@ export const qaApi = {
   reportCoverage: (payload) => post("/api/public/worker/qa/report-coverage", payload),
   uploadScreenshot: (payload) => post("/api/public/worker/qa/upload-screenshot", payload),
   finishRun: (payload) => post("/api/public/worker/qa/finish-run", payload),
+  checkCache: (payload) => post("/api/public/worker/qa/check-cache", payload),
 };

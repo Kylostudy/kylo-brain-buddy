@@ -18,6 +18,10 @@ const StartRunInput = z.object({
   // Ha üres a password, a workflow-hoz korábban mentett jelszót használjuk.
   email: z.string().email().optional().or(z.literal("")),
   password: z.string().max(500).optional().or(z.literal("")),
+  // Diff-mód: ha true, a worker minden oldal előtt megnézi, hogy egy korábbi
+  // BEFEJEZETT run ugyanezt a (url, nyelv, skin, tartalom-hash) kombót már
+  // elemezte-e — ha igen, a cached hibákat klónozza AI-hívás nélkül.
+  diffMode: z.boolean().default(true),
 });
 
 /** Új QA futás indítása. Létrehoz egy audit_qa_runs sort + egy queued brain_workflow_runs sort a workernek. */
@@ -49,6 +53,7 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
           skins: data.skins,
           maxPagesPerCombo: data.maxPagesPerCombo,
           credentialId: data.credentialId ?? null,
+          diffMode: data.diffMode,
         },
         cost_cap_usd: data.costCapUsd,
       })
@@ -138,6 +143,7 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
         max_pages_per_combo: data.maxPagesPerCombo,
         max_clicks_per_page: 10,
         cost_cap_usd: data.costCapUsd,
+        diff_mode: data.diffMode,
         expected_routes: (expectedRoutes ?? []).map((r) => ({
           path: r.path,
           requires_auth: !!r.requires_auth,

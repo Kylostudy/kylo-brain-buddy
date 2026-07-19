@@ -136,7 +136,12 @@ function QaPage() {
     onSettled: () => restorePageInteractivity(),
   });
 
+  const [exportingRunId, setExportingRunId] = useState<string | null>(null);
+
   async function handleExport(runId: string) {
+    if (exportingRunId) return; // duplakattintás blokk
+    setExportingRunId(runId);
+    const toastId = toast.loading("Riport összeállítása...");
     try {
       const res = await exportRunFn({ data: { runId, allowSnapshot: false } });
       const blob = new Blob([JSON.stringify(res, null, 2)], { type: "application/json" });
@@ -149,11 +154,14 @@ function QaPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success("Végleges riport letöltve JSON-ban.");
+      toast.success("Végleges riport letöltve JSON-ban.", { id: toastId });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(e instanceof Error ? e.message : String(e), { id: toastId });
+    } finally {
+      setExportingRunId(null);
     }
   }
+
 
 
   const issuesQ = useQuery({
@@ -179,6 +187,7 @@ function QaPage() {
       email: string;
       password: string;
       maxPagesPerCombo: number;
+      diffMode: boolean;
     }) =>
       startFn({
         data: {
@@ -189,6 +198,7 @@ function QaPage() {
           maxPagesPerCombo: input.maxPagesPerCombo,
           email: input.email,
           password: input.password,
+          diffMode: input.diffMode,
         },
       }),
     onSuccess: (res) => {
@@ -272,6 +282,7 @@ function QaPage() {
                 runId={r.id}
                 isActive={isActiveRun}
                 canExport={canExportFinalRun(r)}
+                isExporting={exportingRunId === r.id}
                 isDeleting={deleteMut.isPending && deleteMut.variables === r.id}
                 onExport={() => handleExport(r.id)}
                 onDelete={() => deleteMut.mutateAsync(r.id)}
@@ -546,6 +557,7 @@ function StartRunDialog({
     email: string;
     password: string;
     maxPagesPerCombo: number;
+    diffMode: boolean;
   }) => void;
   pending: boolean;
 }) {
@@ -557,6 +569,7 @@ function StartRunDialog({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [maxPages, setMaxPages] = useState(300);
+  const [diffMode, setDiffMode] = useState(true);
 
   // Mentett belépési adat hint (email + van-e mentett jelszó) — csak akkor
   // kérjük le, ha a dialóg nyitva van, hogy ne pörögjön feleslegesen.
@@ -670,6 +683,23 @@ function StartRunDialog({
             🔒 A belépési adatok AES-titkosítva mentődnek a workflow-hoz. A worker a claim
             során kapja meg dekódolva — soha nem megy át specen vagy logon.
           </p>
+          <div className="rounded-md border p-3 bg-muted/30">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox
+                checked={diffMode}
+                onCheckedChange={(v) => setDiffMode(v === true)}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-medium">Diff-mód (költségtakarékos)</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Ha egy oldalt egy korábbi <b>befejezett</b> futásban már elemeztünk és a tartalma
+                  nem változott (azonos szöveg-hash), nem hívjuk újra az AI-t — a régi hibákat
+                  klónozzuk. Új projektnél vagy szöveg-változáskor automatikusan AI-t hív.
+                </div>
+              </div>
+            </label>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
@@ -686,6 +716,7 @@ function StartRunDialog({
                 email: email.trim(),
                 password: password.trim(),
                 maxPagesPerCombo: maxPages,
+                diffMode,
               });
               setOpen(false);
             }}
@@ -701,6 +732,7 @@ function StartRunDialog({
 function RunActionsMenu({
   isActive,
   canExport,
+  isExporting,
   isDeleting,
   onExport,
   onDelete,
@@ -708,6 +740,7 @@ function RunActionsMenu({
   runId: string;
   isActive: boolean;
   canExport: boolean;
+  isExporting: boolean;
   isDeleting: boolean;
   onExport: () => void;
   onDelete: () => Promise<unknown>;
@@ -733,9 +766,9 @@ function RunActionsMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onExport} disabled={!canExport}>
+          <DropdownMenuItem onClick={onExport} disabled={!canExport || isExporting} onSelect={(e) => { if (isExporting) e.preventDefault(); }}>
             <Download className="mr-2 h-4 w-4" />
-            {canExport ? "Export (végleges JSON)" : "Export csak kész riportnál"}
+            {isExporting ? "Riport összeállítása…" : (canExport ? "Export (végleges JSON)" : "Export csak kész riportnál")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

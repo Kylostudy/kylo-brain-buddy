@@ -365,56 +365,124 @@ async function discoverLinksByClicking(context, page, sourceUrl, baseHost, log, 
   return { links: Array.from(found), interactions };
 }
 
-async function reportAnalyzedPage({ runId, page, url, title, language, skin, isHome, skipLanguageAnalysis, interactions, totalCostRef, log }) {
+function computePageSignature(url, domTexts) {
+  // Stabil oldal-ujjlenyomat: pathname + a látható DOM szövegek sorted+joined SHA1-je.
+  // Nem érzékeny a screenshot render eltérésekre, viszont bármilyen szövegváltozás új hasht ad.
+  let pathname;
+  try { pathname = new URL(url).pathname.replace(/\/+$/, "") || "/"; }
+  catch { pathname = String(url); }
+  const norm = (domTexts || [])
+    .map((t) => (t?.text || "").trim())
+    .filter(Boolean)
+    .sort();
+  return sha1(pathname + "|" + norm.join("\n"));
+}
+
+async function reportAnalyzedPage({ runId, page, url, title, language, skin, isHome, skipLanguageAnalysis, interactions, totalCostRef, diffMode, log }) {
   let analyzeRes = null;
   let screenshotPath = null;
+  let pageSignature = null;
+  let cacheHit = false;
 
   if (!skipLanguageAnalysis) {
-    const b64 = await shotJpegB64(page);
-    if (b64) {
-      const fname = `${sha1(url + language + skin).slice(0, 12)}-${Date.now()}.jpg`;
-      try {
-        const up = await qaApi.uploadScreenshot({ run_id: runId, filename: fname, screenshot_b64: b64, content_type: "image/jpeg" });
-        screenshotPath = up.path;
-      } catch (e) { log("warn", `screenshot upload hiba: ${e.message}`); }
+    // 1) DOM szövegek + signature — a screenshot előtt, mert diff-mód esetén
+    //    lehet, hogy screenshotot sem kell csinálnunk.
+    const domTexts = await extractDomTexts(page);
+    pageSignature = computePageSignature(url, domTexts);
 
-      const domTexts = await extractDomTexts(page);
+    // 2) Diff-mód: kérdezzük meg a Braint, hogy ezt a pontos (url, lang, skin,
+    //    signature) kombót elemezte-e már egy korábbi BEFEJEZETT run. Ha igen,
+    //    átemeljük a hibákat AI-hívás nélkül.
+    if (diffMode) {
       try {
-        analyzeRes = await qaApi.analyze({
-          screenshot_b64: b64,
+        const cached = await qaApi.checkCache({
+          run_id: runId,
           page_url: url,
-          page_title: title,
-          expected_language: language,
+          language,
           skin,
-          dom_texts: domTexts,
-          is_home_page: isHome,
+          page_signature: pageSignature,
         });
-        totalCostRef.value += Number(analyzeRes.cost_usd || 0);
-      } catch (e) { log("warn", `analyze hiba: ${e.message}`); }
+        if (cached?.hit) {
+          cacheHit = true;
+          const prev = cached.issues || [];
+          log("info", `[${language}/${skin}] ${url} — DIFF CACHE HIT (${prev.length} korábbi hiba, AI kihagyva)`);
+          for (const iss of prev) {
+            try {
+              await qaApi.reportIssue({
+                run_id: runId,
+                severity: iss.severity || "minor",
+                category: iss.category || "other",
+                language: iss.language ?? language,
+                skin: iss.skin ?? skin,
+                page_url: iss.page_url || url,
+                page_title: iss.page_title || title,
+                expected_language: iss.expected_language ?? language,
+                detected_language: iss.detected_language || null,
+                problematic_text: iss.problematic_text || null,
+                selector: iss.selector || null,
+                ai_diagnosis: iss.ai_diagnosis || null,
+                ai_suggested_fix: iss.ai_suggested_fix || null,
+                // A screenshot path a régi run-ra mutat; az issue-hoz továbbra is
+                // működik, mert ugyanabban a bucketben van.
+                screenshot_path: iss.screenshot_path || null,
+              });
+            } catch (e) { log("warn", `cached reportIssue hiba: ${e.message}`); }
+          }
+        }
+      } catch (e) {
+        log("warn", `check-cache hiba — fallback normál elemzésre: ${e.message}`);
+      }
     }
-  }
 
-  const issues = analyzeRes?.issues || [];
-  log("info", `[${language}/${skin}] ${url} — ${skipLanguageAnalysis ? "landing nyelvi elemzés kihagyva" : `${issues.length} hiba`} · ${interactions} kattintás`);
-  for (const iss of issues) {
-    try {
-      await qaApi.reportIssue({
-        run_id: runId,
-        severity: iss.severity || "minor",
-        category: iss.category || "other",
-        language,
-        skin,
-        page_url: url,
-        page_title: title,
-        expected_language: language,
-        detected_language: iss.detected_language || null,
-        problematic_text: iss.problematic_text || null,
-        selector: iss.selector || null,
-        ai_diagnosis: iss.diagnosis || null,
-        ai_suggested_fix: iss.suggested_fix || null,
-        screenshot_path: screenshotPath,
-      });
-    } catch (e) { log("warn", `reportIssue hiba: ${e.message}`); }
+    // 3) Ha nem volt cache hit → normál út: screenshot + Gemini analyze.
+    if (!cacheHit) {
+      const b64 = await shotJpegB64(page);
+      if (b64) {
+        const fname = `${sha1(url + language + skin).slice(0, 12)}-${Date.now()}.jpg`;
+        try {
+          const up = await qaApi.uploadScreenshot({ run_id: runId, filename: fname, screenshot_b64: b64, content_type: "image/jpeg" });
+          screenshotPath = up.path;
+        } catch (e) { log("warn", `screenshot upload hiba: ${e.message}`); }
+
+        try {
+          analyzeRes = await qaApi.analyze({
+            screenshot_b64: b64,
+            page_url: url,
+            page_title: title,
+            expected_language: language,
+            skin,
+            dom_texts: domTexts,
+            is_home_page: isHome,
+          });
+          totalCostRef.value += Number(analyzeRes.cost_usd || 0);
+        } catch (e) { log("warn", `analyze hiba: ${e.message}`); }
+      }
+
+      const issues = analyzeRes?.issues || [];
+      log("info", `[${language}/${skin}] ${url} — ${issues.length} hiba · ${interactions} kattintás`);
+      for (const iss of issues) {
+        try {
+          await qaApi.reportIssue({
+            run_id: runId,
+            severity: iss.severity || "minor",
+            category: iss.category || "other",
+            language,
+            skin,
+            page_url: url,
+            page_title: title,
+            expected_language: language,
+            detected_language: iss.detected_language || null,
+            problematic_text: iss.problematic_text || null,
+            selector: iss.selector || null,
+            ai_diagnosis: iss.diagnosis || null,
+            ai_suggested_fix: iss.suggested_fix || null,
+            screenshot_path: screenshotPath,
+          });
+        } catch (e) { log("warn", `reportIssue hiba: ${e.message}`); }
+      }
+    }
+  } else {
+    log("info", `[${language}/${skin}] ${url} — landing nyelvi elemzés kihagyva · ${interactions} kattintás`);
   }
 
   try {
@@ -424,7 +492,11 @@ async function reportAnalyzedPage({ runId, page, url, title, language, skin, isH
       language,
       skin,
       interactions_count: interactions,
+      // Diff-cache hit esetén nem hívtunk Geminit → nincs delta költség.
       cost_delta_usd: Number(analyzeRes?.cost_usd || 0),
+      // Ezt a signaturet mentjük a screenshot_hash oszlopba — ez az alapja a
+      // következő futás diff-módjának.
+      screenshot_hash: pageSignature,
     });
     return !!cov.cost_cap_reached;
   } catch (e) {
@@ -441,6 +513,7 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
   const languages = rawLanguages.map(normalizeLang);
   const skins = Array.isArray(qa.skins) && qa.skins.length > 0 ? qa.skins : ["default"];
   const maxPagesPerCombo = Number(qa.max_pages_per_combo || DEFAULT_MAX_PAGES);
+  const diffMode = qa.diff_mode !== false; // default true
   const maxClicksPerPage = Number(qa.max_clicks_per_page || DEFAULT_MAX_CLICKS_PER_PAGE);
   const expectedRoutes = Array.isArray(qa.expected_routes) ? qa.expected_routes : [];
   if (!runId) throw new Error("audit_qa.run_id hiányzik a specből");
@@ -539,6 +612,7 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
               skipLanguageAnalysis,
               interactions: discovery.interactions,
               totalCostRef,
+              diffMode,
               log,
             });
             if (capped) {
@@ -591,7 +665,7 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
               const capped = await reportAnalyzedPage({
                 runId, page, url: targeted, title, language, skin,
                 isHome, skipLanguageAnalysis: isHome && language !== "en-GB",
-                interactions: 0, totalCostRef, log,
+                interactions: 0, totalCostRef, diffMode, log,
               });
               processed++;
               if (capped) {
