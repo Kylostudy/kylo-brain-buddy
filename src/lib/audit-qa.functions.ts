@@ -143,6 +143,7 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
         max_pages_per_combo: data.maxPagesPerCombo,
         max_clicks_per_page: 10,
         cost_cap_usd: data.costCapUsd,
+        diff_mode: data.diffMode,
         expected_routes: (expectedRoutes ?? []).map((r) => ({
           path: r.path,
           requires_auth: !!r.requires_auth,
