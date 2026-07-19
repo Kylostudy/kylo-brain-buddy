@@ -541,12 +541,19 @@ function IssueRow({ issue, onMark }: { issue: IssueLike; onMark: (s: "open" | "f
 
 const DEFAULT_LANGS = "hu,en-GB";
 const SKIN_OPTIONS = [
-  { value: "magic-school", label: "Magic School", note: "stabil" },
-  { value: "alaska", label: "Alaska", note: "teszt alatt" },
-  { value: "puppy-cat", label: "Puppy Cat", note: "teszt alatt" },
+  { value: "magic-school", label: "Magic School", note: "fő skin" },
+  { value: "alaska", label: "Alaska", note: "prémium" },
+  { value: "puppy-cat", label: "Puppy Cat", note: "prémium" },
+  { value: "minimal-zold", label: "Minimal Zöld", note: "minimal" },
+  { value: "minimal-kek", label: "Minimal Kék", note: "minimal" },
+  { value: "minimal-piros", label: "Minimal Piros", note: "minimal" },
+  { value: "minimal-lila", label: "Minimal Lila", note: "minimal" },
+  { value: "minimal-arany", label: "Minimal Arany", note: "minimal" },
+  { value: "minimal-turkiz", label: "Minimal Türkiz", note: "minimal" },
 ] as const;
 
-const DEFAULT_SKINS = SKIN_OPTIONS.map((skin) => skin.value);
+const ALL_SKINS = SKIN_OPTIONS.map((skin) => skin.value);
+const DEFAULT_SKINS = ["magic-school"]; // kézi indításnál csak a fő skint állítjuk be alapból
 
 function StartRunDialog({
   onStart,
@@ -627,10 +634,10 @@ function StartRunDialog({
                 variant="outline"
                 onClick={() => {
                   setLangs("en-GB");
-                  setSkins(DEFAULT_SKINS);
+                  setSkins(ALL_SKINS);
                 }}
               >
-                Megjelenés-teszt
+                Megjelenés-teszt (9 skin)
               </Button>
               <Button
                 size="sm"
