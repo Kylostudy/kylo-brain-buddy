@@ -710,6 +710,7 @@ function StartRunDialog({
 function RunActionsMenu({
   isActive,
   canExport,
+  isExporting,
   isDeleting,
   onExport,
   onDelete,
@@ -717,6 +718,7 @@ function RunActionsMenu({
   runId: string;
   isActive: boolean;
   canExport: boolean;
+  isExporting: boolean;
   isDeleting: boolean;
   onExport: () => void;
   onDelete: () => Promise<unknown>;
@@ -742,9 +744,9 @@ function RunActionsMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onExport} disabled={!canExport}>
+          <DropdownMenuItem onClick={onExport} disabled={!canExport || isExporting} onSelect={(e) => { if (isExporting) e.preventDefault(); }}>
             <Download className="mr-2 h-4 w-4" />
-            {canExport ? "Export (végleges JSON)" : "Export csak kész riportnál"}
+            {isExporting ? "Riport összeállítása…" : (canExport ? "Export (végleges JSON)" : "Export csak kész riportnál")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
