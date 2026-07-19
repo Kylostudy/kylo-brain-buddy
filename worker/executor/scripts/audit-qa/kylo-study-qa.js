@@ -665,7 +665,7 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
               const capped = await reportAnalyzedPage({
                 runId, page, url: targeted, title, language, skin,
                 isHome, skipLanguageAnalysis: isHome && language !== "en-GB",
-                interactions: 0, totalCostRef, log,
+                interactions: 0, totalCostRef, diffMode, log,
               });
               processed++;
               if (capped) {
