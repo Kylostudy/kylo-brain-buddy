@@ -34,6 +34,7 @@ import { Route as ApiPublicWorkerQaUploadScreenshotRouteImport } from './routes/
 import { Route as ApiPublicWorkerQaReportIssueRouteImport } from './routes/api/public/worker/qa/report-issue'
 import { Route as ApiPublicWorkerQaReportCoverageRouteImport } from './routes/api/public/worker/qa/report-coverage'
 import { Route as ApiPublicWorkerQaFinishRunRouteImport } from './routes/api/public/worker/qa/finish-run'
+import { Route as ApiPublicWorkerQaCheckCacheRouteImport } from './routes/api/public/worker/qa/check-cache'
 import { Route as ApiPublicWorkerQaAnalyzeRouteImport } from './routes/api/public/worker/qa/analyze'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
@@ -182,6 +183,12 @@ const ApiPublicWorkerQaFinishRunRoute =
     path: '/api/public/worker/qa/finish-run',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerQaCheckCacheRoute =
+  ApiPublicWorkerQaCheckCacheRouteImport.update({
+    id: '/api/public/worker/qa/check-cache',
+    path: '/api/public/worker/qa/check-cache',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerQaAnalyzeRoute =
   ApiPublicWorkerQaAnalyzeRouteImport.update({
     id: '/api/public/worker/qa/analyze',
@@ -258,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
+  '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
   '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
   '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
@@ -292,6 +300,7 @@ export interface FileRoutesByTo {
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
+  '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
   '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
   '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
@@ -328,6 +337,7 @@ export interface FileRoutesById {
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
+  '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
   '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
   '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/worker/qa/analyze'
+    | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
     | '/api/public/worker/qa/report-coverage'
     | '/api/public/worker/qa/report-issue'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/worker/qa/analyze'
+    | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
     | '/api/public/worker/qa/report-coverage'
     | '/api/public/worker/qa/report-issue'
@@ -433,6 +445,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/worker/qa/analyze'
+    | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
     | '/api/public/worker/qa/report-coverage'
     | '/api/public/worker/qa/report-issue'
@@ -465,6 +478,7 @@ export interface RootRouteChildren {
   ApiPublicCrossKylogicWorkflowsRoute: typeof ApiPublicCrossKylogicWorkflowsRoute
   ApiPublicCrossProxiesListRoute: typeof ApiPublicCrossProxiesListRoute
   ApiPublicWorkerQaAnalyzeRoute: typeof ApiPublicWorkerQaAnalyzeRoute
+  ApiPublicWorkerQaCheckCacheRoute: typeof ApiPublicWorkerQaCheckCacheRoute
   ApiPublicWorkerQaFinishRunRoute: typeof ApiPublicWorkerQaFinishRunRoute
   ApiPublicWorkerQaReportCoverageRoute: typeof ApiPublicWorkerQaReportCoverageRoute
   ApiPublicWorkerQaReportIssueRoute: typeof ApiPublicWorkerQaReportIssueRoute
@@ -648,6 +662,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerQaFinishRunRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/qa/check-cache': {
+      id: '/api/public/worker/qa/check-cache'
+      path: '/api/public/worker/qa/check-cache'
+      fullPath: '/api/public/worker/qa/check-cache'
+      preLoaderRoute: typeof ApiPublicWorkerQaCheckCacheRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/qa/analyze': {
       id: '/api/public/worker/qa/analyze'
       path: '/api/public/worker/qa/analyze'
@@ -766,6 +787,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCrossKylogicWorkflowsRoute: ApiPublicCrossKylogicWorkflowsRoute,
   ApiPublicCrossProxiesListRoute: ApiPublicCrossProxiesListRoute,
   ApiPublicWorkerQaAnalyzeRoute: ApiPublicWorkerQaAnalyzeRoute,
+  ApiPublicWorkerQaCheckCacheRoute: ApiPublicWorkerQaCheckCacheRoute,
   ApiPublicWorkerQaFinishRunRoute: ApiPublicWorkerQaFinishRunRoute,
   ApiPublicWorkerQaReportCoverageRoute: ApiPublicWorkerQaReportCoverageRoute,
   ApiPublicWorkerQaReportIssueRoute: ApiPublicWorkerQaReportIssueRoute,
@@ -775,13 +797,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
