@@ -610,6 +610,44 @@ function StartRunDialog({
         </DialogHeader>
         <div className="space-y-3">
           <div>
+            <Label>Preset</Label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setLangs("hu,en-GB,de,es,fr,it,pl,pt,ro");
+                  setSkins(["magic-school"]);
+                }}
+              >
+                Fordítás-teszt
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setLangs("en-GB");
+                  setSkins(DEFAULT_SKINS);
+                }}
+              >
+                Megjelenés-teszt
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setLangs(DEFAULT_LANGS);
+                  setSkins(DEFAULT_SKINS);
+                }}
+              >
+                Alapértelmezett
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              A preset kitölti a nyelveket és skineket. Kézzel bármit felülírhatsz.
+            </p>
+          </div>
+          <div>
             <Label>Base URL</Label>
             <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
           </div>
