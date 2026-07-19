@@ -61,9 +61,43 @@ const SKIN_STORAGE_VALUE = {
   puppy_cat: "puppy_cat",
 };
 
+// A Kylo.study header skin-választójában megjelenő magyar (és angol tartalék)
+// címkék. A crawler ezek alapján keresi meg és kattintja a menüpontot.
+const SKIN_UI_LABELS = {
+  "magic-school": ["Magic School", "Magic-School"],
+  magic_school: ["Magic School", "Magic-School"],
+  alaska: ["Alaszka", "Alaska"],
+  alaszka: ["Alaszka", "Alaska"],
+  "puppy-cat": ["Puppy Cat", "Puppy-Cat"],
+  puppy_cat: ["Puppy Cat", "Puppy-Cat"],
+  "minimal-green": ["Minimal Zöld", "Minimal Green"],
+  minimal_green: ["Minimal Zöld", "Minimal Green"],
+  "minimal-blue": ["Minimal Kék", "Minimal Blue"],
+  minimal_blue: ["Minimal Kék", "Minimal Blue"],
+  "minimal-red": ["Minimal Piros", "Minimal Red"],
+  minimal_red: ["Minimal Piros", "Minimal Red"],
+  "minimal-purple": ["Minimal Lila", "Minimal Purple"],
+  minimal_purple: ["Minimal Lila", "Minimal Purple"],
+  "minimal-gold": ["Minimal Arany", "Minimal Gold"],
+  minimal_gold: ["Minimal Arany", "Minimal Gold"],
+  "minimal-turquoise": ["Minimal Türkiz", "Minimal Turquoise"],
+  minimal_turquoise: ["Minimal Türkiz", "Minimal Turquoise"],
+};
+
+// Az összes skin címke egy listában — így ismerjük fel, ha a dropdown kinyílt.
+const ALL_SKIN_LABELS = Array.from(
+  new Set(Object.values(SKIN_UI_LABELS).flat()),
+);
+
 function normalizeSkinForKylo(skin) {
   const raw = String(skin || "magic-school").trim();
   return SKIN_STORAGE_VALUE[raw] || raw.replaceAll("-", "_");
+}
+
+function labelsForSkin(skin) {
+  const raw = String(skin || "").trim();
+  const alt = raw.replaceAll("-", "_");
+  return SKIN_UI_LABELS[raw] || SKIN_UI_LABELS[alt] || [raw];
 }
 
 // Kylo master nyelv: en-GB. A puszta "en" nem érvényes.
@@ -187,22 +221,155 @@ async function acceptCookiesIfVisible(page) {
   return false;
 }
 
+// A skint a Kylo.study headerén található skin-választó gombbal állítjuk.
+// A gomb a nyelvválasztótól balra van; nincs stabil szelektorunk, ezért
+// végigmegyünk a header gombjain: minden gombra rákattintunk, és megnézzük,
+// hogy megjelenik-e egy skin neveket tartalmazó legördülő menü. Ha igen,
+// abban rákattintunk a célszkin cimkéjére.
 async function setKyloSkin(page, baseUrl, skin, log) {
+  const targetLabels = labelsForSkin(skin);
   const storageValue = normalizeSkinForKylo(skin);
+
+  // Fallback: localStorage + data-skin (nem árt, ha a Kylo bármikor
+  // hozzáolvasna) — de a lényeges munka a UI kattintás.
   try {
     if (!page.url().startsWith(new URL(baseUrl).origin)) {
       await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+      await page.waitForTimeout(600);
     }
     await page.evaluate((value) => {
-      localStorage.setItem("selectedSkin", value);
-      document.documentElement.setAttribute("data-skin", value);
+      try {
+        localStorage.setItem("selectedSkin", value);
+        document.documentElement.setAttribute("data-skin", value);
+      } catch {}
     }, storageValue);
-    log("info", `Skin beállítva localStorage alapján: ${skin} → ${storageValue}`);
+  } catch {}
+
+  // UI-alapú skin választás
+  const result = await page.evaluate(
+    async ({ targetLabels, allLabels }) => {
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      const norm = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+      const targets = targetLabels.map(norm);
+      const anyLabel = allLabels.map(norm);
+
+      function visible(el) {
+        if (!el || !(el instanceof Element)) return false;
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) return false;
+        const cs = window.getComputedStyle(el);
+        return cs.display !== "none" && cs.visibility !== "hidden" && Number(cs.opacity) > 0.05;
+      }
+
+      // Menü elemet keresünk: bármely látható DOM elem, amiben szerepel legalább
+      // egy ismert skin cimke SZÖVEGE — ez a nyitott dropdown.
+      function findOpenMenu() {
+        const nodes = document.querySelectorAll(
+          "[role='menu'], [role='listbox'], [data-radix-menu-content], ul, div"
+        );
+        let bestMatch = null;
+        let bestHits = 0;
+        for (const n of nodes) {
+          if (!visible(n)) continue;
+          const t = norm(n.innerText || n.textContent || "");
+          if (!t || t.length > 800) continue;
+          const hits = anyLabel.reduce((acc, l) => acc + (t.includes(l) ? 1 : 0), 0);
+          if (hits >= 2 && hits > bestHits) {
+            bestMatch = n;
+            bestHits = hits;
+          }
+        }
+        return bestMatch;
+      }
+
+      async function tryClickTargetIn(menu) {
+        if (!menu) return false;
+        const items = menu.querySelectorAll("*");
+        for (const it of items) {
+          if (!visible(it)) continue;
+          // Csak leaf-szerű elemet kattintsunk (kevés gyerekkel), különben az egész menüre
+          if (it.children.length > 3) continue;
+          const t = norm(it.innerText || it.textContent || "");
+          if (!t) continue;
+          if (targets.some((tg) => t === tg || t.startsWith(tg) || t.includes(tg))) {
+            it.scrollIntoView({ block: "center" });
+            it.click();
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // Először: hátha már nyitva van egy menü valahogy
+      let menu = findOpenMenu();
+      if (menu && (await tryClickTargetIn(menu))) return { ok: true, via: "already-open" };
+
+      // Header/nav területen belül próbáljuk először, aztán az egész oldalon.
+      const headers = Array.from(
+        document.querySelectorAll("header, [role='banner'], nav")
+      ).filter(visible);
+      const bodyBtns = Array.from(document.querySelectorAll("body button, body [role='button']"));
+      const scopes = headers.length ? headers : [document.body];
+
+      const candidates = [];
+      for (const scope of scopes) {
+        const btns = scope.querySelectorAll("button, [role='button'], [aria-haspopup]");
+        for (const b of btns) if (visible(b)) candidates.push(b);
+      }
+      // Ha a header nem adott elég gombot, teljes oldal fallback
+      if (candidates.length < 2) {
+        for (const b of bodyBtns) if (visible(b)) candidates.push(b);
+      }
+
+      // Sorbarendezés: header-en belüli, jobb oldali (top-bar) gombok először.
+      candidates.sort((a, b) => {
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        // felső 120px-en belüliek előre
+        const ta = ra.top < 120 ? 0 : 1;
+        const tb = rb.top < 120 ? 0 : 1;
+        if (ta !== tb) return ta - tb;
+        // majd jobbról balra (a jobb felső sarokban van a nyelv és a skin)
+        return rb.right - ra.right;
+      });
+
+      for (const btn of candidates.slice(0, 12)) {
+        try {
+          btn.click();
+        } catch {
+          continue;
+        }
+        await sleep(220);
+        menu = findOpenMenu();
+        if (menu) {
+          const clicked = await tryClickTargetIn(menu);
+          // Zárjuk a menüt (Esc), különben eltakarhatja az első oldal tartalmát
+          document.body.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+          );
+          if (clicked) return { ok: true, via: "clicked-menu" };
+        } else {
+          // ha nyitott menü nélkül maradt, zárjuk le a popovert egy másik kattintással
+          document.body.click();
+          await sleep(80);
+        }
+      }
+
+      return { ok: false, via: "no-menu-found" };
+    },
+    { targetLabels, allLabels: ALL_SKIN_LABELS },
+  ).catch((e) => ({ ok: false, via: "eval-error", error: e.message }));
+
+  if (result?.ok) {
+    log("info", `Skin beállítva UI-ból: ${skin} (${result.via})`);
+    await page.waitForTimeout(600);
     return true;
-  } catch (e) {
-    log("warn", `Skin beállítása nem sikerült (${skin}): ${e.message}`);
-    return false;
   }
+  log(
+    "warn",
+    `Skin UI-választó nem található (${skin}); localStorage fallback használva. ${result?.via || ""}`,
+  );
+  return false;
 }
 
 async function visibleLoginFields(page) {
