@@ -555,6 +555,7 @@ function StartRunDialog({
     email: string;
     password: string;
     maxPagesPerCombo: number;
+    diffMode: boolean;
   }) => void;
   pending: boolean;
 }) {
@@ -566,6 +567,7 @@ function StartRunDialog({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [maxPages, setMaxPages] = useState(300);
+  const [diffMode, setDiffMode] = useState(true);
 
   // Mentett belépési adat hint (email + van-e mentett jelszó) — csak akkor
   // kérjük le, ha a dialóg nyitva van, hogy ne pörögjön feleslegesen.
