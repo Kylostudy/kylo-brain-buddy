@@ -35,6 +35,12 @@ const SKIN_OPTIONS = [
   { value: "magic-school", label: "Magic School" },
   { value: "alaska", label: "Alaska" },
   { value: "puppy-cat", label: "Puppy Cat" },
+  { value: "minimal-zold", label: "Minimal Zöld" },
+  { value: "minimal-kek", label: "Minimal Kék" },
+  { value: "minimal-piros", label: "Minimal Piros" },
+  { value: "minimal-lila", label: "Minimal Lila" },
+  { value: "minimal-arany", label: "Minimal Arany" },
+  { value: "minimal-turkiz", label: "Minimal Türkiz" },
 ] as const;
 
 const TRANSLATION_LANGS = ["hu", "en-GB", "de", "es", "fr", "it", "pl", "pt", "ro"];
