@@ -280,6 +280,7 @@ function QaPage() {
                 runId={r.id}
                 isActive={isActiveRun}
                 canExport={canExportFinalRun(r)}
+                isExporting={exportingRunId === r.id}
                 isDeleting={deleteMut.isPending && deleteMut.variables === r.id}
                 onExport={() => handleExport(r.id)}
                 onDelete={() => deleteMut.mutateAsync(r.id)}
