@@ -18,6 +18,10 @@ const StartRunInput = z.object({
   // Ha üres a password, a workflow-hoz korábban mentett jelszót használjuk.
   email: z.string().email().optional().or(z.literal("")),
   password: z.string().max(500).optional().or(z.literal("")),
+  // Diff-mód: ha true, a worker minden oldal előtt megnézi, hogy egy korábbi
+  // BEFEJEZETT run ugyanezt a (url, nyelv, skin, tartalom-hash) kombót már
+  // elemezte-e — ha igen, a cached hibákat klónozza AI-hívás nélkül.
+  diffMode: z.boolean().default(true),
 });
 
 /** Új QA futás indítása. Létrehoz egy audit_qa_runs sort + egy queued brain_workflow_runs sort a workernek. */
