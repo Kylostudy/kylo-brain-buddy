@@ -187,6 +187,7 @@ function QaPage() {
       email: string;
       password: string;
       maxPagesPerCombo: number;
+      diffMode: boolean;
     }) =>
       startFn({
         data: {
@@ -197,6 +198,7 @@ function QaPage() {
           maxPagesPerCombo: input.maxPagesPerCombo,
           email: input.email,
           password: input.password,
+          diffMode: input.diffMode,
         },
       }),
     onSuccess: (res) => {
