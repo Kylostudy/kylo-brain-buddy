@@ -236,6 +236,83 @@ export type Database = {
           },
         ]
       }
+      audit_qa_schedules: {
+        Row: {
+          base_url: string
+          cost_cap_usd: number
+          created_at: string
+          cron_expression: string
+          diff_mode: boolean
+          enabled: boolean
+          id: string
+          languages: string[]
+          last_run_at: string | null
+          last_run_id: string | null
+          last_run_status: string | null
+          max_pages_per_combo: number
+          name: string
+          next_run_at: string | null
+          preset: string | null
+          skins: string[]
+          tenant_id: string
+          timezone: string
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          base_url?: string
+          cost_cap_usd?: number
+          created_at?: string
+          cron_expression: string
+          diff_mode?: boolean
+          enabled?: boolean
+          id?: string
+          languages: string[]
+          last_run_at?: string | null
+          last_run_id?: string | null
+          last_run_status?: string | null
+          max_pages_per_combo?: number
+          name: string
+          next_run_at?: string | null
+          preset?: string | null
+          skins: string[]
+          tenant_id: string
+          timezone?: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          base_url?: string
+          cost_cap_usd?: number
+          created_at?: string
+          cron_expression?: string
+          diff_mode?: boolean
+          enabled?: boolean
+          id?: string
+          languages?: string[]
+          last_run_at?: string | null
+          last_run_id?: string | null
+          last_run_status?: string | null
+          max_pages_per_combo?: number
+          name?: string
+          next_run_at?: string | null
+          preset?: string | null
+          skins?: string[]
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_qa_schedules_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_workflow_runs: {
         Row: {
           created_at: string
