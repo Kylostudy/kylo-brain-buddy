@@ -681,6 +681,23 @@ function StartRunDialog({
             🔒 A belépési adatok AES-titkosítva mentődnek a workflow-hoz. A worker a claim
             során kapja meg dekódolva — soha nem megy át specen vagy logon.
           </p>
+          <div className="rounded-md border p-3 bg-muted/30">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox
+                checked={diffMode}
+                onCheckedChange={(v) => setDiffMode(v === true)}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-medium">Diff-mód (költségtakarékos)</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Ha egy oldalt egy korábbi <b>befejezett</b> futásban már elemeztünk és a tartalma
+                  nem változott (azonos szöveg-hash), nem hívjuk újra az AI-t — a régi hibákat
+                  klónozzuk. Új projektnél vagy szöveg-változáskor automatikusan AI-t hív.
+                </div>
+              </div>
+            </label>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
