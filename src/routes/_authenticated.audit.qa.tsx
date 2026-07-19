@@ -697,6 +697,7 @@ function StartRunDialog({
                 email: email.trim(),
                 password: password.trim(),
                 maxPagesPerCombo: maxPages,
+                diffMode,
               });
               setOpen(false);
             }}
