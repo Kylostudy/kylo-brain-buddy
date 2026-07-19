@@ -61,9 +61,43 @@ const SKIN_STORAGE_VALUE = {
   puppy_cat: "puppy_cat",
 };
 
+// A Kylo.study header skin-választójában megjelenő magyar (és angol tartalék)
+// címkék. A crawler ezek alapján keresi meg és kattintja a menüpontot.
+const SKIN_UI_LABELS = {
+  "magic-school": ["Magic School", "Magic-School"],
+  magic_school: ["Magic School", "Magic-School"],
+  alaska: ["Alaszka", "Alaska"],
+  alaszka: ["Alaszka", "Alaska"],
+  "puppy-cat": ["Puppy Cat", "Puppy-Cat"],
+  puppy_cat: ["Puppy Cat", "Puppy-Cat"],
+  "minimal-green": ["Minimal Zöld", "Minimal Green"],
+  minimal_green: ["Minimal Zöld", "Minimal Green"],
+  "minimal-blue": ["Minimal Kék", "Minimal Blue"],
+  minimal_blue: ["Minimal Kék", "Minimal Blue"],
+  "minimal-red": ["Minimal Piros", "Minimal Red"],
+  minimal_red: ["Minimal Piros", "Minimal Red"],
+  "minimal-purple": ["Minimal Lila", "Minimal Purple"],
+  minimal_purple: ["Minimal Lila", "Minimal Purple"],
+  "minimal-gold": ["Minimal Arany", "Minimal Gold"],
+  minimal_gold: ["Minimal Arany", "Minimal Gold"],
+  "minimal-turquoise": ["Minimal Türkiz", "Minimal Turquoise"],
+  minimal_turquoise: ["Minimal Türkiz", "Minimal Turquoise"],
+};
+
+// Az összes skin címke egy listában — így ismerjük fel, ha a dropdown kinyílt.
+const ALL_SKIN_LABELS = Array.from(
+  new Set(Object.values(SKIN_UI_LABELS).flat()),
+);
+
 function normalizeSkinForKylo(skin) {
   const raw = String(skin || "magic-school").trim();
   return SKIN_STORAGE_VALUE[raw] || raw.replaceAll("-", "_");
+}
+
+function labelsForSkin(skin) {
+  const raw = String(skin || "").trim();
+  const alt = raw.replaceAll("-", "_");
+  return SKIN_UI_LABELS[raw] || SKIN_UI_LABELS[alt] || [raw];
 }
 
 // Kylo master nyelv: en-GB. A puszta "en" nem érvényes.
