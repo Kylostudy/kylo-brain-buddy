@@ -53,6 +53,7 @@ export const startAuditQaRun = createServerFn({ method: "POST" })
           skins: data.skins,
           maxPagesPerCombo: data.maxPagesPerCombo,
           credentialId: data.credentialId ?? null,
+          diffMode: data.diffMode,
         },
         cost_cap_usd: data.costCapUsd,
       })
