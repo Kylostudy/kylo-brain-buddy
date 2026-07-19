@@ -612,6 +612,7 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
               skipLanguageAnalysis,
               interactions: discovery.interactions,
               totalCostRef,
+              diffMode,
               log,
             });
             if (capped) {
