@@ -263,6 +263,8 @@ function QaPage() {
         </div>
       </div>
 
+      <SchedulesPanel />
+
       {/* Futások listája */}
       <div className="grid grid-cols-1 gap-2 min-[560px]:grid-cols-2 xl:grid-cols-3">
         {(runsQ.data ?? []).map((r) => {
