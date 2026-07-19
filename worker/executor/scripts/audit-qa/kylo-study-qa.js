@@ -513,6 +513,7 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
   const languages = rawLanguages.map(normalizeLang);
   const skins = Array.isArray(qa.skins) && qa.skins.length > 0 ? qa.skins : ["default"];
   const maxPagesPerCombo = Number(qa.max_pages_per_combo || DEFAULT_MAX_PAGES);
+  const diffMode = qa.diff_mode !== false; // default true
   const maxClicksPerPage = Number(qa.max_clicks_per_page || DEFAULT_MAX_CLICKS_PER_PAGE);
   const expectedRoutes = Array.isArray(qa.expected_routes) ? qa.expected_routes : [];
   if (!runId) throw new Error("audit_qa.run_id hiányzik a specből");
