@@ -58,25 +58,33 @@ export const Route = createFileRoute("/api/public/worker/qa/check-cache")({
           .maybeSingle();
         if (!run) return json({ error: "run not found" }, 404);
 
-        // Keressünk egy korábbi BEFEJEZETT runt ugyanazon tenantnál, ahol a
-        // coverage sor page_signature-je egyezik és a nyelv+skin+url is stimmel.
+        // Keressünk korábbi coverage sorokat ugyanezen (tenant, url, language, skin,
+        // signature) kombóra. Kizárjuk az aktuális runt.
         let covQ = supabaseAdmin
           .from("audit_qa_coverage")
-          .select("run_id, url, visited_at, audit_qa_runs!inner(status, tenant_id)")
+          .select("run_id, visited_at")
           .eq("tenant_id", run.tenant_id)
           .eq("screenshot_hash", d.page_signature)
           .eq("url", d.page_url)
           .neq("run_id", d.run_id)
-          .eq("audit_qa_runs.status", "completed")
           .order("visited_at", { ascending: false })
-          .limit(1);
-          
-          covQ = d.language ? covQ.eq("language", d.language) : covQ.is("language", null);
-          covQ = d.skin ? covQ.eq("skin", d.skin) : covQ.is("skin", null);
+          .limit(20);
+        covQ = d.language ? covQ.eq("language", d.language) : covQ.is("language", null);
+        covQ = d.skin ? covQ.eq("skin", d.skin) : covQ.is("skin", null);
 
         const { data: covRows, error: covErr } = await covQ;
         if (covErr) return json({ error: covErr.message }, 500);
-        const prev = covRows?.[0];
+        if (!covRows || covRows.length === 0) return json({ hit: false });
+
+        // Csak befejezett runokat fogadunk el forrásnak.
+        const candidateIds = Array.from(new Set(covRows.map((r) => r.run_id)));
+        const { data: okRuns } = await supabaseAdmin
+          .from("audit_qa_runs")
+          .select("id")
+          .in("id", candidateIds)
+          .eq("status", "completed");
+        const okSet = new Set((okRuns ?? []).map((r) => r.id));
+        const prev = covRows.find((r) => okSet.has(r.run_id));
         if (!prev) return json({ hit: false });
 
         // Betöltjük a korábbi run azon issue-jait, amik ehhez a URL/lang/skin
