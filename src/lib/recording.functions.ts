@@ -30,7 +30,8 @@ async function assertNoActiveRun(
 }
 
 async function assertNoActiveBrowseOrRecord(
-  supabase: { from: (t: string) => { select: (s: string) => { eq: (c: string, v: string) => { in: (c: string, v: string[]) => { maybeSingle: () => Promise<{ data: { id: string; mode: string } | null }> } } } } },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   workflowId: string,
 ) {
   const { data: activeSession } = await supabase
@@ -48,7 +49,8 @@ async function assertNoActiveBrowseOrRecord(
 }
 
 async function createSession(
-  supabase: Parameters<typeof assertNoActiveRun>[0] & { from: (t: string) => any },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   userId: string,
   workflowId: string,
   mode: "record" | "browse",
