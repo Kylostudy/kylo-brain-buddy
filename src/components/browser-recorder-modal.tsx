@@ -610,7 +610,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
         </Button>
         <span className="hidden md:inline px-2 text-xs text-white/60">
-          {statusLabel} · {actions.length} lépés
+          {isBrowseMode ? "Live Browse" : `${statusLabel} · ${actions.length} lépés`}
         </span>
         {inputStatus && (
           <span className="hidden lg:inline max-w-72 truncate px-2 text-xs text-emerald-200/80">
@@ -639,21 +639,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           className="text-white hover:bg-white/10"
           onClick={handleCancel}
           disabled={busy}
-          aria-label="Felvétel elvetése"
+          aria-label={isBrowseMode ? "Live Browse bezárása" : "Felvétel elvetése"}
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : <X className="size-4" />}
-          <span className="ml-1 hidden md:inline">Elvet</span>
+          <span className="ml-1 hidden md:inline">{isBrowseMode ? "Bezár" : "Elvet"}</span>
         </Button>
-        <Button
-          size="sm"
-          variant="default"
-          onClick={handleSave}
-          disabled={busy || actions.length === 0}
-          aria-label="Mentés"
-        >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-          <span className="ml-1 hidden md:inline">Mentés ({actions.length})</span>
-        </Button>
+        {!isBrowseMode && (
+          <Button
+            size="sm"
+            variant="default"
+            onClick={handleSave}
+            disabled={busy || actions.length === 0}
+            aria-label="Mentés"
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+            <span className="ml-1 hidden md:inline">Mentés ({actions.length})</span>
+          </Button>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1">
