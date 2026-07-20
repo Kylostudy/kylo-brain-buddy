@@ -123,18 +123,19 @@ export function CredentialsForm({ workflowId }: { workflowId: string }) {
   }, [status?.exists, status?.platform, status?.username, status?.proxyId]);
 
   async function handleSave() {
-    // Csak-proxy mentés: ha nincs platform / username / jelszó / cookie, de proxy be van állítva → OK.
+    // Csak-proxy mentés: ha nincs username / jelszó / cookie, de proxy be van állítva → OK.
+    // A platform lehet előre kiválasztott a workflow specből — az önmagában nem tesz kötelezővé fiókmezőket.
     const onlyProxy =
-      !platform && !username.trim() && !password && !cookie && proxyId;
+      !username.trim() && !password && !cookie && !!proxyId;
 
     if (!onlyProxy) {
       // Ha bármelyik fiókmező ki van töltve, kérjük be a teljes minimumot.
       if (!platform) {
-        toast.error("Válassz platformot (vagy hagyj mindent üresen és csak proxyt ments).");
+        toast.error("Válassz platformot (vagy hagyd üresen a fiókmezőket és csak proxyt ments).");
         return;
       }
       if (!username.trim()) {
-        toast.error("Felhasználónév kötelező (vagy hagyj mindent üresen és csak proxyt ments).");
+        toast.error("Felhasználónév kötelező (vagy hagyd üresen és csak proxyt ments).");
         return;
       }
       if (!password && !cookie && !status?.hasPassword && !status?.hasCookie) {
