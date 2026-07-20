@@ -55,6 +55,9 @@ type Props = {
   open: boolean;
   sessionId: string | null;
   onClose: () => void;
+  // 'record' = login flow felvétele (a végén Mentés gomb menti a lépéseket).
+  // 'browse' = élő kézi böngészés (Mentés gomb rejtve, csak süti-mentés + Bezár).
+  mode?: "record" | "browse";
 };
 
 type Frame = { dataUrl: string; w: number; h: number; ts: number };
@@ -63,7 +66,8 @@ function normalizeBrowserUrl(rawUrl: string) {
   return normalizeRecordingStartUrl(rawUrl, undefined) ?? "";
 }
 
-export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
+export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record" }: Props) {
+  const isBrowseMode = mode === "browse";
   const callSave = useServerFn(saveRecording);
   const callCancel = useServerFn(cancelRecording);
 
