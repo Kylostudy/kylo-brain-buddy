@@ -320,6 +320,16 @@ export function AppSidebar() {
           <SidebarGroupLabel>Erőforrások</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {module === "brain" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath === "/inbox"}>
+                    <Link to="/inbox" className="flex items-center gap-2">
+                      <Inbox className="size-4 shrink-0" />
+                      <span className="truncate">Reddit Inbox</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={currentPath === "/proxies"}>
                   <Link to="/proxies" className="flex items-center gap-2">
