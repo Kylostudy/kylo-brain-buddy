@@ -27,6 +27,85 @@ export const Route = createFileRoute("/_authenticated/inbox")({
 
 type RedditComment = Awaited<ReturnType<typeof listRedditComments>>[number];
 
+function sanitizePlainText(input: string): string {
+  return input
+    // zero-width & BOM
+    .replace(/[\u200B-\u200D\uFEFF\u2060]/g, "")
+    // non-breaking + exotic spaces -> normal space
+    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, " ")
+    // smart quotes -> ascii
+    .replace(/[\u2018\u2019\u201A\u201B\u2032]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"')
+    // dashes -> ascii
+    .replace(/[\u2013\u2014\u2212]/g, "-")
+    // ellipsis
+    .replace(/\u2026/g, "...")
+    // soft hyphen
+    .replace(/\u00AD/g, "")
+    // other invisible control chars (keep \n and \t)
+    .replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "")
+    // normalize line endings + trim trailing spaces on each line
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((l) => l.replace(/[ \t]+$/g, ""))
+    .join("\n")
+    // collapse 3+ blank lines to 2
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function PlainTextSanitizer() {
+  const [raw, setRaw] = useState("");
+  const cleaned = useMemo(() => sanitizePlainText(raw), [raw]);
+  const changed = raw.length - cleaned.length;
+
+  async function copyClean() {
+    if (!cleaned) return;
+    await navigator.clipboard.writeText(cleaned);
+    toast.success("Tiszta plain text a vágólapon.");
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Plain Text tisztító</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Wordből / Docsból ide illeszd (Ctrl+V), majd „Vágólapra tisztán" — láthatatlan karakterek,
+          okos idézőjelek, hosszú kötőjelek eltávolítva. Így nyugodtan mehet Redditbe.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Textarea
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          rows={5}
+          placeholder="Ide illeszd a Wordből / Docsból másolt szöveget…"
+          className="font-mono text-sm"
+        />
+        {raw && (
+          <div className="rounded-md border bg-muted/40 p-2 text-xs">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-muted-foreground">
+                Előnézet · {cleaned.length} karakter
+                {changed > 0 ? ` · ${changed} gyanús karakter eltávolítva` : ""}
+              </span>
+            </div>
+            <pre className="whitespace-pre-wrap break-words font-mono text-xs">{cleaned}</pre>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Button size="sm" onClick={copyClean} disabled={!cleaned}>
+            <Copy className="mr-1 h-3 w-3" /> Vágólapra tisztán
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setRaw("")} disabled={!raw}>
+            Ürítés
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function InboxPage() {
   const qc = useQueryClient();
   const callWorkflows = useServerFn(listRedditWorkflows);
@@ -117,6 +196,9 @@ function InboxPage() {
           kézi másolás.
         </p>
       </header>
+
+      <PlainTextSanitizer />
+
 
       <div className="flex flex-wrap gap-2">
         {workflows.map((w) => {
