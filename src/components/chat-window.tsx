@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Brain, Play, Pencil, Video, KeyRound } from "lucide-react";
+import { Brain, Play, Pencil, Video, KeyRound, Globe } from "lucide-react";
 import { MicButton } from "@/components/mic-button";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
-import { startRecording } from "@/lib/recording.functions";
+import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
 
 
 import {
@@ -83,11 +83,13 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const callStartRun = useServerFn(startRun);
   const callStartReplayLogin = useServerFn(startReplayLoginRun);
   const callStartRecording = useServerFn(startRecording);
+  const callStartLiveBrowse = useServerFn(startLiveBrowse);
   const [sending, setSending] = useState(false);
   const [starting, setStarting] = useState(false);
   const [replayLoginStarting, setReplayLoginStarting] = useState(false);
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
+  const [recordMode, setRecordMode] = useState<"record" | "browse">("record");
   const [runner, setRunner] = useState<"docker">("docker");
   const [selectedProxyId, setSelectedProxyId] = useState<string>("");
 
@@ -312,10 +314,36 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
               variant="outline"
               onClick={async () => {
                 try {
+                  const session = await callStartLiveBrowse({
+                    data: { workflowId },
+                  });
+                  setRecordSessionId(session.id);
+                  setRecordMode("browse");
+                  setRecordOpen(true);
+                } catch (e) {
+                  toast.error(
+                    e instanceof Error
+                      ? `Live Browse indítása sikertelen: ${e.message}`
+                      : "Live Browse indítása sikertelen",
+                  );
+                }
+              }}
+              title="Élő böngésző az accounthoz (kézi belépés, kézi válasz — nem menti a lépéseket, csak sütiket)"
+            >
+              <Globe className="size-4" />
+              <span className="ml-1.5 hidden sm:inline">Live Browse</span>
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                try {
                   const session = await callStartRecording({
                     data: { workflowId },
                   });
                   setRecordSessionId(session.id);
+                  setRecordMode("record");
                   setRecordOpen(true);
                 } catch (e) {
                   toast.error(
@@ -325,7 +353,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                   );
                 }
               }}
-              title="Élő böngésző felvétele"
+              title="Élő böngésző felvétele (login flow rögzítése lejátszáshoz)"
             >
               <Video className="size-4" />
               <span className="ml-1.5 hidden sm:inline">Felvétel</span>
@@ -478,6 +506,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
       <BrowserRecorderModal
         open={recordOpen}
         sessionId={recordSessionId}
+        mode={recordMode}
         onClose={() => {
           setRecordOpen(false);
           setRecordSessionId(null);

@@ -55,6 +55,9 @@ type Props = {
   open: boolean;
   sessionId: string | null;
   onClose: () => void;
+  // 'record' = login flow felvétele (a végén Mentés gomb menti a lépéseket).
+  // 'browse' = élő kézi böngészés (Mentés gomb rejtve, csak süti-mentés + Bezár).
+  mode?: "record" | "browse";
 };
 
 type Frame = { dataUrl: string; w: number; h: number; ts: number };
@@ -63,7 +66,8 @@ function normalizeBrowserUrl(rawUrl: string) {
   return normalizeRecordingStartUrl(rawUrl, undefined) ?? "";
 }
 
-export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
+export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record" }: Props) {
+  const isBrowseMode = mode === "browse";
   const callSave = useServerFn(saveRecording);
   const callCancel = useServerFn(cancelRecording);
 
@@ -606,7 +610,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
           {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
         </Button>
         <span className="hidden md:inline px-2 text-xs text-white/60">
-          {statusLabel} · {actions.length} lépés
+          {isBrowseMode ? "Live Browse" : `${statusLabel} · ${actions.length} lépés`}
         </span>
         {inputStatus && (
           <span className="hidden lg:inline max-w-72 truncate px-2 text-xs text-emerald-200/80">
@@ -635,21 +639,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose }: Props) {
           className="text-white hover:bg-white/10"
           onClick={handleCancel}
           disabled={busy}
-          aria-label="Felvétel elvetése"
+          aria-label={isBrowseMode ? "Live Browse bezárása" : "Felvétel elvetése"}
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : <X className="size-4" />}
-          <span className="ml-1 hidden md:inline">Elvet</span>
+          <span className="ml-1 hidden md:inline">{isBrowseMode ? "Bezár" : "Elvet"}</span>
         </Button>
-        <Button
-          size="sm"
-          variant="default"
-          onClick={handleSave}
-          disabled={busy || actions.length === 0}
-          aria-label="Mentés"
-        >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-          <span className="ml-1 hidden md:inline">Mentés ({actions.length})</span>
-        </Button>
+        {!isBrowseMode && (
+          <Button
+            size="sm"
+            variant="default"
+            onClick={handleSave}
+            disabled={busy || actions.length === 0}
+            aria-label="Mentés"
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+            <span className="ml-1 hidden md:inline">Mentés ({actions.length})</span>
+          </Button>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1">

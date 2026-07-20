@@ -898,6 +898,7 @@ export type Database = {
           ended_at: string | null
           error: string | null
           id: string
+          mode: string
           start_url: string | null
           started_at: string | null
           status: string
@@ -912,6 +913,7 @@ export type Database = {
           ended_at?: string | null
           error?: string | null
           id?: string
+          mode?: string
           start_url?: string | null
           started_at?: string | null
           status?: string
@@ -926,6 +928,7 @@ export type Database = {
           ended_at?: string | null
           error?: string | null
           id?: string
+          mode?: string
           start_url?: string | null
           started_at?: string | null
           status?: string
