@@ -181,6 +181,21 @@ export const startReplayLoginRun = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
 
+    // Konkurencia védelem: nincs egyidejű Live Browse / felvétel session.
+    const { data: openSession } = await supabase
+      .from("recording_sessions")
+      .select("id, mode")
+      .eq("workflow_id", data.workflowId)
+      .in("status", ["requested", "active"])
+      .maybeSingle();
+    if (openSession) {
+      const label = openSession.mode === "browse" ? "Live Browse" : "felvétel";
+      throw new Error(
+        `Nyitva van egy ${label} ablak ehhez a workflow-hoz — zárd be előbb, hogy ne legyen kettős belépés az accountba.`,
+      );
+    }
+
+
     const { data: wf, error: wfErr } = await supabase
       .from("workflows")
       .select("spec, tenant_id, module")
