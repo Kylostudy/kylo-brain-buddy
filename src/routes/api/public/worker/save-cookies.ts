@@ -117,7 +117,7 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
 
         const { data: wf, error: wErr } = await sb
           .from("workflows")
-          .select("id, tenant_id, platform")
+          .select("id, tenant_id, platform, spec")
           .eq("id", session.workflow_id)
           .maybeSingle();
         if (wErr || !wf) {
@@ -127,8 +127,14 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
           );
         }
 
-        if (!hasRequiredCookies(wf.platform, cookies)) {
-          const req = REQUIRED_COOKIES[(wf.platform || "").toLowerCase()] || [];
+        const specPlatform =
+          wf.spec && typeof wf.spec === "object" && !Array.isArray(wf.spec)
+            ? String((wf.spec as Record<string, unknown>).platform ?? "")
+            : "";
+        const resolvedPlatform = (wf.platform || specPlatform || "unknown").toLowerCase();
+
+        if (!hasRequiredCookies(resolvedPlatform, cookies)) {
+          const req = REQUIRED_COOKIES[resolvedPlatform] || [];
           return new Response(
             JSON.stringify({
               error: `hiányzik a bejelentkezési süti (${req.join(", ")}). A session valószínűleg nincs bejelentkezve — jelentkezz be előbb a recorder böngészőjében.`,
@@ -147,7 +153,7 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
         // ezért (workflow_id, platform) párra keresünk, nem csak workflow_id-ra.
         // Enélkül a Pinterest sütik felülírnák a Gmail sor cookie mezőit, és
         // a platform oszlop hibásan "gmail" maradna.
-        const platformKey = (wf.platform || "unknown").toLowerCase();
+        const platformKey = resolvedPlatform;
         const { data: existing } = await sb
           .from("workflow_credentials")
           .select("id")
@@ -191,7 +197,7 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
           JSON.stringify({
             ok: true,
             savedCount: cookies.length,
-            platform: wf.platform,
+            platform: platformKey,
             workflowId: wf.id,
           }),
           { status: 200, headers: { "content-type": "application/json" } },
