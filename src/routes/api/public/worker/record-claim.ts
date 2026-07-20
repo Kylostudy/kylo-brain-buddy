@@ -15,6 +15,14 @@ import type { Database } from "@/integrations/supabase/types";
 
 const PINTEREST_LOGIN_URL = "https://www.pinterest.com/login/";
 
+function normalizeCountryCode(country: string | null | undefined) {
+  const value = String(country || "").trim().toUpperCase();
+  if (!value) return null;
+  if (value === "USA") return "US";
+  if (value === "UK") return "GB";
+  return value;
+}
+
 function checkAuth(request: Request): string | null {
   const token = process.env.WORKER_API_TOKEN?.trim();
   if (!token) return "WORKER_API_TOKEN nincs beállítva";
@@ -98,40 +106,48 @@ async function loadWorkflowProxy(
     }
   };
 
-  // Cookie-k összegyűjtése + de-duplikálás (name+domain+path kulcs)
+  // Cookie-k összegyűjtése + de-duplikálás (name+domain+path kulcs).
+  // Először a workflow saját sütijeit töltjük be. Ha ilyen nincs (pl. frissen
+  // létrehozott Reddit workflow csak proxyval), később ország alapján
+  // visszaesünk a megfelelő warm-up cookie jar-ra.
   const cookieMap = new Map<string, CookieOut>();
-  for (const c of creds || []) {
-    const raw = await safeDec(c.cookie_ciphertext, c.cookie_nonce);
-    if (!raw) continue;
-    try {
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) continue;
-      for (const ck of arr) {
-        if (!ck || typeof ck.name !== "string" || typeof ck.value !== "string") continue;
-        const key = `${ck.name}|${ck.domain || ""}|${ck.path || "/"}`;
-        cookieMap.set(key, {
-          name: ck.name,
-          value: ck.value,
-          domain: ck.domain,
-          path: ck.path,
-          expires: typeof ck.expires === "number" ? ck.expires : undefined,
-          httpOnly: !!ck.httpOnly,
-          secure: !!ck.secure,
-          sameSite: typeof ck.sameSite === "string" ? ck.sameSite : undefined,
-        });
+  const addCookiesFromRows = async (
+    rows: Array<{ cookie_ciphertext: string | null; cookie_nonce: string | null }> | null | undefined,
+  ) => {
+    for (const c of rows || []) {
+      const raw = await safeDec(c.cookie_ciphertext, c.cookie_nonce);
+      if (!raw) continue;
+      try {
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) continue;
+        for (const ck of arr) {
+          if (!ck || typeof ck.name !== "string" || typeof ck.value !== "string") continue;
+          const key = `${ck.name}|${ck.domain || ""}|${ck.path || "/"}`;
+          cookieMap.set(key, {
+            name: ck.name,
+            value: ck.value,
+            domain: ck.domain,
+            path: ck.path,
+            expires: typeof ck.expires === "number" ? ck.expires : undefined,
+            httpOnly: !!ck.httpOnly,
+            secure: !!ck.secure,
+            sameSite: typeof ck.sameSite === "string" ? ck.sameSite : undefined,
+          });
+        }
+      } catch {
+        /* ignore malformed */
       }
-    } catch {
-      /* ignore malformed */
     }
-  }
-  const cookies = Array.from(cookieMap.values());
+  };
+
+  await addCookiesFromRows(creds);
 
   if (!proxyId) {
     return {
       proxy: null,
       locale,
       timezone,
-      cookies,
+      cookies: Array.from(cookieMap.values()),
       error:
         "a workflow-hoz nincs proxy rendelve (workflow_credentials.proxy_id üres). Előbb rendelj proxyt a credential formban.",
     };
@@ -150,7 +166,7 @@ async function loadWorkflowProxy(
       proxy: null,
       locale,
       timezone,
-      cookies,
+      cookies: Array.from(cookieMap.values()),
       error: "a hozzárendelt proxy nem található vagy inaktív",
     };
   }
@@ -158,6 +174,31 @@ async function loadWorkflowProxy(
   const username = await safeDec(pRow.username_ciphertext, pRow.username_nonce);
   const password = await safeDec(pRow.password_ciphertext, pRow.password_nonce);
   const server = `${pRow.protocol || "http"}://${pRow.host}:${pRow.port}`;
+  const proxyCountry = normalizeCountryCode(pRow.country);
+
+  // Kritikus Reddit/Live Browse eset: ha a cél workflow még szűz, de ugyanarra
+  // az országra már van 45 perces warm-up csomag, azt automatikusan betöltjük.
+  // Így nem nulláról megyünk Redditre, hanem ugyanazzal az országos sütialappal,
+  // amit a többi workflow is használ.
+  if (cookieMap.size === 0 && proxyCountry) {
+    const { data: warmupWorkflow } = await sb
+      .from("workflows")
+      .select("id")
+      .eq("cookie_jar_country", proxyCountry)
+      .not("cookie_jar_updated_at", "is", null)
+      .order("cookie_jar_updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (warmupWorkflow?.id && warmupWorkflow.id !== workflowId) {
+      const { data: warmupCreds } = await sb
+        .from("workflow_credentials")
+        .select("cookie_ciphertext, cookie_nonce")
+        .eq("workflow_id", warmupWorkflow.id)
+        .not("cookie_ciphertext", "is", null);
+      await addCookiesFromRows(warmupCreds);
+    }
+  }
 
   return {
     proxy: {
@@ -165,11 +206,11 @@ async function loadWorkflowProxy(
       username,
       password,
       label: pRow.label || "",
-      country: (pRow.country || "").toUpperCase() || null,
+      country: proxyCountry,
     },
     locale,
     timezone,
-    cookies,
+    cookies: Array.from(cookieMap.values()),
   };
 }
 
