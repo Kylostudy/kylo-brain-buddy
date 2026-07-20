@@ -947,6 +947,140 @@ export type Database = {
           },
         ]
       }
+      reddit_accounts: {
+        Row: {
+          account_created_at: string | null
+          created_at: string
+          id: string
+          karma: number | null
+          last_checked_at: string | null
+          locale: string
+          notes: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          username: string | null
+          workflow_id: string
+        }
+        Insert: {
+          account_created_at?: string | null
+          created_at?: string
+          id?: string
+          karma?: number | null
+          last_checked_at?: string | null
+          locale?: string
+          notes?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          username?: string | null
+          workflow_id: string
+        }
+        Update: {
+          account_created_at?: string | null
+          created_at?: string
+          id?: string
+          karma?: number | null
+          last_checked_at?: string | null
+          locale?: string
+          notes?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          username?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_accounts_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reddit_comments: {
+        Row: {
+          account_id: string | null
+          answered_at: string | null
+          author: string | null
+          body_en: string
+          body_hu: string | null
+          collected_at: string
+          context_title: string | null
+          created_at: string
+          external_id: string
+          id: string
+          permalink: string
+          posted_at: string | null
+          reply_status: string
+          subreddit: string | null
+          suggested_reply_en: string | null
+          suggested_reply_hu: string | null
+          tenant_id: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          answered_at?: string | null
+          author?: string | null
+          body_en: string
+          body_hu?: string | null
+          collected_at?: string
+          context_title?: string | null
+          created_at?: string
+          external_id: string
+          id?: string
+          permalink: string
+          posted_at?: string | null
+          reply_status?: string
+          subreddit?: string | null
+          suggested_reply_en?: string | null
+          suggested_reply_hu?: string | null
+          tenant_id: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          account_id?: string | null
+          answered_at?: string | null
+          author?: string | null
+          body_en?: string
+          body_hu?: string | null
+          collected_at?: string
+          context_title?: string | null
+          created_at?: string
+          external_id?: string
+          id?: string
+          permalink?: string
+          posted_at?: string | null
+          reply_status?: string
+          subreddit?: string | null
+          suggested_reply_en?: string | null
+          suggested_reply_hu?: string | null
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_comments_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "reddit_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reddit_comments_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_module_access: {
         Row: {
           created_at: string
