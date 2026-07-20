@@ -14,6 +14,7 @@ import { timingSafeEqual } from "node:crypto";
 import type { Database } from "@/integrations/supabase/types";
 
 const PINTEREST_LOGIN_URL = "https://www.pinterest.com/login/";
+const REDDIT_HOME_URL = "https://www.reddit.com/";
 
 function normalizeCountryCode(country: string | null | undefined) {
   const value = String(country || "").trim().toUpperCase();
@@ -277,10 +278,16 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
           .eq("id", candidate.workflow_id)
           .maybeSingle();
 
-        const platform = String(workflow?.platform || "").toLowerCase();
+        const specPlatform =
+          workflow?.spec && typeof workflow.spec === "object" && "platform" in workflow.spec
+            ? String((workflow.spec as { platform?: unknown }).platform || "")
+            : "";
+        const platform = String(workflow?.platform || specPlatform || "").toLowerCase();
         const startUrl =
           platform === "pinterest" && !candidate.start_url
             ? PINTEREST_LOGIN_URL
+            : platform === "reddit" && !candidate.start_url
+              ? REDDIT_HOME_URL
             : candidate.start_url;
 
         const { data: claimed, error: updErr } = await sb
