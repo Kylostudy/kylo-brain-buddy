@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, MessageSquare, Trash2, Pencil, Check, X, Copy, Globe, ClipboardCheck } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Pencil, Check, X, Copy, Globe, ClipboardCheck, Inbox } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -320,6 +320,16 @@ export function AppSidebar() {
           <SidebarGroupLabel>Erőforrások</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {module === "brain" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath === "/inbox"}>
+                    <Link to="/inbox" className="flex items-center gap-2">
+                      <Inbox className="size-4 shrink-0" />
+                      <span className="truncate">Reddit Inbox</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={currentPath === "/proxies"}>
                   <Link to="/proxies" className="flex items-center gap-2">
