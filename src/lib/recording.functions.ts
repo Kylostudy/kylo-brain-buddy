@@ -9,12 +9,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { RecordedAction, WorkflowSpec } from "@/lib/chat.functions";
 import { normalizeRecordingStartUrl } from "@/lib/recording-url";
 
-type SbClient = Awaited<ReturnType<typeof requireSupabaseAuth.server.__ignore>> extends never
-  ? never
-  : never;
-
+// Bármelyik Supabase kliens (auth-middleware `context.supabase`) elfogadható —
+// nincs szükség generikus típusra ehhez a védelmi ellenőrzéshez.
 async function assertNoActiveRun(
-  supabase: { from: (t: string) => { select: (s: string) => { eq: (c: string, v: string) => { in: (c: string, v: string[]) => { maybeSingle: () => Promise<{ data: { id: string } | null }> } } } } },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   workflowId: string,
 ) {
   const { data: activeRun } = await supabase
