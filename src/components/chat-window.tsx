@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Brain, Play, Pencil, Video, KeyRound } from "lucide-react";
+import { Brain, Play, Pencil, Video, KeyRound, Globe } from "lucide-react";
 import { MicButton } from "@/components/mic-button";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
-import { startRecording } from "@/lib/recording.functions";
+import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
 
 
 import {
@@ -83,11 +83,13 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
   const callStartRun = useServerFn(startRun);
   const callStartReplayLogin = useServerFn(startReplayLoginRun);
   const callStartRecording = useServerFn(startRecording);
+  const callStartLiveBrowse = useServerFn(startLiveBrowse);
   const [sending, setSending] = useState(false);
   const [starting, setStarting] = useState(false);
   const [replayLoginStarting, setReplayLoginStarting] = useState(false);
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
+  const [recordMode, setRecordMode] = useState<"record" | "browse">("record");
   const [runner, setRunner] = useState<"docker">("docker");
   const [selectedProxyId, setSelectedProxyId] = useState<string>("");
 
