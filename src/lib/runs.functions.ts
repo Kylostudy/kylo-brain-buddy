@@ -29,6 +29,21 @@ export const startRun = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
 
+    // Konkurencia védelem: ne induljon automatikus run, ha nyitva van egy
+    // Live Browse / felvétel session ugyanezen a workflow-n (dupla login tilos).
+    const { data: openSession } = await supabase
+      .from("recording_sessions")
+      .select("id, mode")
+      .eq("workflow_id", data.workflowId)
+      .in("status", ["requested", "active"])
+      .maybeSingle();
+    if (openSession) {
+      const label = openSession.mode === "browse" ? "Live Browse" : "felvétel";
+      throw new Error(
+        `Nyitva van egy ${label} ablak ehhez a workflow-hoz — zárd be előbb, hogy ne legyen kettős belépés az accountba.`,
+      );
+    }
+
     // 1) Spec snapshot + tenant_id a workflow-ból (RLS-hez kötelező)
     const { data: wf, error: wfErr } = await supabase
       .from("workflows")
