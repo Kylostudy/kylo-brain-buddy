@@ -34,6 +34,16 @@ async function assertNoActiveBrowseOrRecord(
   supabase: any,
   workflowId: string,
 ) {
+  // Elárvult session-ök takarítása: ha 3 percnél régebbi és még 'requested',
+  // biztos hogy a böngésző oldala már bezárult a modál nélkül (crash / reload).
+  const staleCutoff = new Date(Date.now() - 3 * 60_000).toISOString();
+  await supabase
+    .from("recording_sessions")
+    .update({ status: "cancelled", ended_at: new Date().toISOString(), error: "Elárvult session, automatikusan lezárva." })
+    .eq("workflow_id", workflowId)
+    .eq("status", "requested")
+    .lt("created_at", staleCutoff);
+
   const { data: activeSession } = await supabase
     .from("recording_sessions")
     .select("id, mode")
