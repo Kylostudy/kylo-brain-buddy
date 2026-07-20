@@ -86,6 +86,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [textBusy, setTextBusy] = useState(false);
   const [cookieBusy, setCookieBusy] = useState(false);
   const [inputStatus, setInputStatus] = useState("");
+  const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
   const [lockedFrameSize, setLockedFrameSize] = useState<{ w: number; h: number } | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -152,7 +153,10 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     ch.on("broadcast", { event: "status" }, ({ payload }) => {
       const p = payload as { status: typeof status; error?: string };
       setStatus(p.status);
-      if (p.error) toast.error(p.error);
+      if (p.error) {
+        setFailureReason(p.error);
+        toast.error(p.error);
+      }
     });
     ch.on("broadcast", { event: "cookiesSaved" }, ({ payload }) => {
       const p = payload as { savedCount?: number; platform?: string | null };
@@ -190,8 +194,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           filter: `id=eq.${sessionId}`,
         },
         (msg) => {
-          const row = msg.new as { status?: typeof status };
+          const row = msg.new as { status?: typeof status; error?: string | null };
           if (row.status) setStatus(row.status);
+          if (row.error) setFailureReason(row.error);
         },
       )
       .subscribe();
@@ -213,6 +218,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     setPageText("");
     setTextBusy(false);
     setInputStatus("");
+    setFailureReason("");
     setLockedFrameSize(null);
   }, [open, sessionId]);
 
@@ -688,10 +694,17 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
             <div className="flex max-w-md flex-col items-center gap-3 px-4 text-center text-white/70">
               <Camera className="size-10 opacity-50" />
               <div className="text-sm">
-                {status === "requested"
+                {status === "failed"
+                  ? "A Live Browse nem tudott elindulni."
+                  : status === "requested"
                   ? "Várjuk, hogy a worker felvegye a felvételt…"
                   : "Még nem érkezett képkocka a workertől."}
               </div>
+              {status === "failed" && failureReason && (
+                <div className="rounded border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+                  {failureReason}
+                </div>
+              )}
               {status === "requested" && (
                 <div className="rounded border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
                   {workerTimeout ? (
