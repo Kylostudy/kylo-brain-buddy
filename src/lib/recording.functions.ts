@@ -9,6 +9,92 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { RecordedAction, WorkflowSpec } from "@/lib/chat.functions";
 import { normalizeRecordingStartUrl } from "@/lib/recording-url";
 
+type SbClient = Awaited<ReturnType<typeof requireSupabaseAuth.server.__ignore>> extends never
+  ? never
+  : never;
+
+async function assertNoActiveRun(
+  supabase: { from: (t: string) => { select: (s: string) => { eq: (c: string, v: string) => { in: (c: string, v: string[]) => { maybeSingle: () => Promise<{ data: { id: string } | null }> } } } } },
+  workflowId: string,
+) {
+  const { data: activeRun } = await supabase
+    .from("brain_workflow_runs")
+    .select("id")
+    .eq("workflow_id", workflowId)
+    .in("status", ["queued", "running"])
+    .maybeSingle();
+  if (activeRun) {
+    throw new Error(
+      "Ehhez a workflow-hoz jelenleg fut egy automatikus feladat — várd meg vagy szakítsd meg, mielőtt Live Browse-t / felvételt indítasz. Két egyidejű belépés ugyanabba az accountba anti-bot gyanút kelt.",
+    );
+  }
+}
+
+async function assertNoActiveBrowseOrRecord(
+  supabase: { from: (t: string) => { select: (s: string) => { eq: (c: string, v: string) => { in: (c: string, v: string[]) => { maybeSingle: () => Promise<{ data: { id: string; mode: string } | null }> } } } } },
+  workflowId: string,
+) {
+  const { data: activeSession } = await supabase
+    .from("recording_sessions")
+    .select("id, mode")
+    .eq("workflow_id", workflowId)
+    .in("status", ["requested", "active"])
+    .maybeSingle();
+  if (activeSession) {
+    const label = activeSession.mode === "browse" ? "Live Browse" : "felvétel";
+    throw new Error(
+      `Ezen a workflow-n jelenleg nyitva van egy ${label} ablak. Zárd be előbb, mielőtt új sessiont indítasz — nem szabad kétszer belépni ugyanabba az accountba egyszerre.`,
+    );
+  }
+}
+
+async function createSession(
+  supabase: Parameters<typeof assertNoActiveRun>[0] & { from: (t: string) => any },
+  userId: string,
+  workflowId: string,
+  mode: "record" | "browse",
+  requestedStartUrl: string | undefined,
+) {
+  // Workflow tulajdonjogának ellenőrzése (RLS úgyis védi, de korai hibázás barátságosabb)
+  const { data: wf, error: wfErr } = await (supabase as any)
+    .from("workflows")
+    .select("id, platform, spec")
+    .eq("id", workflowId)
+    .maybeSingle();
+  if (wfErr) throw new Error(wfErr.message);
+  if (!wf) throw new Error("A workflow nem található vagy nincs hozzá jogod.");
+
+  // Konkurencia védelem: nincs futó run és nincs másik nyitott recording session.
+  await assertNoActiveRun(supabase, workflowId);
+  await assertNoActiveBrowseOrRecord(supabase, workflowId);
+
+  // Start URL a spec-ből, ha nem adtunk meg explicit-et.
+  const spec = (wf.spec as WorkflowSpec | null) ?? {};
+  const startUrl = normalizeRecordingStartUrl(
+    requestedStartUrl?.trim() ||
+    spec.start_url ||
+    (spec.media_source && /^https?:\/\//i.test(spec.media_source)
+      ? spec.media_source
+      : undefined),
+    wf.platform || spec.platform,
+  );
+
+  const { data: session, error } = await (supabase as any)
+    .from("recording_sessions")
+    .insert({
+      workflow_id: workflowId,
+      tenant_id: userId,
+      status: "requested",
+      start_url: startUrl ?? null,
+      mode,
+    })
+    .select("id, status, start_url, created_at, mode")
+    .single();
+  if (error) throw new Error(error.message);
+
+  return session;
+}
+
 export const startRecording = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -24,55 +110,37 @@ export const startRecording = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const nowIso = new Date().toISOString();
-
-    // Workflow tulajdonjogának ellenőrzése (RLS úgyis védi, de korai hibázás barátságosabb)
-    const { data: wf, error: wfErr } = await supabase
-      .from("workflows")
-      .select("id, platform, spec")
-      .eq("id", data.workflowId)
-      .maybeSingle();
-    if (wfErr) throw new Error(wfErr.message);
-    if (!wf) throw new Error("A workflow nem található vagy nincs hozzá jogod.");
-
-    // Ha nem kaptunk start URL-t, vegyük a spec-ből (media_source vagy start_url).
-    const spec = (wf.spec as WorkflowSpec | null) ?? {};
-    const startUrl = normalizeRecordingStartUrl(
-      data.startUrl?.trim() ||
-      spec.start_url ||
-      (spec.media_source && /^https?:\/\//i.test(spec.media_source)
-        ? spec.media_source
-        : undefined),
-      wf.platform || spec.platform,
+    return createSession(
+      context.supabase as never,
+      context.userId,
+      data.workflowId,
+      "record",
+      data.startUrl,
     );
+  });
 
-    // Frissítés / bezárt modál után ne ragadjon bent régi VPS-session.
-    const { error: cleanupErr } = await supabase
-      .from("recording_sessions")
-      .update({
-        status: "cancelled",
-        ended_at: nowIso,
-        error: "Új felvétel indult, a korábbi session lezárva.",
+export const startLiveBrowse = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        workflowId: z.string().uuid(),
+        startUrl: z
+          .string()
+          .max(2048)
+          .optional()
+          .or(z.literal("").transform(() => undefined)),
       })
-      .eq("workflow_id", data.workflowId)
-      .eq("tenant_id", userId)
-      .in("status", ["requested", "active"]);
-    if (cleanupErr) throw new Error(cleanupErr.message);
-
-    const { data: session, error } = await supabase
-      .from("recording_sessions")
-      .insert({
-        workflow_id: data.workflowId,
-        tenant_id: userId,
-        status: "requested",
-        start_url: startUrl ?? null,
-      })
-      .select("id, status, start_url, created_at")
-      .single();
-    if (error) throw new Error(error.message);
-
-    return session;
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    return createSession(
+      context.supabase as never,
+      context.userId,
+      data.workflowId,
+      "browse",
+      data.startUrl,
+    );
   });
 
 export const cancelRecording = createServerFn({ method: "POST" })
