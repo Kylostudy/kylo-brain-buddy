@@ -1,6 +1,7 @@
 import type { WorkflowSpec } from "@/lib/chat.functions";
 
 const PINTEREST_LOGIN_URL = "https://www.pinterest.com/login/";
+const REDDIT_HOME_URL = "https://www.reddit.com/";
 
 export function normalizeRecordingStartUrl(
   rawUrl: string | undefined,
@@ -8,8 +9,13 @@ export function normalizeRecordingStartUrl(
 ) {
   const raw = String(rawUrl || "").trim();
   const isPinterestWorkflow = /pinterest/i.test(String(platform || ""));
+  const isRedditWorkflow = /reddit/i.test(String(platform || ""));
 
-  if (!raw) return isPinterestWorkflow ? PINTEREST_LOGIN_URL : undefined;
+  if (!raw) {
+    if (isPinterestWorkflow) return PINTEREST_LOGIN_URL;
+    if (isRedditWorkflow) return REDDIT_HOME_URL;
+    return undefined;
+  }
 
   const compact = raw.replace(/\s+/g, "");
   const pinterestish = /pinterest/i.test(compact) || isPinterestWorkflow;
