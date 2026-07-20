@@ -506,6 +506,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
       <BrowserRecorderModal
         open={recordOpen}
         sessionId={recordSessionId}
+        mode={recordMode}
         onClose={() => {
           setRecordOpen(false);
           setRecordSessionId(null);
