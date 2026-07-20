@@ -314,10 +314,36 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
               variant="outline"
               onClick={async () => {
                 try {
+                  const session = await callStartLiveBrowse({
+                    data: { workflowId },
+                  });
+                  setRecordSessionId(session.id);
+                  setRecordMode("browse");
+                  setRecordOpen(true);
+                } catch (e) {
+                  toast.error(
+                    e instanceof Error
+                      ? `Live Browse indítása sikertelen: ${e.message}`
+                      : "Live Browse indítása sikertelen",
+                  );
+                }
+              }}
+              title="Élő böngésző az accounthoz (kézi belépés, kézi válasz — nem menti a lépéseket, csak sütiket)"
+            >
+              <Globe className="size-4" />
+              <span className="ml-1.5 hidden sm:inline">Live Browse</span>
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                try {
                   const session = await callStartRecording({
                     data: { workflowId },
                   });
                   setRecordSessionId(session.id);
+                  setRecordMode("record");
                   setRecordOpen(true);
                 } catch (e) {
                   toast.error(
@@ -327,7 +353,7 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                   );
                 }
               }}
-              title="Élő böngésző felvétele"
+              title="Élő böngésző felvétele (login flow rögzítése lejátszáshoz)"
             >
               <Video className="size-4" />
               <span className="ml-1.5 hidden sm:inline">Felvétel</span>
