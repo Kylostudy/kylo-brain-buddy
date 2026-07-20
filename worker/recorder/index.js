@@ -280,6 +280,17 @@ async function fetchStatus(sessionId, markFailed) {
   }
 }
 
+function friendlyInitialNavigationError(error, proxy) {
+  const message = String(error?.message || error || "");
+  if (/ERR_TUNNEL_CONNECTION_FAILED|CONNECT tunnel failed|\b407\b/i.test(message)) {
+    return `A hozzárendelt proxy nem engedte át a kapcsolatot (407 / tunnel hiba). Ez nem Reddit-kattintási hiba: a ${proxy?.label || "workflow"} proxy hitelesítése vagy szolgáltatói beállítása rossz, ezért Kanada marad, de ezt a proxyt javítani/cserélni kell.`;
+  }
+  if (/ERR_PROXY_CONNECTION_FAILED|proxy/i.test(message)) {
+    return `A hozzárendelt proxyhoz nem sikerült kapcsolódni (${proxy?.label || "workflow proxy"}). Ellenőrizni kell a proxy host/port/felhasználónév/jelszó beállítását.`;
+  }
+  return `A kezdőoldal betöltése nem sikerült: ${message.slice(0, 420)}`;
+}
+
 // Selector-leíró az elemhez koordinátákból.
 const SELECTOR_FN = `(x, y) => {
   const el = document.elementFromPoint(x, y);
@@ -885,7 +896,15 @@ async function runSession(payload) {
     try {
       await page.goto(effectiveStartUrl, { waitUntil: "domcontentloaded" });
     } catch (e) {
+      const friendlyError = friendlyInitialNavigationError(e, proxy);
       console.error(`[session ${session.id}] initial goto failed`, e.message);
+      await fetchStatus(session.id, { error: friendlyError.slice(0, 500) });
+      await channel.send({
+        type: "broadcast",
+        event: "status",
+        payload: { status: "failed", error: friendlyError },
+      }).catch(() => {});
+      stopped = true;
     }
   }
 
