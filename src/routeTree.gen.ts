@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
+import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
 import { Route as AuthenticatedAuditQaRouteImport } from './routes/_authenticated.audit.qa'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
@@ -67,6 +68,11 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
 const AuthenticatedProxiesRoute = AuthenticatedProxiesRouteImport.update({
   id: '/proxies',
   path: '/proxies',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedWWorkflowIdRoute =
@@ -247,6 +253,7 @@ const ApiPublicCrossKitTaskTask_idLogRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/inbox': typeof AuthenticatedInboxRoute
   '/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/inbox': typeof AuthenticatedInboxRoute
   '/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
@@ -320,6 +328,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -359,6 +368,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/inbox'
     | '/proxies'
     | '/api/transcribe'
     | '/audit/qa'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/inbox'
     | '/proxies'
     | '/api/transcribe'
     | '/'
@@ -431,6 +442,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/inbox'
     | '/_authenticated/proxies'
     | '/api/transcribe'
     | '/_authenticated/'
@@ -534,6 +546,13 @@ declare module '@tanstack/react-router' {
       path: '/proxies'
       fullPath: '/proxies'
       preLoaderRoute: typeof AuthenticatedProxiesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/inbox': {
+      id: '/_authenticated/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AuthenticatedInboxRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/w/$workflowId': {
@@ -750,6 +769,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAuditQaRoute: typeof AuthenticatedAuditQaRoute
@@ -757,6 +777,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAuditQaRoute: AuthenticatedAuditQaRoute,
