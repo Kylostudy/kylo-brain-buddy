@@ -15,6 +15,14 @@ import type { Database } from "@/integrations/supabase/types";
 
 const PINTEREST_LOGIN_URL = "https://www.pinterest.com/login/";
 
+function normalizeCountryCode(country: string | null | undefined) {
+  const value = String(country || "").trim().toUpperCase();
+  if (!value) return null;
+  if (value === "USA") return "US";
+  if (value === "UK") return "GB";
+  return value;
+}
+
 function checkAuth(request: Request): string | null {
   const token = process.env.WORKER_API_TOKEN?.trim();
   if (!token) return "WORKER_API_TOKEN nincs beállítva";
@@ -166,7 +174,7 @@ async function loadWorkflowProxy(
   const username = await safeDec(pRow.username_ciphertext, pRow.username_nonce);
   const password = await safeDec(pRow.password_ciphertext, pRow.password_nonce);
   const server = `${pRow.protocol || "http"}://${pRow.host}:${pRow.port}`;
-  const proxyCountry = (pRow.country || "").toUpperCase() || null;
+  const proxyCountry = normalizeCountryCode(pRow.country);
 
   // Kritikus Reddit/Live Browse eset: ha a cél workflow még szűz, de ugyanarra
   // az országra már van 45 perces warm-up csomag, azt automatikusan betöltjük.
