@@ -953,13 +953,21 @@ export type Database = {
           created_at: string
           id: string
           karma: number | null
+          language: string | null
           last_checked_at: string | null
           locale: string
           notes: string | null
+          proxy_id: string | null
+          ready_at: string | null
           status: string
+          subreddits_joined: Json
+          target_subreddits: Json
           tenant_id: string
           updated_at: string
           username: string | null
+          warmup_days_completed: number
+          warmup_started_at: string | null
+          warmup_status: string
           workflow_id: string
         }
         Insert: {
@@ -967,13 +975,21 @@ export type Database = {
           created_at?: string
           id?: string
           karma?: number | null
+          language?: string | null
           last_checked_at?: string | null
           locale?: string
           notes?: string | null
+          proxy_id?: string | null
+          ready_at?: string | null
           status?: string
+          subreddits_joined?: Json
+          target_subreddits?: Json
           tenant_id: string
           updated_at?: string
           username?: string | null
+          warmup_days_completed?: number
+          warmup_started_at?: string | null
+          warmup_status?: string
           workflow_id: string
         }
         Update: {
@@ -981,16 +997,31 @@ export type Database = {
           created_at?: string
           id?: string
           karma?: number | null
+          language?: string | null
           last_checked_at?: string | null
           locale?: string
           notes?: string | null
+          proxy_id?: string | null
+          ready_at?: string | null
           status?: string
+          subreddits_joined?: Json
+          target_subreddits?: Json
           tenant_id?: string
           updated_at?: string
           username?: string | null
+          warmup_days_completed?: number
+          warmup_started_at?: string | null
+          warmup_status?: string
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reddit_accounts_proxy_id_fkey"
+            columns: ["proxy_id"]
+            isOneToOne: false
+            referencedRelation: "proxies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reddit_accounts_workflow_id_fkey"
             columns: ["workflow_id"]
@@ -1193,6 +1224,95 @@ export type Database = {
             columns: ["workflow_id"]
             isOneToOne: true
             referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reddit_story_bank: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          language: string
+          last_used_at: string | null
+          notes: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          language: string
+          last_used_at?: string | null
+          notes?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          language?: string
+          last_used_at?: string | null
+          notes?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
+      reddit_warmup_log: {
+        Row: {
+          account_id: string
+          activity_date: string
+          comments: number
+          created_at: string
+          id: string
+          joined_subreddits: Json
+          notes: string | null
+          scroll_minutes: number
+          tenant_id: string
+          updated_at: string
+          upvotes: number
+        }
+        Insert: {
+          account_id: string
+          activity_date?: string
+          comments?: number
+          created_at?: string
+          id?: string
+          joined_subreddits?: Json
+          notes?: string | null
+          scroll_minutes?: number
+          tenant_id: string
+          updated_at?: string
+          upvotes?: number
+        }
+        Update: {
+          account_id?: string
+          activity_date?: string
+          comments?: number
+          created_at?: string
+          id?: string
+          joined_subreddits?: Json
+          notes?: string | null
+          scroll_minutes?: number
+          tenant_id?: string
+          updated_at?: string
+          upvotes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_warmup_log_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "reddit_accounts"
             referencedColumns: ["id"]
           },
         ]
