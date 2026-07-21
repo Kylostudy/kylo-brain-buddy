@@ -70,12 +70,15 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        try {
         const authErr = checkAuth(request);
         if (authErr)
           return new Response(JSON.stringify({ error: authErr }), {
             status: 401,
             headers: { "content-type": "application/json" },
           });
+
+
 
         let json: unknown;
         try {
