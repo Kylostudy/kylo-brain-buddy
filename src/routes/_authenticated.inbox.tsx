@@ -296,14 +296,7 @@ function CommentCard({
     [comment.posted_at],
   );
 
-function CommentCard({
-  comment,
-  onStatus,
-  onTranslate,
-}: {
-  comment: RedditComment;
-  onStatus: (status: "answered" | "ignored") => void;
-  onTranslate: (hungarian: string) => Promise<string>;
+
   return (
     <Card>
       <CardHeader className="pb-2">
