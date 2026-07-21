@@ -249,7 +249,11 @@ export const updateRedditScoutWatch = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      language_label?: string;
+      subreddits?: string[];
+      positioning?: string;
+    } = {};
     if (data.languageLabel !== undefined) patch.language_label = data.languageLabel;
     if (data.subreddits) patch.subreddits = data.subreddits.map((s) => s.replace(/^r\//i, "").trim());
     if (data.positioning !== undefined) patch.positioning = data.positioning;

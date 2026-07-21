@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenticated.reddit-scout'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
@@ -66,6 +67,12 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRedditScoutRoute =
+  AuthenticatedRedditScoutRouteImport.update({
+    id: '/reddit-scout',
+    path: '/reddit-scout',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedProxiesRoute = AuthenticatedProxiesRouteImport.update({
   id: '/proxies',
   path: '/proxies',
@@ -262,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/proxies': typeof AuthenticatedProxiesRoute
+  '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
@@ -299,6 +307,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/proxies': typeof AuthenticatedProxiesRoute
+  '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
@@ -339,6 +348,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
+  '/_authenticated/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/audit/qa': typeof AuthenticatedAuditQaRoute
@@ -380,6 +390,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/inbox'
     | '/proxies'
+    | '/reddit-scout'
     | '/api/transcribe'
     | '/audit/qa'
     | '/w/$workflowId'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/inbox'
     | '/proxies'
+    | '/reddit-scout'
     | '/api/transcribe'
     | '/'
     | '/audit/qa'
@@ -456,6 +468,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/inbox'
     | '/_authenticated/proxies'
+    | '/_authenticated/reddit-scout'
     | '/api/transcribe'
     | '/_authenticated/'
     | '/_authenticated/audit/qa'
@@ -554,6 +567,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/reddit-scout': {
+      id: '/_authenticated/reddit-scout'
+      path: '/reddit-scout'
+      fullPath: '/reddit-scout'
+      preLoaderRoute: typeof AuthenticatedRedditScoutRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/proxies': {
       id: '/_authenticated/proxies'
@@ -792,6 +812,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
+  AuthenticatedRedditScoutRoute: typeof AuthenticatedRedditScoutRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAuditQaRoute: typeof AuthenticatedAuditQaRoute
   AuthenticatedWWorkflowIdRoute: typeof AuthenticatedWWorkflowIdRoute
@@ -800,6 +821,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
+  AuthenticatedRedditScoutRoute: AuthenticatedRedditScoutRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAuditQaRoute: AuthenticatedAuditQaRoute,
   AuthenticatedWWorkflowIdRoute: AuthenticatedWWorkflowIdRoute,
