@@ -1,0 +1,2 @@
+ALTER TABLE public.workflow_credentials DROP CONSTRAINT IF EXISTS workflow_credentials_workflow_id_key;
+ALTER TABLE public.workflow_credentials ADD CONSTRAINT workflow_credentials_workflow_platform_key UNIQUE (workflow_id, platform);
