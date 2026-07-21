@@ -13,6 +13,7 @@ import {
   updateRedditScoutFindingStatus,
   runRedditScout,
 } from "@/lib/reddit-scout.functions";
+import { TranslationEditor } from "@/components/reddit/translation-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
