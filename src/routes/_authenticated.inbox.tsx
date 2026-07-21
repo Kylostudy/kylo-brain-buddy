@@ -304,33 +304,6 @@ function CommentCard({
   comment: RedditComment;
   onStatus: (status: "answered" | "ignored") => void;
   onTranslate: (hungarian: string) => Promise<string>;
-}) {
-  const [huDraft, setHuDraft] = useState(comment.suggested_reply_hu ?? "");
-  const [enDraft, setEnDraft] = useState(comment.suggested_reply_en ?? "");
-  const [translating, setTranslating] = useState(false);
-
-  const posted = useMemo(
-    () => (comment.posted_at ? new Date(comment.posted_at).toLocaleString("hu-HU") : ""),
-    [comment.posted_at],
-  );
-
-  async function copyEn() {
-    await navigator.clipboard.writeText(enDraft);
-    toast.success("Angol válasz vágólapra másolva.");
-  }
-
-  async function translate() {
-    if (!huDraft.trim()) return;
-    setTranslating(true);
-    try {
-      const en = await onTranslate(huDraft);
-      setEnDraft(en);
-      toast.success("Lefordítva angolra.");
-    } finally {
-      setTranslating(false);
-    }
-  }
-
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -369,51 +342,27 @@ function CommentCard({
           </div>
         )}
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <Label className="text-xs">Válasz magyarul (szerkeszthető)</Label>
-            <Textarea
-              value={huDraft}
-              onChange={(e) => setHuDraft(e.target.value)}
-              rows={5}
-              className="font-mono text-sm"
-            />
-            <Button
-              size="sm"
-              variant="secondary"
-              className="mt-2"
-              onClick={translate}
-              disabled={translating || !huDraft.trim()}
-            >
-              <Wand2 className="mr-1 size-3.5" />
-              Fordítás angolra
-            </Button>
-          </div>
-          <div>
-            <Label className="text-xs">Angol változat (tiszta plain text a másoláshoz)</Label>
-            <Textarea
-              value={enDraft}
-              onChange={(e) => setEnDraft(e.target.value)}
-              rows={5}
-              className="font-mono text-sm"
-            />
-            <div className="mt-2 flex gap-2">
-              <Button size="sm" onClick={copyEn} disabled={!enDraft.trim()}>
-                <Copy className="mr-1 size-3.5" />
-                Másolás
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => onStatus("answered")}>
-                <Check className="mr-1 size-3.5" />
-                Megválaszoltnak jelöl
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => onStatus("ignored")}>
-                <EyeOff className="mr-1 size-3.5" />
-                Elrejt
-              </Button>
-            </div>
-          </div>
+        <TranslationEditor
+          targetLang={targetLang}
+          subreddit={comment.subreddit ?? undefined}
+          contextTitle={comment.context_title ?? undefined}
+          replyingTo={comment.body_en ?? undefined}
+          initialHu={comment.suggested_reply_hu ?? ""}
+          initialTranslated={comment.suggested_reply_en ?? ""}
+        />
+
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" onClick={() => onStatus("answered")}>
+            <Check className="mr-1 size-3.5" />
+            Megválaszoltnak jelöl
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onStatus("ignored")}>
+            <EyeOff className="mr-1 size-3.5" />
+            Elrejt
+          </Button>
         </div>
       </CardContent>
     </Card>
   );
 }
+
