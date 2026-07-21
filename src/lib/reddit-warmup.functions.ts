@@ -211,8 +211,8 @@ export const listProxiesForWarmup = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("proxies")
-      .select("id, label, country_code, city, provider, status")
-      .order("country_code", { ascending: true });
+      .select("id, label, country, provider, is_active")
+      .order("country", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
