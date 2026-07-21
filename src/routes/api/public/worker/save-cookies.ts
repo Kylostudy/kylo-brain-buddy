@@ -205,6 +205,15 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         );
+        } catch (err) {
+          const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+          const stack = err instanceof Error ? err.stack : undefined;
+          console.error("[save-cookies] uncaught error:", msg, stack);
+          return new Response(
+            JSON.stringify({ error: "internal error", detail: msg }),
+            { status: 500, headers: { "content-type": "application/json" } },
+          );
+        }
       },
     },
   },
