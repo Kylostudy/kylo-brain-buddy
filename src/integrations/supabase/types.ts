@@ -1482,7 +1482,7 @@ export type Database = {
           {
             foreignKeyName: "workflow_credentials_workflow_id_fkey"
             columns: ["workflow_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "workflows"
             referencedColumns: ["id"]
           },
