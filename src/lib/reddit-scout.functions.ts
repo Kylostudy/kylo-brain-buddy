@@ -7,7 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const REDDIT_UA = "KyloBrain/1.0 (read-only language subreddit scout)";
+const REDDIT_UA = "KyloBrain/1.0 (read-only language subreddit scout; contact: brain@kylosystems.com)";
 
 const KYLO_STUDY_POSITIONING_DEFAULT = `Kylo.study — nyelvtanulási és általános tanulási platform.
 - Tanulási és vizsgamódban működik. Ismeri a top 10 angol + top 5 német nemzetközi nyelvvizsgát, kb. 50 típust a legnépszerűbb nyelvekből, és 20+ szakmai nyelvvizsgát.
@@ -51,19 +51,72 @@ type RedditPost = {
   };
 };
 type RedditListing = { data: { children: RedditPost[] } };
+type RedditFetchResult = { posts: RedditPost[]; error?: string };
 
-async function fetchSubredditNew(subreddit: string, limit = 25): Promise<RedditPost[]> {
-  const url = `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/new.json?limit=${limit}`;
-  try {
-    const res = await fetch(url, { headers: { "User-Agent": REDDIT_UA } });
-    if (!res.ok) return [];
-    const json = (await res.json()) as RedditListing;
-    return (json.data?.children ?? []).filter(
-      (p) => p.data && !p.data.stickied && !p.data.over_18,
+let redditTokenCache: { token: string; expiresAt: number } | null = null;
+
+async function getRedditAccessToken(): Promise<string> {
+  const now = Date.now();
+  if (redditTokenCache && redditTokenCache.expiresAt > now + 60_000) {
+    return redditTokenCache.token;
+  }
+
+  const clientId = process.env.REDDIT_CLIENT_ID;
+  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      "A Reddit OAuth kulcsok még nincsenek beállítva. Add meg a REDDIT_CLIENT_ID és REDDIT_CLIENT_SECRET értékeket.",
     );
+  }
+
+  const basic = btoa(`${clientId}:${clientSecret}`);
+  const res = await fetch("https://www.reddit.com/api/v1/access_token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": REDDIT_UA,
+    },
+    body: new URLSearchParams({ grant_type: "client_credentials" }).toString(),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Reddit OAuth belépés sikertelen (${res.status}). ${text.slice(0, 160)}`);
+  }
+
+  const json = (await res.json()) as { access_token?: string; expires_in?: number };
+  if (!json.access_token) throw new Error("A Reddit nem adott access tokent.");
+  redditTokenCache = {
+    token: json.access_token,
+    expiresAt: now + Math.max(60, json.expires_in ?? 3600) * 1000,
+  };
+  return redditTokenCache.token;
+}
+
+async function fetchSubredditNew(subreddit: string, limit = 25): Promise<RedditFetchResult> {
+  const token = await getRedditAccessToken();
+  const url = `https://oauth.reddit.com/r/${encodeURIComponent(subreddit)}/new?limit=${limit}`;
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "User-Agent": REDDIT_UA,
+      },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return { posts: [], error: `r/${subreddit}: Reddit ${res.status} — ${text.slice(0, 120)}` };
+    }
+    const json = (await res.json()) as RedditListing;
+    return {
+      posts: (json.data?.children ?? []).filter(
+        (p) => p.data && !p.data.stickied && !p.data.over_18,
+      ),
+    };
   } catch (err) {
     console.error("reddit scout fetch error", subreddit, err);
-    return [];
+    return { posts: [], error: `r/${subreddit}: ${err instanceof Error ? err.message : "ismeretlen hiba"}` };
   }
 }
 
@@ -325,8 +378,10 @@ export const runRedditScout = createServerFn({ method: "POST" })
 
     // 1) Beolvasás
     const allPosts: Array<{ id: string; subreddit: string; title: string; body: string; author: string; permalink: string; created_utc?: number }> = [];
+    const fetchErrors: string[] = [];
     for (const sub of watch.subreddits) {
-      const posts = await fetchSubredditNew(sub, 25);
+      const { posts, error: fetchError } = await fetchSubredditNew(sub, 25);
+      if (fetchError) fetchErrors.push(fetchError);
       for (const p of posts) {
         allPosts.push({
           id: p.data.id,
@@ -345,6 +400,9 @@ export const runRedditScout = createServerFn({ method: "POST" })
         .from("reddit_readonly_watches")
         .update({ last_scanned_at: new Date().toISOString() })
         .eq("id", watch.id);
+      if (fetchErrors.length > 0) {
+        throw new Error(`Nem jött be poszt Redditről. Első hiba: ${fetchErrors[0]}`);
+      }
       return { fetched: 0, saved: 0, skipped: 0 };
     }
 
