@@ -317,6 +317,14 @@ function FindingCard({
             <p className="whitespace-pre-wrap">{finding.suggested_reply_hu}</p>
           </div>
         )}
+
+        <TranslationEditor
+          targetLang={targetLang}
+          subreddit={finding.subreddit ?? undefined}
+          contextTitle={finding.title ?? undefined}
+          replyingTo={finding.body_excerpt ?? undefined}
+          initialHu={finding.suggested_reply_hu ?? ""}
+        />
         <div className="flex gap-2 pt-1">
           <Button size="sm" variant="outline" className="gap-1" onClick={() => onStatus("saved")}>
             <Bookmark className="size-3.5" /> Mentés
