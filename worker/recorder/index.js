@@ -14,6 +14,7 @@
 // Egy folyamat több párhuzamos session-t is kezel (külön browser context-tel).
 
 import { createClient } from "@supabase/supabase-js";
+import { spawn, spawnSync } from "node:child_process";
 import ws from "ws";
 import { buildFingerprintInitScript } from "./fingerprint-patch.js";
 
@@ -109,6 +110,48 @@ if (!BRAIN_URL || !WORKER_API_TOKEN) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const PINTEREST_LOGIN_URL = "https://www.pinterest.com/login/";
+
+let xvfbProcess = null;
+
+function isDisplayReady(display) {
+  const result = spawnSync("xdpyinfo", ["-display", display], {
+    stdio: "ignore",
+    timeout: 1500,
+  });
+  return result.status === 0;
+}
+
+async function ensureVirtualDisplay() {
+  const display = process.env.DISPLAY || ":99";
+  process.env.DISPLAY = display;
+
+  if (isDisplayReady(display)) {
+    console.log(`[recorder] DISPLAY készen áll: ${display}`);
+    return;
+  }
+
+  console.warn(`[recorder] DISPLAY nem elérhető (${display}), Xvfb indítása Node-ból...`);
+  xvfbProcess = spawn(
+    "Xvfb",
+    [display, "-screen", "0", "1280x960x24", "-ac", "+extension", "GLX", "+render", "-noreset"],
+    { detached: false, stdio: ["ignore", "ignore", "pipe"] },
+  );
+
+  xvfbProcess.stderr?.on("data", (chunk) => {
+    const line = String(chunk).trim();
+    if (line) console.warn(`[recorder:xvfb] ${line}`);
+  });
+
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (isDisplayReady(display)) {
+      console.log(`[recorder] Xvfb készen áll: ${display}`);
+      return;
+    }
+    await sleep(100);
+  }
+
+  throw new Error(`A virtuális kijelző nem indult el (${display}).`);
+}
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
@@ -216,11 +259,12 @@ let browser = null;
 async function getBrowser() {
   if (browser && browser.isConnected()) return browser;
   const chromium = await getChromium();
-  console.log("[recorder] Playwright böngésző indítása...");
+  await ensureVirtualDisplay();
+  console.log(`[recorder] Playwright böngésző indítása DISPLAY=${process.env.DISPLAY}...`);
   // 'per-context' proxy placeholder — a tényleges proxy a newContext({ proxy })-ban dől el.
   browser = await chromium.launch({
-    // A régi xvfb-run wrapper konténerben néha a Node indulása előtt megakadt,
-    // ezért a Playwright image saját virtual display kezelésére bízzuk.
+    // Headed mód kell a Live Browse-hoz és a bot-védelem miatt, ezért indulás
+    // előtt külön ellenőrizzük / elindítjuk az Xvfb virtuális kijelzőt.
     headless: false,
     proxy: { server: "http://per-context" },
     args: [
