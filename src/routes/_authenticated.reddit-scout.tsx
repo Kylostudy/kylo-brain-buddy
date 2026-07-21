@@ -234,6 +234,7 @@ function RedditScoutPage() {
           <FindingCard
             key={f.id}
             finding={f}
+            targetLang={activeWatch?.watch?.language_label || "en"}
             onStatus={(status) => statusMut.mutate({ id: f.id, status })}
           />
         ))}
@@ -244,9 +245,11 @@ function RedditScoutPage() {
 
 function FindingCard({
   finding,
+  targetLang,
   onStatus,
 }: {
   finding: Awaited<ReturnType<typeof listRedditScoutFindings>>[number];
+  targetLang: string;
   onStatus: (status: "new" | "saved" | "hidden") => void;
 }) {
   const rel = finding.relevance ?? 0;
