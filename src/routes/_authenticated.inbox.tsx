@@ -114,7 +114,6 @@ function InboxPage() {
   const callRefresh = useServerFn(refreshRedditAccount);
   const callComments = useServerFn(listRedditComments);
   const callStatus = useServerFn(updateRedditCommentStatus);
-  const callTranslate = useServerFn(translateReplyToEnglish);
 
   const [activeWorkflowId, setActiveWorkflowId] = useState<string | null>(null);
   const [usernameDraft, setUsernameDraft] = useState("");
@@ -270,21 +269,32 @@ function InboxPage() {
           <CommentCard
             key={c.id}
             comment={c}
+            targetLang={currentAccount?.locale ?? "en-US"}
             onStatus={(status) =>
               callStatus({ data: { id: c.id, status } }).then(() => {
                 qc.invalidateQueries({ queryKey: ["reddit-comments", currentWorkflowId] });
               })
             }
-            onTranslate={async (text) => {
-              const r = await callTranslate({ data: { text } });
-              return r.english;
-            }}
           />
         ))}
       </section>
     </div>
   );
 }
+
+function CommentCard({
+  comment,
+  targetLang,
+  onStatus,
+}: {
+  comment: RedditComment;
+  targetLang: string;
+  onStatus: (status: "answered" | "ignored") => void;
+}) {
+  const posted = useMemo(
+    () => (comment.posted_at ? new Date(comment.posted_at).toLocaleString("hu-HU") : ""),
+    [comment.posted_at],
+  );
 
 function CommentCard({
   comment,
