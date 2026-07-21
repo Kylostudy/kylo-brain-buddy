@@ -5,6 +5,10 @@ FROM mcr.microsoft.com/playwright:v1.61.1-noble
 
 WORKDIR /app
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends xvfb xauth \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY recorder/package.json recorder/package-lock.json* ./
 RUN npm install --omit=dev
 
@@ -12,9 +16,10 @@ COPY recorder/ ./
 COPY executor/scripts/fingerprint-patch.js ./fingerprint-patch.js
 RUN mkdir -p /executor/scripts
 COPY executor/scripts/fingerprint-patch.js /executor/scripts/fingerprint-patch.js
+RUN chmod +x ./start-recorder.sh
 
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 ENV DISPLAY=:99
 
-CMD ["sh", "-c", "Xvfb :99 -screen 0 1280x960x24 -ac +extension GLX +render -noreset >/tmp/xvfb.log 2>&1 & node boot.js"]
+CMD ["./start-recorder.sh"]
