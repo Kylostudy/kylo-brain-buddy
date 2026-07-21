@@ -13,6 +13,7 @@ import {
   updateRedditScoutFindingStatus,
   runRedditScout,
 } from "@/lib/reddit-scout.functions";
+import { TranslationEditor } from "@/components/reddit/translation-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -234,6 +235,7 @@ function RedditScoutPage() {
           <FindingCard
             key={f.id}
             finding={f}
+            targetLang={activeWatch?.watch?.language_label || "en"}
             onStatus={(status) => statusMut.mutate({ id: f.id, status })}
           />
         ))}
@@ -244,9 +246,11 @@ function RedditScoutPage() {
 
 function FindingCard({
   finding,
+  targetLang,
   onStatus,
 }: {
   finding: Awaited<ReturnType<typeof listRedditScoutFindings>>[number];
+  targetLang: string;
   onStatus: (status: "new" | "saved" | "hidden") => void;
 }) {
   const rel = finding.relevance ?? 0;
@@ -314,6 +318,14 @@ function FindingCard({
             <p className="whitespace-pre-wrap">{finding.suggested_reply_hu}</p>
           </div>
         )}
+
+        <TranslationEditor
+          targetLang={targetLang}
+          subreddit={finding.subreddit ?? undefined}
+          contextTitle={finding.title ?? undefined}
+          replyingTo={finding.body_excerpt ?? undefined}
+          initialHu={finding.suggested_reply_hu ?? ""}
+        />
         <div className="flex gap-2 pt-1">
           <Button size="sm" variant="outline" className="gap-1" onClick={() => onStatus("saved")}>
             <Bookmark className="size-3.5" /> Mentés
