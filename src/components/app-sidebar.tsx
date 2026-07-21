@@ -340,6 +340,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
+              {module === "brain" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath === "/reddit-warmup"}>
+                    <Link to="/reddit-warmup" className="flex items-center gap-2">
+                      <Flame className="size-4 shrink-0" />
+                      <span className="truncate">Reddit Warmup</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={currentPath === "/proxies"}>
                   <Link to="/proxies" className="flex items-center gap-2">
