@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Copy, RefreshCw, Check, EyeOff, ExternalLink, Wand2 } from "lucide-react";
+import { Copy, RefreshCw, Check, EyeOff, ExternalLink } from "lucide-react";
 
 import {
   listRedditWorkflows,
@@ -12,8 +12,8 @@ import {
   refreshRedditAccount,
   listRedditComments,
   updateRedditCommentStatus,
-  translateReplyToEnglish,
 } from "@/lib/reddit-inbox.functions";
+import { TranslationEditor } from "@/components/reddit/translation-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
