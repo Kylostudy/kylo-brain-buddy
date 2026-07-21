@@ -30,6 +30,7 @@ import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/p
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
+import { Route as ApiPublicAdminImportIproyalRouteImport } from './routes/api/public/admin/import-iproyal'
 import { Route as ApiPublicAdminImportBrightdataKylogicRouteImport } from './routes/api/public/admin/import-brightdata-kylogic'
 import { Route as ApiPublicAdminCreateWarmupWorkflowsRouteImport } from './routes/api/public/admin/create-warmup-workflows'
 import { Route as ApiPublicWorkerQaUploadScreenshotRouteImport } from './routes/api/public/worker/qa/upload-screenshot'
@@ -160,6 +161,12 @@ const ApiPublicAuthPasswordRoute = ApiPublicAuthPasswordRouteImport.update({
   path: '/api/public/auth/password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAdminImportIproyalRoute =
+  ApiPublicAdminImportIproyalRouteImport.update({
+    id: '/api/public/admin/import-iproyal',
+    path: '/api/public/admin/import-iproyal',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAdminImportBrightdataKylogicRoute =
   ApiPublicAdminImportBrightdataKylogicRouteImport.update({
     id: '/api/public/admin/import-brightdata-kylogic',
@@ -260,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
+  '/api/public/admin/import-iproyal': typeof ApiPublicAdminImportIproyalRoute
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
@@ -297,6 +305,7 @@ export interface FileRoutesByTo {
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
+  '/api/public/admin/import-iproyal': typeof ApiPublicAdminImportIproyalRoute
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
@@ -336,6 +345,7 @@ export interface FileRoutesById {
   '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
+  '/api/public/admin/import-iproyal': typeof ApiPublicAdminImportIproyalRoute
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
@@ -375,6 +385,7 @@ export interface FileRouteTypes {
     | '/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
+    | '/api/public/admin/import-iproyal'
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
@@ -412,6 +423,7 @@ export interface FileRouteTypes {
     | '/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
+    | '/api/public/admin/import-iproyal'
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
@@ -450,6 +462,7 @@ export interface FileRouteTypes {
     | '/_authenticated/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
+    | '/api/public/admin/import-iproyal'
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
@@ -484,6 +497,7 @@ export interface RootRouteChildren {
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiPublicAdminCreateWarmupWorkflowsRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   ApiPublicAdminImportBrightdataKylogicRoute: typeof ApiPublicAdminImportBrightdataKylogicRoute
+  ApiPublicAdminImportIproyalRoute: typeof ApiPublicAdminImportIproyalRoute
   ApiPublicAuthPasswordRoute: typeof ApiPublicAuthPasswordRoute
   ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
@@ -660,6 +674,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAuthPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/admin/import-iproyal': {
+      id: '/api/public/admin/import-iproyal'
+      path: '/api/public/admin/import-iproyal'
+      fullPath: '/api/public/admin/import-iproyal'
+      preLoaderRoute: typeof ApiPublicAdminImportIproyalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/admin/import-brightdata-kylogic': {
       id: '/api/public/admin/import-brightdata-kylogic'
       path: '/api/public/admin/import-brightdata-kylogic'
@@ -809,6 +830,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicAdminCreateWarmupWorkflowsRoute,
   ApiPublicAdminImportBrightdataKylogicRoute:
     ApiPublicAdminImportBrightdataKylogicRoute,
+  ApiPublicAdminImportIproyalRoute: ApiPublicAdminImportIproyalRoute,
   ApiPublicAuthPasswordRoute: ApiPublicAuthPasswordRoute,
   ApiPublicCronDispatchBrainTasksRoute: ApiPublicCronDispatchBrainTasksRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
@@ -840,13 +862,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
