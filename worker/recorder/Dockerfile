@@ -6,7 +6,7 @@ FROM mcr.microsoft.com/playwright:v1.61.1-noble
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends xvfb xauth \
+  && apt-get install -y --no-install-recommends xvfb xauth x11-utils \
   && rm -rf /var/lib/apt/lists/*
 
 COPY recorder/package.json recorder/package-lock.json* ./
