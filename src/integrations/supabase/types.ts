@@ -1081,6 +1081,122 @@ export type Database = {
           },
         ]
       }
+      reddit_readonly_findings: {
+        Row: {
+          angle_hu: string | null
+          author: string | null
+          body_excerpt: string | null
+          collected_at: string
+          id: string
+          permalink: string
+          post_created_at: string | null
+          post_id: string
+          relevance: number
+          status: string
+          subreddit: string
+          suggested_reply_hu: string | null
+          tenant_id: string
+          title: string | null
+          watch_id: string | null
+          workflow_id: string
+        }
+        Insert: {
+          angle_hu?: string | null
+          author?: string | null
+          body_excerpt?: string | null
+          collected_at?: string
+          id?: string
+          permalink: string
+          post_created_at?: string | null
+          post_id: string
+          relevance?: number
+          status?: string
+          subreddit: string
+          suggested_reply_hu?: string | null
+          tenant_id: string
+          title?: string | null
+          watch_id?: string | null
+          workflow_id: string
+        }
+        Update: {
+          angle_hu?: string | null
+          author?: string | null
+          body_excerpt?: string | null
+          collected_at?: string
+          id?: string
+          permalink?: string
+          post_created_at?: string | null
+          post_id?: string
+          relevance?: number
+          status?: string
+          subreddit?: string
+          suggested_reply_hu?: string | null
+          tenant_id?: string
+          title?: string | null
+          watch_id?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_readonly_findings_watch_id_fkey"
+            columns: ["watch_id"]
+            isOneToOne: false
+            referencedRelation: "reddit_readonly_watches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reddit_readonly_findings_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reddit_readonly_watches: {
+        Row: {
+          created_at: string
+          id: string
+          language_label: string
+          last_scanned_at: string | null
+          positioning: string
+          subreddits: string[]
+          tenant_id: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language_label?: string
+          last_scanned_at?: string | null
+          positioning?: string
+          subreddits?: string[]
+          tenant_id: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language_label?: string
+          last_scanned_at?: string | null
+          positioning?: string
+          subreddits?: string[]
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_readonly_watches_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: true
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_module_access: {
         Row: {
           created_at: string
