@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, MessageSquare, Trash2, Pencil, Check, X, Copy, Globe, ClipboardCheck, Inbox, Radar } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Pencil, Check, X, Copy, Globe, ClipboardCheck, Inbox, Radar, Flame } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -336,6 +336,16 @@ export function AppSidebar() {
                     <Link to="/reddit-scout" className="flex items-center gap-2">
                       <Radar className="size-4 shrink-0" />
                       <span className="truncate">Reddit Scout</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {module === "brain" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath === "/reddit-warmup"}>
+                    <Link to="/reddit-warmup" className="flex items-center gap-2">
+                      <Flame className="size-4 shrink-0" />
+                      <span className="truncate">Reddit Warmup</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
