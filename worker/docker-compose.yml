@@ -30,6 +30,7 @@ services:
       context: .
       dockerfile: recorder/Dockerfile
     image: kylo-recorder:latest
+    shm_size: "1gb"
     environment:
       - BRAIN_URL=${BRAIN_URL}
       - WORKER_API_TOKEN=${WORKER_API_TOKEN}
