@@ -49,15 +49,42 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         );
         const sb = supabaseAdmin as ReturnType<typeof createClient<Database>>;
 
-        // Lekérünk 1 queued sort + atomikusan running-ra állítjuk (CAS a status mezőn).
-        const { data: candidate } = await sb
+        // Lekérünk több queued sort + kiszűrjük azokat, ahol a workflow épp
+        // csendes órában van (helyi éjszaka). A megmaradókból az elsőt CAS-szal
+        // running-ra állítjuk.
+        const { data: candidates } = await sb
           .from("brain_workflow_runs")
-          .select("id, workflow_id, spec_snapshot, runner, proxy_id")
+          .select(
+            "id, workflow_id, spec_snapshot, runner, proxy_id, workflows!inner(quiet_hours_start, quiet_hours_end, quiet_hours_timezone)"
+          )
           .eq("status", "queued")
           .eq("runner", "docker")
           .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
+          .limit(20);
+
+        function isQuietNow(w: {
+          quiet_hours_start: number | null;
+          quiet_hours_end: number | null;
+          quiet_hours_timezone: string | null;
+        }): boolean {
+          const s = w.quiet_hours_start;
+          const e = w.quiet_hours_end;
+          if (s == null || e == null || s === e) return false;
+          const tz = w.quiet_hours_timezone || "UTC";
+          const hourStr = new Intl.DateTimeFormat("en-GB", {
+            timeZone: tz,
+            hour: "2-digit",
+            hour12: false,
+          }).format(new Date());
+          const h = parseInt(hourStr, 10);
+          if (Number.isNaN(h)) return false;
+          return s < e ? h >= s && h < e : h >= s || h < e;
+        }
+
+        const candidate = (candidates ?? []).find((c) => {
+          const wf = (c as unknown as { workflows: Parameters<typeof isQuietNow>[0] }).workflows;
+          return !wf || !isQuietNow(wf);
+        });
 
         if (!candidate) return new Response(null, { status: 204 });
 
