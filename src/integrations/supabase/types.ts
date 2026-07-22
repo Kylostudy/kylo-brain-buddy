@@ -1502,6 +1502,9 @@ export type Database = {
           module: Database["public"]["Enums"]["app_module"]
           name: string
           platform: string | null
+          quiet_hours_end: number | null
+          quiet_hours_start: number | null
+          quiet_hours_timezone: string | null
           ready_for_test: boolean
           region: string | null
           spec: Json
@@ -1523,6 +1526,9 @@ export type Database = {
           module?: Database["public"]["Enums"]["app_module"]
           name?: string
           platform?: string | null
+          quiet_hours_end?: number | null
+          quiet_hours_start?: number | null
+          quiet_hours_timezone?: string | null
           ready_for_test?: boolean
           region?: string | null
           spec?: Json
@@ -1544,6 +1550,9 @@ export type Database = {
           module?: Database["public"]["Enums"]["app_module"]
           name?: string
           platform?: string | null
+          quiet_hours_end?: number | null
+          quiet_hours_start?: number | null
+          quiet_hours_timezone?: string | null
           ready_for_test?: boolean
           region?: string | null
           spec?: Json
@@ -1560,6 +1569,10 @@ export type Database = {
     }
     Functions: {
       current_tenant_id: { Args: never; Returns: string }
+      is_workflow_quiet_now: {
+        Args: { _workflow_id: string }
+        Returns: boolean
+      }
       tenant_has_module: {
         Args: {
           _module: Database["public"]["Enums"]["app_module"]
