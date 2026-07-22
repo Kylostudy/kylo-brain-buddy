@@ -29,6 +29,11 @@ const ENTRIES: Array<{
   { host: "95.173.47.61",     port: 12323, username: "14a8fb50a72b3", password: "7dc091d396", country: "GB", label: "IPRoyal Egyesült Királyság", city: "London" },
   { host: "45.131.15.92",     port: 12323, username: "14a8fb50a72b3", password: "7dc091d396", country: "US", label: "IPRoyal USA", city: "Ashburn" },
   { host: "149.18.33.214",    port: 12323, username: "14a0e896a1622", password: "a33abffa44", country: "US", label: "IPRoyal USA #2 (LEJÁR 2026-08-20)", city: "IDEIGLENES — lejár 2026-08-20" },
+  { host: "91.209.48.220",    port: 12323, username: "14aec40879eb8", password: "4676c1dd3d", country: "TW", label: "IPRoyal Tajvan", city: "Tajpej" },
+  { host: "51.241.239.211",   port: 12323, username: "14aec40879eb8", password: "4676c1dd3d", country: "IT", label: "IPRoyal Olaszország", city: "Róma" },
+  { host: "78.143.232.168",   port: 12323, username: "14aec40879eb8", password: "4676c1dd3d", country: "NZ", label: "IPRoyal Új-Zéland", city: "Auckland" },
+  { host: "165.254.9.165",    port: 12323, username: "14aec40879eb8", password: "4676c1dd3d", country: "IE", label: "IPRoyal Írország", city: "Dublin" },
+  { host: "200.160.39.113",   port: 12323, username: "14aec40879eb8", password: "4676c1dd3d", country: "BR", label: "IPRoyal Brazília", city: "São Paulo" },
 ];
 
 export const Route = createFileRoute("/api/public/admin/import-iproyal")({
