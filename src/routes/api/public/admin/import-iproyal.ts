@@ -28,6 +28,7 @@ const ENTRIES: Array<{
   { host: "194.102.121.208",  port: 12323, username: "14a8fb50a72b3", password: "7dc091d396", country: "CA", label: "IPRoyal Kanada", city: "Montreal" },
   { host: "95.173.47.61",     port: 12323, username: "14a8fb50a72b3", password: "7dc091d396", country: "GB", label: "IPRoyal Egyesült Királyság", city: "London" },
   { host: "45.131.15.92",     port: 12323, username: "14a8fb50a72b3", password: "7dc091d396", country: "US", label: "IPRoyal USA", city: "Ashburn" },
+  { host: "149.18.33.214",    port: 12323, username: "14a0e896a1622", password: "a33abffa44", country: "US", label: "IPRoyal USA #2 (LEJÁR 2026-08-20)", city: "IDEIGLENES — lejár 2026-08-20" },
 ];
 
 export const Route = createFileRoute("/api/public/admin/import-iproyal")({
