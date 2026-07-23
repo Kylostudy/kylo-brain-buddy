@@ -211,25 +211,37 @@ async function whoerPreflight(context, expectedCountry) {
 }
 
 async function main() {
+  // A payloadokat elsődlegesen fájlból olvassuk (SPEC_FILE / CREDENTIALS_FILE /
+  // PROXY_FILE) — így az argv nem hízik meg és nem kapunk `spawn E2BIG`-et
+  // nagy süti-payloadnál. Ha nincs FILE változó, visszaesünk a régi
+  // *_JSON env változóra (visszafelé kompatibilitás).
+  const readPayload = async (fileEnv, jsonEnv) => {
+    const file = process.env[fileEnv];
+    if (file) {
+      const { readFile } = await import("node:fs/promises");
+      return await readFile(file, "utf8");
+    }
+    return process.env[jsonEnv] || "";
+  };
+
   let spec, creds, proxyInfo;
   try {
-    spec = JSON.parse(process.env.SPEC_JSON || "{}");
+    const raw = await readPayload("SPEC_FILE", "SPEC_JSON");
+    spec = raw ? JSON.parse(raw) : {};
   } catch (e) {
-    return finish("failed", null, `SPEC_JSON parse hiba: ${e.message}`);
+    return finish("failed", null, `SPEC olvasás hiba: ${e.message}`);
   }
   try {
-    creds = process.env.CREDENTIALS_JSON
-      ? JSON.parse(process.env.CREDENTIALS_JSON)
-      : null;
+    const raw = await readPayload("CREDENTIALS_FILE", "CREDENTIALS_JSON");
+    creds = raw ? JSON.parse(raw) : null;
   } catch (e) {
-    return finish("failed", null, `CREDENTIALS_JSON parse hiba: ${e.message}`);
+    return finish("failed", null, `CREDENTIALS olvasás hiba: ${e.message}`);
   }
   try {
-    proxyInfo = process.env.PROXY_JSON
-      ? JSON.parse(process.env.PROXY_JSON)
-      : null;
+    const raw = await readPayload("PROXY_FILE", "PROXY_JSON");
+    proxyInfo = raw ? JSON.parse(raw) : null;
   } catch (e) {
-    return finish("failed", null, `PROXY_JSON parse hiba: ${e.message}`);
+    return finish("failed", null, `PROXY olvasás hiba: ${e.message}`);
   }
 
   // ---- Brain task rövid ág: ping ----
