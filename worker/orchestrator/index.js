@@ -179,12 +179,24 @@ function runContainer(job) {
 
     proc.on("close", (code) => {
       clearInterval(flushTimer);
+      cleanup();
       const status = finalEntry?.status ?? (code === 0 ? "succeeded" : "failed");
       resolve({
         status,
         logs,
         result: finalEntry?.result ?? null,
         error: finalEntry?.error ?? (code !== 0 ? `exit ${code}` : null),
+        preflight,
+      });
+    });
+    proc.on("error", (err) => {
+      clearInterval(flushTimer);
+      cleanup();
+      resolve({
+        status: "failed",
+        logs,
+        result: null,
+        error: `docker spawn hiba: ${err.message}`,
         preflight,
       });
     });
