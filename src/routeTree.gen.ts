@@ -18,6 +18,7 @@ import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenti
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
+import { Route as AuthenticatedAuditSignupRouteImport } from './routes/_authenticated.audit.signup'
 import { Route as AuthenticatedAuditQaRouteImport } from './routes/_authenticated.audit.qa'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
@@ -94,6 +95,12 @@ const AuthenticatedWWorkflowIdRoute =
   AuthenticatedWWorkflowIdRouteImport.update({
     id: '/w/$workflowId',
     path: '/w/$workflowId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAuditSignupRoute =
+  AuthenticatedAuditSignupRouteImport.update({
+    id: '/audit/signup',
+    path: '/audit/signup',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAuditQaRoute = AuthenticatedAuditQaRouteImport.update({
@@ -280,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
+  '/audit/signup': typeof AuthenticatedAuditSignupRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
@@ -320,6 +328,7 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
+  '/audit/signup': typeof AuthenticatedAuditSignupRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
@@ -362,6 +371,7 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/audit/qa': typeof AuthenticatedAuditQaRoute
+  '/_authenticated/audit/signup': typeof AuthenticatedAuditSignupRoute
   '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
@@ -404,6 +414,7 @@ export interface FileRouteTypes {
     | '/reddit-warmup'
     | '/api/transcribe'
     | '/audit/qa'
+    | '/audit/signup'
     | '/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
@@ -444,6 +455,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/'
     | '/audit/qa'
+    | '/audit/signup'
     | '/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
@@ -485,6 +497,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/_authenticated/'
     | '/_authenticated/audit/qa'
+    | '/_authenticated/audit/signup'
     | '/_authenticated/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
@@ -614,6 +627,13 @@ declare module '@tanstack/react-router' {
       path: '/w/$workflowId'
       fullPath: '/w/$workflowId'
       preLoaderRoute: typeof AuthenticatedWWorkflowIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/audit/signup': {
+      id: '/_authenticated/audit/signup'
+      path: '/audit/signup'
+      fullPath: '/audit/signup'
+      preLoaderRoute: typeof AuthenticatedAuditSignupRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/audit/qa': {
@@ -836,6 +856,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRedditWarmupRoute: typeof AuthenticatedRedditWarmupRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAuditQaRoute: typeof AuthenticatedAuditQaRoute
+  AuthenticatedAuditSignupRoute: typeof AuthenticatedAuditSignupRoute
   AuthenticatedWWorkflowIdRoute: typeof AuthenticatedWWorkflowIdRoute
 }
 
@@ -846,6 +867,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRedditWarmupRoute: AuthenticatedRedditWarmupRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAuditQaRoute: AuthenticatedAuditQaRoute,
+  AuthenticatedAuditSignupRoute: AuthenticatedAuditSignupRoute,
   AuthenticatedWWorkflowIdRoute: AuthenticatedWWorkflowIdRoute,
 }
 
