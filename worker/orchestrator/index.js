@@ -12,6 +12,15 @@
 // Indítás: docker compose up -d --build (lásd worker/README.md)
 
 import { spawn } from "node:child_process";
+import { mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+
+// A payloadokat (spec, credentials, proxy) fájlon keresztül adjuk át a
+// konténernek. Régebben env változóként (SPEC_JSON=...) argv-be raktuk, de
+// nagy süti-payloadnál (Reddit warmup) argv+envp együtt átlépte a Linux
+// ARG_MAX limitet → `spawn E2BIG`. Fájl+mount esetén az argv rövid marad.
+const JOB_MOUNT_DIR = "/tmp/kylo-jobs";
+try { mkdirSync(JOB_MOUNT_DIR, { recursive: true }); } catch {}
 
 const BRAIN_URL = (process.env.BRAIN_URL || "").replace(/\/$/, "");
 const WORKER_API_TOKEN = process.env.WORKER_API_TOKEN;
@@ -82,22 +91,33 @@ async function reportComplete(payload) {
 
 function runContainer(job) {
   return new Promise((resolve) => {
+    // Per-run job könyvtár a host /tmp/kylo-jobs-ban (a compose bemounttal
+    // ugyanezt látja az orchestrator konténer is). A konténerbe /job néven
+    // mountoljuk, hogy az executor stabil útvonalról olvashassa.
+    const jobDir = join(JOB_MOUNT_DIR, String(job.id));
+    mkdirSync(jobDir, { recursive: true });
+    writeFileSync(join(jobDir, "spec.json"), JSON.stringify(job.spec ?? {}));
+    if (job.credentials) {
+      writeFileSync(join(jobDir, "credentials.json"), JSON.stringify(job.credentials));
+    }
+    if (job.proxy) {
+      writeFileSync(join(jobDir, "proxy.json"), JSON.stringify(job.proxy));
+    }
+
     const args = [
       "run", "--rm",
       "--network", "bridge",
-      "-e", `SPEC_JSON=${JSON.stringify(job.spec ?? {})}`,
+      "-v", `${jobDir}:/job:ro`,
+      "-e", `SPEC_FILE=/job/spec.json`,
       "-e", `BRAIN_URL=${BRAIN_URL}`,
       "-e", `WORKER_API_TOKEN=${WORKER_API_TOKEN}`,
     ];
-    if (job.credentials) {
-      args.push("-e", `CREDENTIALS_JSON=${JSON.stringify(job.credentials)}`);
-    }
-    if (job.proxy) {
-      args.push("-e", `PROXY_JSON=${JSON.stringify(job.proxy)}`);
-    }
+    if (job.credentials) args.push("-e", `CREDENTIALS_FILE=/job/credentials.json`);
+    if (job.proxy) args.push("-e", `PROXY_FILE=/job/proxy.json`);
     args.push(IMAGE);
 
     const proc = spawn("docker", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const cleanup = () => { try { rmSync(jobDir, { recursive: true, force: true }); } catch {} };
 
     const logs = [];
     let finalEntry = null;
@@ -159,12 +179,24 @@ function runContainer(job) {
 
     proc.on("close", (code) => {
       clearInterval(flushTimer);
+      cleanup();
       const status = finalEntry?.status ?? (code === 0 ? "succeeded" : "failed");
       resolve({
         status,
         logs,
         result: finalEntry?.result ?? null,
         error: finalEntry?.error ?? (code !== 0 ? `exit ${code}` : null),
+        preflight,
+      });
+    });
+    proc.on("error", (err) => {
+      clearInterval(flushTimer);
+      cleanup();
+      resolve({
+        status: "failed",
+        logs,
+        result: null,
+        error: `docker spawn hiba: ${err.message}`,
         preflight,
       });
     });
