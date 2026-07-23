@@ -75,16 +75,32 @@ function SignupPage() {
   const qc = useQueryClient();
   const startFn = useServerFn(startKyloSignupRun);
   const listFn = useServerFn(listKyloSignupRuns);
+  const ensureFn = useServerFn(ensureKyloSignupWorkflow);
 
   useEffect(() => {
     forceModule("audit");
   }, [forceModule]);
+
+  // Első nyitáskor létrehozzuk a workflow-t, hogy a Gmail bekötése azonnal
+  // elérhető legyen (a Hitelesítő adatok panel a workflow-hoz tartozik).
+  const ensureMut = useMutation({
+    mutationFn: () => ensureFn(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] }),
+  });
+  useEffect(() => {
+    ensureMut.mutate();
+    // csak első mountnál
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["kylo-signup-runs"],
     queryFn: () => listFn(),
     refetchInterval: 5000,
   });
+
+  const gmail = (data?.gmail as { email: string; connectedAt: string | null } | null) ?? null;
+  const workflowId = data?.workflow?.id ?? null;
 
   const startMut = useMutation({
     mutationFn: () => startFn({ data: {} }),
@@ -104,6 +120,8 @@ function SignupPage() {
     return "alaszka (első futás)";
   })();
 
+  const canStart = !!gmail;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">
       <div className="flex items-start justify-between gap-4">
@@ -114,12 +132,20 @@ function SignupPage() {
             új proxyval és új plusz-alias e-maillel (sunyika.kripto+kylo&lt;N&gt;@gmail.com)
             próbál végigmenni a Kylo.study regisztráción a Stripe fizetésig.
           </p>
+          <p className="mt-2 text-xs text-yellow-500">
+            ⚠️ Előbb kösd be a Gmail postafiókot (jobbra), különben a rendszer nem
+            tudja kiolvasni az alias címekre érkező megerősítő linkeket.
+            A jelenlegi automata script „felderítő" módban fut — a „succeeded" csak
+            azt jelenti, hogy nem crashelt, nem azt, hogy sikerült regisztrálni.
+            A rendes lépések a record & replay felvételből fognak jönni.
+          </p>
         </div>
         <div className="flex flex-col items-end gap-2">
           <Button
             size="lg"
             onClick={() => startMut.mutate()}
-            disabled={startMut.isPending}
+            disabled={startMut.isPending || !canStart}
+            title={canStart ? "" : "Először kösd be a Gmail postafiókot"}
           >
             {startMut.isPending ? "Indítás…" : "Új futás indítása"}
           </Button>
@@ -128,6 +154,51 @@ function SignupPage() {
           </div>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Gmail postafiók</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {gmail ? (
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div>
+                  Csatlakoztatva: <span className="font-mono">{gmail.email}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {gmail.connectedAt ? new Date(gmail.connectedAt).toLocaleString("hu-HU") : ""}
+                </div>
+              </div>
+              {workflowId && (
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/w/$workflowId" params={{ workflowId }}>
+                    Hitelesítő adatok kezelése
+                  </Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-muted-foreground">
+                Még nincs Gmail bekötve. Ez ahhoz kell, hogy az aliasokra
+                (<span className="font-mono">sunyika.kripto+kyloN@gmail.com</span>)
+                érkező megerősítő linkeket automatikusan ki tudjuk olvasni.
+              </div>
+              {workflowId ? (
+                <Button asChild>
+                  <Link to="/w/$workflowId" params={{ workflowId }}>
+                    Gmail csatlakoztatása
+                  </Link>
+                </Button>
+              ) : (
+                <Button disabled>Betöltés…</Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>
