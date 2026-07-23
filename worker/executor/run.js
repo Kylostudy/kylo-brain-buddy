@@ -443,6 +443,8 @@ async function main() {
       });
     } else if (monitorType === "kylo-study-qa") {
       result = await runKyloStudyQa({ page, context, spec, creds, log });
+    } else if (monitorType === "kylo-study-signup") {
+      result = await runKyloSignup({ page, context, spec, creds, log });
     } else if (monitorType === "tiktok") {
       result = await runTikTok({ page, context, spec, creds, log });
     } else if (monitorType === "decathlon-stock") {
