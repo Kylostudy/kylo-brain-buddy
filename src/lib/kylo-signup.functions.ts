@@ -261,7 +261,47 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
   });
 
 // ─────────────────────────────────────────────────────────────
-// listKyloSignupRuns — az utóbbi 50 futás a UI-hoz
+// ensureKyloSignupWorkflow — a workflow eleve létrejön,
+// hogy a Hitelesítő adatok / Gmail beköthető legyen még az első futás előtt.
+// ─────────────────────────────────────────────────────────────
+
+export const ensureKyloSignupWorkflow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: prof } = await supabase
+      .from("profiles").select("tenant_id").eq("id", userId).single();
+    if (!prof?.tenant_id) throw new Error("Nincs tenant a profilhoz.");
+    const tenantId = prof.tenant_id;
+
+    const existing = await supabase
+      .from("workflows")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("module", "audit")
+      .contains("spec", { monitor_type: SIGNUP_MONITOR })
+      .maybeSingle();
+    if (existing.data?.id) return { workflowId: existing.data.id };
+
+    const { data: created, error } = await supabase
+      .from("workflows")
+      .insert({
+        tenant_id: tenantId,
+        module: "audit",
+        name: "Kylo Sign Up",
+        spec: {
+          monitor_type: SIGNUP_MONITOR,
+          kylo_signup: { run_counter: 0, last_proxy_id: null, last_skin: null },
+        } as never,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { workflowId: created!.id };
+  });
+
+// ─────────────────────────────────────────────────────────────
+// listKyloSignupRuns — az utóbbi 50 futás + Gmail státusz
 // ─────────────────────────────────────────────────────────────
 
 export const listKyloSignupRuns = createServerFn({ method: "GET" })
@@ -273,7 +313,7 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
       .select("tenant_id")
       .eq("id", userId)
       .single();
-    if (!prof?.tenant_id) return { workflow: null, runs: [] as never[] };
+    if (!prof?.tenant_id) return { workflow: null, runs: [] as never[], gmail: null };
     const tenantId = prof.tenant_id;
 
     const { data: wf } = await supabase
@@ -284,17 +324,28 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
       .contains("spec", { monitor_type: SIGNUP_MONITOR })
       .maybeSingle();
 
-    if (!wf?.id) return { workflow: null, runs: [] as never[] };
+    if (!wf?.id) return { workflow: null, runs: [] as never[], gmail: null };
 
-    const { data: runs } = await supabase
-      .from("brain_workflow_runs")
-      .select("id, status, started_at, finished_at, spec_snapshot, result, error, proxy_id")
-      .eq("workflow_id", wf.id)
-      .order("started_at", { ascending: false })
-      .limit(50);
+    const [runsRes, credRes] = await Promise.all([
+      supabase
+        .from("brain_workflow_runs")
+        .select("id, status, started_at, finished_at, spec_snapshot, result, error, proxy_id")
+        .eq("workflow_id", wf.id)
+        .order("started_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("workflow_credentials")
+        .select("gmail_email, gmail_connected_at")
+        .eq("workflow_id", wf.id)
+        .maybeSingle(),
+    ]);
 
     return {
       workflow: { id: wf.id, name: wf.name, spec: wf.spec },
-      runs: runs ?? [],
+      runs: runsRes.data ?? [],
+      gmail: credRes.data?.gmail_email
+        ? { email: credRes.data.gmail_email as string, connectedAt: credRes.data.gmail_connected_at }
+        : null,
     };
   });
+
