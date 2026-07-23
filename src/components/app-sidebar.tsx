@@ -205,12 +205,16 @@ export function AppSidebar() {
                 </div>
               )}
               {workflows.map((wf) => {
-                const isKyloStudyQa = module === "audit" && getMonitorType(wf.spec) === "kylo-study-qa";
+                const monitorType = getMonitorType(wf.spec);
+                const isKyloStudyQa = module === "audit" && monitorType === "kylo-study-qa";
+                const isKyloSignup = module === "audit" && monitorType === "kylo-study-signup";
                 const active = isKyloStudyQa
                   ? currentPath.startsWith("/audit/qa")
+                  : isKyloSignup
+                  ? currentPath.startsWith("/audit/signup")
                   : currentPath === `/w/${wf.id}`;
                 const isEditing = editingId === wf.id;
-                const ItemIcon = isKyloStudyQa ? ClipboardCheck : MessageSquare;
+                const ItemIcon = isKyloStudyQa || isKyloSignup ? ClipboardCheck : MessageSquare;
                 return (
                   <SidebarMenuItem key={wf.id}>
                     {isEditing ? (
