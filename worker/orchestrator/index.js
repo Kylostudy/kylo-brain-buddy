@@ -12,6 +12,15 @@
 // Indítás: docker compose up -d --build (lásd worker/README.md)
 
 import { spawn } from "node:child_process";
+import { mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+
+// A payloadokat (spec, credentials, proxy) fájlon keresztül adjuk át a
+// konténernek. Régebben env változóként (SPEC_JSON=...) argv-be raktuk, de
+// nagy süti-payloadnál (Reddit warmup) argv+envp együtt átlépte a Linux
+// ARG_MAX limitet → `spawn E2BIG`. Fájl+mount esetén az argv rövid marad.
+const JOB_MOUNT_DIR = "/tmp/kylo-jobs";
+try { mkdirSync(JOB_MOUNT_DIR, { recursive: true }); } catch {}
 
 const BRAIN_URL = (process.env.BRAIN_URL || "").replace(/\/$/, "");
 const WORKER_API_TOKEN = process.env.WORKER_API_TOKEN;
