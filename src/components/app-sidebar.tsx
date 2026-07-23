@@ -266,6 +266,15 @@ export function AppSidebar() {
                               <ItemIcon className="size-4 shrink-0" />
                               <span className="truncate">{wf.name}</span>
                             </Link>
+                          ) : isKyloSignup ? (
+                            <Link
+                              to="/audit/signup"
+                              onDoubleClick={(e) => startEdit(wf, e)}
+                              className="flex items-center gap-2"
+                            >
+                              <ItemIcon className="size-4 shrink-0" />
+                              <span className="truncate">{wf.name}</span>
+                            </Link>
                           ) : (
                             <Link
                               to="/w/$workflowId"
