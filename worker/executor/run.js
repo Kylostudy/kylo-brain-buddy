@@ -30,6 +30,7 @@ import { runDecathlonStock } from "./scripts/decathlon-stock.js";
 import { runBotSmokeTest } from "./scripts/bot-smoke-test.js";
 import { runLoggedOutWarmup } from "./scripts/logged-out-warmup.js";
 import { runKyloStudyQa } from "./scripts/audit-qa/kylo-study-qa.js";
+import { runKyloSignup } from "./scripts/kylo-signup.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 import { buildFingerprintInitScript } from "./scripts/fingerprint-patch.js";
 import {
