@@ -91,22 +91,33 @@ async function reportComplete(payload) {
 
 function runContainer(job) {
   return new Promise((resolve) => {
+    // Per-run job könyvtár a host /tmp/kylo-jobs-ban (a compose bemounttal
+    // ugyanezt látja az orchestrator konténer is). A konténerbe /job néven
+    // mountoljuk, hogy az executor stabil útvonalról olvashassa.
+    const jobDir = join(JOB_MOUNT_DIR, String(job.id));
+    mkdirSync(jobDir, { recursive: true });
+    writeFileSync(join(jobDir, "spec.json"), JSON.stringify(job.spec ?? {}));
+    if (job.credentials) {
+      writeFileSync(join(jobDir, "credentials.json"), JSON.stringify(job.credentials));
+    }
+    if (job.proxy) {
+      writeFileSync(join(jobDir, "proxy.json"), JSON.stringify(job.proxy));
+    }
+
     const args = [
       "run", "--rm",
       "--network", "bridge",
-      "-e", `SPEC_JSON=${JSON.stringify(job.spec ?? {})}`,
+      "-v", `${jobDir}:/job:ro`,
+      "-e", `SPEC_FILE=/job/spec.json`,
       "-e", `BRAIN_URL=${BRAIN_URL}`,
       "-e", `WORKER_API_TOKEN=${WORKER_API_TOKEN}`,
     ];
-    if (job.credentials) {
-      args.push("-e", `CREDENTIALS_JSON=${JSON.stringify(job.credentials)}`);
-    }
-    if (job.proxy) {
-      args.push("-e", `PROXY_JSON=${JSON.stringify(job.proxy)}`);
-    }
+    if (job.credentials) args.push("-e", `CREDENTIALS_FILE=/job/credentials.json`);
+    if (job.proxy) args.push("-e", `PROXY_FILE=/job/proxy.json`);
     args.push(IMAGE);
 
     const proc = spawn("docker", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const cleanup = () => { try { rmSync(jobDir, { recursive: true, force: true }); } catch {} };
 
     const logs = [];
     let finalEntry = null;
