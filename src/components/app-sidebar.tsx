@@ -190,6 +190,32 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {module === "audit" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Audit eszközök</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath.startsWith("/audit/qa")}>
+                    <Link to="/audit/qa" className="flex items-center gap-2">
+                      <ClipboardCheck className="size-4 shrink-0" />
+                      <span className="truncate">Kylo.study QA</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath.startsWith("/audit/signup")}>
+                    <Link to="/audit/signup" className="flex items-center gap-2">
+                      <ClipboardCheck className="size-4 shrink-0" />
+                      <span className="truncate">Kylo Sign Up</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         <SidebarGroup>
           <SidebarGroupLabel>Workflow-k</SidebarGroupLabel>
           <SidebarGroupContent>
