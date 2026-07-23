@@ -4,7 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { startKyloSignupRun, listKyloSignupRuns } from "@/lib/kylo-signup.functions";
+import {
+  startKyloSignupRun,
+  listKyloSignupRuns,
+  ensureKyloSignupWorkflow,
+} from "@/lib/kylo-signup.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
