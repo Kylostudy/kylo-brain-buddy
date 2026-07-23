@@ -30,6 +30,7 @@ import { runDecathlonStock } from "./scripts/decathlon-stock.js";
 import { runBotSmokeTest } from "./scripts/bot-smoke-test.js";
 import { runLoggedOutWarmup } from "./scripts/logged-out-warmup.js";
 import { runKyloStudyQa } from "./scripts/audit-qa/kylo-study-qa.js";
+import { runKyloSignup } from "./scripts/kylo-signup.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 import { buildFingerprintInitScript } from "./scripts/fingerprint-patch.js";
 import {
@@ -442,6 +443,8 @@ async function main() {
       });
     } else if (monitorType === "kylo-study-qa") {
       result = await runKyloStudyQa({ page, context, spec, creds, log });
+    } else if (monitorType === "kylo-study-signup") {
+      result = await runKyloSignup({ page, context, spec, creds, log });
     } else if (monitorType === "tiktok") {
       result = await runTikTok({ page, context, spec, creds, log });
     } else if (monitorType === "decathlon-stock") {
