@@ -151,14 +151,60 @@ function SignupPage() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <Button
-            size="lg"
-            onClick={() => startMut.mutate()}
-            disabled={startMut.isPending || !canStart}
-            title={canStart ? "" : "Először kösd be a Gmail postafiókot"}
-          >
-            {startMut.isPending ? "Indítás…" : "Új futás indítása"}
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!workflowId}
+              onClick={async () => {
+                if (!workflowId) return;
+                try {
+                  const s = await callStartLiveBrowse({
+                    data: { workflowId, startUrl: "https://kylo.study/?lang=en-GB" },
+                  });
+                  setRecordSessionId(s.id);
+                  setRecordMode("browse");
+                  setRecordOpen(true);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Live Browse indítása sikertelen");
+                }
+              }}
+              title="Élő böngésző a VPS-en (kézi kattintás, nem menti a lépéseket)"
+            >
+              <Globe className="size-4" />
+              <span className="ml-1.5">Live Browse</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!workflowId}
+              onClick={async () => {
+                if (!workflowId) return;
+                try {
+                  const s = await callStartRecording({
+                    data: { workflowId, startUrl: "https://kylo.study/?lang=en-GB" },
+                  });
+                  setRecordSessionId(s.id);
+                  setRecordMode("record");
+                  setRecordOpen(true);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Felvétel indítása sikertelen");
+                }
+              }}
+              title="Regisztrációs flow felvétele — a végén Mentéssel eltárolja a lépéseket a workflow specbe"
+            >
+              <Video className="size-4" />
+              <span className="ml-1.5">Felvétel</span>
+            </Button>
+            <Button
+              size="lg"
+              onClick={() => startMut.mutate()}
+              disabled={startMut.isPending || !canStart}
+              title={canStart ? "" : "Először kösd be a Gmail postafiókot"}
+            >
+              {startMut.isPending ? "Indítás…" : "Új futás indítása"}
+            </Button>
+          </div>
           <div className="text-xs text-muted-foreground">
             Következő skin: <span className="font-medium">{nextSkinHint}</span>
           </div>
