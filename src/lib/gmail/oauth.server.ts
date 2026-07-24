@@ -52,24 +52,37 @@ async function hmac(data: string): Promise<string> {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export async function signState(workflowId: string): Promise<string> {
+export async function signState(
+  workflowId: string,
+  redirectUri: string,
+): Promise<string> {
   const exp = Math.floor(Date.now() / 1000) + 600; // 10 perc
-  const payload = `${workflowId}.${exp}`;
+  const ru = btoa(redirectUri)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  const payload = `${workflowId}.${exp}.${ru}`;
   const sig = await hmac(payload);
   return `${payload}.${sig}`;
 }
 
 export async function verifyState(
   state: string,
-): Promise<{ workflowId: string } | null> {
+): Promise<{ workflowId: string; redirectUri: string } | null> {
   const parts = state.split(".");
-  if (parts.length !== 3) return null;
-  const [workflowId, expStr, sig] = parts;
+  if (parts.length !== 4) return null;
+  const [workflowId, expStr, ru, sig] = parts;
   const exp = Number(expStr);
   if (!Number.isFinite(exp) || exp * 1000 < Date.now()) return null;
-  const expected = await hmac(`${workflowId}.${expStr}`);
+  const expected = await hmac(`${workflowId}.${expStr}.${ru}`);
   if (expected !== sig) return null;
-  return { workflowId };
+  try {
+    const pad = "=".repeat((4 - (ru.length % 4)) % 4);
+    const redirectUri = atob(ru.replace(/-/g, "+").replace(/_/g, "/") + pad);
+    return { workflowId, redirectUri };
+  } catch {
+    return null;
+  }
 }
 
 /* ------------------------------------------------------------------ */
