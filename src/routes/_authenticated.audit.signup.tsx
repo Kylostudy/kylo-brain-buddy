@@ -319,6 +319,16 @@ function SignupPage() {
       <div className="text-xs text-muted-foreground">
         <Link to="/audit/qa" className="underline">Vissza a Kylo.study QA-hoz</Link>
       </div>
+
+      <BrowserRecorderModal
+        open={recordOpen}
+        sessionId={recordSessionId}
+        mode={recordMode}
+        onClose={() => {
+          setRecordOpen(false);
+          setRecordSessionId(null);
+        }}
+      />
     </div>
   );
 }
