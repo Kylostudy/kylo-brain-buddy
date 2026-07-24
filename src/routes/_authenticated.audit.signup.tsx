@@ -348,9 +348,12 @@ function GmailConnectButton({
       const previewProjectId = host.endsWith(".lovableproject.com")
         ? host.replace(".lovableproject.com", "")
         : host.match(/^id-preview--([a-f0-9-]+)\.lovable\.app$/)?.[1];
-      const callbackOrigin = previewProjectId
-        ? `https://project--${previewProjectId}-dev.lovable.app`
-        : window.location.origin;
+      const slugPreview = host.match(/^preview--(.+)\.lovable\.app$/)?.[1];
+      const callbackOrigin = slugPreview
+        ? `https://${slugPreview}.lovable.app`
+        : previewProjectId
+          ? `https://project--${previewProjectId}-dev.lovable.app`
+          : window.location.origin;
       const redirectUri = `${callbackOrigin}/api/public/auth/google/callback`;
       const { url } = await callStart({ data: { workflowId, redirectUri } });
       if (oauthWindow) {
