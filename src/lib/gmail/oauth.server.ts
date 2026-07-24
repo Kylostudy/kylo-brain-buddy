@@ -200,7 +200,7 @@ export async function saveGmailTokens(params: {
         gmail_refresh_nonce: enc.nonce,
         gmail_connected_at: new Date().toISOString(),
       } as never,
-      { onConflict: "workflow_id" },
+      { onConflict: "workflow_id,platform" },
     );
   if (error) throw new Error(error.message);
 }
