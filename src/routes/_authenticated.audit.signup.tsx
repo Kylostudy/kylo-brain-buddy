@@ -171,13 +171,7 @@ function SignupPage() {
                   {gmail.connectedAt ? new Date(gmail.connectedAt).toLocaleString("hu-HU") : ""}
                 </div>
               </div>
-              {workflowId && (
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/w/$workflowId" params={{ workflowId }}>
-                    Hitelesítő adatok kezelése
-                  </Link>
-                </Button>
-              )}
+              {workflowId && <GmailConnectButton workflowId={workflowId} label="Újracsatlakoztatás" variant="outline" />}
             </div>
           ) : (
             <div className="flex items-center justify-between gap-3">
@@ -187,11 +181,7 @@ function SignupPage() {
                 érkező megerősítő linkeket automatikusan ki tudjuk olvasni.
               </div>
               {workflowId ? (
-                <Button asChild>
-                  <Link to="/w/$workflowId" params={{ workflowId }}>
-                    Gmail csatlakoztatása
-                  </Link>
-                </Button>
+                <GmailConnectButton workflowId={workflowId} label="Gmail csatlakoztatása" />
               ) : (
                 <Button disabled>Betöltés…</Button>
               )}
@@ -199,6 +189,7 @@ function SignupPage() {
           )}
         </CardContent>
       </Card>
+
 
 
       <Card>
