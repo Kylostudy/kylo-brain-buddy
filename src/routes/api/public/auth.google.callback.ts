@@ -15,7 +15,9 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
         const code = url.searchParams.get("code") ?? "";
         const state = url.searchParams.get("state") ?? "";
         const oauthError = url.searchParams.get("error") ?? "";
-        const redirectUri = `${url.origin}/api/public/auth/google/callback`;
+        // A redirect_uri-t a state-ből olvassuk vissza (az autorizáláskor
+        // aláírt érték), hogy pontosan egyezzen a Google által elvárttal —
+        // ne a szerver url.origin-jából, ami proxy mögött eltérhet.
 
         const htmlPage = (opts: {
           ok: boolean;
@@ -77,7 +79,10 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
           const verified = await verifyState(state);
           if (!verified) return fail("Érvénytelen vagy lejárt state.");
 
-          const tokens = await exchangeCode({ code, redirectUri });
+          const tokens = await exchangeCode({
+            code,
+            redirectUri: verified.redirectUri,
+          });
           if (!tokens.refresh_token) {
             return fail(
               "A Google nem küldött refresh tokent. Vond vissza a hozzáférést (myaccount.google.com/permissions) és próbáld újra.",
