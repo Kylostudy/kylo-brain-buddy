@@ -43,7 +43,7 @@ export const startGmailOAuth = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { signState, buildAuthUrl } = await import("@/lib/gmail/oauth.server");
-    const state = await signState(data.workflowId);
+    const state = await signState(data.workflowId, data.redirectUri);
     const url = buildAuthUrl({
       state,
       redirectUri: data.redirectUri,
