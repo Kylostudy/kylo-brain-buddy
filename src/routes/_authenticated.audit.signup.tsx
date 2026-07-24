@@ -10,10 +10,13 @@ import {
   ensureKyloSignupWorkflow,
 } from "@/lib/kylo-signup.functions";
 import { startGmailOAuth, disconnectGmail } from "@/lib/gmail.functions";
+import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
+import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Video, Globe } from "lucide-react";
 import { useModule } from "@/lib/module/provider";
 
 export const Route = createFileRoute("/_authenticated/audit/signup")({
