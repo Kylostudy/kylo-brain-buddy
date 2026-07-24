@@ -80,6 +80,12 @@ function SignupPage() {
   const startFn = useServerFn(startKyloSignupRun);
   const listFn = useServerFn(listKyloSignupRuns);
   const ensureFn = useServerFn(ensureKyloSignupWorkflow);
+  const callStartRecording = useServerFn(startRecording);
+  const callStartLiveBrowse = useServerFn(startLiveBrowse);
+
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
+  const [recordMode, setRecordMode] = useState<"record" | "browse">("record");
 
   useEffect(() => {
     forceModule("audit");
