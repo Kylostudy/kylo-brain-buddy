@@ -10,10 +10,13 @@ import {
   ensureKyloSignupWorkflow,
 } from "@/lib/kylo-signup.functions";
 import { startGmailOAuth, disconnectGmail } from "@/lib/gmail.functions";
+import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
+import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Video, Globe } from "lucide-react";
 import { useModule } from "@/lib/module/provider";
 
 export const Route = createFileRoute("/_authenticated/audit/signup")({
@@ -77,6 +80,12 @@ function SignupPage() {
   const startFn = useServerFn(startKyloSignupRun);
   const listFn = useServerFn(listKyloSignupRuns);
   const ensureFn = useServerFn(ensureKyloSignupWorkflow);
+  const callStartRecording = useServerFn(startRecording);
+  const callStartLiveBrowse = useServerFn(startLiveBrowse);
+
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
+  const [recordMode, setRecordMode] = useState<"record" | "browse">("record");
 
   useEffect(() => {
     forceModule("audit");
@@ -142,14 +151,60 @@ function SignupPage() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <Button
-            size="lg"
-            onClick={() => startMut.mutate()}
-            disabled={startMut.isPending || !canStart}
-            title={canStart ? "" : "Először kösd be a Gmail postafiókot"}
-          >
-            {startMut.isPending ? "Indítás…" : "Új futás indítása"}
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!workflowId}
+              onClick={async () => {
+                if (!workflowId) return;
+                try {
+                  const s = await callStartLiveBrowse({
+                    data: { workflowId, startUrl: "https://kylo.study/?lang=en-GB" },
+                  });
+                  setRecordSessionId(s.id);
+                  setRecordMode("browse");
+                  setRecordOpen(true);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Live Browse indítása sikertelen");
+                }
+              }}
+              title="Élő böngésző a VPS-en (kézi kattintás, nem menti a lépéseket)"
+            >
+              <Globe className="size-4" />
+              <span className="ml-1.5">Live Browse</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!workflowId}
+              onClick={async () => {
+                if (!workflowId) return;
+                try {
+                  const s = await callStartRecording({
+                    data: { workflowId, startUrl: "https://kylo.study/?lang=en-GB" },
+                  });
+                  setRecordSessionId(s.id);
+                  setRecordMode("record");
+                  setRecordOpen(true);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Felvétel indítása sikertelen");
+                }
+              }}
+              title="Regisztrációs flow felvétele — a végén Mentéssel eltárolja a lépéseket a workflow specbe"
+            >
+              <Video className="size-4" />
+              <span className="ml-1.5">Felvétel</span>
+            </Button>
+            <Button
+              size="lg"
+              onClick={() => startMut.mutate()}
+              disabled={startMut.isPending || !canStart}
+              title={canStart ? "" : "Először kösd be a Gmail postafiókot"}
+            >
+              {startMut.isPending ? "Indítás…" : "Új futás indítása"}
+            </Button>
+          </div>
           <div className="text-xs text-muted-foreground">
             Következő skin: <span className="font-medium">{nextSkinHint}</span>
           </div>
@@ -264,6 +319,16 @@ function SignupPage() {
       <div className="text-xs text-muted-foreground">
         <Link to="/audit/qa" className="underline">Vissza a Kylo.study QA-hoz</Link>
       </div>
+
+      <BrowserRecorderModal
+        open={recordOpen}
+        sessionId={recordSessionId}
+        mode={recordMode}
+        onClose={() => {
+          setRecordOpen(false);
+          setRecordSessionId(null);
+        }}
+      />
     </div>
   );
 }
