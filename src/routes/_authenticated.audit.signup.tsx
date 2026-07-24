@@ -9,6 +9,7 @@ import {
   listKyloSignupRuns,
   ensureKyloSignupWorkflow,
 } from "@/lib/kylo-signup.functions";
+import { startGmailOAuth, disconnectGmail } from "@/lib/gmail.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -170,13 +171,7 @@ function SignupPage() {
                   {gmail.connectedAt ? new Date(gmail.connectedAt).toLocaleString("hu-HU") : ""}
                 </div>
               </div>
-              {workflowId && (
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/w/$workflowId" params={{ workflowId }}>
-                    Hitelesítő adatok kezelése
-                  </Link>
-                </Button>
-              )}
+              {workflowId && <GmailConnectButton workflowId={workflowId} label="Újracsatlakoztatás" variant="outline" />}
             </div>
           ) : (
             <div className="flex items-center justify-between gap-3">
@@ -186,11 +181,7 @@ function SignupPage() {
                 érkező megerősítő linkeket automatikusan ki tudjuk olvasni.
               </div>
               {workflowId ? (
-                <Button asChild>
-                  <Link to="/w/$workflowId" params={{ workflowId }}>
-                    Gmail csatlakoztatása
-                  </Link>
-                </Button>
+                <GmailConnectButton workflowId={workflowId} label="Gmail csatlakoztatása" />
               ) : (
                 <Button disabled>Betöltés…</Button>
               )}
@@ -198,6 +189,7 @@ function SignupPage() {
           )}
         </CardContent>
       </Card>
+
 
 
       <Card>
@@ -331,3 +323,92 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
     </Dialog>
   );
 }
+
+function GmailConnectButton({
+  workflowId,
+  label,
+  variant,
+}: {
+  workflowId: string;
+  label: string;
+  variant?: "outline" | "default";
+}) {
+  const qc = useQueryClient();
+  const callStart = useServerFn(startGmailOAuth);
+  const callDisconnect = useServerFn(disconnectGmail);
+  const [busy, setBusy] = useState(false);
+
+  async function handleConnect() {
+    setBusy(true);
+    // Fontos: az ablakot még a user-click stack-en belül kell megnyitni,
+    // különben a böngésző popup-blockere blokkolja.
+    const oauthWindow = window.open("about:blank", "_blank", "width=560,height=760");
+    try {
+      const host = window.location.hostname;
+      const previewProjectId = host.endsWith(".lovableproject.com")
+        ? host.replace(".lovableproject.com", "")
+        : host.match(/^id-preview--([a-f0-9-]+)\.lovable\.app$/)?.[1];
+      const callbackOrigin = previewProjectId
+        ? `https://project--${previewProjectId}-dev.lovable.app`
+        : window.location.origin;
+      const redirectUri = `${callbackOrigin}/api/public/auth/google/callback`;
+      const { url } = await callStart({ data: { workflowId, redirectUri } });
+      if (oauthWindow) {
+        oauthWindow.location.href = url;
+        window.addEventListener(
+          "focus",
+          () => qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] }),
+          { once: true },
+        );
+        toast.success("A Google engedélyezés új ablakban nyílt meg.");
+      } else {
+        window.location.href = url;
+      }
+    } catch (e) {
+      if (oauthWindow && !oauthWindow.closed) oauthWindow.close();
+      toast.error(e instanceof Error ? e.message : "Nem sikerült elindítani a Google OAuth-ot.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    if (!confirm("Biztos leválasztod a Gmail fiókot erről a workflow-ról?")) return;
+    setBusy(true);
+    try {
+      await callDisconnect({ data: { workflowId } });
+      toast.success("Gmail leválasztva.");
+      qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Leválasztás sikertelen.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Button
+        type="button"
+        size={variant === "outline" ? "sm" : "default"}
+        variant={variant ?? "default"}
+        onClick={handleConnect}
+        disabled={busy}
+      >
+        {busy ? "Átirányítás…" : label}
+      </Button>
+      {variant === "outline" && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={handleDisconnect}
+          disabled={busy}
+        >
+          Leválasztás
+        </Button>
+      )}
+    </div>
+  );
+}
+
