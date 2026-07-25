@@ -23,7 +23,7 @@ const Body = z.object({
   runId: z.string().uuid().optional(),
   workflowId: z.string().uuid().optional(),
   recipient: z.string().email().optional(),
-  freshWithinSec: z.number().min(30).max(3600).optional(),
+  freshWithinSec: z.number().min(30).max(24 * 60 * 60).optional(),
 });
 
 function readKyloRecipient(spec: unknown): string | null {
@@ -76,7 +76,7 @@ export const Route = createFileRoute("/api/public/worker/gmail-confirmation-link
           workflowId,
           recipient,
           platform: "kylo",
-          freshWithinSec: body.freshWithinSec ?? 20 * 60,
+          freshWithinSec: body.freshWithinSec ?? 6 * 60 * 60,
         });
 
         if (!found) {
