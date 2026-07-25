@@ -676,14 +676,42 @@ async function runSession(payload) {
       lastClickPoint = { x, y, t: Date.now() };
       const desc = await describeAt(x, y);
       lastClickSelector = desc?.selector || `point:${Math.round(payload.x * 10000)},${Math.round(payload.y * 10000)}`;
+      const targetInfo = desc
+        ? `${(desc.selector || "?").slice(0, 60)}${desc.text ? ` "${desc.text.slice(0, 30)}"` : ""}`
+        : "nincs elem a pontnál";
       await channel.send({
         type: "broadcast",
         event: "inputAck",
-        payload: { kind: "click", status: "received", x: Math.round(x), y: Math.round(y) },
+        payload: {
+          kind: "click",
+          status: "received",
+          x: Math.round(x),
+          y: Math.round(y),
+          target: targetInfo,
+        },
       }).catch(() => {});
       await humanClick(page, cursorPoint, { x, y });
       cursorPoint = { x, y };
       await focusEditableAt(x, y);
+      // Belt-and-suspenders: néhány oldal (pl. coming-soon logó számláló) nem
+      // reagál a CDP mouse eseményekre, ha a click handler egy szülő/leszármazott
+      // elemen ül. JS-szintű dispatchEvent-tel is bevisszük — így a click handler
+      // biztosan megkapja a `click` és `pointerdown/up` eseményeket.
+      try {
+        await page.evaluate(
+          ({ x, y }) => {
+            const el = document.elementFromPoint(x, y);
+            if (!el) return;
+            const opts = { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window };
+            try { el.dispatchEvent(new PointerEvent("pointerdown", { ...opts, pointerId: 1, isPrimary: true, button: 0 })); } catch {}
+            try { el.dispatchEvent(new MouseEvent("mousedown", { ...opts, button: 0 })); } catch {}
+            try { el.dispatchEvent(new PointerEvent("pointerup", { ...opts, pointerId: 1, isPrimary: true, button: 0 })); } catch {}
+            try { el.dispatchEvent(new MouseEvent("mouseup", { ...opts, button: 0 })); } catch {}
+            try { el.dispatchEvent(new MouseEvent("click", { ...opts, button: 0 })); } catch {}
+          },
+          { x, y },
+        );
+      } catch {}
       pushAction({
         type: "click",
         selector: lastClickSelector,
@@ -695,7 +723,13 @@ async function runSession(payload) {
       await channel.send({
         type: "broadcast",
         event: "inputAck",
-        payload: { kind: "click", status: "done", x: Math.round(x), y: Math.round(y) },
+        payload: {
+          kind: "click",
+          status: "done",
+          x: Math.round(x),
+          y: Math.round(y),
+          target: targetInfo,
+        },
       }).catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] click error`, e.message);
@@ -706,6 +740,7 @@ async function runSession(payload) {
       }).catch(() => {});
     }
   });
+
 
   channel.on("broadcast", { event: "type" }, async ({ payload }) => {
     try {
