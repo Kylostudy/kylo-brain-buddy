@@ -328,6 +328,13 @@ type GmailMessagePart = {
   parts?: GmailMessagePart[];
 };
 
+type GmailMessage = {
+  id?: string;
+  internalDate?: string;
+  snippet?: string;
+  payload?: GmailMessagePart & { headers?: { name: string; value: string }[] };
+};
+
 function collectMessageText(part: GmailMessagePart | null | undefined): string {
   if (!part) return "";
   const own = part.body?.data ? decodeBase64Url(part.body.data) : "";
@@ -339,6 +346,9 @@ function extractCandidateLinks(text: string): string[] {
   const decoded = text
     .replace(/&amp;/g, "&")
     .replace(/&#x3D;/g, "=")
+    .replace(/&#61;/g, "=")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"');
   const links = new Set<string>();
   const hrefRegex = /href=["']([^"']+)["']/gi;
@@ -369,6 +379,75 @@ function pickConfirmationLink(links: string[]): string | null {
   return preferred ?? clean[0] ?? null;
 }
 
+async function gmailJson<T>(url: string, accessToken: string): Promise<T> {
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Gmail keresés sikertelen: ${response.status} ${text.slice(0, 300)}`);
+  }
+  return (await response.json()) as T;
+}
+
+function getHeader(
+  headers: { name: string; value: string }[] | undefined,
+  name: string,
+): string {
+  return headers?.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
+}
+
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function normalizeGmailAddress(value: string): string {
+  const email = normalizeEmail(value);
+  const match = email.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+  const address = match?.[0] ?? email;
+  const [local, domain] = address.split("@");
+  if (!local || !domain) return address;
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    return `${local.split("+")[0]?.replace(/\./g, "")}@gmail.com`;
+  }
+  return address;
+}
+
+function recipientMatches(headers: { name: string; value: string }[] | undefined, recipient: string): boolean {
+  const expected = normalizeGmailAddress(recipient);
+  const haystack = [
+    getHeader(headers, "To"),
+    getHeader(headers, "Delivered-To"),
+    getHeader(headers, "X-Original-To"),
+    getHeader(headers, "Cc"),
+  ].join(" ");
+  return normalizeGmailAddress(haystack).includes(expected);
+}
+
+function messageMillis(message: GmailMessage): number | null {
+  const millis = Number(message.internalDate);
+  return Number.isFinite(millis) ? millis : null;
+}
+
+function scoreMessageForConfirmation(params: {
+  message: GmailMessage;
+  link: string | null;
+  recipient?: string | null;
+}): number {
+  const headers = params.message.payload?.headers ?? [];
+  const from = getHeader(headers, "From").toLowerCase();
+  const subject = getHeader(headers, "Subject").toLowerCase();
+  const body = collectMessageText(params.message.payload).toLowerCase();
+  const link = params.link?.toLowerCase() ?? "";
+  const combined = `${from}\n${subject}\n${params.message.snippet ?? ""}\n${body}\n${link}`;
+  let score = 0;
+  if (link.includes("kylo.study")) score += 100;
+  if (combined.includes("kylo")) score += 35;
+  if (/confirm|confirmation|verify|verification|activate|activation|megerős|visszaigazol/i.test(combined)) score += 20;
+  if (params.recipient && recipientMatches(headers, params.recipient)) score += 10;
+  return score;
+}
+
 export async function findVerificationLinkServer(params: {
   workflowId: string;
   recipient?: string | null;
@@ -377,40 +456,55 @@ export async function findVerificationLinkServer(params: {
 }): Promise<{ link: string; from: string; subject: string; snippet: string } | null> {
   const tok = await getGmailAccessTokenServer(params.workflowId);
   if (!tok) return null;
-  const fresh = params.freshWithinSec ?? 900;
-  const afterSec = Math.floor(Date.now() / 1000) - fresh;
+  const fresh = params.freshWithinSec ?? 6 * 60 * 60;
+  const freshCutoff = Date.now() - fresh * 1000;
   const recipient = params.recipient?.trim();
-  const recipientQuery = recipient ? `to:${recipient} ` : "";
   const platform = params.platform?.trim();
-  const platformQuery = platform ? `${platform} OR ` : "";
-  const q = `${recipientQuery}after:${afterSec} (${platformQuery}kylo OR confirm OR confirmation OR verify OR verification OR activate OR activation OR megerősítés OR visszaigazolás)`;
 
-  const listR = await fetch(
-    `${GMAIL_API}/users/me/messages?maxResults=10&q=${encodeURIComponent(q)}`,
-    { headers: { Authorization: `Bearer ${tok.accessToken}` } },
-  );
-  if (!listR.ok) return null;
-  const list = (await listR.json()) as { messages?: { id: string }[] };
-  if (!list.messages?.length) return null;
+  const keywordQuery = `newer_than:2d (${platform ? `${platform} OR ` : ""}kylo OR confirm OR confirmation OR verify OR verification OR activate OR activation OR megerősítés OR visszaigazolás)`;
+  const fallbackQuery = "newer_than:2d";
+  const ids = new Map<string, true>();
 
-  for (const m of list.messages) {
-    const mr = await fetch(
-      `${GMAIL_API}/users/me/messages/${m.id}?format=full&metadataHeaders=From&metadataHeaders=Subject`,
-      { headers: { Authorization: `Bearer ${tok.accessToken}` } },
+  for (const q of [keywordQuery, fallbackQuery]) {
+    const list = await gmailJson<{ messages?: { id: string }[] }>(
+      `${GMAIL_API}/users/me/messages?maxResults=30&includeSpamTrash=true&q=${encodeURIComponent(q)}`,
+      tok.accessToken,
     );
-    if (!mr.ok) continue;
-    const msg = (await mr.json()) as {
-      snippet?: string;
-      payload?: GmailMessagePart & { headers?: { name: string; value: string }[] };
-    };
-    const headers = msg.payload?.headers ?? [];
-    const from = headers.find((h) => h.name.toLowerCase() === "from")?.value ?? "";
-    const subject = headers.find((h) => h.name.toLowerCase() === "subject")?.value ?? "";
-    const haystack = `${subject}\n${msg.snippet ?? ""}\n${collectMessageText(msg.payload)}`;
-    const link = pickConfirmationLink(extractCandidateLinks(haystack));
-    if (link) {
-      return { link, from, subject, snippet: msg.snippet ?? "" };
+    for (const message of list.messages ?? []) {
+      if (message.id) ids.set(message.id, true);
     }
+  }
+
+  let best: { score: number; link: string; from: string; subject: string; snippet: string } | null = null;
+  for (const id of ids.keys()) {
+    const msg = await gmailJson<GmailMessage>(
+      `${GMAIL_API}/users/me/messages/${id}?format=full`,
+      tok.accessToken,
+    );
+    const millis = messageMillis(msg);
+    if (millis && millis < freshCutoff) continue;
+
+    const headers = msg.payload?.headers ?? [];
+    const from = getHeader(headers, "From");
+    const subject = getHeader(headers, "Subject");
+    const haystack = `${from}\n${subject}\n${msg.snippet ?? ""}\n${collectMessageText(msg.payload)}`;
+    const link = pickConfirmationLink(extractCandidateLinks(haystack));
+    if (!link) continue;
+
+    const score = scoreMessageForConfirmation({ message: msg, link, recipient });
+    if (score < 35) continue;
+    if (!best || score > best.score) {
+      best = { score, link, from, subject, snippet: msg.snippet ?? "" };
+    }
+  }
+
+  if (best) {
+    return {
+      link: best.link,
+      from: best.from,
+      subject: best.subject,
+      snippet: best.snippet,
+    };
   }
   return null;
 }
