@@ -312,6 +312,9 @@ function SignupPage() {
                         <td className="py-2 pr-3">
                           <RunDetailsDialog run={r} />
                         </td>
+                        <td className="py-2 pr-3">
+                          <DeleteRunButton runId={r.id} />
+                        </td>
                       </tr>
                     );
                   })}
