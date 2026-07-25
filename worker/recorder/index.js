@@ -842,7 +842,7 @@ async function runSession(payload) {
         selector: lastClickSelector,
         x: payload.x,
         y: payload.y,
-        text: desc?.text ?? null,
+        ...(typeof desc?.text === "string" && desc.text ? { text: desc.text } : {}),
         t: Date.now(),
       });
       await channel.send({
@@ -865,6 +865,33 @@ async function runSession(payload) {
       }).catch(() => {});
     } finally {
       clickBusy = false;
+    }
+  });
+
+  channel.on("broadcast", { event: "gmailConfirmLink" }, async ({ payload }) => {
+    try {
+      const url = normalizeUrl(payload?.url);
+      if (!url) throw new Error("nincs érvényes megerősítő link");
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+      await sleep(1600);
+      pushAction({
+        type: "gmail_confirm_link",
+        url,
+        ...(typeof payload?.subject === "string" ? { subject: payload.subject } : {}),
+        t: Date.now(),
+      });
+      await channel.send({
+        type: "broadcast",
+        event: "gmailConfirmAck",
+        payload: { url: page.url(), subject: payload?.subject || null },
+      }).catch(() => {});
+    } catch (e) {
+      console.error(`[session ${session.id}] gmailConfirmLink error`, e.message);
+      await channel.send({
+        type: "broadcast",
+        event: "gmailConfirmError",
+        payload: { error: e.message },
+      }).catch(() => {});
     }
   });
 

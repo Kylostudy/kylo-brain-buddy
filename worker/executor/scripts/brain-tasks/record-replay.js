@@ -20,6 +20,7 @@
 
 import { humanWait, humanThink, humanType } from "../humanize.js";
 import { generateTotp } from "../totp.js";
+import { getGmailConfirmationLink } from "./brain-api.js";
 
 function rand() { return Math.random(); }
 function randRange(a, b) { return a + rand() * (b - a); }
@@ -203,6 +204,16 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
         const result = await page.evaluate(`(${KYLO_LOGO_UNLOCK_FN})(${clicks})`);
         if (!result?.ok) throw new Error(result?.reason || "Kylo logó-kapu nem kattintható");
         await humanThink(page, 900);
+      } else if (a.type === "gmail_confirm_link") {
+        log("info", `[${i + 1}/${actions.length}] Gmail megerősítő link keresése`);
+        const res = await getGmailConfirmationLink({
+          runId: process.env.RUN_ID || undefined,
+          workflowId: process.env.WORKFLOW_ID || undefined,
+          recipient: spec?.kylo_signup?.email || undefined,
+        });
+        if (!res?.link) throw new Error("Nem találtam friss Gmail megerősítő linket");
+        await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 45000 });
+        await humanThink(page, 1500);
       } else if (a.type === "type") {
         const entry = plan.get(i);
         if (entry) {

@@ -103,3 +103,34 @@ export const disconnectGmail = createServerFn({ method: "POST" })
     await clearGmailTokens(data.workflowId);
     return { ok: true as const };
   });
+
+export const findGmailConfirmationLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        sessionId: z.string().uuid(),
+        recipient: z.string().email().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: session, error } = await context.supabase
+      .from("recording_sessions")
+      .select("workflow_id")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!session?.workflow_id) throw new Error("A felvételi session nem található.");
+
+    const { findVerificationLinkServer } = await import("@/lib/gmail/oauth.server");
+    const found = await findVerificationLinkServer({
+      workflowId: session.workflow_id,
+      recipient: data.recipient ?? null,
+      platform: "kylo",
+      freshWithinSec: 20 * 60,
+    });
+    return found
+      ? { found: true as const, ...found }
+      : { found: false as const, link: null, subject: null, from: null, snippet: null };
+  });

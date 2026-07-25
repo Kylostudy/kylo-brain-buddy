@@ -177,7 +177,7 @@ const ActionSchema = z.discriminatedUnion("type", [
     selector: z.string().optional(),
     x: z.number().optional(),
     y: z.number().optional(),
-    text: z.string().optional(),
+    text: z.string().nullable().optional(),
     t: z.number(),
   }),
   z.object({
@@ -188,10 +188,16 @@ const ActionSchema = z.discriminatedUnion("type", [
     t: z.number(),
   }),
   z.object({
+    type: z.literal("gmail_confirm_link"),
+    url: z.string().url().optional(),
+    subject: z.string().nullable().optional(),
+    t: z.number(),
+  }),
+  z.object({
     type: z.literal("type"),
     selector: z.string().optional(),
     value: z.string().optional(),
-    text: z.string().optional(),
+    text: z.string().nullable().optional(),
     t: z.number(),
   }),
   z.object({ type: z.literal("key"), key: z.string(), t: z.number() }),
@@ -242,6 +248,7 @@ export const saveRecording = createServerFn({ method: "POST" })
             typeof action.selector === "string" && action.selector.trim()
               ? action.selector
               : `point:${Math.round((action.x ?? 0) * 10000)},${Math.round((action.y ?? 0) * 10000)}`,
+          text: typeof action.text === "string" ? action.text : undefined,
         };
       }
       if (action.type === "type") {
@@ -251,6 +258,7 @@ export const saveRecording = createServerFn({ method: "POST" })
             typeof action.selector === "string" && action.selector.trim()
               ? action.selector
               : "activeElement",
+          text: typeof action.text === "string" ? action.text : undefined,
         };
       }
       return action;

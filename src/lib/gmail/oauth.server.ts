@@ -302,3 +302,115 @@ export async function findVerificationCodeServer(params: {
   }
   return null;
 }
+
+function decodeBase64Url(data: string | null | undefined): string {
+  if (!data) return "";
+  try {
+    const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+    return decodeURIComponent(
+      Array.from(atob(padded))
+        .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`)
+        .join(""),
+    );
+  } catch {
+    try {
+      return atob(data.replace(/-/g, "+").replace(/_/g, "/"));
+    } catch {
+      return "";
+    }
+  }
+}
+
+type GmailMessagePart = {
+  mimeType?: string;
+  body?: { data?: string };
+  parts?: GmailMessagePart[];
+};
+
+function collectMessageText(part: GmailMessagePart | null | undefined): string {
+  if (!part) return "";
+  const own = part.body?.data ? decodeBase64Url(part.body.data) : "";
+  const children = (part.parts ?? []).map(collectMessageText).join("\n");
+  return [own, children].filter(Boolean).join("\n");
+}
+
+function extractCandidateLinks(text: string): string[] {
+  const decoded = text
+    .replace(/&amp;/g, "&")
+    .replace(/&#x3D;/g, "=")
+    .replace(/&quot;/g, '"');
+  const links = new Set<string>();
+  const hrefRegex = /href=["']([^"']+)["']/gi;
+  let hrefMatch: RegExpExecArray | null;
+  while ((hrefMatch = hrefRegex.exec(decoded))) {
+    links.add(hrefMatch[1]);
+  }
+  const urlRegex = /https?:\/\/[^\s"'<>]+/gi;
+  let urlMatch: RegExpExecArray | null;
+  while ((urlMatch = urlRegex.exec(decoded))) {
+    links.add(urlMatch[0].replace(/[).,;]+$/, ""));
+  }
+  return Array.from(links)
+    .map((link) => link.trim())
+    .filter((link) => /^https?:\/\//i.test(link));
+}
+
+function pickConfirmationLink(links: string[]): string | null {
+  const clean = links.filter((link) => {
+    try {
+      const host = new URL(link).hostname.toLowerCase();
+      return !host.includes("google.com") && !host.includes("gmail.com") && !host.includes("gstatic.com");
+    } catch {
+      return false;
+    }
+  });
+  const preferred = clean.find((link) => /kylo\.study/i.test(link));
+  return preferred ?? clean[0] ?? null;
+}
+
+export async function findVerificationLinkServer(params: {
+  workflowId: string;
+  recipient?: string | null;
+  platform?: string;
+  freshWithinSec?: number;
+}): Promise<{ link: string; from: string; subject: string; snippet: string } | null> {
+  const tok = await getGmailAccessTokenServer(params.workflowId);
+  if (!tok) return null;
+  const fresh = params.freshWithinSec ?? 900;
+  const afterSec = Math.floor(Date.now() / 1000) - fresh;
+  const recipient = params.recipient?.trim();
+  const recipientQuery = recipient ? `to:${recipient} ` : "";
+  const platform = params.platform?.trim();
+  const platformQuery = platform ? `${platform} OR ` : "";
+  const q = `${recipientQuery}after:${afterSec} (${platformQuery}kylo OR confirm OR confirmation OR verify OR verification OR activate OR activation OR megerősítés OR visszaigazolás)`;
+
+  const listR = await fetch(
+    `${GMAIL_API}/users/me/messages?maxResults=10&q=${encodeURIComponent(q)}`,
+    { headers: { Authorization: `Bearer ${tok.accessToken}` } },
+  );
+  if (!listR.ok) return null;
+  const list = (await listR.json()) as { messages?: { id: string }[] };
+  if (!list.messages?.length) return null;
+
+  for (const m of list.messages) {
+    const mr = await fetch(
+      `${GMAIL_API}/users/me/messages/${m.id}?format=full&metadataHeaders=From&metadataHeaders=Subject`,
+      { headers: { Authorization: `Bearer ${tok.accessToken}` } },
+    );
+    if (!mr.ok) continue;
+    const msg = (await mr.json()) as {
+      snippet?: string;
+      payload?: GmailMessagePart & { headers?: { name: string; value: string }[] };
+    };
+    const headers = msg.payload?.headers ?? [];
+    const from = headers.find((h) => h.name.toLowerCase() === "from")?.value ?? "";
+    const subject = headers.find((h) => h.name.toLowerCase() === "subject")?.value ?? "";
+    const haystack = `${subject}\n${msg.snippet ?? ""}\n${collectMessageText(msg.payload)}`;
+    const link = pickConfirmationLink(extractCandidateLinks(haystack));
+    if (link) {
+      return { link, from, subject, snippet: msg.snippet ?? "" };
+    }
+  }
+  return null;
+}
