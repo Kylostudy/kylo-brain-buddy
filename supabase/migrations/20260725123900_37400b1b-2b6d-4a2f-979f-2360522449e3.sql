@@ -1,0 +1,1 @@
+UPDATE public.workflows SET spec = spec - 'recorded_actions', updated_at = now() WHERE id = '78d5961c-4cfe-40ef-ba9c-86aa7fe11bd8';
