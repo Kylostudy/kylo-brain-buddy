@@ -458,9 +458,9 @@ export async function findVerificationLinkServer(params: {
   recipient?: string | null;
   platform?: string;
   freshWithinSec?: number;
-}): Promise<{ link: string; from: string; subject: string; snippet: string } | null> {
+}): Promise<{ link: string; from: string; subject: string; snippet: string; debug?: Record<string, unknown> } | { link: null; debug: Record<string, unknown> } | null> {
   const tok = await getGmailAccessTokenServer(params.workflowId);
-  if (!tok) return null;
+  if (!tok) return { link: null, debug: { reason: "no_gmail_token" } };
   const fresh = params.freshWithinSec ?? 6 * 60 * 60;
   const freshCutoff = Date.now() - fresh * 1000;
   const recipient = params.recipient?.trim();
@@ -485,27 +485,58 @@ export async function findVerificationLinkServer(params: {
   }
 
   let best: { score: number; link: string; from: string; subject: string; snippet: string } | null = null;
+  let latestMeta: { subject: string; from: string; ageSec: number; hadLink: boolean; score: number } | null = null;
+  const rejects: Array<{ subject: string; from: string; ageSec: number; reason: string; score?: number }> = [];
+
   for (const id of ids.keys()) {
     const msg = await gmailJson<GmailMessage>(
       `${GMAIL_API}/users/me/messages/${id}?format=full`,
       tok.accessToken,
     );
-    const millis = messageMillis(msg);
-    if (millis && millis < freshCutoff) continue;
-
     const headers = msg.payload?.headers ?? [];
     const from = getHeader(headers, "From");
     const subject = getHeader(headers, "Subject");
+    const millis = messageMillis(msg);
+    const ageSec = millis ? Math.floor((Date.now() - millis) / 1000) : -1;
+
+    if (!latestMeta || (millis && ageSec >= 0 && ageSec < latestMeta.ageSec)) {
+      latestMeta = { subject, from, ageSec, hadLink: false, score: 0 };
+    }
+
+    if (millis && millis < freshCutoff) {
+      rejects.push({ subject, from, ageSec, reason: "too_old" });
+      continue;
+    }
     const haystack = `${from}\n${subject}\n${msg.snippet ?? ""}\n${collectMessageText(msg.payload)}`;
     const link = pickConfirmationLink(extractCandidateLinks(haystack));
-    if (!link) continue;
-
+    if (!link) {
+      rejects.push({ subject, from, ageSec, reason: "no_link" });
+      continue;
+    }
     const score = scoreMessageForConfirmation({ message: msg, link, recipient });
-    if (score < 35) continue;
+    if (latestMeta && latestMeta.subject === subject) {
+      latestMeta.hadLink = true;
+      latestMeta.score = score;
+    }
+    if (score < 35) {
+      rejects.push({ subject, from, ageSec, reason: "low_score", score });
+      continue;
+    }
     if (!best || score > best.score) {
       best = { score, link, from, subject, snippet: msg.snippet ?? "" };
     }
   }
+
+  const debug = {
+    query: keywordQuery,
+    total: ids.size,
+    latestSubject: latestMeta?.subject ?? null,
+    latestFrom: latestMeta?.from ?? null,
+    latestAgeSec: latestMeta?.ageSec ?? null,
+    freshWindowSec: fresh,
+    rejects: rejects.slice(0, 5),
+    reason: ids.size === 0 ? "no_messages_matched" : (best ? "match" : "no_qualifying_message"),
+  };
 
   if (best) {
     return {
@@ -513,7 +544,8 @@ export async function findVerificationLinkServer(params: {
       from: best.from,
       subject: best.subject,
       snippet: best.snippet,
+      debug,
     };
   }
-  return null;
+  return { link: null, debug };
 }
