@@ -20,14 +20,32 @@ import { getGmailConfirmationLink } from "./brain-tasks/brain-api.js";
 const CLICK_HINTS_SIGNUP = [
   "sign up", "signup", "sign-up", "regisztráció", "regisztrálok", "regisztrál",
   "create account", "get started", "kezdés", "próbáld ki", "próbald ki",
-  "regisztráljon", "kezdjük",
+  "regisztráljon", "kezdjük", "start", "start now", "start free", "try free",
+  "try it free", "join", "join now", "let's go", "lets go", "begin",
+  // JP
+  "登録", "新規登録", "会員登録", "無料登録", "サインアップ", "始める", "はじめる", "続ける",
+  // ZH
+  "注册", "註冊", "免费注册", "免費註冊", "开始", "開始", "立即开始", "立即開始",
+  // ES / PT / IT / DE / FR / RU / TR / PL
+  "registrarse", "registro", "crear cuenta", "empezar", "comenzar",
+  "cadastrar", "cadastro", "criar conta", "começar",
+  "registrati", "iscriviti", "inizia",
+  "registrieren", "konto erstellen", "loslegen", "starten",
+  "s'inscrire", "inscription", "créer un compte", "commencer",
+  "регистрация", "зарегистрироваться", "начать",
+  "kaydol", "üye ol", "başla",
+  "zarejestruj", "rejestracja", "utwórz konto", "zacznij",
 ];
 
 const CLICK_HINTS_SUBSCRIBE = [
   "előfizetés", "elofizetes", "előfizetek", "elofizetek", "vásárlás", "vasarlas",
   "subscribe", "checkout", "buy", "start plan", "get plan", "upgrade",
-  "csomag választása", "csomag valasztasa", "select plan",
+  "csomag választása", "csomag valasztasa", "select plan", "choose plan",
+  "続ける", "購入", "サブスクライブ", "订阅", "訂閱", "购买", "購買",
+  "suscribirse", "suscripción", "assinar", "abbonati", "abonnieren",
+  "s'abonner", "подписаться", "abone ol", "subskrybuj",
 ];
+
 
 const COOKIE_BUTTONS = [
   'button:has-text("Elfogadom")',
