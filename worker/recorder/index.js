@@ -791,7 +791,10 @@ async function runSession(payload) {
       // egyetlen DOM click eventet küldünk, így 1 felhasználói kattintás = 1
       // Kylo számláló lépés.
       if (kyloLogoClick) {
-        await page.evaluate(`(${DISPATCH_SINGLE_CLICK_AT_FN})(${x}, ${y})`).catch(() => null);
+        const dispatched = await page.evaluate(`(${DISPATCH_SINGLE_CLICK_AT_FN})(${x}, ${y})`).catch(() => null);
+        if (!dispatched?.ok) {
+          throw new Error(dispatched?.reason || "Kylo logó-kattintás nem sikerült");
+        }
         cursorPoint = { x, y };
         await sleep(180);
       } else {
