@@ -113,6 +113,8 @@ function SignupPage() {
 
   const gmail = (data?.gmail as { email: string; connectedAt: string | null } | null) ?? null;
   const workflowId = data?.workflow?.id ?? null;
+  const recorderProxyId = (data as { recorderProxyId?: string | null } | undefined)?.recorderProxyId ?? null;
+
 
   const startMut = useMutation({
     mutationFn: () => startFn({ data: {} }),
