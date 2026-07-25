@@ -3,7 +3,7 @@
 // Egyetlen "Kylo Sign Up" workflow tenantonként. Minden futásnál:
 //   - váltogatva "puppy-cat" / "alaszka" skin
 //   - a workflow-ban tárolt számláló szerint körbeforgatva választunk egy aktív proxyt
-//   - a Gmail alap címhez plusz-alias-t generálunk: sunyika.kripto+kylo{N}@gmail.com
+//   - a Gmail alap címhez plusz-alias-t generálunk: sunyika.crypto+kylo{N}@gmail.com
 //   - a proxy országa alapján nyelvet választunk (?lang= paraméter)
 //
 // A rotáció állapota a workflows.spec-ben él (kylo_signup mező), így remixelve
@@ -15,7 +15,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { encryptString } from "@/lib/credentials/crypto.server";
 import { loadProxyUrlServer } from "@/lib/proxies.functions";
 
-const BASE_GMAIL = "sunyika.kripto@gmail.com";
+const BASE_GMAIL = "sunyika.crypto@gmail.com";
 const SIGNUP_MONITOR = "kylo-study-signup";
 const SKIN_ORDER = ["puppy-cat", "alaszka"] as const;
 
@@ -61,7 +61,7 @@ function langForCountry(cc: string | null): string {
 }
 
 function aliasFor(counter: number): string {
-  // sunyika.kripto+kylo42@gmail.com
+  // sunyika.crypto+kylo42@gmail.com
   const [local, domain] = BASE_GMAIL.split("@");
   return `${local}+kylo${counter}@${domain}`;
 }
@@ -404,5 +404,34 @@ export const setKyloSignupRecorderProxy = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, proxyId: data.proxyId };
   });
+
+// ─────────────────────────────────────────────────────────────
+// deleteKyloSignupRun — egyetlen futás törlése a listából.
+// Csak a saját tenant futásait engedjük törölni; RLS is véd, de
+// itt explicit is ellenőrizzük a workflow → tenant kapcsolatot.
+// ─────────────────────────────────────────────────────────────
+
+export const deleteKyloSignupRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ runId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .single();
+    if (!prof?.tenant_id) throw new Error("Nincs tenant.");
+    const { error } = await supabase
+      .from("brain_workflow_runs")
+      .delete()
+      .eq("id", data.runId)
+      .eq("tenant_id", prof.tenant_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 

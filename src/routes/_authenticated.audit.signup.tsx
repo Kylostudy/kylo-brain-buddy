@@ -9,6 +9,7 @@ import {
   listKyloSignupRuns,
   ensureKyloSignupWorkflow,
   setKyloSignupRecorderProxy,
+  deleteKyloSignupRun,
 } from "@/lib/kylo-signup.functions";
 import { startGmailOAuth, disconnectGmail } from "@/lib/gmail.functions";
 import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
@@ -278,6 +279,7 @@ function SignupPage() {
                     <th className="py-2 pr-3">Alias</th>
                     <th className="py-2 pr-3">Stripe?</th>
                     <th className="py-2 pr-3">Részletek</th>
+                    <th className="py-2 pr-3"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -309,6 +311,9 @@ function SignupPage() {
                         </td>
                         <td className="py-2 pr-3">
                           <RunDetailsDialog run={r} />
+                        </td>
+                        <td className="py-2 pr-3">
+                          <DeleteRunButton runId={r.id} />
                         </td>
                       </tr>
                     );
@@ -393,6 +398,34 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DeleteRunButton({ runId }: { runId: string }) {
+  const qc = useQueryClient();
+  const callDelete = useServerFn(deleteKyloSignupRun);
+  const mut = useMutation({
+    mutationFn: () => callDelete({ data: { runId } }),
+    onSuccess: () => {
+      toast.success("Futás törölve");
+      qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="text-red-400 hover:text-red-300"
+      onClick={() => {
+        if (window.confirm("Biztos törlöd ezt a futást? Ez nem visszavonható.")) {
+          mut.mutate();
+        }
+      }}
+      disabled={mut.isPending}
+    >
+      {mut.isPending ? "Törlés…" : "Törlés"}
+    </Button>
   );
 }
 
