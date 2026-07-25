@@ -15,6 +15,7 @@ export const getGmailStatus = createServerFn({ method: "POST" })
       .from("workflow_credentials")
       .select("gmail_email, gmail_connected_at")
       .eq("workflow_id", data.workflowId)
+      .eq("platform", "gmail")
       .maybeSingle();
     const r = row as {
       gmail_email?: string | null;
@@ -128,7 +129,7 @@ export const findGmailConfirmationLink = createServerFn({ method: "POST" })
       workflowId: session.workflow_id,
       recipient: data.recipient ?? null,
       platform: "kylo",
-      freshWithinSec: 20 * 60,
+      freshWithinSec: 6 * 60 * 60,
     });
     return found
       ? { found: true as const, ...found }

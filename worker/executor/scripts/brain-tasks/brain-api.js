@@ -105,6 +105,6 @@ export async function getGmailConfirmationLink({ runId, workflowId, recipient })
     runId,
     workflowId,
     recipient,
-    freshWithinSec: 20 * 60,
+    freshWithinSec: 6 * 60 * 60,
   });
 }
