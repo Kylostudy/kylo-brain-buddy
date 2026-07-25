@@ -296,8 +296,16 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   log(reachedStripe ? "info" : "warn", `Végállomás: ${finalUrl} · Stripe elérve: ${reachedStripe ? "IGEN" : "NEM"}`);
 
+  const madeProgress = signupClicked || filled || reachedStripe;
+  if (!madeProgress) {
+    throw new Error(
+      `Kylo signup megakadt a főoldalon (logo 7× kattintás=${logoClicks}, ` +
+      `signup gomb nem található, űrlap nincs). final_url=${finalUrl}`,
+    );
+  }
+
   return {
-    ok: true,
+    ok: reachedStripe,
     email,
     skin,
     lang,
