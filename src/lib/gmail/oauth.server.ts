@@ -215,7 +215,8 @@ export async function clearGmailTokens(workflowId: string) {
       gmail_refresh_nonce: null,
       gmail_connected_at: null,
     } as never)
-    .eq("workflow_id", workflowId);
+    .eq("workflow_id", workflowId)
+    .eq("platform", "gmail");
   if (error) throw new Error(error.message);
 }
 
@@ -346,6 +347,8 @@ function collectMessageText(part: GmailMessagePart | null | undefined): string {
 
 function extractCandidateLinks(text: string): string[] {
   const decoded = text
+    .replace(/=\r?\n/g, "")
+    .replace(/=3D/g, "=")
     .replace(/&amp;/g, "&")
     .replace(/&#x3D;/g, "=")
     .replace(/&#61;/g, "=")
@@ -468,12 +471,16 @@ export async function findVerificationLinkServer(params: {
   const ids = new Map<string, true>();
 
   for (const q of [keywordQuery, fallbackQuery]) {
-    const list = await gmailJson<{ messages?: { id: string }[] }>(
-      `${GMAIL_API}/users/me/messages?maxResults=30&includeSpamTrash=true&q=${encodeURIComponent(q)}`,
-      tok.accessToken,
-    );
-    for (const message of list.messages ?? []) {
-      if (message.id) ids.set(message.id, true);
+    try {
+      const list = await gmailJson<{ messages?: { id: string }[] }>(
+        `${GMAIL_API}/users/me/messages?maxResults=30&includeSpamTrash=true&q=${encodeURIComponent(q)}`,
+        tok.accessToken,
+      );
+      for (const message of list.messages ?? []) {
+        if (message.id) ids.set(message.id, true);
+      }
+    } catch (error) {
+      if (q === fallbackQuery) throw error;
     }
   }
 
