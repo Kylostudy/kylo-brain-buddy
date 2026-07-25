@@ -391,19 +391,32 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     const rect = img.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
-    setInputStatus(`Kattintás küldése (${Math.round(x * (frame?.w ?? 0))}, ${Math.round(y * (frame?.h ?? 0))})`);
-    const sent = sendToWorker("click", { x, y, frameW: frame?.w, frameH: frame?.h });
-    if (sent) {
-      void sent.then((result) => {
-        if (result !== "ok") setInputStatus("Kattintás küldése nem sikerült");
-      }).catch(() => setInputStatus("Kattintás küldése nem sikerült"));
-    } else {
-      setInputStatus("Nincs aktív kapcsolat a workerhez");
+    const px = Math.round(x * (frame?.w ?? 0));
+    const py = Math.round(y * (frame?.h ?? 0));
+    setInputStatus(`Küldés… (${px}, ${py})`);
+    const ch = channelRef.current;
+    if (!ch) {
+      setInputStatus("Nincs aktív kapcsolat a workerhez (channel=null)");
+      return;
     }
+    const sent = ch.send({
+      type: "broadcast",
+      event: "click",
+      payload: { x, y, frameW: frame?.w, frameH: frame?.h },
+    });
+    void Promise.resolve(sent)
+      .then((result) => {
+        if (result !== "ok") {
+          setInputStatus(`Kattintás nem ért el a workerhez: ${String(result)}`);
+        } else {
+          setInputStatus(`Kattintás elküldve (${px}, ${py}) — várunk a worker visszajelzésére…`);
+        }
+      })
+      .catch((err) => setInputStatus(`Kattintás küldési hiba: ${err instanceof Error ? err.message : String(err)}`));
     // A kép csak egy kép — a gépeléshez a rejtett input kell hogy fókuszban legyen.
-    // A kattintás után átvesszük a fókuszt, hogy azonnal írhasson a felhasználó.
     window.setTimeout(() => typeInputRef.current?.focus(), 0);
   }
+
 
   // Élő gépelés: minden karakter azonnal megy a workernek (nem várunk Enterre).
   // A rejtett input értékét kiürítjük, csak eseményforrásként használjuk.
@@ -619,10 +632,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           {isBrowseMode ? "Live Browse" : `${statusLabel} · ${actions.length} lépés`}
         </span>
         {inputStatus && (
-          <span className="hidden lg:inline max-w-72 truncate px-2 text-xs text-emerald-200/80">
+          <span className="ml-auto max-w-[50%] truncate rounded bg-white/10 px-2 py-1 text-xs text-emerald-200">
             {inputStatus}
           </span>
         )}
+
         <Button
           size="sm"
           variant="secondary"
