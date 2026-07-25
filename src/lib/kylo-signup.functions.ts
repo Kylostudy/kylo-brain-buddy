@@ -3,7 +3,7 @@
 // Egyetlen "Kylo Sign Up" workflow tenantonként. Minden futásnál:
 //   - váltogatva "puppy-cat" / "alaszka" skin
 //   - a workflow-ban tárolt számláló szerint körbeforgatva választunk egy aktív proxyt
-//   - a Gmail alap címhez plusz-alias-t generálunk: sunyika.kripto+kylo{N}@gmail.com
+//   - a Gmail alap címhez plusz-alias-t generálunk: sunyika.crypto+kylo{N}@gmail.com
 //   - a proxy országa alapján nyelvet választunk (?lang= paraméter)
 //
 // A rotáció állapota a workflows.spec-ben él (kylo_signup mező), így remixelve
