@@ -443,7 +443,11 @@ async function main() {
       });
     } else if (monitorType === "kylo-study-qa") {
       result = await runKyloStudyQa({ page, context, spec, creds, log });
-    } else if (monitorType === "kylo-study-signup") {
+    } else if (
+      monitorType === "kylo-study-signup" ||
+      monitorType === "kylo_signup" ||
+      monitorType === "kylo-signup"
+    ) {
       result = await runKyloSignup({ page, context, spec, creds, log });
     } else if (monitorType === "tiktok") {
       result = await runTikTok({ page, context, spec, creds, log });
