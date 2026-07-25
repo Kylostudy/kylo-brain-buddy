@@ -18,7 +18,8 @@ import { join } from "node:path";
 // A payloadokat (spec, credentials, proxy) fájlon keresztül adjuk át a
 // konténernek. Régebben env változóként (SPEC_JSON=...) argv-be raktuk, de
 // nagy süti-payloadnál (Reddit warmup) argv+envp együtt átlépte a Linux
-// ARG_MAX limitet → `spawn E2BIG`. Fájl+mount esetén az argv rövid marad.
+// ARG_MAX limitet → `spawn E2BIG`. A fájlokat docker cp-vel másoljuk be az
+// executor konténerbe, így nem függünk host volume mounttól.
 const JOB_MOUNT_DIR = "/tmp/kylo-jobs";
 try { mkdirSync(JOB_MOUNT_DIR, { recursive: true }); } catch {}
 
@@ -89,37 +90,78 @@ async function reportComplete(payload) {
   }
 }
 
-function runContainer(job) {
-  return new Promise((resolve) => {
-    // Per-run job könyvtár a host /tmp/kylo-jobs-ban (a compose bemounttal
-    // ugyanezt látja az orchestrator konténer is). A konténerbe /job néven
-    // mountoljuk, hogy az executor stabil útvonalról olvashassa.
-    const jobDir = join(JOB_MOUNT_DIR, String(job.id));
-    mkdirSync(jobDir, { recursive: true });
-    writeFileSync(join(jobDir, "spec.json"), JSON.stringify(job.spec ?? {}));
-    if (job.credentials) {
-      writeFileSync(join(jobDir, "credentials.json"), JSON.stringify(job.credentials));
-    }
-    if (job.proxy) {
-      writeFileSync(join(jobDir, "proxy.json"), JSON.stringify(job.proxy));
-    }
+function dockerCommand(args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn("docker", args, { stdio: ["ignore", "pipe", "pipe"], ...options });
+    let stdout = "";
+    let stderr = "";
+    proc.stdout.on("data", (chunk) => { stdout += chunk.toString(); });
+    proc.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
+    proc.on("error", reject);
+    proc.on("close", (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+        return;
+      }
+      const detail = stderr.trim() || stdout.trim() || `exit ${code}`;
+      reject(new Error(`docker ${args[0]} hiba: ${detail}`));
+    });
+  });
+}
 
-    const args = [
-      "run", "--rm",
+function runContainer(job) {
+  return new Promise(async (resolve) => {
+    let containerId = null;
+    const jobDir = join(JOB_MOUNT_DIR, String(job.id));
+    const cleanup = async () => {
+      if (containerId) {
+        try { await dockerCommand(["rm", "-f", containerId]); } catch {}
+      }
+      try { rmSync(jobDir, { recursive: true, force: true }); } catch {}
+    };
+
+    try {
+      // Per-run könyvtár az orchestrator konténer saját /tmp-jében. Nem kell
+      // host mount: a docker cp a Docker API-n keresztül másolja be a fájlokat.
+      mkdirSync(jobDir, { recursive: true });
+      writeFileSync(join(jobDir, "spec.json"), JSON.stringify(job.spec ?? {}));
+      if (job.credentials) {
+        writeFileSync(join(jobDir, "credentials.json"), JSON.stringify(job.credentials));
+      }
+      if (job.proxy) {
+        writeFileSync(join(jobDir, "proxy.json"), JSON.stringify(job.proxy));
+      }
+
+      const createArgs = [
+      "create",
       "--network", "bridge",
-      "-v", `${jobDir}:/job:ro`,
       "-e", `SPEC_FILE=/job/spec.json`,
       "-e", `RUN_ID=${job.id}`,
       "-e", `WORKFLOW_ID=${job.workflowId}`,
       "-e", `BRAIN_URL=${BRAIN_URL}`,
       "-e", `WORKER_API_TOKEN=${WORKER_API_TOKEN}`,
-    ];
-    if (job.credentials) args.push("-e", `CREDENTIALS_FILE=/job/credentials.json`);
-    if (job.proxy) args.push("-e", `PROXY_FILE=/job/proxy.json`);
-    args.push(IMAGE);
+      ];
+      if (job.credentials) createArgs.push("-e", `CREDENTIALS_FILE=/job/credentials.json`);
+      if (job.proxy) createArgs.push("-e", `PROXY_FILE=/job/proxy.json`);
+      createArgs.push(IMAGE);
 
-    const proc = spawn("docker", args, { stdio: ["ignore", "pipe", "pipe"] });
-    const cleanup = () => { try { rmSync(jobDir, { recursive: true, force: true }); } catch {} };
+      const created = await dockerCommand(createArgs);
+      containerId = created.stdout.trim();
+      if (!containerId) throw new Error("docker create nem adott konténer ID-t");
+      await dockerCommand(["cp", `${jobDir}/.`, `${containerId}:/job`]);
+    } catch (err) {
+      await cleanup();
+      resolve({
+        status: "failed",
+        logs: [],
+        result: null,
+        error: err.message,
+        preflight: null,
+      });
+      return;
+    }
+
+    const proc = spawn("docker", ["start", "-a", containerId], { stdio: ["ignore", "pipe", "pipe"] });
 
     const logs = [];
     let finalEntry = null;
@@ -179,9 +221,9 @@ function runContainer(job) {
       }
     }, 2000);
 
-    proc.on("close", (code) => {
+    proc.on("close", async (code) => {
       clearInterval(flushTimer);
-      cleanup();
+      await cleanup();
       const status = finalEntry?.status ?? (code === 0 ? "succeeded" : "failed");
       resolve({
         status,
@@ -191,9 +233,9 @@ function runContainer(job) {
         preflight,
       });
     });
-    proc.on("error", (err) => {
+    proc.on("error", async (err) => {
       clearInterval(flushTimer);
-      cleanup();
+      await cleanup();
       resolve({
         status: "failed",
         logs,
