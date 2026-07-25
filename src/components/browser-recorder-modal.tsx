@@ -30,6 +30,7 @@ import {
   Check,
   Copy,
   Loader2,
+  MailCheck,
   Maximize2,
   Minimize2,
   MousePointerClick,
@@ -49,6 +50,7 @@ import {
   cancelRecording,
   saveRecording,
 } from "@/lib/recording.functions";
+import { findGmailConfirmationLink } from "@/lib/gmail.functions";
 import { normalizeRecordingStartUrl } from "@/lib/recording-url";
 import type { RecordedAction } from "@/lib/chat.functions";
 
@@ -71,6 +73,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const isBrowseMode = mode === "browse";
   const callSave = useServerFn(saveRecording);
   const callCancel = useServerFn(cancelRecording);
+  const callFindGmailConfirmationLink = useServerFn(findGmailConfirmationLink);
 
   const [status, setStatus] = useState<
     "requested" | "active" | "completed" | "cancelled" | "failed"
@@ -86,6 +89,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [pageText, setPageText] = useState("");
   const [textBusy, setTextBusy] = useState(false);
   const [cookieBusy, setCookieBusy] = useState(false);
+  const [gmailConfirmBusy, setGmailConfirmBusy] = useState(false);
   const [kyloUnlockBusy, setKyloUnlockBusy] = useState(false);
   const [inputStatus, setInputStatus] = useState("");
   const [failureReason, setFailureReason] = useState("");
@@ -185,6 +189,20 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       clearClickInFlight();
       setInputStatus(`Kylo 7 kattintás hiba: ${p.error ?? "ismeretlen"}`);
     });
+    ch.on("broadcast", { event: "gmailConfirmAck" }, ({ payload }) => {
+      const p = payload as { url?: string; subject?: string };
+      setGmailConfirmBusy(false);
+      setInputStatus(`✓ Megerősítő link megnyitva${p.subject ? ` — ${p.subject}` : ""}`);
+      if (p.url) {
+        setCurrentUrl(p.url);
+        setUrlDraft(p.url);
+      }
+    });
+    ch.on("broadcast", { event: "gmailConfirmError" }, ({ payload }) => {
+      const p = payload as { error?: string };
+      setGmailConfirmBusy(false);
+      setInputStatus(`E-mail megerősítés hiba: ${p.error ?? "ismeretlen"}`);
+    });
     ch.on("broadcast", { event: "status" }, ({ payload }) => {
       const p = payload as { status: typeof status; error?: string };
       setStatus(p.status);
@@ -253,6 +271,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     setPageText("");
     setTextBusy(false);
     setInputStatus("");
+    setGmailConfirmBusy(false);
     setKyloUnlockBusy(false);
     setFailureReason("");
     setLockedFrameSize(null);
@@ -494,6 +513,39 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       });
   }
 
+  async function handleGmailConfirmation() {
+    if (!sessionId || gmailConfirmBusy) return;
+    setGmailConfirmBusy(true);
+    setInputStatus("Gmail megerősítő link keresése…");
+    try {
+      const found = await callFindGmailConfirmationLink({ data: { sessionId } });
+      if (!found.found || !found.link) {
+        setInputStatus("Még nem találtam friss megerősítő e-mailt. Várj pár másodpercet és próbáld újra.");
+        toast.error("Még nincs friss megerősítő e-mail a csatlakoztatott Gmailben.");
+        return;
+      }
+      const sent = sendToWorker("gmailConfirmLink", {
+        url: found.link,
+        subject: found.subject,
+      });
+      if (!sent) {
+        setInputStatus("Nincs aktív kapcsolat a workerhez (channel=null)");
+        return;
+      }
+      const result = await Promise.resolve(sent);
+      if (result !== "ok") {
+        setInputStatus(`Megerősítő link nem ért el a workerhez: ${String(result)}`);
+      } else {
+        setInputStatus("Megerősítő link megtalálva — megnyitás a worker böngészőben…");
+      }
+    } catch (err) {
+      setInputStatus(`Gmail keresési hiba: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(err instanceof Error ? err.message : "Nem sikerült megkeresni a megerősítő e-mailt.");
+    } finally {
+      setGmailConfirmBusy(false);
+    }
+  }
+
 
   // Élő gépelés: minden karakter azonnal megy a workernek (nem várunk Enterre).
   // A rejtett input értékét kiürítjük, csak eseményforrásként használjuk.
@@ -541,6 +593,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
               typeof action.selector === "string" && action.selector.trim()
                 ? action.selector
                 : `point:${Math.round((action.x ?? 0) * 10000)},${Math.round((action.y ?? 0) * 10000)}`,
+            text: typeof action.text === "string" ? action.text : undefined,
           };
         }
         if (action.type === "type") {
@@ -550,6 +603,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
               typeof action.selector === "string" && action.selector.trim()
                 ? action.selector
                 : "activeElement",
+            text: typeof action.text === "string" ? action.text : undefined,
           };
         }
         return action;
@@ -732,6 +786,25 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
               <MousePointerClick className="size-4" />
             )}
             <span className="ml-1 hidden lg:inline">Kylo 7×</span>
+          </Button>
+        )}
+
+        {isKyloStudyPage && (
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-indigo-700 text-white hover:bg-indigo-600"
+            onClick={handleGmailConfirmation}
+            disabled={gmailConfirmBusy || status !== "active"}
+            aria-label="Gmail megerősítő e-mail megnyitása"
+            title="Megkeresi a friss Kylo visszaigazoló e-mailt, és megnyitja a linket a worker böngészőben"
+          >
+            {gmailConfirmBusy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <MailCheck className="size-4" />
+            )}
+            <span className="ml-1 hidden xl:inline">E-mail confirm</span>
           </Button>
         )}
 

@@ -99,3 +99,12 @@ export async function visionExtract({
     model,
   });
 }
+
+export async function getGmailConfirmationLink({ runId, workflowId, recipient }) {
+  return brainPost("/api/public/worker/gmail-confirmation-link", {
+    runId,
+    workflowId,
+    recipient,
+    freshWithinSec: 20 * 60,
+  });
+}

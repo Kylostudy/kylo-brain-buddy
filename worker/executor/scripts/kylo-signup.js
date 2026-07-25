@@ -15,6 +15,8 @@
 // ha a Kylo UI változik, a script továbbmegy, amíg lehet, és a result-ban
 // jelzi, melyik lépés nem talált célt.
 
+import { getGmailConfirmationLink } from "./brain-tasks/brain-api.js";
+
 const CLICK_HINTS_SIGNUP = [
   "sign up", "signup", "sign-up", "regisztráció", "regisztrálok", "regisztrál",
   "create account", "get started", "kezdés", "próbáld ki", "próbald ki",
@@ -170,6 +172,34 @@ async function submitForm(page, log) {
   return false;
 }
 
+async function openGmailConfirmationLink(page, email, log) {
+  try {
+    log("info", "Gmail visszaigazoló e-mail keresése…");
+    let lastError = null;
+    for (let attempt = 1; attempt <= 12; attempt += 1) {
+      try {
+        const res = await getGmailConfirmationLink({
+          runId: process.env.RUN_ID || undefined,
+          workflowId: process.env.WORKFLOW_ID || undefined,
+          recipient: email,
+        });
+        if (res?.link) {
+          log("info", `Megerősítő link megvan (${res.subject || "nincs tárgy"}) — megnyitás`);
+          await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 45000 });
+          await page.waitForTimeout(2500);
+          return { ok: true, subject: res.subject || null, from: res.from || null, url: page.url() };
+        }
+      } catch (e) {
+        lastError = e.message;
+      }
+      await page.waitForTimeout(5000);
+    }
+    return { ok: false, error: lastError || "nem érkezett friss megerősítő e-mail" };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 export async function runKyloSignup({ page, context, spec, log }) {
   const cfg = spec.kylo_signup || {};
   const baseUrl = cfg.base_url || "https://kylo.study";
@@ -213,6 +243,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
     await page.waitForTimeout(3000);
     screenshots.push(await shot(page, "4-after-submit"));
     steps.push({ step: "submit", url: page.url() });
+
+    const confirmation = await openGmailConfirmationLink(page, email, log);
+    screenshots.push(await shot(page, "4b-after-email-confirm"));
+    steps.push({ step: "email-confirm", ...confirmation });
   }
 
   // 4) skin — ide még nem építünk be UI-t, csak localStorage seed

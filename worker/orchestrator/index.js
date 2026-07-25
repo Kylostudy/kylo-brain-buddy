@@ -109,6 +109,8 @@ function runContainer(job) {
       "--network", "bridge",
       "-v", `${jobDir}:/job:ro`,
       "-e", `SPEC_FILE=/job/spec.json`,
+      "-e", `RUN_ID=${job.id}`,
+      "-e", `WORKFLOW_ID=${job.workflowId}`,
       "-e", `BRAIN_URL=${BRAIN_URL}`,
       "-e", `WORKER_API_TOKEN=${WORKER_API_TOKEN}`,
     ];
