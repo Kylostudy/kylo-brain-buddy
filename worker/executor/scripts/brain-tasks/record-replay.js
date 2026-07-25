@@ -200,7 +200,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
       } else if (a.type === "kylo_unlock") {
         const clicks = Math.max(1, Math.min(12, Number(a.clicks) || 7));
         log("info", `[${i + 1}/${actions.length}] Kylo logó-kapu: pontosan ${clicks} kattintás`);
-        const result = await page.evaluate(KYLO_LOGO_UNLOCK_FN, clicks);
+        const result = await page.evaluate(`(${KYLO_LOGO_UNLOCK_FN})(${clicks})`);
         if (!result?.ok) throw new Error(result?.reason || "Kylo logó-kapu nem kattintható");
         await humanThink(page, 900);
       } else if (a.type === "type") {
