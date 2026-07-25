@@ -58,23 +58,22 @@ const COUNTRY_TO_LANG: Record<string, string> = {
   CO: "es",
 };
 
-// Ország → alapértelmezett fizetési deviza.
-function currencyForCountry(cc: string | null): "EUR" | "HUF" | "USD" | "CHF" | "GBP" | "JPY" | "BRL" | "PLN" | "TRY" | "HKD" | "SGD" | "TWD" | "AUD" | "NZD" | "CAD" {
+// Ország → fizetési deviza. A Kylo Stripe csak EUR / USD / CNY / RUB-ot fogad.
+// Európa (UK-t is beleértve) = EUR, Kína = CNY, Oroszország = RUB, minden más = USD.
+function currencyForCountry(cc: string | null): "EUR" | "USD" | "CNY" | "RUB" {
   if (!cc) return "USD";
   const c = cc.toUpperCase();
-  const map: Record<string, "EUR" | "HUF" | "USD" | "CHF" | "GBP" | "JPY" | "BRL" | "PLN" | "TRY" | "HKD" | "SGD" | "TWD" | "AUD" | "NZD" | "CAD"> = {
-    HU: "HUF", GB: "GBP", CH: "CHF", JP: "JPY", BR: "BRL", PL: "PLN",
-    TR: "TRY", HK: "HKD", SG: "SGD", TW: "TWD", AU: "AUD", NZ: "NZD",
-    CA: "CAD", CO: "USD", // COP nincs a Stripe alapkínálatban, marad USD
-  };
-  if (map[c]) return map[c];
   const EUR = new Set([
-    "AT", "BE", "CY", "DE", "EE", "ES", "FI", "FR", "GR", "IE",
-    "IT", "LT", "LU", "LV", "MT", "NL", "PT", "SI", "SK", "HR",
+    "AT", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR",
+    "GB", "GR", "HR", "HU", "IE", "IS", "IT", "LT", "LU", "LV", "MT", "NL",
+    "NO", "PL", "PT", "RO", "SE", "SI", "SK", "TR",
   ]);
   if (EUR.has(c)) return "EUR";
+  if (c === "CN") return "CNY";
+  if (c === "RU") return "RUB";
   return "USD";
 }
+
 
 function langForCountry(cc: string | null): string {
   if (!cc) return "en-GB";
