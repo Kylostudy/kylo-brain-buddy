@@ -227,11 +227,13 @@ export async function getGmailAccessTokenServer(
   workflowId: string,
 ): Promise<{ accessToken: string; email: string } | null> {
   const sb = serviceSupabase();
-  const { data: row } = await sb
+  const { data: row, error } = await sb
     .from("workflow_credentials")
     .select("gmail_email, gmail_refresh_ciphertext, gmail_refresh_nonce")
     .eq("workflow_id", workflowId)
+    .eq("platform", "gmail")
     .maybeSingle();
+  if (error) throw new Error(error.message);
   const r = row as {
     gmail_email?: string | null;
     gmail_refresh_ciphertext?: string | null;

@@ -15,6 +15,7 @@ export const getGmailStatus = createServerFn({ method: "POST" })
       .from("workflow_credentials")
       .select("gmail_email, gmail_connected_at")
       .eq("workflow_id", data.workflowId)
+      .eq("platform", "gmail")
       .maybeSingle();
     const r = row as {
       gmail_email?: string | null;
