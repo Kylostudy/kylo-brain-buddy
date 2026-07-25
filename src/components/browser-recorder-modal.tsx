@@ -632,10 +632,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           {isBrowseMode ? "Live Browse" : `${statusLabel} · ${actions.length} lépés`}
         </span>
         {inputStatus && (
-          <span className="hidden lg:inline max-w-72 truncate px-2 text-xs text-emerald-200/80">
+          <span className="ml-auto max-w-[50%] truncate rounded bg-white/10 px-2 py-1 text-xs text-emerald-200">
             {inputStatus}
           </span>
         )}
+
         <Button
           size="sm"
           variant="secondary"
