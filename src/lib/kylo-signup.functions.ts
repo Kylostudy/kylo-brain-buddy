@@ -39,6 +39,13 @@ const COUNTRY_TO_LANG: Record<string, string> = {
   PL: "pl",
   BR: "pt-BR",
   SE: "sv",
+  FI: "fi",
+  NO: "no",
+  DK: "da",
+  CZ: "cs",
+  RO: "ro",
+  TR: "tr",
+  JP: "ja",
 };
 
 // Ország → alapértelmezett fizetési deviza.
