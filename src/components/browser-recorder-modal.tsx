@@ -32,6 +32,7 @@ import {
   Loader2,
   Maximize2,
   Minimize2,
+  MousePointerClick,
   PanelRightClose,
   PanelRightOpen,
   RotateCw,
@@ -85,6 +86,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [pageText, setPageText] = useState("");
   const [textBusy, setTextBusy] = useState(false);
   const [cookieBusy, setCookieBusy] = useState(false);
+  const [kyloUnlockBusy, setKyloUnlockBusy] = useState(false);
   const [inputStatus, setInputStatus] = useState("");
   const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
@@ -166,6 +168,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       clearClickInFlight();
       setInputStatus(`Kattintási hiba: ${p.error ?? "ismeretlen"}`);
     });
+    ch.on("broadcast", { event: "kyloUnlockAck" }, ({ payload }) => {
+      const p = payload as { clicks?: number; target?: string; url?: string };
+      setKyloUnlockBusy(false);
+      clearClickInFlight();
+      const target = p.target ? ` → ${p.target}` : "";
+      setInputStatus(`✓ Kylo logó ${p.clicks ?? 7}× elkattintva${target}`);
+      if (p.url) {
+        setCurrentUrl(p.url);
+        setUrlDraft(p.url);
+      }
+    });
+    ch.on("broadcast", { event: "kyloUnlockError" }, ({ payload }) => {
+      const p = payload as { error?: string };
+      setKyloUnlockBusy(false);
+      clearClickInFlight();
+      setInputStatus(`Kylo 7 kattintás hiba: ${p.error ?? "ismeretlen"}`);
+    });
     ch.on("broadcast", { event: "status" }, ({ payload }) => {
       const p = payload as { status: typeof status; error?: string };
       setStatus(p.status);
@@ -234,6 +253,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     setPageText("");
     setTextBusy(false);
     setInputStatus("");
+    setKyloUnlockBusy(false);
     setFailureReason("");
     setLockedFrameSize(null);
     clearClickInFlight();
@@ -449,6 +469,31 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     window.setTimeout(() => typeInputRef.current?.focus(), 0);
   }
 
+  function handleKyloUnlock() {
+    if (kyloUnlockBusy) return;
+    setKyloUnlockBusy(true);
+    setInputStatus("Kylo logó 7× kattintás indul…");
+    const sent = sendToWorker("kyloUnlock", { clicks: 7 });
+    if (!sent) {
+      setKyloUnlockBusy(false);
+      setInputStatus("Nincs aktív kapcsolat a workerhez (channel=null)");
+      return;
+    }
+    void Promise.resolve(sent)
+      .then((result) => {
+        if (result !== "ok") {
+          setKyloUnlockBusy(false);
+          setInputStatus(`Kylo 7 kattintás nem ért el a workerhez: ${String(result)}`);
+        } else {
+          setInputStatus("Kylo logó 7× kattintás elküldve — a worker végrehajtja…");
+        }
+      })
+      .catch((err) => {
+        setKyloUnlockBusy(false);
+        setInputStatus(`Kylo 7 kattintás küldési hiba: ${err instanceof Error ? err.message : String(err)}`);
+      });
+  }
+
 
   // Élő gépelés: minden karakter azonnal megy a workernek (nem várunk Enterre).
   // A rejtett input értékét kiürítjük, csak eseményforrásként használjuk.
@@ -563,6 +608,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
 
   if (!open) return null;
 
+  const isKyloStudyPage = /kylo\.study/i.test(currentUrl || urlDraft);
+
   return (
     <div ref={rootRef} className="fixed inset-0 z-50 flex flex-col bg-black text-white">
       {/* Felső sáv: cím-sor szerű URL bar */}
@@ -667,6 +714,25 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           <span className="ml-auto max-w-[50%] truncate rounded bg-white/10 px-2 py-1 text-xs text-emerald-200">
             {inputStatus}
           </span>
+        )}
+
+        {isKyloStudyPage && (
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-sky-700 text-white hover:bg-sky-600"
+            onClick={handleKyloUnlock}
+            disabled={kyloUnlockBusy || status !== "active"}
+            aria-label="Kylo logó hétszeri kattintása"
+            title="A Kylo.study rejtett belépőkapujához pontosan 7 logó-kattintást küld"
+          >
+            {kyloUnlockBusy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <MousePointerClick className="size-4" />
+            )}
+            <span className="ml-1 hidden lg:inline">Kylo 7×</span>
+          </Button>
         )}
 
         <Button

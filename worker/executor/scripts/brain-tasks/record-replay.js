@@ -25,6 +25,40 @@ function rand() { return Math.random(); }
 function randRange(a, b) { return a + rand() * (b - a); }
 function randInt(a, b) { return Math.floor(randRange(a, b + 1)); }
 
+const KYLO_LOGO_UNLOCK_FN = `async (requestedClicks) => {
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const visible = (el) => {
+    if (!el || !el.getBoundingClientRect) return false;
+    const r = el.getBoundingClientRect();
+    const s = window.getComputedStyle(el);
+    return r.width >= 8 && r.height >= 8 && s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || 1) > 0.01;
+  };
+  const all = [];
+  for (const selector of ['header button', 'header a', 'button[aria-label*="Kylo" i]', 'a[aria-label*="Kylo" i]', '[data-testid*="logo" i]', 'img[alt*="Kylo" i]']) {
+    try { all.push(...document.querySelectorAll(selector)); } catch {}
+  }
+  let el = Array.from(new Set(all)).find((node) => {
+    const text = String(node.innerText || node.textContent || node.getAttribute?.('aria-label') || node.getAttribute?.('alt') || '').trim();
+    return visible(node) && (/kylo/i.test(text) || node.querySelector?.('img') || /logo/i.test(String(node.className || '')));
+  });
+  if (el && el.tagName === 'IMG') el = el.closest('button, a, [role="button"]') || el;
+  if (!el) return { ok: false, reason: 'Kylo logó/button nem található', url: location.href };
+  const r = el.getBoundingClientRect();
+  const x = Math.round(r.left + Math.min(Math.max(r.width / 2, 8), Math.max(8, r.width - 8)));
+  const y = Math.round(r.top + Math.min(Math.max(r.height / 2, 8), Math.max(8, r.height - 8)));
+  const clicks = Math.max(1, Math.min(12, Number(requestedClicks) || 7));
+  let sent = 0;
+  for (let i = 0; i < clicks; i += 1) {
+    const direct = document.elementFromPoint(x, y);
+    const target = direct?.closest?.('button, a, [role="button"]') || el;
+    target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, button: 0, view: window }));
+    sent += 1;
+    await sleep(210 + Math.round(Math.random() * 110));
+  }
+  await sleep(850);
+  return { ok: true, clicks: sent, url: location.href };
+}`;
+
 function looksLikeEmail(s) {
   return /^[^\s@]{1,64}@[^\s@]{1,64}\.[^\s@]{2,}$/.test(s);
 }
@@ -154,13 +188,21 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
         await humanThink(page, 900);
       } else if (a.type === "click") {
         if (typeof a.x === "number" && typeof a.y === "number") {
-          log("info", `[${i + 1}/${actions.length}] click @ (${a.x}, ${a.y})${a.text ? ` — "${a.text.slice(0, 30)}"` : ""}`);
-          await humanClickAt(page, a.x, a.y);
+          const cx = a.x >= 0 && a.x <= 1 ? a.x * viewport.width : a.x;
+          const cy = a.y >= 0 && a.y <= 1 ? a.y * viewport.height : a.y;
+          log("info", `[${i + 1}/${actions.length}] click @ (${Math.round(cx)}, ${Math.round(cy)})${a.text ? ` — "${a.text.slice(0, 30)}"` : ""}`);
+          await humanClickAt(page, cx, cy);
         } else if (a.selector) {
           log("info", `[${i + 1}/${actions.length}] click selector "${a.selector}"`);
           const el = await page.waitForSelector(a.selector, { state: "visible", timeout: 15000 }).catch(() => null);
           if (el) { const box = await el.boundingBox(); if (box) await humanClickAt(page, box.x + box.width / 2, box.y + box.height / 2); }
         }
+      } else if (a.type === "kylo_unlock") {
+        const clicks = Math.max(1, Math.min(12, Number(a.clicks) || 7));
+        log("info", `[${i + 1}/${actions.length}] Kylo logó-kapu: pontosan ${clicks} kattintás`);
+        const result = await page.evaluate(`(${KYLO_LOGO_UNLOCK_FN})(${clicks})`);
+        if (!result?.ok) throw new Error(result?.reason || "Kylo logó-kapu nem kattintható");
+        await humanThink(page, 900);
       } else if (a.type === "type") {
         const entry = plan.get(i);
         if (entry) {

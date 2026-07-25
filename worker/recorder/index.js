@@ -445,6 +445,74 @@ const ACTIVE_EDITABLE_FN = `() => {
   return !['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(type);
 }`;
 
+const DISPATCH_SINGLE_CLICK_AT_FN = `(x, y) => {
+  const direct = document.elementFromPoint(x, y);
+  if (!direct) return { ok: false, reason: 'nincs elem a pontnál' };
+  const target = direct.closest && direct.closest('button, a, [role="button"], input, textarea, select, [contenteditable="true"], [contenteditable="plaintext-only"]') || direct;
+  const ev = new MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    clientX: x,
+    clientY: y,
+    button: 0,
+    view: window,
+  });
+  target.dispatchEvent(ev);
+  const label = String(target.innerText || target.textContent || target.getAttribute?.('aria-label') || target.getAttribute?.('alt') || target.tagName || '').trim();
+  return { ok: true, target: target.tagName ? target.tagName.toLowerCase() : 'elem', text: label.slice(0, 80) };
+}`;
+
+const KYLO_LOGO_UNLOCK_FN = `async (requestedClicks) => {
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const visible = (el) => {
+    if (!el || !el.getBoundingClientRect) return false;
+    const r = el.getBoundingClientRect();
+    const s = window.getComputedStyle(el);
+    return r.width >= 8 && r.height >= 8 && s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || 1) > 0.01;
+  };
+  const all = [];
+  for (const selector of [
+    'header button',
+    'header a',
+    'button[aria-label*="Kylo" i]',
+    'a[aria-label*="Kylo" i]',
+    '[data-testid*="logo" i]',
+    'img[alt*="Kylo" i]',
+  ]) {
+    try { all.push(...document.querySelectorAll(selector)); } catch {}
+  }
+  let el = Array.from(new Set(all)).find((node) => {
+    const text = String(node.innerText || node.textContent || node.getAttribute?.('aria-label') || node.getAttribute?.('alt') || '').trim();
+    return visible(node) && (/kylo/i.test(text) || node.querySelector?.('img') || /logo/i.test(String(node.className || '')));
+  });
+  if (el && el.tagName === 'IMG') el = el.closest('button, a, [role="button"]') || el;
+  if (!el) return { ok: false, reason: 'Kylo logó/button nem található', url: location.href };
+  const r = el.getBoundingClientRect();
+  const x = Math.round(r.left + Math.min(Math.max(r.width / 2, 8), Math.max(8, r.width - 8)));
+  const y = Math.round(r.top + Math.min(Math.max(r.height / 2, 8), Math.max(8, r.height - 8)));
+  const clicks = Math.max(1, Math.min(12, Number(requestedClicks) || 7));
+  let sent = 0;
+  for (let i = 0; i < clicks; i += 1) {
+    const direct = document.elementFromPoint(x, y);
+    const target = direct?.closest?.('button, a, [role="button"]') || el;
+    target.dispatchEvent(new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      clientX: x,
+      clientY: y,
+      button: 0,
+      view: window,
+    }));
+    sent += 1;
+    await sleep(210 + Math.round(Math.random() * 110));
+  }
+  await sleep(850);
+  const label = String(el.innerText || el.textContent || el.getAttribute?.('aria-label') || el.getAttribute?.('alt') || el.tagName || '').trim();
+  return { ok: true, clicks: sent, x, y, target: label.slice(0, 80) || 'Kylo logó', url: location.href };
+}`;
+
 const REMOVE_WEBDRIVER_INIT = `() => {
   try {
     const proto = Navigator.prototype;
@@ -655,6 +723,13 @@ async function runSession(payload) {
     }
   }
 
+  function isLikelyKyloLogoClick(desc) {
+    if (!/kylo\.study/i.test(page.url())) return false;
+    const selector = String(desc?.selector || "");
+    const text = String(desc?.text || "");
+    return /header/i.test(selector) && /button/i.test(selector) && (/img|logo|kylo|w-9\.h-9/i.test(selector) || /kylo/i.test(text));
+  }
+
   let lastClickPoint = null;
   let lastClickSelector = null;
   let cursorPoint = {
@@ -709,6 +784,20 @@ async function runSession(payload) {
           target: targetInfo,
         },
       }).catch(() => {});
+      const kyloLogoClick = isLikelyKyloLogoClick(desc);
+
+      // A Kylo.study rejtett logó-kapuja érzékeny arra, ha egy kattintásból
+      // natív + JS click is lesz. Itt ezért NINCS Playwright mouse down/up:
+      // egyetlen DOM click eventet küldünk, így 1 felhasználói kattintás = 1
+      // Kylo számláló lépés.
+      if (kyloLogoClick) {
+        const dispatched = await page.evaluate(`(${DISPATCH_SINGLE_CLICK_AT_FN})(${x}, ${y})`).catch(() => null);
+        if (!dispatched?.ok) {
+          throw new Error(dispatched?.reason || "Kylo logó-kattintás nem sikerült");
+        }
+        cursorPoint = { x, y };
+        await sleep(180);
+      } else {
       // A natív CDP kattintás előtt telepítünk egy egyszeri capture-fázisú
       // listenert. Ha a natív down/up valóban click eventet szül az oldalon,
       // `nativeClickFired` true lesz — ilyenkor NEM dispatchelünk semmit,
@@ -746,6 +835,7 @@ async function runSession(payload) {
           el.dispatchEvent(new MouseEvent("click", opts));
         }, [x, y]).catch(() => {});
       }
+      }
 
       pushAction({
         type: "click",
@@ -772,6 +862,49 @@ async function runSession(payload) {
         type: "broadcast",
         event: "inputError",
         payload: { kind: "click", error: e.message },
+      }).catch(() => {});
+    } finally {
+      clickBusy = false;
+    }
+  });
+
+  channel.on("broadcast", { event: "kyloUnlock" }, async ({ payload }) => {
+    if (clickBusy) {
+      await channel.send({
+        type: "broadcast",
+        event: "kyloUnlockError",
+        payload: { error: "az előző kattintás még feldolgozás alatt van" },
+      }).catch(() => {});
+      return;
+    }
+    clickBusy = true;
+    try {
+      const clicks = Math.max(1, Math.min(12, Number(payload?.clicks) || 7));
+      const result = await page.evaluate(`(${KYLO_LOGO_UNLOCK_FN})(${clicks})`);
+      if (!result?.ok) throw new Error(result?.reason || "Kylo logó-kapu nem kattintható");
+      cursorPoint = { x: result.x || cursorPoint.x, y: result.y || cursorPoint.y };
+      pushAction({
+        type: "kylo_unlock",
+        selector: "kylo-study-logo-gate",
+        clicks: result.clicks || clicks,
+        url: result.url || page.url(),
+        t: Date.now(),
+      });
+      await channel.send({
+        type: "broadcast",
+        event: "kyloUnlockAck",
+        payload: {
+          clicks: result.clicks || clicks,
+          target: result.target || "Kylo logó",
+          url: result.url || page.url(),
+        },
+      }).catch(() => {});
+    } catch (e) {
+      console.error(`[session ${session.id}] kyloUnlock error`, e.message);
+      await channel.send({
+        type: "broadcast",
+        event: "kyloUnlockError",
+        payload: { error: e.message },
       }).catch(() => {});
     } finally {
       clickBusy = false;

@@ -64,6 +64,7 @@ const RESPONSE_SCHEMA = {
 export type RecordedAction =
   | { type: "navigate"; url: string; t: number }
   | { type: "click"; selector?: string; x?: number; y?: number; text?: string; t: number }
+  | { type: "kylo_unlock"; selector?: string; clicks?: number; url?: string; t: number }
   | { type: "type"; selector?: string; value?: string; text?: string; t: number }
   | { type: "key"; key: string; t: number }
   | { type: "scroll"; x: number; y: number; t: number }
