@@ -31,7 +31,7 @@ const COUNTRY_TO_LANG: Record<string, string> = {
   AU: "en-GB",
   NZ: "en-GB",
   IE: "en-GB",
-  SG: "en-GB",
+  SG: "zh-CN",
   // kínai / kelet-ázsiai
   TW: "zh-TW",
   HK: "zh-HK",
