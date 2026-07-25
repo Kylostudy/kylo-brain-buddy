@@ -276,27 +276,41 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   // 2a) A Kylo főoldalán a signup CTA-hoz először a logóra kell 7-szer kattintani
   //     (rejtett easter egg — enélkül a Sign Up / Regisztráció gomb meg sem jelenik).
-  const logoClicks = await page.evaluate(async () => {
+  //     FONTOS: a Kylo detektor valódi pointer eseményeket számol, ezért
+  //     page.mouse.click()-et használunk (CDP-n át valós mouseup/mousedown),
+  //     nem szintetikus element.click()-et.
+  const logoRect = await page.evaluate(() => {
     const candidates = [
       ...document.querySelectorAll('a[href="/"] img, header img, [class*="logo" i] img, img[alt*="kylo" i]'),
       ...document.querySelectorAll('a[href="/"], header a, [class*="logo" i]'),
     ];
-    let target = null;
     for (const el of candidates) {
       const r = el.getBoundingClientRect();
-      if (r.width > 8 && r.height > 8) { target = el; break; }
+      if (r.width > 8 && r.height > 8 && r.top >= 0 && r.left >= 0) {
+        el.scrollIntoView({ block: "center" });
+        const r2 = el.getBoundingClientRect();
+        return { x: r2.left + r2.width / 2, y: r2.top + r2.height / 2 };
+      }
     }
-    if (!target) return 0;
-    target.scrollIntoView({ block: "center" });
-    let n = 0;
-    for (let i = 0; i < 7; i++) {
-      try { target.click(); n++; } catch {}
-      await new Promise((r) => setTimeout(r, 180 + Math.random() * 120));
-    }
-    return n;
+    return null;
   });
-  log("info", `Kylo logo 7× kattintás — sikeres: ${logoClicks}`);
-  await page.waitForTimeout(1500);
+  let logoClicks = 0;
+  if (logoRect) {
+    await page.waitForTimeout(300);
+    for (let i = 0; i < 7; i++) {
+      try {
+        await page.mouse.click(logoRect.x, logoRect.y, { delay: 40 + Math.floor(Math.random() * 40) });
+        logoClicks++;
+      } catch (e) {
+        log("warn", `Logo click ${i + 1} hiba: ${e.message}`);
+      }
+      await page.waitForTimeout(180 + Math.floor(Math.random() * 140));
+    }
+  } else {
+    log("warn", "Kylo logó nem található a főoldalon — 7× kattintás kihagyva");
+  }
+  log("info", `Kylo logo 7× valós egérklikk — sikeres: ${logoClicks} (pozíció: ${logoRect ? `${Math.round(logoRect.x)},${Math.round(logoRect.y)}` : "n/a"})`);
+  await page.waitForTimeout(1800);
   screenshots.push(await shot(page, "1b-after-logo-7x"));
 
   // Felderítés: mi látszik a főoldalon a logó 7× után? (segít a hint-eket bővíteni)
