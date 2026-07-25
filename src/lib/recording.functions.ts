@@ -181,6 +181,13 @@ const ActionSchema = z.discriminatedUnion("type", [
     t: z.number(),
   }),
   z.object({
+    type: z.literal("kylo_unlock"),
+    selector: z.string().optional(),
+    clicks: z.number().optional(),
+    url: z.string().optional(),
+    t: z.number(),
+  }),
+  z.object({
     type: z.literal("type"),
     selector: z.string().optional(),
     value: z.string().optional(),
