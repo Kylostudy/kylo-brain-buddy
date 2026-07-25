@@ -693,25 +693,16 @@ async function runSession(payload) {
       await humanClick(page, cursorPoint, { x, y });
       cursorPoint = { x, y };
       await focusEditableAt(x, y);
-      // Belt-and-suspenders: néhány oldal (pl. coming-soon logó számláló) nem
-      // reagál a CDP mouse eseményekre, ha a click handler egy szülő/leszármazott
-      // elemen ül. JS-szintű dispatchEvent-tel is bevisszük — így a click handler
-      // biztosan megkapja a `click` és `pointerdown/up` eseményeket.
-      try {
-        await page.evaluate(
-          ({ x, y }) => {
-            const el = document.elementFromPoint(x, y);
-            if (!el) return;
-            const opts = { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window };
-            try { el.dispatchEvent(new PointerEvent("pointerdown", { ...opts, pointerId: 1, isPrimary: true, button: 0 })); } catch {}
-            try { el.dispatchEvent(new MouseEvent("mousedown", { ...opts, button: 0 })); } catch {}
-            try { el.dispatchEvent(new PointerEvent("pointerup", { ...opts, pointerId: 1, isPrimary: true, button: 0 })); } catch {}
-            try { el.dispatchEvent(new MouseEvent("mouseup", { ...opts, button: 0 })); } catch {}
-            try { el.dispatchEvent(new MouseEvent("click", { ...opts, button: 0 })); } catch {}
-          },
-          { x, y },
-        );
-      } catch {}
+      // KORÁBBAN itt volt egy JS-szintű dispatchEvent fallback (pointer/mouse/click),
+      // hogy a coming-soon logó számláló is reagáljon. Ez viszont MINDEN
+      // kattintást DUPLÁN küldött el az oldalnak: a Playwright natív click +
+      // egy szintetikus JS click. A Kylo.study 7-kattintásos beléptető
+      // számlálóján ez azt okozta, hogy 7 emberi kattintás után 14-et számolt,
+      // átugrott a küszöbön, és rögtön visszadobta a főoldalra a felhasználót.
+      // A natív CDP mouse események minden általunk tesztelt oldalon
+      // (Kylo, Pinterest, LinkedIn) rendben aktiválják a click handlereket,
+      // ezért a dupla dispatchet eltávolítottuk.
+
       pushAction({
         type: "click",
         selector: lastClickSelector,
