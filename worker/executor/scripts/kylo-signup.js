@@ -267,15 +267,33 @@ export async function runKyloSignup({ page, context, spec, log }) {
     return n;
   });
   log("info", `Kylo logo 7× kattintás — sikeres: ${logoClicks}`);
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1500);
   screenshots.push(await shot(page, "1b-after-logo-7x"));
-  steps.push({ step: "logo-7x", clicks: logoClicks });
+
+  // Felderítés: mi látszik a főoldalon a logó 7× után? (segít a hint-eket bővíteni)
+  const visibleCtas = await page.evaluate(() => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const out = [];
+    const nodes = document.querySelectorAll('a, button, [role="button"], input[type="submit"], input[type="button"]');
+    for (const el of nodes) {
+      const r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) continue;
+      const t = norm(el.innerText || el.value || el.getAttribute("aria-label") || "");
+      if (!t || t.length > 60) continue;
+      out.push({ tag: el.tagName.toLowerCase(), text: t, href: el.getAttribute("href") || null });
+      if (out.length >= 40) break;
+    }
+    return out;
+  }).catch(() => []);
+  log("info", `Látható CTA-k (${visibleCtas.length}): ${visibleCtas.map((c) => `[${c.tag}]${c.text}`).slice(0, 25).join(" | ")}`);
+  steps.push({ step: "logo-7x", clicks: logoClicks, visible_ctas: visibleCtas });
 
   // 2) sign-up gomb
   const signupClicked = await clickByText(page, CLICK_HINTS_SIGNUP, log, "Sign Up / Regisztráció");
   await page.waitForTimeout(1200);
   screenshots.push(await shot(page, "2-after-signup-click"));
   steps.push({ step: "signup-cta", clicked: signupClicked, url: page.url() });
+
 
   // 3) űrlap kitöltés
   const filled = await fillSignupForm(page, email, password, log);
