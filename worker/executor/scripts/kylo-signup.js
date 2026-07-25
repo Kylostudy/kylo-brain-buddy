@@ -227,6 +227,32 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   await acceptCookies(page, log);
 
+  // 2a) A Kylo főoldalán a signup CTA-hoz először a logóra kell 7-szer kattintani
+  //     (rejtett easter egg — enélkül a Sign Up / Regisztráció gomb meg sem jelenik).
+  const logoClicks = await page.evaluate(async () => {
+    const candidates = [
+      ...document.querySelectorAll('a[href="/"] img, header img, [class*="logo" i] img, img[alt*="kylo" i]'),
+      ...document.querySelectorAll('a[href="/"], header a, [class*="logo" i]'),
+    ];
+    let target = null;
+    for (const el of candidates) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 8 && r.height > 8) { target = el; break; }
+    }
+    if (!target) return 0;
+    target.scrollIntoView({ block: "center" });
+    let n = 0;
+    for (let i = 0; i < 7; i++) {
+      try { target.click(); n++; } catch {}
+      await new Promise((r) => setTimeout(r, 180 + Math.random() * 120));
+    }
+    return n;
+  });
+  log("info", `Kylo logo 7× kattintás — sikeres: ${logoClicks}`);
+  await page.waitForTimeout(1200);
+  screenshots.push(await shot(page, "1b-after-logo-7x"));
+  steps.push({ step: "logo-7x", clicks: logoClicks });
+
   // 2) sign-up gomb
   const signupClicked = await clickByText(page, CLICK_HINTS_SIGNUP, log, "Sign Up / Regisztráció");
   await page.waitForTimeout(1200);
