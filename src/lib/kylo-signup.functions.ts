@@ -405,4 +405,33 @@ export const setKyloSignupRecorderProxy = createServerFn({ method: "POST" })
     return { ok: true, proxyId: data.proxyId };
   });
 
+// ─────────────────────────────────────────────────────────────
+// deleteKyloSignupRun — egyetlen futás törlése a listából.
+// Csak a saját tenant futásait engedjük törölni; RLS is véd, de
+// itt explicit is ellenőrizzük a workflow → tenant kapcsolatot.
+// ─────────────────────────────────────────────────────────────
+
+export const deleteKyloSignupRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ runId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .single();
+    if (!prof?.tenant_id) throw new Error("Nincs tenant.");
+    const { error } = await supabase
+      .from("brain_workflow_runs")
+      .delete()
+      .eq("id", data.runId)
+      .eq("tenant_id", prof.tenant_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 
