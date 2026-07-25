@@ -288,13 +288,131 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   // 5) próbáljunk eljutni a Stripe / előfizetés oldalig
   const subClicked = await clickByText(page, CLICK_HINTS_SUBSCRIBE, log, "Előfizetés / Checkout");
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(4500);
   screenshots.push(await shot(page, "5-after-subscribe-click"));
-  const finalUrl = page.url();
-  const reachedStripe = /checkout\.stripe\.com|stripe\.com/.test(finalUrl);
-  steps.push({ step: "subscribe-cta", clicked: subClicked, url: finalUrl, reached_stripe: reachedStripe });
+  let currentUrl = page.url();
+  const reachedStripe = /checkout\.stripe\.com|stripe\.com/.test(currentUrl);
+  steps.push({ step: "subscribe-cta", clicked: subClicked, url: currentUrl, reached_stripe: reachedStripe });
+  log(reachedStripe ? "info" : "warn", `Stripe elérve: ${reachedStripe ? "IGEN" : "NEM"} — ${currentUrl}`);
 
-  log(reachedStripe ? "info" : "warn", `Végállomás: ${finalUrl} · Stripe elérve: ${reachedStripe ? "IGEN" : "NEM"}`);
+  // 6) Stripe Checkout kitöltése tesztkártyával (4242 4242 4242 4242)
+  let stripeFilled = false;
+  let stripeSubmitted = false;
+  if (reachedStripe) {
+    try {
+      await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
+      await page.waitForTimeout(1500);
+
+      // Email (ha nincs előre kitöltve)
+      try {
+        const emailInput = await page.$('input#email, input[name="email"]');
+        if (emailInput) {
+          const val = await emailInput.inputValue().catch(() => "");
+          if (!val) {
+            await emailInput.fill(email, { timeout: 3000 });
+            log("info", "Stripe: email kitöltve");
+          }
+        }
+      } catch {}
+
+      // Kártyaszám — Stripe iframe-eket használ
+      const frames = page.frames();
+      const fillInFrames = async (selector, value) => {
+        for (const fr of frames) {
+          try {
+            const el = await fr.$(selector);
+            if (el) {
+              await el.click({ timeout: 2000 }).catch(() => {});
+              await el.fill("", { timeout: 2000 }).catch(() => {});
+              await el.type(value, { delay: 40 });
+              return true;
+            }
+          } catch {}
+        }
+        return false;
+      };
+
+      const cardOk = await fillInFrames('input[name="cardnumber"], input[autocomplete="cc-number"]', "4242 4242 4242 4242");
+      const expOk = await fillInFrames('input[name="exp-date"], input[autocomplete="cc-exp"]', "12 / 34");
+      const cvcOk = await fillInFrames('input[name="cvc"], input[autocomplete="cc-csc"]', "123");
+      log("info", `Stripe kártya kitöltés — card=${cardOk} exp=${expOk} cvc=${cvcOk}`);
+
+      // Cardholder név (ha van)
+      try {
+        const name = await page.$('input[name="billingName"], input#billingName, input[autocomplete="cc-name"]');
+        if (name) { await name.fill("Kylo Test", { timeout: 2000 }); }
+      } catch {}
+
+      // Ország / irányítószám — ha megjelenik
+      try {
+        const zip = await page.$('input[name="billingPostalCode"], input#billingPostalCode, input[autocomplete="postal-code"]');
+        if (zip) { await zip.fill("10001", { timeout: 2000 }); }
+      } catch {}
+
+      stripeFilled = cardOk && expOk && cvcOk;
+      screenshots.push(await shot(page, "6-stripe-filled"));
+
+      if (stripeFilled) {
+        const submitted = await page.evaluate(() => {
+          const btns = Array.from(document.querySelectorAll('button[type="submit"], button.SubmitButton, button'));
+          for (const b of btns) {
+            const t = (b.innerText || "").toLowerCase();
+            const r = b.getBoundingClientRect();
+            if (r.width < 5 || r.height < 5) continue;
+            if (b.type === "submit" || /pay|fizet|subscribe|előfizet|start|begin/.test(t)) {
+              b.click();
+              return true;
+            }
+          }
+          return false;
+        });
+        stripeSubmitted = submitted;
+        log("info", `Stripe submit: ${submitted}`);
+      }
+
+      steps.push({ step: "stripe-fill", cardOk, expOk, cvcOk, submitted: stripeSubmitted });
+    } catch (e) {
+      log("warn", `Stripe kitöltés hiba: ${e.message}`);
+      steps.push({ step: "stripe-fill", error: e.message });
+    }
+  }
+
+  // 7) Vissza a Kylo profil oldalra — success feltétel
+  let reachedProfile = false;
+  let profileUrl = null;
+  const profileRe = /kylo\.study.*\/(profile|profil|account|dashboard|home|app|my|settings)/i;
+  try {
+    const deadline = Date.now() + 90_000; // max 90s a Stripe → callback → profile útra
+    while (Date.now() < deadline) {
+      currentUrl = page.url();
+      if (/kylo\.study/i.test(currentUrl) && !/stripe/i.test(currentUrl)) {
+        await page.waitForTimeout(3000);
+        currentUrl = page.url();
+        if (profileRe.test(currentUrl)) {
+          reachedProfile = true;
+          profileUrl = currentUrl;
+          break;
+        }
+        const hasProfileMarker = await page.evaluate(() => {
+          const text = (document.body?.innerText || "").toLowerCase();
+          return /kijelentkez|logout|sign out|profil|profile|beállítás|settings|dashboard|üdv|welcome back/.test(text);
+        }).catch(() => false);
+        if (hasProfileMarker) {
+          reachedProfile = true;
+          profileUrl = currentUrl;
+          break;
+        }
+      }
+      await page.waitForTimeout(1500);
+    }
+  } catch (e) {
+    log("warn", `Profil várakozás hiba: ${e.message}`);
+  }
+
+  screenshots.push(await shot(page, "7-final-profile"));
+  const finalUrl = page.url();
+  steps.push({ step: "profile-check", reached_profile: reachedProfile, profile_url: profileUrl, final_url: finalUrl });
+  log(reachedProfile ? "info" : "warn", `Profil oldal elérve: ${reachedProfile ? "IGEN" : "NEM"} — ${finalUrl}`);
 
   const madeProgress = signupClicked || filled || reachedStripe;
   if (!madeProgress) {
@@ -304,13 +422,24 @@ export async function runKyloSignup({ page, context, spec, log }) {
     );
   }
 
+  if (!reachedProfile) {
+    throw new Error(
+      `Kylo signup nem érte el a profil oldalt. reached_stripe=${reachedStripe}, ` +
+      `stripe_filled=${stripeFilled}, stripe_submitted=${stripeSubmitted}, final_url=${finalUrl}`,
+    );
+  }
+
   return {
-    ok: reachedStripe,
+    ok: reachedProfile,
     email,
     skin,
     lang,
     currency,
     reached_stripe: reachedStripe,
+    stripe_filled: stripeFilled,
+    stripe_submitted: stripeSubmitted,
+    reached_profile: reachedProfile,
+    profile_url: profileUrl,
     final_url: finalUrl,
     steps,
     screenshots,
