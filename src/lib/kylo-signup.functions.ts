@@ -61,7 +61,7 @@ function langForCountry(cc: string | null): string {
 }
 
 function aliasFor(counter: number): string {
-  // sunyika.kripto+kylo42@gmail.com
+  // sunyika.crypto+kylo42@gmail.com
   const [local, domain] = BASE_GMAIL.split("@");
   return `${local}+kylo${counter}@${domain}`;
 }
