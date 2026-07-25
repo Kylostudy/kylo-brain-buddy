@@ -279,6 +279,7 @@ function SignupPage() {
                     <th className="py-2 pr-3">Alias</th>
                     <th className="py-2 pr-3">Stripe?</th>
                     <th className="py-2 pr-3">Részletek</th>
+                    <th className="py-2 pr-3"></th>
                   </tr>
                 </thead>
                 <tbody>
