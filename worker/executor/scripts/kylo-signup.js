@@ -220,10 +220,13 @@ async function submitForm(page, log) {
 }
 
 async function openGmailConfirmationLink(page, email, log) {
+  const MAX_ATTEMPTS = 12;
+  const WAIT_MS = 5000;
   try {
-    log("info", "Gmail visszaigazoló e-mail keresése…");
+    log("info", `Gmail visszaigazoló e-mail keresése — címzett=${email}, próbálkozások=${MAX_ATTEMPTS}, várakozás=${WAIT_MS}ms`);
     let lastError = null;
-    for (let attempt = 1; attempt <= 12; attempt += 1) {
+    let lastMeta = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
         const res = await getGmailConfirmationLink({
           runId: process.env.RUN_ID || undefined,
@@ -231,17 +234,30 @@ async function openGmailConfirmationLink(page, email, log) {
           recipient: email,
         });
         if (res?.link) {
-          log("info", `Megerősítő link megvan (${res.subject || "nincs tárgy"}) — megnyitás`);
+          log("info", `Gmail ${attempt}/${MAX_ATTEMPTS} — TALÁLAT: feladó=${res.from || "?"}, tárgy="${res.subject || "?"}", link=${res.link.slice(0, 80)}…`);
           await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 45000 });
           await page.waitForTimeout(2500);
           return { ok: true, subject: res.subject || null, from: res.from || null, url: page.url() };
         }
+        // Nincs találat — logoljuk mit látott a Gmail (ha a szerver visszaadja)
+        const meta = res?.debug || res?.meta || {};
+        lastMeta = meta;
+        const summary = [
+          `q="${meta.query || "?"}"`,
+          `összes=${meta.total ?? "?"}`,
+          meta.latestSubject ? `legutóbbi="${meta.latestSubject}"` : null,
+          meta.latestFrom ? `feladó=${meta.latestFrom}` : null,
+          meta.latestAgeSec != null ? `kora=${meta.latestAgeSec}s` : null,
+          meta.reason ? `ok=${meta.reason}` : null,
+        ].filter(Boolean).join(", ");
+        log("info", `Gmail ${attempt}/${MAX_ATTEMPTS} — nincs friss link (${summary || "üres válasz"})`);
       } catch (e) {
         lastError = e.message;
+        log("warn", `Gmail ${attempt}/${MAX_ATTEMPTS} — hiba: ${e.message}`);
       }
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(WAIT_MS);
     }
-    return { ok: false, error: lastError || "nem érkezett friss megerősítő e-mail" };
+    return { ok: false, error: lastError || "nem érkezett friss megerősítő e-mail", lastMeta };
   } catch (e) {
     return { ok: false, error: e.message };
   }

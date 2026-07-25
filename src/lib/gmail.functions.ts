@@ -131,7 +131,7 @@ export const findGmailConfirmationLink = createServerFn({ method: "POST" })
       platform: "kylo",
       freshWithinSec: 6 * 60 * 60,
     });
-    return found
-      ? { found: true as const, ...found }
+    return found.link
+      ? { found: true as const, link: found.link, subject: found.subject, from: found.from, snippet: found.snippet }
       : { found: false as const, link: null, subject: null, from: null, snippet: null };
   });
