@@ -690,18 +690,43 @@ async function runSession(payload) {
           target: targetInfo,
         },
       }).catch(() => {});
+      // A natív CDP kattintás előtt telepítünk egy egyszeri capture-fázisú
+      // listenert. Ha a natív down/up valóban click eventet szül az oldalon,
+      // `nativeClickFired` true lesz — ilyenkor NEM dispatchelünk semmit,
+      // hogy ne duplázzunk (ez okozta a Kylo.study 7→14 számláló bugot).
+      // Ha viszont a natív kattintás után NEM futott le click handler
+      // (pl. a Kylo coming-soon logó overlay-je elnyeli a pointer eventet),
+      // akkor egyetlen szintetikus MouseEvent-tel bepótoljuk.
+      await page.evaluate(() => {
+        window.__kyloClickFired = false;
+        const h = () => { window.__kyloClickFired = true; };
+        window.__kyloClickHandler = h;
+        document.addEventListener("click", h, true);
+      }).catch(() => {});
+
       await humanClick(page, cursorPoint, { x, y });
       cursorPoint = { x, y };
       await focusEditableAt(x, y);
-      // KORÁBBAN itt volt egy JS-szintű dispatchEvent fallback (pointer/mouse/click),
-      // hogy a coming-soon logó számláló is reagáljon. Ez viszont MINDEN
-      // kattintást DUPLÁN küldött el az oldalnak: a Playwright natív click +
-      // egy szintetikus JS click. A Kylo.study 7-kattintásos beléptető
-      // számlálóján ez azt okozta, hogy 7 emberi kattintás után 14-et számolt,
-      // átugrott a küszöbön, és rögtön visszadobta a főoldalra a felhasználót.
-      // A natív CDP mouse események minden általunk tesztelt oldalon
-      // (Kylo, Pinterest, LinkedIn) rendben aktiválják a click handlereket,
-      // ezért a dupla dispatchet eltávolítottuk.
+
+      await sleep(140);
+      const nativeClickFired = await page.evaluate(() => {
+        const fired = window.__kyloClickFired === true;
+        try { document.removeEventListener("click", window.__kyloClickHandler, true); } catch {}
+        delete window.__kyloClickFired;
+        delete window.__kyloClickHandler;
+        return fired;
+      }).catch(() => true); // hibánál inkább ne dispatch-eljünk (biztonságosabb)
+
+      if (!nativeClickFired) {
+        await page.evaluate(([cx, cy]) => {
+          const el = document.elementFromPoint(cx, cy);
+          if (!el) return;
+          const opts = { bubbles: true, cancelable: true, clientX: cx, clientY: cy, button: 0, view: window };
+          el.dispatchEvent(new MouseEvent("mousedown", opts));
+          el.dispatchEvent(new MouseEvent("mouseup", opts));
+          el.dispatchEvent(new MouseEvent("click", opts));
+        }, [x, y]).catch(() => {});
+      }
 
       pushAction({
         type: "click",
