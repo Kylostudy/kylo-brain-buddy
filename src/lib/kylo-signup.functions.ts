@@ -12,6 +12,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { encryptString } from "@/lib/credentials/crypto.server";
+import { loadProxyUrlServer } from "@/lib/proxies.functions";
 
 const BASE_GMAIL = "sunyika.kripto@gmail.com";
 const SIGNUP_MONITOR = "kylo-study-signup";
