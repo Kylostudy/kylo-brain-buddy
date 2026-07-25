@@ -8,9 +8,11 @@ import {
   startKyloSignupRun,
   listKyloSignupRuns,
   ensureKyloSignupWorkflow,
+  setKyloSignupRecorderProxy,
 } from "@/lib/kylo-signup.functions";
 import { startGmailOAuth, disconnectGmail } from "@/lib/gmail.functions";
 import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
+import { listProxies } from "@/lib/proxies.functions";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,6 +113,8 @@ function SignupPage() {
 
   const gmail = (data?.gmail as { email: string; connectedAt: string | null } | null) ?? null;
   const workflowId = data?.workflow?.id ?? null;
+  const recorderProxyId = (data as { recorderProxyId?: string | null } | undefined)?.recorderProxyId ?? null;
+
 
   const startMut = useMutation({
     mutationFn: () => startFn({ data: {} }),
@@ -155,7 +159,7 @@ function SignupPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={!workflowId}
+              disabled={!workflowId || !recorderProxyId}
               onClick={async () => {
                 if (!workflowId) return;
                 try {
@@ -169,7 +173,7 @@ function SignupPage() {
                   toast.error(e instanceof Error ? e.message : "Live Browse indítása sikertelen");
                 }
               }}
-              title="Élő böngésző a VPS-en (kézi kattintás, nem menti a lépéseket)"
+              title={recorderProxyId ? "Élő böngésző a VPS-en (kézi kattintás, nem menti a lépéseket)" : "Először válassz proxyt a Felvétel proxy panelen"}
             >
               <Globe className="size-4" />
               <span className="ml-1.5">Live Browse</span>
@@ -177,7 +181,7 @@ function SignupPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={!workflowId}
+              disabled={!workflowId || !recorderProxyId}
               onClick={async () => {
                 if (!workflowId) return;
                 try {
@@ -191,7 +195,7 @@ function SignupPage() {
                   toast.error(e instanceof Error ? e.message : "Felvétel indítása sikertelen");
                 }
               }}
-              title="Regisztrációs flow felvétele — a végén Mentéssel eltárolja a lépéseket a workflow specbe"
+              title={recorderProxyId ? "Regisztrációs flow felvétele — a végén Mentéssel eltárolja a lépéseket a workflow specbe" : "Először válassz proxyt a Felvétel proxy panelen"}
             >
               <Video className="size-4" />
               <span className="ml-1.5">Felvétel</span>
@@ -245,6 +249,9 @@ function SignupPage() {
         </CardContent>
       </Card>
 
+      {workflowId && (
+        <RecorderProxyCard workflowId={workflowId} currentProxyId={recorderProxyId} />
+      )}
 
 
       <Card>
@@ -479,4 +486,101 @@ function GmailConnectButton({
     </div>
   );
 }
+
+function RecorderProxyCard({
+  workflowId,
+  currentProxyId,
+}: {
+  workflowId: string;
+  currentProxyId: string | null;
+}) {
+  const qc = useQueryClient();
+  const callListProxies = useServerFn(listProxies);
+  const callSetProxy = useServerFn(setKyloSignupRecorderProxy);
+  const { data: proxies } = useQuery({
+    queryKey: ["proxies-for-kylo-signup"],
+    queryFn: () => callListProxies({ data: undefined as never }),
+  });
+  const [selected, setSelected] = useState<string>(currentProxyId ?? "");
+  useEffect(() => {
+    setSelected(currentProxyId ?? "");
+  }, [currentProxyId]);
+  const [busy, setBusy] = useState(false);
+  const current = proxies?.find((p) => p.id === currentProxyId) ?? null;
+
+  async function save(next: string | null) {
+    setBusy(true);
+    try {
+      await callSetProxy({ data: { workflowId, proxyId: next } });
+      toast.success(next ? "Proxy elmentve." : "Proxy törölve.");
+      qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Nem sikerült menteni a proxyt.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Felvétel / Live Browse proxy</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <div className="text-muted-foreground">
+          A VPS böngésző ezzel a proxyval nyílik meg, amikor a fenti{" "}
+          <span className="font-medium">Felvétel</span> vagy{" "}
+          <span className="font-medium">Live Browse</span> gombra kattintasz.
+          Az automatikus <span className="font-medium">„Új futás"</span> a saját
+          rotációjából választ proxyt — ez a mező csak a kézi böngészésre vonatkozik.
+        </div>
+        {current && (
+          <div className="text-xs">
+            Jelenleg: <span className="font-medium">{current.label}</span>
+            {current.country ? ` (${current.country})` : ""}
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="rounded-md border bg-background px-2 py-1.5 text-sm"
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+            disabled={busy || !proxies}
+          >
+            <option value="">— válassz proxyt —</option>
+            {(proxies ?? [])
+              .filter((p) => p.is_active)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                  {p.country ? ` — ${p.country}` : ""}
+                </option>
+              ))}
+          </select>
+          <Button
+            size="sm"
+            onClick={() => save(selected || null)}
+            disabled={busy || selected === (currentProxyId ?? "")}
+          >
+            {busy ? "Mentés…" : "Mentés"}
+          </Button>
+          {currentProxyId && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setSelected("");
+                save(null);
+              }}
+              disabled={busy}
+            >
+              Törlés
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 

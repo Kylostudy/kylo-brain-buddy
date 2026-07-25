@@ -12,6 +12,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { encryptString } from "@/lib/credentials/crypto.server";
+import { loadProxyUrlServer } from "@/lib/proxies.functions";
 
 const BASE_GMAIL = "sunyika.kripto@gmail.com";
 const SIGNUP_MONITOR = "kylo-study-signup";
@@ -326,7 +328,7 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
 
     if (!wf?.id) return { workflow: null, runs: [] as never[], gmail: null };
 
-    const [runsRes, credRes] = await Promise.all([
+    const [runsRes, credRes, proxyCredRes] = await Promise.all([
       supabase
         .from("brain_workflow_runs")
         .select("id, status, started_at, finished_at, spec_snapshot, result, error, proxy_id")
@@ -337,6 +339,13 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
         .from("workflow_credentials")
         .select("gmail_email, gmail_connected_at")
         .eq("workflow_id", wf.id)
+        .eq("platform", "gmail")
+        .maybeSingle(),
+      supabase
+        .from("workflow_credentials")
+        .select("proxy_id")
+        .eq("workflow_id", wf.id)
+        .eq("platform", "recorder")
         .maybeSingle(),
     ]);
 
@@ -346,6 +355,54 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
       gmail: credRes.data?.gmail_email
         ? { email: credRes.data.gmail_email as string, connectedAt: credRes.data.gmail_connected_at }
         : null,
+      recorderProxyId: (proxyCredRes.data as { proxy_id?: string | null } | null)?.proxy_id ?? null,
     };
   });
+
+// ─────────────────────────────────────────────────────────────
+// setKyloSignupRecorderProxy — a Felvétel / Live Browse gombhoz
+// külön eltárolt proxy a workflow_credentials (platform="recorder") sorban.
+// A record-claim végpont az első proxy_id-vel rendelkező cred sort veszi.
+// ─────────────────────────────────────────────────────────────
+
+export const setKyloSignupRecorderProxy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        workflowId: z.string().uuid(),
+        proxyId: z.string().uuid().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    if (data.proxyId === null) {
+      const { error } = await supabase
+        .from("workflow_credentials")
+        .delete()
+        .eq("workflow_id", data.workflowId)
+        .eq("platform", "recorder");
+      if (error) throw new Error(error.message);
+      return { ok: true, proxyId: null as string | null };
+    }
+    const url = await loadProxyUrlServer(data.proxyId, supabase as never);
+    if (!url) throw new Error("A kiválasztott proxy nem található.");
+    const { ciphertext, nonce } = await encryptString(url);
+    const { error } = await supabase
+      .from("workflow_credentials")
+      .upsert(
+        {
+          workflow_id: data.workflowId,
+          platform: "recorder",
+          proxy_id: data.proxyId,
+          proxy_ciphertext: ciphertext,
+          proxy_nonce: nonce,
+        } as never,
+        { onConflict: "workflow_id,platform" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true, proxyId: data.proxyId };
+  });
+
 
