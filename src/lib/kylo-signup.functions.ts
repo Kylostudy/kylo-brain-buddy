@@ -20,24 +20,32 @@ const SIGNUP_MONITOR = "kylo-study-signup";
 const SKIN_ORDER = ["puppy-cat", "alaszka"] as const;
 
 // Proxy ország → Kylo felületi nyelv (lang query param).
-// A Kylo master angolja en-GB, ezért angol nyelvterületen mindig azt küldjük.
+// A country cím a natív nyelvet kapja; angol nyelvterületen en-GB-t (a Kylo
+// master angolja en-GB). Kétnyelvű / hivatalosan angol területeken (SG, HK)
+// a helyi nyelvet küldjük, mert az a jellemző első választás.
 const COUNTRY_TO_LANG: Record<string, string> = {
+  // angol
   US: "en-GB",
   GB: "en-GB",
   CA: "en-GB",
   AU: "en-GB",
   NZ: "en-GB",
   IE: "en-GB",
-  TW: "en-GB",
+  SG: "en-GB",
+  // kínai / kelet-ázsiai
+  TW: "zh-TW",
+  HK: "zh-HK",
+  JP: "ja",
+  // európai
   HU: "hu",
   DE: "de",
   AT: "de",
+  CH: "de",
   FR: "fr-FR",
   ES: "es",
   IT: "it",
   NL: "nl",
   PL: "pl",
-  BR: "pt-BR",
   SE: "sv",
   FI: "fi",
   NO: "no",
@@ -45,15 +53,21 @@ const COUNTRY_TO_LANG: Record<string, string> = {
   CZ: "cs",
   RO: "ro",
   TR: "tr",
-  JP: "ja",
+  // Latin-Amerika
+  BR: "pt-BR",
+  CO: "es",
 };
 
 // Ország → alapértelmezett fizetési deviza.
-// Európán belül EUR, Magyarországon HUF, egyébként USD (Kínát most nem érint).
-function currencyForCountry(cc: string | null): "EUR" | "HUF" | "USD" {
+function currencyForCountry(cc: string | null): "EUR" | "HUF" | "USD" | "CHF" | "GBP" | "JPY" | "BRL" | "PLN" | "TRY" | "HKD" | "SGD" | "TWD" | "AUD" | "NZD" | "CAD" {
   if (!cc) return "USD";
   const c = cc.toUpperCase();
-  if (c === "HU") return "HUF";
+  const map: Record<string, "EUR" | "HUF" | "USD" | "CHF" | "GBP" | "JPY" | "BRL" | "PLN" | "TRY" | "HKD" | "SGD" | "TWD" | "AUD" | "NZD" | "CAD"> = {
+    HU: "HUF", GB: "GBP", CH: "CHF", JP: "JPY", BR: "BRL", PL: "PLN",
+    TR: "TRY", HK: "HKD", SG: "SGD", TW: "TWD", AU: "AUD", NZ: "NZD",
+    CA: "CAD", CO: "USD", // COP nincs a Stripe alapkínálatban, marad USD
+  };
+  if (map[c]) return map[c];
   const EUR = new Set([
     "AT", "BE", "CY", "DE", "EE", "ES", "FI", "FR", "GR", "IE",
     "IT", "LT", "LU", "LV", "MT", "NL", "PT", "SI", "SK", "HR",
