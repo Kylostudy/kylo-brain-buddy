@@ -668,7 +668,26 @@ async function runSession(payload) {
     await focusEditableAt(lastClickPoint.x, lastClickPoint.y);
   }
 
+  let clickBusy = false;
   channel.on("broadcast", { event: "click" }, async ({ payload }) => {
+    if (clickBusy) {
+      const vs = page.viewportSize() || { width: viewportW, height: viewportH };
+      const x = Math.round((Number(payload?.x) || 0) * vs.width);
+      const y = Math.round((Number(payload?.y) || 0) * vs.height);
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: {
+          kind: "click",
+          status: "busy",
+          x,
+          y,
+          target: "az előző kattintás még feldolgozás alatt van",
+        },
+      }).catch(() => {});
+      return;
+    }
+    clickBusy = true;
     try {
       const vs = page.viewportSize();
       const x = payload.x * vs.width;
@@ -754,6 +773,8 @@ async function runSession(payload) {
         event: "inputError",
         payload: { kind: "click", error: e.message },
       }).catch(() => {});
+    } finally {
+      clickBusy = false;
     }
   });
 

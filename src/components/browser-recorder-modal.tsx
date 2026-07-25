@@ -94,8 +94,18 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const imgWrapRef = useRef<HTMLDivElement | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const typeInputRef = useRef<HTMLInputElement | null>(null);
+  const clickInFlightRef = useRef(false);
+  const clickTimeoutRef = useRef<number | null>(null);
   const statusRef = useRef(status);
   useEffect(() => { statusRef.current = status; }, [status]);
+
+  const clearClickInFlight = useCallback(() => {
+    clickInFlightRef.current = false;
+    if (clickTimeoutRef.current !== null) {
+      window.clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+  }, []);
 
   const sendToWorker = useCallback((event: string, payload: Record<string, unknown>) => {
     const ch = channelRef.current;
@@ -140,9 +150,12 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       const p = payload as { kind?: string; status?: string; x?: number; y?: number; target?: string };
       if (p.kind === "click") {
         const targetStr = p.target ? ` → ${p.target}` : "";
+        if (p.status === "done" || p.status === "busy") clearClickInFlight();
         setInputStatus(
           p.status === "done"
             ? `✓ Kattintva (${p.x ?? "?"}, ${p.y ?? "?"})${targetStr}`
+            : p.status === "busy"
+            ? `Várj: az előző kattintás még fut (${p.x ?? "?"}, ${p.y ?? "?"})`
             : `→ Worker fogadta (${p.x ?? "?"}, ${p.y ?? "?"})${targetStr}`,
         );
       }
@@ -150,6 +163,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
 
     ch.on("broadcast", { event: "inputError" }, ({ payload }) => {
       const p = payload as { error?: string };
+      clearClickInFlight();
       setInputStatus(`Kattintási hiba: ${p.error ?? "ismeretlen"}`);
     });
     ch.on("broadcast", { event: "status" }, ({ payload }) => {
@@ -222,6 +236,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     setInputStatus("");
     setFailureReason("");
     setLockedFrameSize(null);
+    clearClickInFlight();
   }, [open, sessionId]);
 
   useEffect(() => {
@@ -389,15 +404,26 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   }, [sendToWorker]);
 
   function handleFrameClick(e: React.MouseEvent<HTMLImageElement>) {
+    if (clickInFlightRef.current) {
+      setInputStatus("Várj: az előző kattintás még feldolgozás alatt van…");
+      return;
+    }
     const img = e.currentTarget;
     const rect = img.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
     const px = Math.round(x * (frame?.w ?? 0));
     const py = Math.round(y * (frame?.h ?? 0));
+    clickInFlightRef.current = true;
+    if (clickTimeoutRef.current !== null) window.clearTimeout(clickTimeoutRef.current);
+    clickTimeoutRef.current = window.setTimeout(() => {
+      clickInFlightRef.current = false;
+      clickTimeoutRef.current = null;
+    }, 3500);
     setInputStatus(`Küldés… (${px}, ${py})`);
     const ch = channelRef.current;
     if (!ch) {
+      clearClickInFlight();
       setInputStatus("Nincs aktív kapcsolat a workerhez (channel=null)");
       return;
     }
@@ -409,12 +435,16 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     void Promise.resolve(sent)
       .then((result) => {
         if (result !== "ok") {
+          clearClickInFlight();
           setInputStatus(`Kattintás nem ért el a workerhez: ${String(result)}`);
         } else {
           setInputStatus(`Kattintás elküldve (${px}, ${py}) — várunk a worker visszajelzésére…`);
         }
       })
-      .catch((err) => setInputStatus(`Kattintás küldési hiba: ${err instanceof Error ? err.message : String(err)}`));
+      .catch((err) => {
+        clearClickInFlight();
+        setInputStatus(`Kattintás küldési hiba: ${err instanceof Error ? err.message : String(err)}`);
+      });
     // A kép csak egy kép — a gépeléshez a rejtett input kell hogy fókuszban legyen.
     window.setTimeout(() => typeInputRef.current?.focus(), 0);
   }
