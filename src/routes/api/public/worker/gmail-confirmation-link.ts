@@ -79,8 +79,8 @@ export const Route = createFileRoute("/api/public/worker/gmail-confirmation-link
           freshWithinSec: body.freshWithinSec ?? 6 * 60 * 60,
         });
 
-        if (!found) {
-          return Response.json({ link: null, found: false }, { status: 200 });
+        if (!found.link) {
+          return Response.json({ link: null, found: false, debug: found.debug }, { status: 200 });
         }
 
         return Response.json({ found: true, ...found });
