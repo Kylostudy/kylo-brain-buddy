@@ -15,7 +15,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { encryptString } from "@/lib/credentials/crypto.server";
 import { loadProxyUrlServer } from "@/lib/proxies.functions";
 
-const BASE_GMAIL = "sunyika.kripto@gmail.com";
+const BASE_GMAIL = "sunyika.crypto@gmail.com";
 const SIGNUP_MONITOR = "kylo-study-signup";
 const SKIN_ORDER = ["puppy-cat", "alaszka"] as const;
 
