@@ -137,15 +137,17 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       setActions((prev) => [...prev, p.action]);
     });
     ch.on("broadcast", { event: "inputAck" }, ({ payload }) => {
-      const p = payload as { kind?: string; status?: string; x?: number; y?: number };
+      const p = payload as { kind?: string; status?: string; x?: number; y?: number; target?: string };
       if (p.kind === "click") {
+        const targetStr = p.target ? ` → ${p.target}` : "";
         setInputStatus(
           p.status === "done"
-            ? `Kattintás végrehajtva (${p.x ?? "?"}, ${p.y ?? "?"})`
-            : `Kattintás fogadva (${p.x ?? "?"}, ${p.y ?? "?"})`,
+            ? `✓ Kattintva (${p.x ?? "?"}, ${p.y ?? "?"})${targetStr}`
+            : `→ Worker fogadta (${p.x ?? "?"}, ${p.y ?? "?"})${targetStr}`,
         );
       }
     });
+
     ch.on("broadcast", { event: "inputError" }, ({ payload }) => {
       const p = payload as { error?: string };
       setInputStatus(`Kattintási hiba: ${p.error ?? "ismeretlen"}`);
