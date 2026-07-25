@@ -401,6 +401,34 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
   );
 }
 
+function DeleteRunButton({ runId }: { runId: string }) {
+  const qc = useQueryClient();
+  const callDelete = useServerFn(deleteKyloSignupRun);
+  const mut = useMutation({
+    mutationFn: () => callDelete({ data: { runId } }),
+    onSuccess: () => {
+      toast.success("Futás törölve");
+      qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="text-red-400 hover:text-red-300"
+      onClick={() => {
+        if (window.confirm("Biztos törlöd ezt a futást? Ez nem visszavonható.")) {
+          mut.mutate();
+        }
+      }}
+      disabled={mut.isPending}
+    >
+      {mut.isPending ? "Törlés…" : "Törlés"}
+    </Button>
+  );
+}
+
 function GmailConnectButton({
   workflowId,
   label,
