@@ -562,5 +562,5 @@ export async function findVerificationLinkServer(params: {
       debug,
     };
   }
-  return { link: null, debug };
+  return { link: null, from: null, subject: null, snippet: null, debug };
 }
