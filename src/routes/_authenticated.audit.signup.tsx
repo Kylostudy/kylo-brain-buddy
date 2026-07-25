@@ -8,9 +8,11 @@ import {
   startKyloSignupRun,
   listKyloSignupRuns,
   ensureKyloSignupWorkflow,
+  setKyloSignupRecorderProxy,
 } from "@/lib/kylo-signup.functions";
 import { startGmailOAuth, disconnectGmail } from "@/lib/gmail.functions";
 import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
+import { listProxies } from "@/lib/proxies.functions";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
