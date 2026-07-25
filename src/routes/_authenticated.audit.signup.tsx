@@ -448,6 +448,55 @@ function DeleteRunButton({ runId }: { runId: string }) {
   );
 }
 
+function buildRunSummary(
+  run: SignupRun,
+  spec: ReturnType<typeof readSignupSpec>,
+  res: ReturnType<typeof readResult>,
+): string {
+  const who = `#${spec.run_index ?? "?"} · ${spec.expected_country ?? "?"} · ${spec.skin ?? "?"} · ${spec.email ?? "?"}`;
+  if (run.status === "succeeded") {
+    if (res.reached_stripe === true) {
+      return `${who} — Sikeres futás, a Stripe checkout oldalig eljutott (${res.final_url ?? "?"}).`;
+    }
+    const stepCount = Array.isArray(res.steps) ? res.steps.length : 0;
+    const shots = Array.isArray(res.screenshots) ? res.screenshots.length : 0;
+    if (stepCount === 0 && shots === 0) {
+      return `${who} — A worker "sikeres"-nek jelölte, de nem futott le a sign-up script (nincsenek lépések vagy képek). Valószínűleg ismeretlen monitor_type miatt demo ágra esett. Frissítsd a worker imaget és indíts új futást.`;
+    }
+    return `${who} — Futás lefutott (${stepCount} lépés, ${shots} képernyőkép), de nem érte el a Stripe oldalt. Nézd meg a képeket és a lépéseket, hol akadt el.`;
+  }
+  if (run.status === "failed") {
+    return `${who} — Hibára futott: ${run.error ?? "ismeretlen hiba"}.`;
+  }
+  return `${who} — Státusz: ${run.status}.`;
+}
+
+function downloadRunReport(
+  run: SignupRun,
+  spec: ReturnType<typeof readSignupSpec>,
+  res: ReturnType<typeof readResult>,
+) {
+  const report = {
+    run_id: run.id,
+    status: run.status,
+    started_at: run.started_at,
+    finished_at: run.finished_at,
+    error: run.error,
+    summary: buildRunSummary(run, spec, res),
+    spec,
+    result: res,
+  };
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `kylo-signup-${spec.run_index ?? "run"}-${run.id.slice(0, 8)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function GmailConnectButton({
   workflowId,
   label,
