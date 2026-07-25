@@ -249,6 +249,9 @@ function SignupPage() {
         </CardContent>
       </Card>
 
+      {workflowId && (
+        <RecorderProxyCard workflowId={workflowId} currentProxyId={recorderProxyId} />
+      )}
 
 
       <Card>
