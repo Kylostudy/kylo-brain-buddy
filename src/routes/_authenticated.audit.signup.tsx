@@ -356,9 +356,28 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Sign Up #{spec.run_index ?? "?"} — {spec.skin ?? "?"}</DialogTitle>
+          <DialogTitle className="flex items-center justify-between gap-3">
+            <span>Sign Up #{spec.run_index ?? "?"} — {spec.skin ?? "?"}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => downloadRunReport(run, spec, res)}
+            >
+              Riport letöltése (JSON)
+            </Button>
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm">
+          <div className={`rounded-md border p-2 ${
+            run.status === "succeeded"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+              : run.status === "failed"
+                ? "border-red-500/40 bg-red-500/10 text-red-300"
+                : "border-muted bg-muted/20 text-muted-foreground"
+          }`}>
+            <div className="text-xs font-semibold uppercase">Összegzés</div>
+            <div>{buildRunSummary(run, spec, res)}</div>
+          </div>
           <div><span className="text-muted-foreground">Alias:</span> <span className="font-mono">{spec.email}</span></div>
           <div><span className="text-muted-foreground">Ország / nyelv / valuta:</span> {spec.expected_country ?? "?"} · {spec.lang ?? "?"} · {spec.currency ?? "?"}</div>
           <div><span className="text-muted-foreground">Végállomás:</span> {res.final_url ?? "—"}</div>
