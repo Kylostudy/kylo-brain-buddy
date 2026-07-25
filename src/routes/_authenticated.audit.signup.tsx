@@ -159,7 +159,7 @@ function SignupPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={!workflowId}
+              disabled={!workflowId || !recorderProxyId}
               onClick={async () => {
                 if (!workflowId) return;
                 try {
@@ -173,7 +173,7 @@ function SignupPage() {
                   toast.error(e instanceof Error ? e.message : "Live Browse indítása sikertelen");
                 }
               }}
-              title="Élő böngésző a VPS-en (kézi kattintás, nem menti a lépéseket)"
+              title={recorderProxyId ? "Élő böngésző a VPS-en (kézi kattintás, nem menti a lépéseket)" : "Először válassz proxyt a Felvétel proxy panelen"}
             >
               <Globe className="size-4" />
               <span className="ml-1.5">Live Browse</span>
@@ -181,7 +181,7 @@ function SignupPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={!workflowId}
+              disabled={!workflowId || !recorderProxyId}
               onClick={async () => {
                 if (!workflowId) return;
                 try {
@@ -195,7 +195,7 @@ function SignupPage() {
                   toast.error(e instanceof Error ? e.message : "Felvétel indítása sikertelen");
                 }
               }}
-              title="Regisztrációs flow felvétele — a végén Mentéssel eltárolja a lépéseket a workflow specbe"
+              title={recorderProxyId ? "Regisztrációs flow felvétele — a végén Mentéssel eltárolja a lépéseket a workflow specbe" : "Először válassz proxyt a Felvétel proxy panelen"}
             >
               <Video className="size-4" />
               <span className="ml-1.5">Felvétel</span>
