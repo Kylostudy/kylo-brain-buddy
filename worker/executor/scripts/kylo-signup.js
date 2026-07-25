@@ -18,10 +18,10 @@
 import { getGmailConfirmationLink } from "./brain-tasks/brain-api.js";
 
 const CLICK_HINTS_SIGNUP = [
-  "sign up", "signup", "sign-up", "regisztráció", "regisztrálok", "regisztrál",
+  "register/sign in", "register", "sign up", "signup", "sign-up", "regisztráció", "regisztrálok", "regisztrál",
   "create account", "get started", "kezdés", "próbáld ki", "próbald ki",
   "regisztráljon", "kezdjük", "start", "start now", "start free", "try free",
-  "try it free", "join", "join now", "let's go", "lets go", "begin",
+  "try it free", "let's go", "lets go", "begin",
   // JP
   "登録", "新規登録", "会員登録", "無料登録", "サインアップ", "始める", "はじめる", "続ける",
   // ZH
@@ -35,6 +35,11 @@ const CLICK_HINTS_SIGNUP = [
   "регистрация", "зарегистрироваться", "начать",
   "kaydol", "üye ol", "başla",
   "zarejestruj", "rejestracja", "utwórz konto", "zacznij",
+];
+
+const CLICK_REJECTS_SIGNUP = [
+  "waitlist", "waiting list", "priority list", "join waitlist", "join the priority list",
+  "várólista", "varolista", "lista de espera", "liste d'attente",
 ];
 
 const CLICK_HINTS_SUBSCRIBE = [
@@ -94,9 +99,48 @@ async function acceptCookies(page, log) {
 // Keres egy kattintható elemet, aminek a szövege tartalmazza a hint-ek
 // valamelyikét (case-insensitive). Először button/link/role=button elemeket
 // nézünk, aztán bármit.
-async function clickByText(page, hints, log, label) {
+async function clickByText(page, hints, log, label, options = {}) {
   const lowerHints = hints.map((h) => h.toLowerCase());
-  const found = await page.evaluate((lowerHints) => {
+  const lowerRejects = (options.rejects || []).map((h) => h.toLowerCase());
+  const found = await page.evaluate(({ lowerHints, lowerRejects }) => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const nodes = Array.from(
+      document.querySelectorAll(
+        'a, button, [role="button"], input[type="submit"], input[type="button"]',
+      ),
+    );
+    for (const hint of lowerHints) {
+      for (const el of nodes) {
+        const t = norm(el.innerText || el.value || "");
+        if (!t) continue;
+        if (lowerRejects.some((h) => t.includes(h))) continue;
+        if (t.includes(hint)) {
+          const r = el.getBoundingClientRect();
+          if (r.width < 3 || r.height < 3) continue;
+          el.scrollIntoView({ block: "center" });
+          return { text: t.slice(0, 80), tag: el.tagName.toLowerCase(), hint };
+        }
+      }
+    }
+    for (const el of nodes) {
+      const t = norm(el.innerText || el.value || "");
+      if (!t) continue;
+      if (lowerRejects.some((h) => t.includes(h))) continue;
+      if (lowerHints.some((h) => t.includes(h))) {
+        const r = el.getBoundingClientRect();
+        if (r.width < 3 || r.height < 3) continue;
+        el.scrollIntoView({ block: "center" });
+        return { text: t.slice(0, 80), tag: el.tagName.toLowerCase() };
+      }
+    }
+    return null;
+  }, { lowerHints, lowerRejects });
+  if (!found) {
+    log("warn", `Nem találtam ${label} gombot / linket.`);
+    return false;
+  }
+  // Kattintás DOM-on át, hogy elkerüljük a Playwright strictness-t.
+  await page.evaluate(({ lowerHints, lowerRejects, preferredHint, preferredText }) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
     const nodes = Array.from(
       document.querySelectorAll(
@@ -106,35 +150,20 @@ async function clickByText(page, hints, log, label) {
     for (const el of nodes) {
       const t = norm(el.innerText || el.value || "");
       if (!t) continue;
-      if (lowerHints.some((h) => t.includes(h))) {
-        const r = el.getBoundingClientRect();
-        if (r.width < 3 || r.height < 3) continue;
-        el.scrollIntoView({ block: "center" });
-        return { text: t.slice(0, 80), tag: el.tagName.toLowerCase() };
-      }
-    }
-    return null;
-  }, lowerHints);
-  if (!found) {
-    log("warn", `Nem találtam ${label} gombot / linket.`);
-    return false;
-  }
-  // Kattintás DOM-on át, hogy elkerüljük a Playwright strictness-t.
-  await page.evaluate((lowerHints) => {
-    const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
-    const nodes = Array.from(
-      document.querySelectorAll(
-        'a, button, [role="button"], input[type="submit"], input[type="button"]',
-      ),
-    );
-    for (const el of nodes) {
-      const t = norm(el.innerText || el.value || "");
-      if (t && lowerHints.some((h) => t.includes(h))) {
+      if (lowerRejects.some((h) => t.includes(h))) continue;
+      if (t === preferredText || (preferredHint && t.includes(preferredHint))) {
         el.click();
         return;
       }
     }
-  }, lowerHints);
+    for (const el of nodes) {
+      const t = norm(el.innerText || el.value || "");
+      if (t && !lowerRejects.some((h) => t.includes(h)) && lowerHints.some((h) => t.includes(h))) {
+        el.click();
+        return;
+      }
+    }
+  }, { lowerHints, lowerRejects, preferredHint: found.hint || null, preferredText: found.text || null });
   log("info", `${label} kattintva: „${found.text}" (${found.tag})`);
   await page.waitForTimeout(1500);
   return true;
@@ -289,7 +318,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   steps.push({ step: "logo-7x", clicks: logoClicks, visible_ctas: visibleCtas });
 
   // 2) sign-up gomb
-  const signupClicked = await clickByText(page, CLICK_HINTS_SIGNUP, log, "Sign Up / Regisztráció");
+  const signupClicked = await clickByText(page, CLICK_HINTS_SIGNUP, log, "Sign Up / Regisztráció", { rejects: CLICK_REJECTS_SIGNUP });
   await page.waitForTimeout(1200);
   screenshots.push(await shot(page, "2-after-signup-click"));
   steps.push({ step: "signup-cta", clicked: signupClicked, url: page.url() });
@@ -416,7 +445,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   // 7) Vissza a Kylo profil oldalra — success feltétel
   let reachedProfile = false;
   let profileUrl = null;
-  const profileRe = /kylo\.study.*\/(profile|profil|account|dashboard|home|app|my|settings)/i;
+  const profileRe = /kylo\.study.*\/(profile|profil|account|dashboard|app|my|settings)/i;
   try {
     const deadline = Date.now() + 90_000; // max 90s a Stripe → callback → profile útra
     while (Date.now() < deadline) {
@@ -430,8 +459,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
           break;
         }
         const hasProfileMarker = await page.evaluate(() => {
+          const path = `${location.pathname || ""}${location.hash || ""}`.toLowerCase();
+          if (path === "/" || path.includes("waitlist")) return false;
           const text = (document.body?.innerText || "").toLowerCase();
-          return /kijelentkez|logout|sign out|profil|profile|beállítás|settings|dashboard|üdv|welcome back/.test(text);
+          return /kijelentkez|logout|sign out|beállítás|settings|dashboard|üdv újra|welcome back|billing|subscription/.test(text);
         }).catch(() => false);
         if (hasProfileMarker) {
           reachedProfile = true;
