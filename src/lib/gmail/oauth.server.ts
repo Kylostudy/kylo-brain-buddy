@@ -453,14 +453,29 @@ function scoreMessageForConfirmation(params: {
   return score;
 }
 
+export type GmailLookupDebug = {
+  reason: string;
+  query?: string;
+  total?: number;
+  latestSubject?: string | null;
+  latestFrom?: string | null;
+  latestAgeSec?: number | null;
+  freshWindowSec?: number;
+  rejects?: Array<{ subject: string; from: string; ageSec: number; reason: string; score?: number }>;
+};
+
+export type GmailLookupResult =
+  | { link: string; from: string; subject: string; snippet: string; debug: GmailLookupDebug }
+  | { link: null; from: null; subject: null; snippet: null; debug: GmailLookupDebug };
+
 export async function findVerificationLinkServer(params: {
   workflowId: string;
   recipient?: string | null;
   platform?: string;
   freshWithinSec?: number;
-}): Promise<{ link: string; from: string; subject: string; snippet: string; debug?: Record<string, unknown> } | { link: null; debug: Record<string, unknown> } | null> {
+}): Promise<GmailLookupResult> {
   const tok = await getGmailAccessTokenServer(params.workflowId);
-  if (!tok) return { link: null, debug: { reason: "no_gmail_token" } };
+  if (!tok) return { link: null, from: null, subject: null, snippet: null, debug: { reason: "no_gmail_token" } };
   const fresh = params.freshWithinSec ?? 6 * 60 * 60;
   const freshCutoff = Date.now() - fresh * 1000;
   const recipient = params.recipient?.trim();
