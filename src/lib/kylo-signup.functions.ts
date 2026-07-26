@@ -610,8 +610,11 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
       recorded_actions_count: Array.isArray(rawSpec.recorded_actions) ? rawSpec.recorded_actions.length : 0,
     };
 
+    if (runsRes.error) throw new Error(`runs: ${runsRes.error.message}`);
+
     return {
       workflow: { id: wf.id as string, name: wf.name as string, spec: wfSpec },
+
 
       runs: ((runsRes.data ?? []) as unknown as Record<string, unknown>[]).map(slimRun),
       gmail: credRes.data?.gmail_email
