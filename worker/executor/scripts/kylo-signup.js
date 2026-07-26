@@ -810,18 +810,33 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   log("info", `Sign Up indul — ${startUrl} · skin=${skin} · alias=${email} · currency=${currency}`);
 
-  // Teszt-bypass fejléc: ha a Kylo backend engedélyezi a bot-védelem (reCAPTCHA)
-  // kikapcsolását erre a tokenre, akkor átmegyünk a Recaptcha/humanity check-en.
-  // A token BRAIN_KYLO_TEST_BYPASS_TOKEN env változóból jön; ha nincs, csendben
-  // kihagyjuk (a régi viselkedés érvényes marad).
+  // Teszt-bypass fejléc: csak a Kylo saját domainjére tesszük rá.
+  // Fontos: a context.setExtraHTTPHeaders MINDEN kérésre rátenné, így a külső
+  // recaptcha/ipapi script-ek CORS preflightja elhasalna. A #12-es futás pontosan
+  // emiatt nem jutott auth/signup network hívásig.
   const bypassToken = process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN || cfg.bypass_token;
   if (bypassToken) {
     try {
-      await context.setExtraHTTPHeaders({
-        "X-Kylo-Test-Bypass": bypassToken,
-        "X-Kylo-Test-Email": email,
+      const kyloOrigin = new URL(baseUrl).origin;
+      await page.route("**/*", async (route) => {
+        const request = route.request();
+        let sameKyloOrigin = false;
+        try {
+          sameKyloOrigin = new URL(request.url()).origin === kyloOrigin;
+        } catch {}
+        if (!sameKyloOrigin) {
+          await route.continue();
+          return;
+        }
+        await route.continue({
+          headers: {
+            ...request.headers(),
+            "x-kylo-test-bypass": bypassToken,
+            "x-kylo-test-email": email,
+          },
+        });
       });
-      log("info", "Kylo teszt-bypass fejléc aktív (X-Kylo-Test-Bypass).");
+      log("info", `Kylo teszt-bypass fejléc aktív, csak saját domainre: ${kyloOrigin}`);
     } catch (e) {
       log("warn", `Nem sikerült beállítani a bypass fejlécet: ${e.message}`);
     }
