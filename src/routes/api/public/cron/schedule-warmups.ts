@@ -15,9 +15,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 // Max hány warmup indulhat egyszerre. 1 IP = 1 böngésző = 1 workflow.
-// A worker sorosan hívja a claim endpointot, ezért nem akarunk sok queued sort
-// egyszerre — max 3 futhat / várhat, a többi majd a következő órában.
-const MAX_ENQUEUE_PER_TICK = 3;
+// A worker VPS (4 mag / 64 GB) 5 párhuzamos warmup böngészőt elbír, így egy
+// éjszaka alatt mind a 21 ország sütigyűjtése lemehet.
+const MAX_ENQUEUE_PER_TICK = 5;
 
 // Ha egy warmup több mint 2 órája „running", elakadtnak tekintjük.
 const RUNNING_TIMEOUT_MS = 2 * 60 * 60 * 1000;
