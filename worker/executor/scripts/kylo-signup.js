@@ -16,6 +16,7 @@
 // jelzi, melyik lépés nem talált célt.
 
 import { getGmailConfirmationLink } from "./brain-tasks/brain-api.js";
+import { humanClick, humanType } from "./humanize.js";
 
 const CLICK_HINTS_SIGNUP = [
   "register/sign in", "register", "sign up", "signup", "sign-up", "regisztráció", "regisztrálok", "regisztrál",
@@ -35,6 +36,22 @@ const CLICK_HINTS_SIGNUP = [
   "регистрация", "зарегистрироваться", "начать",
   "kaydol", "üye ol", "başla",
   "zarejestruj", "rejestracja", "utwórz konto", "zacznij",
+];
+
+const CLICK_HINTS_SIGNUP_MODE = [
+  "sign up", "signup", "create account", "register", "registration",
+  "don't have an account", "dont have an account", "no account",
+  "regisztráció", "regisztrálok", "regisztrál", "fiók létrehozása",
+  "nincs fiókod", "új fiók", "új felhasználó",
+  "登録", "新規登録", "会員登録", "サインアップ",
+  "注册", "註冊", "crear cuenta", "registrarse", "registrati",
+  "konto erstellen", "registrieren", "créer un compte", "s'inscrire",
+];
+
+const CLICK_REJECTS_SIGNIN = [
+  "sign in", "signin", "log in", "login", "belépés", "bejelentkezés",
+  "jelentkezz be", "ログイン", "登录", "登入", "iniciar sesión",
+  "accedi", "anmelden", "connexion",
 ];
 
 const CLICK_REJECTS_SIGNUP = [
@@ -61,6 +78,109 @@ const COOKIE_BUTTONS = [
   'button:has-text("Accept all")',
   'button:has-text("I agree")',
 ];
+
+const AUTH_DIAG_MAX = 60;
+
+function redact(text, email, password) {
+  let out = String(text || "");
+  if (email) out = out.split(email).join("[email]");
+  if (password) out = out.split(password).join("[password]");
+  out = out.replace(/[A-Za-z0-9._%+-]+\+[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[email]");
+  out = out.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[email]");
+  out = out.replace(/access_token["'=:\s]+[^"'&\s]+/gi, "access_token=[redacted]");
+  out = out.replace(/refresh_token["'=:\s]+[^"'&\s]+/gi, "refresh_token=[redacted]");
+  return out;
+}
+
+function compactUrl(rawUrl, email, password) {
+  try {
+    const u = new URL(rawUrl);
+    const safeSearch = redact(u.search, email, password);
+    return `${u.host}${u.pathname}${safeSearch ? safeSearch.slice(0, 140) : ""}`;
+  } catch {
+    return redact(rawUrl, email, password).slice(0, 220);
+  }
+}
+
+function classifyAuthUrl(url) {
+  const u = String(url || "").toLowerCase();
+  if (u.includes("check-registration-email")) return "email-precheck";
+  if (u.includes("/auth/v1/signup") || /\/signup(?:\?|$)/.test(u)) return "auth-signup";
+  if (u.includes("/auth/v1/otp")) return "auth-otp";
+  if (u.includes("recaptcha") || u.includes("hcaptcha") || u.includes("turnstile")) return "captcha";
+  if (u.includes("register") || u.includes("registration")) return "registration";
+  return null;
+}
+
+function installSignupDiagnostics(page, email, password, log) {
+  const state = {
+    installed_at: Date.now(),
+    submit_at: null,
+    network: [],
+    request_failures: [],
+    console: [],
+    page_errors: [],
+  };
+
+  page.on("console", (msg) => {
+    const type = msg.type();
+    if (type !== "error" && type !== "warning") return;
+    const text = redact(msg.text(), email, password).slice(0, 500);
+    state.console.push({ at: Date.now(), type, text });
+    if (state.console.length > AUTH_DIAG_MAX) state.console.shift();
+    if (type === "error") log("warn", `Kliens console hiba: ${text}`);
+  });
+
+  page.on("pageerror", (err) => {
+    const text = redact(err?.message || String(err), email, password).slice(0, 500);
+    state.page_errors.push({ at: Date.now(), text });
+    if (state.page_errors.length > AUTH_DIAG_MAX) state.page_errors.shift();
+    log("warn", `Kliens JS hiba: ${text}`);
+  });
+
+  page.on("requestfailed", (req) => {
+    const kind = classifyAuthUrl(req.url());
+    if (!kind) return;
+    const failure = req.failure()?.errorText || "requestfailed";
+    const entry = {
+      at: Date.now(),
+      kind,
+      method: req.method(),
+      url: compactUrl(req.url(), email, password),
+      error: redact(failure, email, password),
+    };
+    state.request_failures.push(entry);
+    if (state.request_failures.length > AUTH_DIAG_MAX) state.request_failures.shift();
+    log("warn", `Auth network hiba: ${entry.method} ${entry.url} → ${entry.error}`);
+  });
+
+  page.on("response", async (res) => {
+    const kind = classifyAuthUrl(res.url());
+    if (!kind) return;
+    const req = res.request();
+    const entry = {
+      at: Date.now(),
+      kind,
+      method: req.method(),
+      status: res.status(),
+      url: compactUrl(res.url(), email, password),
+      preview: null,
+    };
+    if (kind !== "captcha" || res.status() >= 400) {
+      try {
+        const text = await res.text();
+        entry.preview = redact(text, email, password).replace(/\s+/g, " ").slice(0, 260);
+      } catch {}
+    }
+    state.network.push(entry);
+    if (state.network.length > AUTH_DIAG_MAX) state.network.shift();
+    const level = res.status() >= 400 ? "warn" : "info";
+    const preview = entry.preview ? ` — ${entry.preview}` : "";
+    log(level, `Auth network: ${entry.method} ${entry.url} → ${entry.status}${preview}`);
+  });
+
+  return state;
+}
 
 function withLang(baseUrl, lang) {
   try {
@@ -102,7 +222,8 @@ async function acceptCookies(page, log) {
 async function clickByText(page, hints, log, label, options = {}) {
   const lowerHints = hints.map((h) => h.toLowerCase());
   const lowerRejects = (options.rejects || []).map((h) => h.toLowerCase());
-  const found = await page.evaluate(({ lowerHints, lowerRejects }) => {
+  const marker = `kylo-worker-target-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const found = await page.evaluate(({ lowerHints, lowerRejects, marker }) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
     const nodes = Array.from(
       document.querySelectorAll(
@@ -118,6 +239,7 @@ async function clickByText(page, hints, log, label, options = {}) {
           const r = el.getBoundingClientRect();
           if (r.width < 3 || r.height < 3) continue;
           el.scrollIntoView({ block: "center" });
+          el.setAttribute("data-kylo-worker-target", marker);
           return { text: t.slice(0, 80), tag: el.tagName.toLowerCase(), hint };
         }
       }
@@ -130,93 +252,253 @@ async function clickByText(page, hints, log, label, options = {}) {
         const r = el.getBoundingClientRect();
         if (r.width < 3 || r.height < 3) continue;
         el.scrollIntoView({ block: "center" });
+        el.setAttribute("data-kylo-worker-target", marker);
         return { text: t.slice(0, 80), tag: el.tagName.toLowerCase() };
       }
     }
     return null;
-  }, { lowerHints, lowerRejects });
+  }, { lowerHints, lowerRejects, marker });
   if (!found) {
     log("warn", `Nem találtam ${label} gombot / linket.`);
     return false;
   }
-  // Kattintás DOM-on át, hogy elkerüljük a Playwright strictness-t.
-  await page.evaluate(({ lowerHints, lowerRejects, preferredHint, preferredText }) => {
-    const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
-    const nodes = Array.from(
-      document.querySelectorAll(
-        'a, button, [role="button"], input[type="submit"], input[type="button"]',
-      ),
-    );
-    for (const el of nodes) {
-      const t = norm(el.innerText || el.value || "");
-      if (!t) continue;
-      if (lowerRejects.some((h) => t.includes(h))) continue;
-      if (t === preferredText || (preferredHint && t.includes(preferredHint))) {
-        el.click();
-        return;
-      }
-    }
-    for (const el of nodes) {
-      const t = norm(el.innerText || el.value || "");
-      if (t && !lowerRejects.some((h) => t.includes(h)) && lowerHints.some((h) => t.includes(h))) {
-        el.click();
-        return;
-      }
-    }
-  }, { lowerHints, lowerRejects, preferredHint: found.hint || null, preferredText: found.text || null });
+  const handle = await page.$(`[data-kylo-worker-target="${marker}"]`);
+  if (handle) {
+    await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
+  } else {
+    await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-target="${marker}"]`)?.click(), marker);
+  }
+  await page.evaluate((marker) => {
+    document.querySelectorAll(`[data-kylo-worker-target="${marker}"]`).forEach((el) => el.removeAttribute("data-kylo-worker-target"));
+  }, marker).catch(() => {});
   log("info", `${label} kattintva: „${found.text}" (${found.tag})`);
   await page.waitForTimeout(1500);
   return true;
 }
 
+async function inspectAuthForm(page) {
+  return page.evaluate(() => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const st = window.getComputedStyle(el);
+      return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+    };
+    const textOf = (el) => norm(el.innerText || el.value || el.getAttribute("aria-label") || el.getAttribute("title") || "");
+    const buttons = Array.from(document.querySelectorAll('button, [role="button"], input[type="submit"], input[type="button"], a'))
+      .filter(visible)
+      .map((el) => ({
+        tag: el.tagName.toLowerCase(),
+        text: textOf(el).slice(0, 80),
+        type: el.getAttribute("type") || "",
+        disabled: !!el.disabled || el.getAttribute("aria-disabled") === "true",
+      }))
+      .filter((b) => b.text);
+    const submitButtons = buttons.filter((b) => b.type === "submit" || /button|input/.test(b.tag));
+    const allText = buttons.map((b) => b.text.toLowerCase()).join(" | ");
+    const signupRe = /sign\s*up|signup|create account|register|registration|regisztr|fiók létrehoz|nincs fiókod|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
+    const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
+    const emailFields = Array.from(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]')).filter(visible).length;
+    const passwordFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(visible).length;
+    const requiredUnchecked = Array.from(document.querySelectorAll('input[type="checkbox"]')).filter((el) => visible(el) && !el.checked && (el.required || /terms|privacy|aszf|adatvéd|policy|feltétel/i.test(norm(el.closest("label")?.innerText || el.parentElement?.innerText || "")))).length;
+    return {
+      url: location.href,
+      emailFields,
+      passwordFields,
+      requiredUnchecked,
+      signupSubmit: submitButtons.some((b) => signupRe.test(b.text)),
+      signinSubmit: submitButtons.some((b) => signinRe.test(b.text)),
+      signupToggle: signupRe.test(allText),
+      signinToggle: signinRe.test(allText),
+      buttons: buttons.slice(0, 25),
+    };
+  });
+}
+
+async function ensureSignupMode(page, log) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const state = await inspectAuthForm(page);
+    const buttonSummary = state.buttons.map((b) => `${b.disabled ? "disabled " : ""}${b.text}`).slice(0, 10).join(" | ");
+    log("info", `Auth űrlap állapot ${attempt}/3 — email=${state.emailFields}, pw=${state.passwordFields}, signupSubmit=${state.signupSubmit}, signinSubmit=${state.signinSubmit}, checkbox=${state.requiredUnchecked}, gombok: ${buttonSummary || "n/a"}`);
+    if (state.emailFields === 0 || state.passwordFields === 0) {
+      return { ok: false, reason: "nincs email+jelszó űrlap", state };
+    }
+    if (state.signupSubmit || !state.signinSubmit) {
+      return { ok: true, state };
+    }
+    if (state.signupToggle) {
+      const clicked = await clickByText(page, CLICK_HINTS_SIGNUP_MODE, log, "Regisztráció mód", { rejects: CLICK_REJECTS_SIGNIN });
+      await page.waitForTimeout(1200);
+      if (clicked) continue;
+    }
+    return { ok: false, reason: "az űrlap belépés módban van, regisztráció kapcsolót nem találtam", state };
+  }
+  const state = await inspectAuthForm(page);
+  return { ok: !!state.signupSubmit, reason: "nem sikerült stabil regisztráció módra váltani", state };
+}
+
+async function tickRequiredCheckboxes(page, log) {
+  const markers = await page.evaluate(() => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const st = window.getComputedStyle(el);
+      return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+    };
+    const out = [];
+    Array.from(document.querySelectorAll('input[type="checkbox"]')).forEach((el, idx) => {
+      const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || "");
+      if (!visible(el) || el.checked) return;
+      if (!el.required && !/terms|privacy|aszf|adatvéd|policy|feltétel|accept|agree|elfogad/i.test(label)) return;
+      const marker = `kylo-checkbox-${Date.now()}-${idx}`;
+      el.setAttribute("data-kylo-worker-checkbox", marker);
+      out.push({ marker, label: label.slice(0, 80) });
+    });
+    return out;
+  });
+  for (const item of markers.slice(0, 4)) {
+    const handle = await page.$(`[data-kylo-worker-checkbox="${item.marker}"]`);
+    if (!handle) continue;
+    try {
+      await humanClick(page, handle, { noMisclick: true, timeout: 3000 });
+      log("info", `Kötelező checkbox bepipálva: ${item.label || item.marker}`);
+    } catch (e) {
+      log("warn", `Checkbox kattintás hiba: ${e.message}`);
+    }
+  }
+}
+
 // Beírja az emailt és jelszót az első általunk felismert űrlapba.
 async function fillSignupForm(page, email, password, log) {
-  const filled = await page.evaluate(({ email, password }) => {
-    const q = (sel) => Array.from(document.querySelectorAll(sel));
-    const emailFields = q('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]');
-    const pwFields = q('input[type="password"]');
-    let e = 0, p = 0;
-    for (const el of emailFields.slice(0, 1)) {
-      el.focus();
-      el.value = email;
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-      e = 1;
-    }
-    for (const el of pwFields.slice(0, 2)) {
-      el.focus();
-      el.value = password;
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-      p++;
-    }
-    return { emailFields: emailFields.length, pwFields: pwFields.length, filledEmail: e, filledPw: p };
-  }, { email, password });
+  const emailField = await page.$('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]');
+  const pwFields = await page.$$('input[type="password"]');
+  let filledEmail = 0;
+  let filledPw = 0;
+  if (emailField) {
+    await emailField.click({ timeout: 3000 }).catch(() => {});
+    await emailField.fill("", { timeout: 3000 }).catch(() => {});
+    await humanType(page, email, { typoRate: 0, meanCharMs: 55 });
+    filledEmail = 1;
+  }
+  for (const el of pwFields.slice(0, 2)) {
+    await el.click({ timeout: 3000 }).catch(() => {});
+    await el.fill("", { timeout: 3000 }).catch(() => {});
+    await humanType(page, password, { typoRate: 0, meanCharMs: 45 });
+    filledPw++;
+  }
+  const filled = { emailFields: emailField ? 1 : 0, pwFields: pwFields.length, filledEmail, filledPw };
   log("info", `Űrlap kitöltés — email mezők: ${filled.emailFields}, jelszó mezők: ${filled.pwFields}, kitöltve: email=${filled.filledEmail}, pw=${filled.filledPw}`);
   return filled.filledEmail > 0 && filled.filledPw > 0;
 }
 
 // Megpróbálja a submit / regisztráció megerősítő gombot megnyomni.
 async function submitForm(page, log) {
-  const clicked = await page.evaluate(() => {
+  await tickRequiredCheckboxes(page, log);
+  const marker = `kylo-submit-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const found = await page.evaluate((marker) => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const signupRe = /sign\s*up|signup|create account|register|registration|regisztr|fiók létrehoz|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
+    const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
     const btns = Array.from(document.querySelectorAll(
       'button[type="submit"], input[type="submit"], form button',
     ));
+    let best = null;
     for (const b of btns) {
       const r = b.getBoundingClientRect();
       if (r.width < 2 || r.height < 2) continue;
-      b.click();
-      return true;
+      if (b.disabled || b.getAttribute("aria-disabled") === "true") continue;
+      const text = norm(b.innerText || b.value || b.getAttribute("aria-label") || "");
+      let score = b.type === "submit" ? 2 : 0;
+      if (signupRe.test(text)) score += 10;
+      if (signinRe.test(text)) score -= 20;
+      if (!best || score > best.score) best = { el: b, score, text };
     }
-    return false;
-  });
-  if (clicked) {
-    log("info", "Regisztráció submit megnyomva.");
+    if (!best || best.score < 0) return null;
+    best.el.setAttribute("data-kylo-worker-submit", marker);
+    return { text: best.text, score: best.score };
+  }, marker);
+  if (found) {
+    const handle = await page.$(`[data-kylo-worker-submit="${marker}"]`);
+    if (handle) await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
+    else await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-submit="${marker}"]`)?.click(), marker);
+    log("info", `Regisztráció submit megnyomva: „${found.text || "submit"}".`);
     await page.waitForTimeout(2500);
-    return true;
+    return { clicked: true, buttonText: found.text || null };
   }
-  log("warn", "Nem találtam submit gombot az űrlapban.");
-  return false;
+  log("warn", "Nem találtam regisztrációs submit gombot az űrlapban (belépés gombot nem nyomok meg). ");
+  return { clicked: false, reason: "no-signup-submit" };
+}
+
+async function collectPageDiagnostics(page) {
+  return page.evaluate(() => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const st = window.getComputedStyle(el);
+      return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+    };
+    const messages = [];
+    const selectors = [
+      '[role="alert"]', '[aria-live]', '[aria-invalid="true"]',
+      '[class*="error" i]', '[class*="invalid" i]', '[class*="danger" i]',
+      '.text-red-500', '.text-red-600', '.text-destructive', '.text-danger',
+    ];
+    for (const sel of selectors) {
+      document.querySelectorAll(sel).forEach((el) => {
+        if (!visible(el)) return;
+        const text = norm(el.innerText || el.textContent || el.getAttribute("aria-label") || "");
+        if (text && text.length >= 2 && !messages.includes(text)) messages.push(text.slice(0, 220));
+      });
+    }
+    const bodyText = norm(document.body?.innerText || "").slice(0, 6000);
+    const confirmationRe = /check your (email|inbox)|verify your email|confirmation email|sent (you )?(an )?email|email has been sent|nézd meg az email|ellenőrző email|megerősítő email|確認メール|验证码|verifica tu correo|confirme seu email|vérifiez votre e-mail/i;
+    return {
+      url: location.href,
+      title: document.title,
+      messages: messages.slice(0, 12),
+      hasConfirmationText: confirmationRe.test(bodyText),
+      hasCaptcha: !!document.querySelector('iframe[src*="recaptcha"], iframe[src*="hcaptcha"], iframe[src*="turnstile"], [class*="captcha" i]'),
+      bodySample: bodyText.slice(0, 500),
+    };
+  });
+}
+
+async function waitForRegistrationEvidence(page, diag, email, password, log) {
+  const startedAt = diag.submit_at || Date.now();
+  let lastPageDiag = null;
+  for (let i = 0; i < 10; i += 1) {
+    await page.waitForTimeout(i === 0 ? 800 : 1200);
+    lastPageDiag = await collectPageDiagnostics(page);
+    const network = diag.network.filter((e) => e.at >= startedAt - 500);
+    const failures = diag.request_failures.filter((e) => e.at >= startedAt - 500);
+    const signupOk = network.find((e) => (e.kind === "auth-signup" || e.kind === "auth-otp") && e.status >= 200 && e.status < 400);
+    const signupFailed = network.find((e) => (e.kind === "auth-signup" || e.kind === "auth-otp") && e.status >= 400);
+    const precheckOk = network.find((e) => e.kind === "email-precheck" && e.status >= 200 && e.status < 400);
+    const precheckFailed = network.find((e) => e.kind === "email-precheck" && e.status >= 400);
+    const authFailure = failures.find((e) => e.kind === "email-precheck" || e.kind === "auth-signup" || e.kind === "auth-otp");
+
+    if (signupOk || lastPageDiag.hasConfirmationText) {
+      log("info", `Regisztráció elindulása igazolva — ${signupOk ? `${signupOk.kind} HTTP ${signupOk.status}` : "oldalon megerősítő szöveg látszik"}.`);
+      return { ok: true, reason: signupOk ? signupOk.kind : "confirmation-text", page: lastPageDiag, network };
+    }
+    if (signupFailed || precheckFailed || authFailure) {
+      const bad = signupFailed || precheckFailed || authFailure;
+      return { ok: false, reason: `${bad.kind || "auth"} hiba`, bad, page: lastPageDiag, network, failures };
+    }
+    if (lastPageDiag.hasCaptcha) {
+      return { ok: false, reason: "captcha látszik / silent captcha blokk", page: lastPageDiag, network, failures };
+    }
+    if (i >= 3 && lastPageDiag.messages.length > 0 && !precheckOk) {
+      return { ok: false, reason: `frontend validáció: ${lastPageDiag.messages.join(" | ")}`, page: lastPageDiag, network, failures };
+    }
+  }
+  const network = diag.network.filter((e) => e.at >= startedAt - 500);
+  const failures = diag.request_failures.filter((e) => e.at >= startedAt - 500);
+  const precheckOk = network.find((e) => e.kind === "email-precheck" && e.status >= 200 && e.status < 400);
+  const reason = precheckOk
+    ? "email előellenőrzés lefutott, de auth signup hívás nem indult"
+    : "nem látszik sem auth signup, sem megerősítő e-mail állapot";
+  return { ok: false, reason, page: lastPageDiag, network, failures };
 }
 
 async function openGmailConfirmationLink(page, email, log) {
@@ -279,6 +561,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   const steps = [];
   const screenshots = [];
   const startUrl = withLang(baseUrl, lang);
+  const diag = installSignupDiagnostics(page, email, password, log);
 
   log("info", `Sign Up indul — ${startUrl} · skin=${skin} · alias=${email} · currency=${currency}`);
 
@@ -353,6 +636,12 @@ export async function runKyloSignup({ page, context, spec, log }) {
   screenshots.push(await shot(page, "2-after-signup-click"));
   steps.push({ step: "signup-cta", clicked: signupClicked, url: page.url() });
 
+  const signupMode = await ensureSignupMode(page, log);
+  screenshots.push(await shot(page, "2b-signup-mode-check"));
+  steps.push({ step: "signup-mode", ...signupMode });
+  if (!signupMode.ok) {
+    throw new Error(`Nem jutottunk regisztrációs űrlapig: ${signupMode.reason || "ismeretlen ok"}. url=${page.url()}`);
+  }
 
   // 3) űrlap kitöltés
   const filled = await fillSignupForm(page, email, password, log);
@@ -360,10 +649,36 @@ export async function runKyloSignup({ page, context, spec, log }) {
   steps.push({ step: "form-fill", filled });
 
   if (filled) {
-    await submitForm(page, log);
+    const beforeSubmitUrl = page.url();
+    diag.submit_at = Date.now();
+    const submit = await submitForm(page, log);
     await page.waitForTimeout(3000);
     screenshots.push(await shot(page, "4-after-submit"));
-    steps.push({ step: "submit", url: page.url() });
+    const evidence = submit.clicked
+      ? await waitForRegistrationEvidence(page, diag, email, password, log)
+      : { ok: false, reason: submit.reason || "submit nem kattant", page: await collectPageDiagnostics(page), network: [] };
+    screenshots.push(await shot(page, "4a-registration-evidence"));
+    steps.push({
+      step: "submit",
+      clicked: submit.clicked,
+      buttonText: submit.buttonText || null,
+      before_url: beforeSubmitUrl,
+      after_url: page.url(),
+      registration_evidence: evidence,
+    });
+
+    if (!evidence.ok) {
+      const pageMessages = evidence.page?.messages?.length ? ` Üzenet: ${evidence.page.messages.join(" | ")}` : "";
+      const networkSummary = evidence.network?.length
+        ? ` Network: ${evidence.network.map((n) => `${n.kind}:${n.status}`).join(", ")}`
+        : " Network: nincs releváns auth hívás.";
+      const failureSummary = evidence.failures?.length
+        ? ` Failures: ${evidence.failures.map((n) => `${n.kind}:${n.error}`).join(", ")}`
+        : "";
+      throw new Error(
+        `A regisztráció nem indult el, ezért nem várok Gmail e-mailre. Ok: ${evidence.reason}.${pageMessages}${networkSummary}${failureSummary} url=${page.url()}`,
+      );
+    }
 
     const confirmation = await openGmailConfirmationLink(page, email, log);
     screenshots.push(await shot(page, "4b-after-email-confirm"));
