@@ -371,11 +371,12 @@ async function processOne() {
   console.log(`[run ${job.id}] start (workflow ${job.workflowId})`);
   try {
     const out = await runContainer(job);
+    const resultForReport = await offloadScreenshots(job.id, out.result);
     await reportComplete({
       runId: job.id,
       status: out.status,
       logs: out.logs,
-      result: out.result,
+      result: resultForReport,
       error: out.error,
       preflight: out.preflight ?? null,
     });
