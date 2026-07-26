@@ -555,15 +555,70 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
         .maybeSingle(),
     ]);
 
+    // FONTOS: a lista könnyű maradjon. A spec_snapshot tartalmazza a teljes
+    // felvett kattintássort, a result pedig a base64 képernyőképeket — 50
+    // futásnál ez több MB-os választ adna, amitől a panel üresen maradt.
+    type SlimResult = Record<string, unknown>;
+    const slimRun = (r: Record<string, unknown>) => {
+      const snap = (r.spec_snapshot ?? {}) as Record<string, unknown>;
+      const res = (r.result ?? null) as SlimResult | null;
+      return {
+        id: r.id as string,
+        status: r.status as string,
+        started_at: (r.started_at ?? null) as string | null,
+        finished_at: (r.finished_at ?? null) as string | null,
+        error: (r.error ?? null) as string | null,
+        proxy_id: (r.proxy_id ?? null) as string | null,
+        spec_snapshot: { kylo_signup: snap.kylo_signup ?? null },
+        result: res
+          ? {
+              reached_stripe: res.reached_stripe,
+              final_url: res.final_url,
+              language_ok: res.language_ok,
+              expected_lang: res.expected_lang,
+              steps_count: Array.isArray(res.steps) ? res.steps.length : 0,
+              screenshots_count: Array.isArray(res.screenshots) ? res.screenshots.length : 0,
+            }
+          : null,
+      };
+    };
+
+    const wfSpec = { ...((wf.spec ?? {}) as Record<string, unknown>) };
+    const recCount = Array.isArray(wfSpec.recorded_actions) ? wfSpec.recorded_actions.length : 0;
+    delete wfSpec.recorded_actions;
+    (wfSpec as Record<string, unknown>).recorded_actions_count = recCount;
+
     return {
-      workflow: { id: wf.id, name: wf.name, spec: wf.spec },
-      runs: runsRes.data ?? [],
+      workflow: { id: wf.id, name: wf.name, spec: wfSpec },
+      runs: ((runsRes.data ?? []) as Record<string, unknown>[]).map(slimRun),
       gmail: credRes.data?.gmail_email
         ? { email: credRes.data.gmail_email as string, connectedAt: credRes.data.gmail_connected_at }
         : null,
       recorderProxyId: (proxyCredRes.data as { proxy_id?: string | null } | null)?.proxy_id ?? null,
     };
   });
+
+// ─────────────────────────────────────────────────────────────
+// getKyloSignupRun — egyetlen futás TELJES adata (képernyőképek,
+// lépések, nyelvi ellenőrzés) — csak a részletek ablak nyitásakor.
+// ─────────────────────────────────────────────────────────────
+
+export const getKyloSignupRun = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ runId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: run, error } = await supabase
+      .from("brain_workflow_runs")
+      .select("id, status, started_at, finished_at, spec_snapshot, result, error, proxy_id")
+      .eq("id", data.runId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { run: run ?? null };
+  });
+
 
 // ─────────────────────────────────────────────────────────────
 // setKyloSignupRecorderProxy — a Felvétel / Live Browse gombhoz
