@@ -376,19 +376,21 @@ async function tickRequiredCheckboxes(page, log) {
     Array.from(document.querySelectorAll('input[type="checkbox"]')).forEach((el, idx) => {
       const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || "");
       if (!visible(el) || el.checked) return;
-      if (!el.required && !/terms|privacy|aszf|adatvéd|policy|feltétel|accept|agree|elfogad/i.test(label)) return;
+      // A Kylo űrlap sok címke-nélküli checkboxot használ (feltételek).
+      // Régen csak a required / terms-jellegűeket pipáltuk, de emiatt kimaradtak.
+      // Most minden látható, még nem pipált checkbox-ot bepipálunk.
       const marker = `kylo-checkbox-${Date.now()}-${idx}`;
       el.setAttribute("data-kylo-worker-checkbox", marker);
       out.push({ marker, label: label.slice(0, 80) });
     });
     return out;
   });
-  for (const item of markers.slice(0, 4)) {
+  for (const item of markers.slice(0, 10)) {
     const handle = await page.$(`[data-kylo-worker-checkbox="${item.marker}"]`);
     if (!handle) continue;
     try {
       await humanClick(page, handle, { noMisclick: true, timeout: 3000 });
-      log("info", `Kötelező checkbox bepipálva: ${item.label || item.marker}`);
+      log("info", `Checkbox bepipálva: ${item.label || item.marker}`);
     } catch (e) {
       log("warn", `Checkbox kattintás hiba: ${e.message}`);
     }
