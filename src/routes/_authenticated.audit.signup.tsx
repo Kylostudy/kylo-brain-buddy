@@ -144,10 +144,24 @@ function SignupPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Következő hajnali 1 óra (helyi idő) ISO-ban.
+  const nextOneAm = () => {
+    const d = new Date();
+    const t = new Date(d);
+    t.setHours(1, 0, 0, 0);
+    if (t.getTime() <= d.getTime()) t.setDate(t.getDate() + 1);
+    return t;
+  };
+
   const startAllMut = useMutation({
-    mutationFn: (scope: "english" | "non-english" = "english") => startAllFn({ data: { scope } }),
-    onSuccess: (r) => {
-      toast.success(`${r.count} futás sorba téve — ${r.queued.map((q) => `#${q.runIndex} ${q.country ?? "?"}`).join(", ")}`);
+    mutationFn: (vars: { scope: "english" | "non-english"; notBefore?: string | null }) =>
+      startAllFn({ data: { scope: vars.scope, notBefore: vars.notBefore ?? null } }),
+    onSuccess: (r, vars) => {
+      toast.success(
+        vars.notBefore
+          ? `${r.count} futás időzítve ${new Date(vars.notBefore).toLocaleString("hu-HU")} utánra`
+          : `${r.count} futás sorba téve — ${r.queued.map((q) => `#${q.runIndex} ${q.country ?? "?"}`).join(", ")}`,
+      );
       qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
     },
     onError: (e: Error) => toast.error(e.message),
