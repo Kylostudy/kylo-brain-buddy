@@ -41,8 +41,8 @@ const CLICK_HINTS_SIGNUP = [
 const CLICK_HINTS_SIGNUP_MODE = [
   "sign up", "signup", "create account", "register", "registration",
   "don't have an account", "dont have an account", "no account",
-  "regisztráció", "regisztrálok", "regisztrál", "fiók létrehozása",
-  "nincs fiókod", "új fiók", "új felhasználó",
+  "regisztráció", "regisztrálok", "regisztrálj", "regisztrál", "fiók létrehozása",
+  "nincs fiókod", "még nincs fiókod", "új fiók", "új felhasználó",
   "登録", "新規登録", "会員登録", "サインアップ",
   "注册", "註冊", "crear cuenta", "registrarse", "registrati",
   "konto erstellen", "registrieren", "créer un compte", "s'inscrire",
@@ -376,19 +376,21 @@ async function tickRequiredCheckboxes(page, log) {
     Array.from(document.querySelectorAll('input[type="checkbox"]')).forEach((el, idx) => {
       const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || "");
       if (!visible(el) || el.checked) return;
-      if (!el.required && !/terms|privacy|aszf|adatvéd|policy|feltétel|accept|agree|elfogad/i.test(label)) return;
+      // A Kylo űrlap sok címke-nélküli checkboxot használ (feltételek).
+      // Régen csak a required / terms-jellegűeket pipáltuk, de emiatt kimaradtak.
+      // Most minden látható, még nem pipált checkbox-ot bepipálunk.
       const marker = `kylo-checkbox-${Date.now()}-${idx}`;
       el.setAttribute("data-kylo-worker-checkbox", marker);
       out.push({ marker, label: label.slice(0, 80) });
     });
     return out;
   });
-  for (const item of markers.slice(0, 4)) {
+  for (const item of markers.slice(0, 10)) {
     const handle = await page.$(`[data-kylo-worker-checkbox="${item.marker}"]`);
     if (!handle) continue;
     try {
       await humanClick(page, handle, { noMisclick: true, timeout: 3000 });
-      log("info", `Kötelező checkbox bepipálva: ${item.label || item.marker}`);
+      log("info", `Checkbox bepipálva: ${item.label || item.marker}`);
     } catch (e) {
       log("warn", `Checkbox kattintás hiba: ${e.message}`);
     }
@@ -413,8 +415,71 @@ async function fillSignupForm(page, email, password, log) {
     await humanType(page, password, { typoRate: 0, meanCharMs: 45 });
     filledPw++;
   }
-  const filled = { emailFields: emailField ? 1 : 0, pwFields: pwFields.length, filledEmail, filledPw };
-  log("info", `Űrlap kitöltés — email mezők: ${filled.emailFields}, jelszó mezők: ${filled.pwFields}, kitöltve: email=${filled.filledEmail}, pw=${filled.filledPw}`);
+
+  // Kylo teljes regisztrációs űrlap: username + név + cím + születési dátum.
+  // Ezek a mezők csak a „Regisztrálj!" toggle után jelennek meg.
+  const localPart = String(email || "").split("@")[0] || "user";
+  const cleanLocal = localPart.replace(/[^A-Za-z0-9]/g, "").slice(0, 18) || "user";
+  const usernameGuess = `${cleanLocal}${Math.floor(1000 + Math.random() * 9000)}`.slice(0, 24);
+  const defaults = {
+    username: usernameGuess,
+    keresztnev: "Anna",
+    vezeteknev: "Kovács",
+    iranyitoszam: "1051",
+    cim: "Budapest",
+    utcaNev: "Petőfi utca",
+    hazszam: "12",
+    year: "1992",
+    month: "06",
+    day: "15",
+  };
+  const extraFilled = {};
+  const fillById = async (id, value) => {
+    const el = await page.$(`#${id}`);
+    if (!el) return false;
+    try {
+      await el.click({ timeout: 2000 }).catch(() => {});
+      await el.fill(String(value), { timeout: 3000 });
+      extraFilled[id] = value;
+      return true;
+    } catch (e) {
+      log("warn", `Nem sikerült kitölteni #${id}: ${e.message}`);
+      return false;
+    }
+  };
+  for (const [id, val] of Object.entries(defaults)) {
+    if (["year", "month", "day"].includes(id)) continue;
+    await fillById(id, val);
+  }
+  // Születési dátum: placeholder alapján (ÉÉÉÉ / HH / NN)
+  const dateSpecs = [
+    { placeholder: "ÉÉÉÉ", value: defaults.year },
+    { placeholder: "HH", value: defaults.month },
+    { placeholder: "NN", value: defaults.day },
+  ];
+  for (const spec of dateSpecs) {
+    const el = await page.$(`input[placeholder="${spec.placeholder}"]`);
+    if (!el) continue;
+    try {
+      await el.click({ timeout: 2000 }).catch(() => {});
+      await el.fill(spec.value, { timeout: 3000 });
+      extraFilled[`date_${spec.placeholder}`] = spec.value;
+    } catch (e) {
+      log("warn", `Dátum mező (${spec.placeholder}) kitöltési hiba: ${e.message}`);
+    }
+  }
+
+  const filled = {
+    emailFields: emailField ? 1 : 0,
+    pwFields: pwFields.length,
+    filledEmail,
+    filledPw,
+    extra: extraFilled,
+  };
+  log(
+    "info",
+    `Űrlap kitöltés — email=${filled.filledEmail}, pw=${filled.filledPw}/${filled.pwFields}, extra=${Object.keys(extraFilled).join(",") || "n/a"}`,
+  );
   return filled.filledEmail > 0 && filled.filledPw > 0;
 }
 
