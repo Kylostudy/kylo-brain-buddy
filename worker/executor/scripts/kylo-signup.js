@@ -41,8 +41,8 @@ const CLICK_HINTS_SIGNUP = [
 const CLICK_HINTS_SIGNUP_MODE = [
   "sign up", "signup", "create account", "register", "registration",
   "don't have an account", "dont have an account", "no account",
-  "regisztráció", "regisztrálok", "regisztrál", "fiók létrehozása",
-  "nincs fiókod", "új fiók", "új felhasználó",
+  "regisztráció", "regisztrálok", "regisztrálj", "regisztrál", "fiók létrehozása",
+  "nincs fiókod", "még nincs fiókod", "új fiók", "új felhasználó",
   "登録", "新規登録", "会員登録", "サインアップ",
   "注册", "註冊", "crear cuenta", "registrarse", "registrati",
   "konto erstellen", "registrieren", "créer un compte", "s'inscrire",
