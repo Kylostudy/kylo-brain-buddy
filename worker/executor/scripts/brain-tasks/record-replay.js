@@ -343,8 +343,10 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     }
   }
 
-  // Végén szedjük össze a cookie-kat.
+  // Záró bizonyíték: végállapot képe + nyelvi ellenőrzés.
   await humanWait(page, 1500);
+  await capture("final-state");
+
   const cookies = await context.cookies();
   const domains = new Set(cookies.map((c) => c.domain));
 
@@ -359,6 +361,17 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     `Cookie gyűjtés kész: ${cookies.length} sütiről ${domains.size} doménről. Bejelentkezve: ${loggedIn ? "IGEN" : "NEM"} (marker=${marker || "n/a"})`,
   );
 
+  const langIssues = languageChecks.filter((c) => c.ok === false);
+  log(
+    langIssues.length > 0 ? "warn" : "info",
+    langIssues.length > 0
+      ? `NYELVI HIBA: ${langIssues.length} oldalon nem angol szöveg jelent meg (${langIssues.map((c) => c.label).join(", ")})`
+      : `Nyelvi ellenőrzés: mind a ${languageChecks.length} vizsgált oldal angol volt.`,
+  );
+
+  let finalUrl = null;
+  try { finalUrl = page.url(); } catch {}
+
   return {
     replay_action_count: actions.length,
     replay_roles_used: rolesUsed,
@@ -367,7 +380,13 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     cookie_domains: [...domains],
     logged_in: loggedIn,
     platform,
+    final_url: finalUrl,
+    screenshots,
+    language_checks: languageChecks,
+    language_issues: langIssues,
+    language_ok: langIssues.length === 0,
   };
+
 }
 
 export { runRecordReplay };
