@@ -331,7 +331,12 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
 export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z.object({ baseUrl: z.string().url().default("https://kylo.study") }).parse(i ?? {}),
+    z
+      .object({
+        baseUrl: z.string().url().default("https://kylo.study"),
+        scope: z.enum(["english", "non-english", "all"]).default("english"),
+      })
+      .parse(i ?? {}),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -363,11 +368,19 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
       .eq("tenant_id", tenantId)
       .eq("is_active", true)
       .order("label", { ascending: true });
-    const english = (activeProxies ?? []).filter((p) =>
-      ENGLISH_SIGNUP_COUNTRIES.has(((p.country as string | null) || "").toUpperCase()),
-    );
+    const english = (activeProxies ?? []).filter((p) => {
+      const cc = ((p.country as string | null) || "").toUpperCase();
+      const isEnglish = ENGLISH_SIGNUP_COUNTRIES.has(cc);
+      if (data.scope === "english") return isEnglish;
+      if (data.scope === "non-english") return !isEnglish && !!cc;
+      return !!cc;
+    });
     if (english.length === 0) {
-      throw new Error("Nincs aktív angol nyelvterületi proxy (US/GB/CA/AU/NZ/IE).");
+      throw new Error(
+        data.scope === "non-english"
+          ? "Nincs aktív nem-angol nyelvterületi proxy."
+          : "Nincs aktív angol nyelvterületi proxy (US/GB/CA/AU/NZ/IE).",
+      );
     }
 
     const state = readState(currentSpec);
