@@ -48,9 +48,6 @@ const CLICK_HINTS_SIGNUP_MODE = [
   "konto erstellen", "registrieren", "créer un compte", "s'inscrire",
 ];
 
-const SIGNUP_MODE_RE = /sign\s*up|signup|create account|register|registration|regisztr|fiók létrehoz|nincs fiókod|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
-const SIGNIN_MODE_RE = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
-
 const CLICK_REJECTS_SIGNIN = [
   "sign in", "signin", "log in", "login", "belépés", "bejelentkezés",
   "jelentkezz be", "ログイン", "登录", "登入", "iniciar sesión",
@@ -433,7 +430,6 @@ async function tickRequiredCheckboxes(page, log) {
     Array.from(document.querySelectorAll('input[type="checkbox"]')).forEach((el, idx) => {
       const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || "");
       if (!visible(el) || el.checked) return;
-      const low = label.toLowerCase();
       const legalConsent = /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
       const optionalRole = /tanár|teacher|tanuló|student/i.test(label);
       if (!el.required && (!legalConsent || optionalRole)) return;
@@ -497,7 +493,7 @@ async function selectComboboxOption(page, log, config) {
       const st = window.getComputedStyle(el);
       return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
     };
-    const nodes = Array.from(document.querySelectorAll('[role="option"], [cmdk-item], [role="menuitem"], div'));
+    const nodes = Array.from(document.querySelectorAll('[role="option"], [cmdk-item], [role="menuitem"]'));
     for (const wanted of optionTexts) {
       for (const el of nodes) {
         if (!visible(el)) continue;
