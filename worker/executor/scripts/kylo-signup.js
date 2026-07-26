@@ -677,11 +677,40 @@ export async function runKyloSignup({ page, context, spec, log }) {
   log("info", `Látható CTA-k (${visibleCtas.length}): ${visibleCtas.map((c) => `[${c.tag}]${c.text}`).slice(0, 25).join(" | ")}`);
   steps.push({ step: "logo-7x", clicks: logoClicks, visible_ctas: visibleCtas });
 
-  // 2) sign-up gomb
-  const signupClicked = await clickByText(page, CLICK_HINTS_SIGNUP, log, "Sign Up / Regisztráció", { rejects: CLICK_REJECTS_SIGNUP });
-  await page.waitForTimeout(1200);
+  // 2) sign-up gomb — előbb próbáljuk a link href-jét kiolvasni és
+  //    közvetlenül odanavigálni (pl. /regisztracio, /register, /signup).
+  //    A sticky header sokszor lefogja a kattintást, ezért a href-alapú
+  //    navigáció megbízhatóbb, mint a kattintás.
+  const beforeSignupUrl = page.url();
+  let signupNavigated = false;
+  try {
+    const href = await page.evaluate((hints) => {
+      const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+      const links = Array.from(document.querySelectorAll("a[href]"));
+      for (const h of hints) {
+        for (const a of links) {
+          const t = norm(a.innerText || a.getAttribute("aria-label") || "");
+          if (t && t.includes(h) && a.href) return a.href;
+        }
+      }
+      return null;
+    }, CLICK_HINTS_SIGNUP.map((h) => h.toLowerCase()));
+    if (href && !/waitlist|priority|dismiss/i.test(href)) {
+      log("info", `Sign Up link href: ${href} — közvetlen navigáció`);
+      await page.goto(href, { waitUntil: "domcontentloaded", timeout: 20000 }).catch((e) => log("warn", `goto hiba: ${e.message}`));
+      await page.waitForTimeout(1500);
+      signupNavigated = page.url() !== beforeSignupUrl;
+    }
+  } catch (e) {
+    log("warn", `Sign Up href kiolvasás hiba: ${e.message}`);
+  }
+  let signupClicked = signupNavigated;
+  if (!signupNavigated) {
+    signupClicked = await clickByText(page, CLICK_HINTS_SIGNUP, log, "Sign Up / Regisztráció", { rejects: CLICK_REJECTS_SIGNUP });
+    await page.waitForTimeout(1200);
+  }
   screenshots.push(await shot(page, "2-after-signup-click"));
-  steps.push({ step: "signup-cta", clicked: signupClicked, url: page.url() });
+  steps.push({ step: "signup-cta", clicked: signupClicked, navigated: signupNavigated, url: page.url() });
 
   const signupMode = await ensureSignupMode(page, log);
   screenshots.push(await shot(page, "2b-signup-mode-check"));
