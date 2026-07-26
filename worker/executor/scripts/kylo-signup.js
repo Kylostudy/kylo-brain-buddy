@@ -427,6 +427,7 @@ async function tickRequiredCheckboxes(page, log) {
       return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
     };
     const out = [];
+    const roleIds = new Set(["nyelvtanar", "osztalyfonok", "szaktanar", "nyelvtanar20", "nyelvtanulo"]);
     const roleCheckboxes = Array.from(document.querySelectorAll('button[role="checkbox"], [role="checkbox"]'));
     const checkboxControls = roleCheckboxes.length > 0
       ? roleCheckboxes
@@ -435,10 +436,11 @@ async function tickRequiredCheckboxes(page, log) {
     checkboxControls.forEach((el, idx) => {
       const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || el.parentElement?.parentElement?.innerText || "");
       if (!visible(el)) return;
+      if (roleIds.has(el.id || "") || /tanár|teacher|tanuló|student|osztályfőnök|szaktanár|nyelvtanár|nyelvtanulo|class teacher|join/i.test(label)) return;
       const isChecked = el.getAttribute("aria-checked") === "true" || !!el.checked;
       if (isChecked) return;
       const legalConsent = /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
-      const optionalRole = /tanár|teacher|tanuló|student/i.test(label);
+      const optionalRole = /tanár|teacher|tanuló|student|osztályfőnök|szaktanár|nyelvtanár|class teacher|join/i.test(label);
       if (!el.required && (!legalConsent || optionalRole)) return;
       const labelKey = label.toLowerCase();
       if (seenLabels.has(labelKey)) return;
@@ -459,6 +461,113 @@ async function tickRequiredCheckboxes(page, log) {
       log("warn", `Checkbox kattintás hiba: ${e.message}`);
     }
   }
+}
+
+async function closeJoinModalIfOpen(page, log) {
+  const closed = await page.evaluate(() => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const st = window.getComputedStyle(el);
+      return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+    };
+    const dialog = Array.from(document.querySelectorAll('[role="dialog"], [data-state="open"]'))
+      .find((el) => visible(el) && /kihez csatlakozol|who are you joining|join/i.test(norm(el.innerText || el.textContent || "")));
+    if (!dialog) return false;
+    const closeBtn = Array.from(dialog.querySelectorAll('button, [role="button"]'))
+      .find((el) => {
+        const text = norm(el.innerText || el.getAttribute("aria-label") || el.getAttribute("title") || "");
+        return visible(el) && (/close|bezár|×|x/i.test(text) || (el.getBoundingClientRect().width <= 36 && el.getBoundingClientRect().height <= 36));
+      });
+    if (closeBtn) {
+      closeBtn.click();
+      return true;
+    }
+    return false;
+  }).catch(() => false);
+  if (closed) {
+    log("info", "Csatlakozási modal bezárva — nem választunk tanári/tanulói szerepet a Pro signup teszthez.");
+    await page.waitForTimeout(500);
+    return true;
+  }
+  await page.keyboard.press("Escape").catch(() => {});
+  await page.waitForTimeout(250);
+  return false;
+}
+
+async function clearOptionalRoleCheckboxes(page, log) {
+  const roleIds = ["nyelvtanar", "osztalyfonok", "szaktanar", "nyelvtanar20", "nyelvtanulo"];
+  for (let round = 0; round < 4; round += 1) {
+    const checked = await page.evaluate((roleIds) => {
+      const visible = (el) => {
+        const r = el.getBoundingClientRect();
+        const st = window.getComputedStyle(el);
+        return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+      };
+      const out = [];
+      for (const id of roleIds) {
+        const el = document.getElementById(id);
+        if (!el || !visible(el)) continue;
+        const isChecked = el.getAttribute("aria-checked") === "true" || !!el.checked;
+        if (!isChecked) continue;
+        const marker = `kylo-role-clear-${id}-${Date.now()}`;
+        el.setAttribute("data-kylo-role-clear", marker);
+        out.push({ id, marker });
+      }
+      return out;
+    }, roleIds).catch(() => []);
+
+    if (!checked.length) break;
+    for (const item of checked) {
+      const handle = await page.$(`[data-kylo-role-clear="${item.marker}"]`);
+      if (!handle) continue;
+      try {
+        await humanClick(page, handle, { noMisclick: true, timeout: 3000 });
+        log("info", `Opcionális szerep kikapcsolva: ${item.id}`);
+        await page.waitForTimeout(500);
+        await closeJoinModalIfOpen(page, log);
+      } catch (e) {
+        log("warn", `Opcionális szerep kikapcsolási hiba (${item.id}): ${e.message}`);
+      }
+    }
+  }
+  await closeJoinModalIfOpen(page, log);
+}
+
+async function inspectSubmitReadiness(page) {
+  return page.evaluate(() => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const st = window.getComputedStyle(el);
+      return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+    };
+    const roleIds = ["nyelvtanar", "osztalyfonok", "szaktanar", "nyelvtanar20", "nyelvtanulo"];
+    const roleChecked = roleIds.filter((id) => {
+      const el = document.getElementById(id);
+      return el && visible(el) && (el.getAttribute("aria-checked") === "true" || !!el.checked);
+    });
+    const legalUnchecked = Array.from(document.querySelectorAll('button[role="checkbox"], [role="checkbox"], input[type="checkbox"]'))
+      .filter((el) => visible(el))
+      .filter((el) => !roleIds.includes(el.id || ""))
+      .filter((el) => {
+        const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || el.parentElement?.parentElement?.innerText || "");
+        const legal = /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
+        const checked = el.getAttribute("aria-checked") === "true" || !!el.checked;
+        return legal && !checked;
+      })
+      .map((el) => norm(el.closest("label")?.innerText || el.parentElement?.innerText || "").slice(0, 90));
+    const submitButtons = Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]'))
+      .filter((el) => visible(el))
+      .map((el) => ({
+        text: norm(el.innerText || el.value || ""),
+        disabled: !!el.disabled || el.getAttribute("aria-disabled") === "true",
+      }));
+    const registerButton = submitButtons.find((b) => /register|sign up|regisztr/i.test(b.text)) || null;
+    const openJoinModal = Array.from(document.querySelectorAll('[role="dialog"], [data-state="open"]'))
+      .some((el) => visible(el) && /kihez csatlakozol|who are you joining|join/i.test(norm(el.innerText || el.textContent || "")));
+    return { roleChecked, legalUnchecked, registerButton, openJoinModal };
+  });
 }
 
 async function selectComboboxOption(page, log, config) {
@@ -637,8 +746,23 @@ async function fillSignupForm(page, email, password, log) {
 
 // Megpróbálja a submit / regisztráció megerősítő gombot megnyomni.
 async function submitForm(page, log) {
+  await clearOptionalRoleCheckboxes(page, log);
   await tickRequiredCheckboxes(page, log);
+  await closeJoinModalIfOpen(page, log);
   await page.waitForTimeout(800);
+  const readiness = await inspectSubmitReadiness(page).catch(() => null);
+  if (readiness) {
+    log(
+      "info",
+      `Submit állapot — register=${readiness.registerButton ? (readiness.registerButton.disabled ? "tiltva" : "aktív") : "nincs"}, opcionális szerep=${readiness.roleChecked.join(",") || "nincs"}, jogi checkbox hiány=${readiness.legalUnchecked.length}, modal=${readiness.openJoinModal ? "nyitva" : "nincs"}`,
+    );
+    if (readiness.openJoinModal || readiness.roleChecked.length || readiness.legalUnchecked.length || readiness.registerButton?.disabled) {
+      return {
+        clicked: false,
+        reason: `submit nem kész: register=${readiness.registerButton?.disabled ? "tiltva" : "ok"}, szerep=${readiness.roleChecked.join(",") || "nincs"}, jogi_hiány=${readiness.legalUnchecked.length}, modal=${readiness.openJoinModal}`,
+      };
+    }
+  }
   const marker = `kylo-submit-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const found = await page.evaluate((marker) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
