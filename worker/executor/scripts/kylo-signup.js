@@ -48,6 +48,9 @@ const CLICK_HINTS_SIGNUP_MODE = [
   "konto erstellen", "registrieren", "créer un compte", "s'inscrire",
 ];
 
+const SIGNUP_MODE_RE = /sign\s*up|signup|create account|register|registration|regisztr|fiók létrehoz|nincs fiókod|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
+const SIGNIN_MODE_RE = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
+
 const CLICK_REJECTS_SIGNIN = [
   "sign in", "signin", "log in", "login", "belépés", "bejelentkezés",
   "jelentkezz be", "ログイン", "登录", "登入", "iniciar sesión",
@@ -294,25 +297,79 @@ async function inspectAuthForm(page) {
         disabled: !!el.disabled || el.getAttribute("aria-disabled") === "true",
       }))
       .filter((b) => b.text);
-    const submitButtons = buttons.filter((b) => b.type === "submit" || /button|input/.test(b.tag));
+    const submitButtons = buttons.filter((b) => b.type === "submit");
     const allText = buttons.map((b) => b.text.toLowerCase()).join(" | ");
     const signupRe = /sign\s*up|signup|create account|register|registration|regisztr|fiók létrehoz|nincs fiókod|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
     const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
     const emailFields = Array.from(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]')).filter(visible).length;
     const passwordFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(visible).length;
+    const signupExtraFields = Array.from(document.querySelectorAll('#username, #keresztnev, #vezeteknev, #iranyitoszam, #utcaNev, #hazszam, input[placeholder="YYYY"], input[placeholder="ÉÉÉÉ"]')).filter(visible).length;
     const requiredUnchecked = Array.from(document.querySelectorAll('input[type="checkbox"]')).filter((el) => visible(el) && !el.checked && (el.required || /terms|privacy|aszf|adatvéd|policy|feltétel/i.test(norm(el.closest("label")?.innerText || el.parentElement?.innerText || "")))).length;
+    const signupSubmit = submitButtons.some((b) => signupRe.test(b.text));
+    const signinSubmit = submitButtons.some((b) => signinRe.test(b.text));
     return {
       url: location.href,
       emailFields,
       passwordFields,
+      signupExtraFields,
       requiredUnchecked,
-      signupSubmit: submitButtons.some((b) => signupRe.test(b.text)),
-      signinSubmit: submitButtons.some((b) => signinRe.test(b.text)),
+      signupSubmit,
+      signinSubmit,
+      currentSignup: signupExtraFields > 0 || passwordFields >= 2 || (signupSubmit && !signinSubmit),
+      currentSignin: signinSubmit && signupExtraFields === 0 && passwordFields <= 1,
       signupToggle: signupRe.test(allText),
       signinToggle: signinRe.test(allText),
       buttons: buttons.slice(0, 25),
     };
   });
+}
+
+async function clickAuthSignupToggle(page, log) {
+  const marker = `kylo-signup-toggle-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const found = await page.evaluate(({ marker }) => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const signupRe = /sign\s*up|signup|create account|register!?|registration|regisztr|fiók létrehoz|nincs fiókod|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
+    const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const st = window.getComputedStyle(el);
+      return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+    };
+    let best = null;
+    const nodes = Array.from(document.querySelectorAll('button, [role="button"], input[type="button"], a'));
+    for (const el of nodes) {
+      if (!visible(el)) continue;
+      const text = norm(el.innerText || el.value || el.getAttribute("aria-label") || "");
+      if (!text || !signupRe.test(text) || signinRe.test(text)) continue;
+      const r = el.getBoundingClientRect();
+      const inHeader = !!el.closest("header, nav") || r.top < 70;
+      const nearAuthForm = !!el.closest("form") || !!el.closest("[class*='max-w-md'], [class*='space-y-6']") || !!el.parentElement?.innerText?.match(/email|password|jelszó|account/i);
+      let score = 0;
+      if (/^register!?$/i.test(text) || /^sign\s*up!?$/i.test(text) || /^regisztr/i.test(text)) score += 40;
+      if (nearAuthForm) score += 30;
+      if (/don't have|dont have|nincs/i.test(el.parentElement?.innerText || "")) score += 20;
+      if (inHeader) score -= 35;
+      if (r.width < 180 && r.height < 60) score += 8;
+      if (!best || score > best.score) best = { el, score, text, tag: el.tagName.toLowerCase() };
+    }
+    if (!best) return null;
+    best.el.scrollIntoView({ block: "center" });
+    best.el.setAttribute("data-kylo-signup-toggle", marker);
+    return { text: best.text.slice(0, 80), tag: best.tag, score: best.score };
+  }, { marker });
+  if (!found) {
+    log("warn", "Nem találtam valódi regisztrációs váltó gombot az auth űrlapon.");
+    return false;
+  }
+  const handle = await page.$(`[data-kylo-signup-toggle="${marker}"]`);
+  if (handle) await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
+  else await page.evaluate((marker) => document.querySelector(`[data-kylo-signup-toggle="${marker}"]`)?.click(), marker);
+  await page.evaluate((marker) => {
+    document.querySelectorAll(`[data-kylo-signup-toggle="${marker}"]`).forEach((el) => el.removeAttribute("data-kylo-signup-toggle"));
+  }, marker).catch(() => {});
+  log("info", `Regisztráció mód kattintva: „${found.text}" (${found.tag}, score=${found.score})`);
+  await page.waitForTimeout(1600);
+  return true;
 }
 
 async function ensureSignupMode(page, log) {
@@ -328,21 +385,21 @@ async function ensureSignupMode(page, log) {
       state = await inspectAuthForm(page);
     }
     const buttonSummary = state.buttons.map((b) => `${b.disabled ? "disabled " : ""}${b.text}`).slice(0, 10).join(" | ");
-    log("info", `Auth űrlap állapot ${attempt}/6 — email=${state.emailFields}, pw=${state.passwordFields}, signupSubmit=${state.signupSubmit}, signinSubmit=${state.signinSubmit}, url=${state.url}, gombok: ${buttonSummary || "n/a"}`);
+    log("info", `Auth űrlap állapot ${attempt}/6 — email=${state.emailFields}, pw=${state.passwordFields}, extra=${state.signupExtraFields}, signup=${state.currentSignup}, signin=${state.currentSignin}, url=${state.url}, gombok: ${buttonSummary || "n/a"}`);
 
     if (state.emailFields > 0 && state.passwordFields > 0) {
-      if (state.signupSubmit || !state.signinSubmit) return { ok: true, state };
-      if (state.signupToggle) {
-        await clickByText(page, CLICK_HINTS_SIGNUP_MODE, log, "Regisztráció mód", { rejects: CLICK_REJECTS_SIGNIN });
+      if (state.currentSignup) return { ok: true, state };
+      if (state.signupToggle || state.currentSignin) {
+        await clickAuthSignupToggle(page, log);
         await page.waitForTimeout(1200);
         continue;
       }
-      return { ok: true, state };
+      return { ok: false, reason: "belépési űrlap látszik, de nincs regisztrációs váltó", state };
     }
 
     // Nincs pw mező. Először próbáljunk signup togglet.
     if (state.signupToggle) {
-      const clicked = await clickByText(page, CLICK_HINTS_SIGNUP_MODE, log, "Regisztráció mód", { rejects: CLICK_REJECTS_SIGNIN });
+      const clicked = await clickAuthSignupToggle(page, log);
       if (clicked) { await page.waitForTimeout(1500); continue; }
     }
 
@@ -361,7 +418,7 @@ async function ensureSignupMode(page, log) {
     return { ok: false, reason: "nincs email+jelszó űrlap", state };
   }
   const state = await inspectAuthForm(page);
-  return { ok: !!(state.emailFields && state.passwordFields), reason: "nem sikerült stabil regisztráció módra váltani", state };
+  return { ok: !!(state.emailFields && state.passwordFields && state.currentSignup), reason: "nem sikerült stabil regisztráció módra váltani", state };
 }
 
 async function tickRequiredCheckboxes(page, log) {
@@ -376,9 +433,10 @@ async function tickRequiredCheckboxes(page, log) {
     Array.from(document.querySelectorAll('input[type="checkbox"]')).forEach((el, idx) => {
       const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || "");
       if (!visible(el) || el.checked) return;
-      // A Kylo űrlap sok címke-nélküli checkboxot használ (feltételek).
-      // Régen csak a required / terms-jellegűeket pipáltuk, de emiatt kimaradtak.
-      // Most minden látható, még nem pipált checkbox-ot bepipálunk.
+      const low = label.toLowerCase();
+      const legalConsent = /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
+      const optionalRole = /tanár|teacher|tanuló|student/i.test(label);
+      if (!el.required && (!legalConsent || optionalRole)) return;
       const marker = `kylo-checkbox-${Date.now()}-${idx}`;
       el.setAttribute("data-kylo-worker-checkbox", marker);
       out.push({ marker, label: label.slice(0, 80) });
@@ -395,6 +453,75 @@ async function tickRequiredCheckboxes(page, log) {
       log("warn", `Checkbox kattintás hiba: ${e.message}`);
     }
   }
+}
+
+async function selectComboboxOption(page, log, config) {
+  const marker = `kylo-combo-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const found = await page.evaluate(({ marker, buttonTexts, labelTexts }) => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const lower = (s) => norm(s).toLowerCase();
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const st = window.getComputedStyle(el);
+      return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+    };
+    const buttons = Array.from(document.querySelectorAll('button[role="combobox"], [role="combobox"]')).filter(visible);
+    let best = null;
+    for (const el of buttons) {
+      const ownText = lower(el.innerText || el.getAttribute("aria-label") || "");
+      const parentText = lower(el.closest(".space-y-2")?.innerText || el.parentElement?.innerText || "");
+      let score = 0;
+      if (buttonTexts.some((t) => ownText.includes(t))) score += 20;
+      if (labelTexts.some((t) => parentText.includes(t))) score += 30;
+      if (score <= 0) continue;
+      if (!best || score > best.score) best = { el, score, text: norm(el.innerText || el.getAttribute("aria-label") || "") };
+    }
+    if (!best) return null;
+    best.el.scrollIntoView({ block: "center" });
+    best.el.setAttribute("data-kylo-combo", marker);
+    return { text: best.text, score: best.score };
+  }, {
+    marker,
+    buttonTexts: config.buttonTexts.map((s) => s.toLowerCase()),
+    labelTexts: config.labelTexts.map((s) => s.toLowerCase()),
+  });
+  if (!found) return false;
+  const handle = await page.$(`[data-kylo-combo="${marker}"]`);
+  if (handle) await humanClick(page, handle, { noMisclick: true, timeout: 3000 });
+  await page.waitForTimeout(800);
+  const optionMarker = `${marker}-option`;
+  const option = await page.evaluate(({ optionMarker, optionTexts }) => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const st = window.getComputedStyle(el);
+      return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+    };
+    const nodes = Array.from(document.querySelectorAll('[role="option"], [cmdk-item], [role="menuitem"], div'));
+    for (const wanted of optionTexts) {
+      for (const el of nodes) {
+        if (!visible(el)) continue;
+        const text = norm(el.innerText || el.getAttribute("aria-label") || "");
+        if (!text) continue;
+        if (text.toLowerCase() === wanted || text.toLowerCase().includes(wanted)) {
+          el.setAttribute("data-kylo-combo-option", optionMarker);
+          return { text: text.slice(0, 80) };
+        }
+      }
+    }
+    return null;
+  }, { optionMarker, optionTexts: config.optionTexts.map((s) => s.toLowerCase()) });
+  if (!option) {
+    log("warn", `${config.label}: lenyíló megnyílt, de opciót nem találtam.`);
+    await page.keyboard.press("Escape").catch(() => {});
+    return false;
+  }
+  const optionHandle = await page.$(`[data-kylo-combo-option="${optionMarker}"]`);
+  if (optionHandle) await humanClick(page, optionHandle, { noMisclick: true, timeout: 3000 });
+  else await page.evaluate((optionMarker) => document.querySelector(`[data-kylo-combo-option="${optionMarker}"]`)?.click(), optionMarker);
+  log("info", `${config.label} kiválasztva: ${option.text}`);
+  await page.waitForTimeout(700);
+  return true;
 }
 
 // Beírja az emailt és jelszót az első általunk felismert űrlapba.
@@ -454,8 +581,11 @@ async function fillSignupForm(page, email, password, log) {
   // Születési dátum: placeholder alapján (ÉÉÉÉ / HH / NN)
   const dateSpecs = [
     { placeholder: "ÉÉÉÉ", value: defaults.year },
+    { placeholder: "YYYY", value: defaults.year },
     { placeholder: "HH", value: defaults.month },
+    { placeholder: "MM", value: defaults.month },
     { placeholder: "NN", value: defaults.day },
+    { placeholder: "DD", value: defaults.day },
   ];
   for (const spec of dateSpecs) {
     const el = await page.$(`input[placeholder="${spec.placeholder}"]`);
@@ -468,6 +598,22 @@ async function fillSignupForm(page, email, password, log) {
       log("warn", `Dátum mező (${spec.placeholder}) kitöltési hiba: ${e.message}`);
     }
   }
+
+  const addressTypeSelected = await selectComboboxOption(page, log, {
+    label: "Cím típusa",
+    labelTexts: ["address", "cím"],
+    buttonTexts: ["type", "típus", "type..."],
+    optionTexts: ["utca", "street", "road"],
+  });
+  if (addressTypeSelected) extraFilled.addressType = "utca";
+
+  const genderSelected = await selectComboboxOption(page, log, {
+    label: "Nem",
+    labelTexts: ["gender", "nem"],
+    buttonTexts: ["select", "válassz", "select..."],
+    optionTexts: ["female", "nő", "male", "férfi"],
+  });
+  if (genderSelected) extraFilled.gender = "female";
 
   const filled = {
     emailFields: emailField ? 1 : 0,
@@ -661,7 +807,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   // kikapcsolását erre a tokenre, akkor átmegyünk a Recaptcha/humanity check-en.
   // A token BRAIN_KYLO_TEST_BYPASS_TOKEN env változóból jön; ha nincs, csendben
   // kihagyjuk (a régi viselkedés érvényes marad).
-  const bypassToken = process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN;
+  const bypassToken = process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN || cfg.bypass_token;
   if (bypassToken) {
     try {
       await context.setExtraHTTPHeaders({
