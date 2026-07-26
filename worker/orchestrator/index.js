@@ -40,17 +40,24 @@ if (!BRAIN_URL || !WORKER_API_TOKEN) {
 const inflight = new Set();
 let lastIdleLogAt = 0;
 
-async function brainFetch(path, body) {
-  const res = await fetch(`${BRAIN_URL}${path}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${WORKER_API_TOKEN}`,
-      "x-worker-token": WORKER_API_TOKEN,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body ?? {}),
-  });
-  return res;
+async function brainFetch(path, body, { timeoutMs = 60000 } = {}) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${BRAIN_URL}${path}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WORKER_API_TOKEN}`,
+        "x-worker-token": WORKER_API_TOKEN,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body ?? {}),
+      signal: ac.signal,
+    });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function claimNext() {
@@ -81,13 +88,74 @@ async function claimNext() {
   }
 }
 
-async function reportComplete(payload) {
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function payloadBytes(payload) {
   try {
-    const res = await brainFetch("/api/public/worker/complete", payload);
-    if (!res.ok) console.error(`[complete] ${res.status} ${await res.text()}`);
-  } catch (e) {
-    console.error("[complete] network error", e.message);
+    return Buffer.byteLength(JSON.stringify(payload ?? {}), "utf8");
+  } catch {
+    return 0;
   }
+}
+
+function compactResultForRetry(result) {
+  if (!result || typeof result !== "object") return result ?? null;
+  const out = { ...result };
+  if (Array.isArray(out.screenshots)) {
+    out.screenshots_count = out.screenshots.length;
+    out.screenshots_stripped_for_retry = true;
+    out.screenshots = out.screenshots.map((shot) => {
+      if (!shot || typeof shot !== "object") return shot;
+      const { b64, ...rest } = shot;
+      return { ...rest, b64_omitted: Boolean(b64) };
+    });
+  }
+  if (typeof out.cookies_export === "string") {
+    out.cookies_export_omitted_for_retry = true;
+    delete out.cookies_export;
+  }
+  return out;
+}
+
+function compactCompletePayload(payload) {
+  return {
+    ...payload,
+    logs: Array.isArray(payload.logs) ? payload.logs.slice(-250) : [],
+    result: compactResultForRetry(payload.result),
+  };
+}
+
+async function postCompleteOnce(payload, label, attempt) {
+  const sizeKb = Math.round(payloadBytes(payload) / 1024);
+  try {
+    const res = await brainFetch("/api/public/worker/complete", payload, { timeoutMs: 120000 });
+    if (res.ok) return true;
+    const text = await res.text().catch(() => "");
+    console.error(`[complete] ${label} attempt ${attempt} → ${res.status} (${sizeKb} KB) ${text.slice(0, 300)}`);
+    return false;
+  } catch (e) {
+    console.error(`[complete] ${label} attempt ${attempt} network error (${sizeKb} KB): ${e.message}`);
+    return false;
+  }
+}
+
+async function reportComplete(payload) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    if (await postCompleteOnce(payload, "full", attempt)) return;
+    await wait(1500 * attempt);
+  }
+
+  const compact = compactCompletePayload(payload);
+  console.warn(
+    `[complete] full payload sikertelen, kompakt lezáró riporttal próbálkozom (${Math.round(payloadBytes(payload) / 1024)} KB → ${Math.round(payloadBytes(compact) / 1024)} KB)`,
+  );
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    if (await postCompleteOnce(compact, "compact", attempt)) return;
+    await wait(2000 * attempt);
+  }
+  console.error("[complete] végleg nem sikerült elküldeni a futás lezárását");
 }
 
 function dockerCommand(args, options = {}) {
