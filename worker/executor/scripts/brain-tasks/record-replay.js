@@ -218,8 +218,8 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
 
     try {
       if (a.type === "navigate") {
-        if (/access_token=|refresh_token=|type=signup|\/auth\/v1\/verify/i.test(String(a.url || ""))) {
-          log("info", `[${i + 1}/${actions.length}] navigate kihagyva — felvétel régi auth token/link URL-je`);
+        if (/access_token=|refresh_token=|type=signup|\/auth\/v1\/verify|\/elofizetesek\?|\/fizetes\?/i.test(String(a.url || ""))) {
+          log("info", `[${i + 1}/${actions.length}] navigate kihagyva — felvétel régi auth/checkout URL-je`);
           continue;
         }
         log("info", `[${i + 1}/${actions.length}] navigate → ${a.url}`);
