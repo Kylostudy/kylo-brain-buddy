@@ -32,7 +32,7 @@ const COUNTRY_TO_LANG: Record<string, string> = {
   AU: "en-GB",
   NZ: "en-GB",
   IE: "en-GB",
-  SG: "zh-CN",
+  SG: "en-GB",
   // kínai / kelet-ázsiai
   TW: "zh-TW",
   HK: "zh-HK",
@@ -54,9 +54,30 @@ const COUNTRY_TO_LANG: Record<string, string> = {
   CZ: "cs",
   RO: "ro",
   TR: "tr",
+  GR: "el",
+  PT: "pt-PT",
+  BE: "nl",
+  SK: "sk",
+  BG: "bg",
+  HR: "hr",
+  SI: "sl",
+  LT: "lt",
+  LV: "lv",
+  EE: "et",
+  UA: "uk",
+  RU: "ru",
+  KR: "ko",
+  CN: "zh-CN",
+  IN: "en-GB",
+  ID: "id",
+  TH: "th",
+  VN: "vi",
   // Latin-Amerika
   BR: "pt-BR",
   CO: "es",
+  MX: "es",
+  AR: "es",
+  CL: "es",
 };
 
 // Ország → fizetési deviza. A Kylo Stripe csak EUR / USD / CNY / RUB-ot fogad.
@@ -215,10 +236,8 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
       expectedCountry = ((p?.country as string | null) || "").toUpperCase() || null;
     }
 
-    // A signup crawler stabilitása miatt egyelőre mindig ugyanazon a nyelven
-    // tesztelünk. A proxy országa továbbra is számít devizához és IP-ellenőrzéshez,
-    // de a UI-szövegek/gombok ne változzanak futásról futásra.
-    const lang = "en-GB";
+    // A futás nyelve a proxy országából jön (pl. FR → fr-FR, JP → ja).
+    const lang = langForCountry(expectedCountry);
     const currency = currencyForCountry(expectedCountry);
     const email = aliasFor(nextCounter);
     const password = generatePassword();
@@ -364,7 +383,7 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
       counter += 1;
       const skin = SKIN_ORDER[counter % SKIN_ORDER.length];
       const expectedCountry = ((p.country as string | null) || "").toUpperCase() || null;
-      const lang = "en-GB";
+      const lang = langForCountry(expectedCountry);
       const currency = currencyForCountry(expectedCountry);
       const email = aliasFor(counter);
       const password = generatePassword();
