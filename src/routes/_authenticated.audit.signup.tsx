@@ -488,10 +488,11 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
               {res.screenshots.map((s, i) => (
                 <div key={i} className="space-y-1">
                   <div className="text-xs text-muted-foreground">{s.label} · {new Date(s.at).toLocaleTimeString("hu-HU")}</div>
-                  {s.b64 ? (
+                  {s.url || s.b64 ? (
                     <img
-                      src={`data:image/jpeg;base64,${s.b64}`}
+                      src={s.url ?? `data:image/jpeg;base64,${s.b64}`}
                       alt={s.label}
+                      loading="lazy"
                       className="w-full rounded-md border"
                     />
                   ) : (
