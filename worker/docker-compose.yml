@@ -7,6 +7,24 @@ services:
     command: ["true"]   # csak image-et építünk vele, ne fusson tartósan
     restart: "no"
 
+  # Képpuffer a saját SSD-n: a futások screenshotjai ide kerülnek,
+  # az adatbázisba csak a link megy. 14 napnál régebbi képeket automatikusan törli.
+  shots:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./shots:/app
+      - ${SHOTS_DATA_DIR:-/srv/kylo-shots}:/data
+    environment:
+      - PORT=8080
+      - WORKER_API_TOKEN=${WORKER_API_TOKEN}
+      - SHOTS_PUBLIC_URL=${SHOTS_PUBLIC_URL:-}
+      - SHOTS_RETENTION_DAYS=${SHOTS_RETENTION_DAYS:-14}
+    ports:
+      - "${SHOTS_PORT:-8088}:8080"
+    command: node index.js
+    restart: unless-stopped
+
   orchestrator:
     image: node:20-alpine
     working_dir: /app
@@ -21,9 +39,12 @@ services:
       - EXECUTOR_IMAGE=kylo-executor:latest
       - MAX_PARALLEL=${MAX_PARALLEL:-12}
       - POLL_INTERVAL_MS=${POLL_INTERVAL_MS:-3000}
+      - SHOTS_UPLOAD_URL=${SHOTS_UPLOAD_URL:-http://shots:8080}
+      - SHOTS_PUBLIC_URL=${SHOTS_PUBLIC_URL:-}
     command: sh -c "apk add --no-cache docker-cli && node index.js"
     depends_on:
       - executor-image
+      - shots
     restart: unless-stopped
 
   recorder:
