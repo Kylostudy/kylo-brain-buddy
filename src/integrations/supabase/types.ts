@@ -619,6 +619,7 @@ export type Database = {
           id: string
           logs: Json
           module: Database["public"]["Enums"]["app_module"]
+          not_before: string | null
           preflight_result: Json | null
           proxy_id: string | null
           result: Json | null
@@ -640,6 +641,7 @@ export type Database = {
           id?: string
           logs?: Json
           module?: Database["public"]["Enums"]["app_module"]
+          not_before?: string | null
           preflight_result?: Json | null
           proxy_id?: string | null
           result?: Json | null
@@ -661,6 +663,7 @@ export type Database = {
           id?: string
           logs?: Json
           module?: Database["public"]["Enums"]["app_module"]
+          not_before?: string | null
           preflight_result?: Json | null
           proxy_id?: string | null
           result?: Json | null

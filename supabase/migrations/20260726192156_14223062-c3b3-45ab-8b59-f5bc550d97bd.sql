@@ -1,0 +1,2 @@
+ALTER TABLE public.brain_workflow_runs ADD COLUMN IF NOT EXISTS not_before timestamptz;
+CREATE INDEX IF NOT EXISTS brain_workflow_runs_queued_not_before_idx ON public.brain_workflow_runs (status, not_before);
