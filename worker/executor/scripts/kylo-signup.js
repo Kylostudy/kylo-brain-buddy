@@ -835,8 +835,15 @@ async function collectPageDiagnostics(page) {
 async function waitForRegistrationEvidence(page, diag, email, password, log) {
   const startedAt = diag.submit_at || Date.now();
   let lastPageDiag = null;
-  for (let i = 0; i < 10; i += 1) {
-    await page.waitForTimeout(i === 0 ? 800 : 1200);
+  // A Kylo oldalon a reCAPTCHA Enterprise néha csak ~30s timeout után engedi
+  // tovább a regisztrációt. A #14-es futásnál a worker ~18s után feladta,
+  // miközben a kézi reprodukcióban a gomb "Registering..." állapotban maradt,
+  // majd később indult csak el az auth signup hívás. Ezért itt nem rövid,
+  // hanem legfeljebb 55s-es bizonyíték-várakozás kell.
+  const deadline = startedAt + 55_000;
+  let lastProgressLogAt = 0;
+  for (let i = 0; Date.now() < deadline; i += 1) {
+    await page.waitForTimeout(i === 0 ? 1200 : 2000);
     lastPageDiag = await collectPageDiagnostics(page);
     const network = diag.network.filter((e) => e.at >= startedAt - 500);
     const failures = diag.request_failures.filter((e) => e.at >= startedAt - 500);
@@ -846,6 +853,14 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
     const precheckFailed = network.find((e) => e.kind === "email-precheck" && e.status >= 400);
     const authFailure = failures.find((e) => e.kind === "email-precheck" || e.kind === "auth-signup" || e.kind === "auth-otp");
 
+    if (Date.now() - lastProgressLogAt > 10_000) {
+      lastProgressLogAt = Date.now();
+      const seen = network.length
+        ? network.map((e) => `${e.kind}:${e.status}`).join(", ")
+        : "nincs még auth hálózati jel";
+      log("info", `Regisztráció bizonyíték várakozás — ${Math.round((Date.now() - startedAt) / 1000)}s, ${seen}, url=${lastPageDiag.url}`);
+    }
+
     if (signupOk || lastPageDiag.hasConfirmationText) {
       log("info", `Regisztráció elindulása igazolva — ${signupOk ? `${signupOk.kind} HTTP ${signupOk.status}` : "oldalon megerősítő szöveg látszik"}.`);
       return { ok: true, reason: signupOk ? signupOk.kind : "confirmation-text", page: lastPageDiag, network };
@@ -854,10 +869,10 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
       const bad = signupFailed || precheckFailed || authFailure;
       return { ok: false, reason: `${bad.kind || "auth"} hiba`, bad, page: lastPageDiag, network, failures };
     }
-    if (lastPageDiag.hasCaptcha) {
+    if (lastPageDiag.hasCaptcha && Date.now() > startedAt + 45_000 && !precheckOk) {
       return { ok: false, reason: "captcha látszik / silent captcha blokk", page: lastPageDiag, network, failures };
     }
-    if (i >= 3 && lastPageDiag.messages.length > 0 && !precheckOk) {
+    if (Date.now() > startedAt + 20_000 && lastPageDiag.messages.length > 0 && !precheckOk) {
       return { ok: false, reason: `frontend validáció: ${lastPageDiag.messages.join(" | ")}`, page: lastPageDiag, network, failures };
     }
   }

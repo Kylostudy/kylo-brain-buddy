@@ -272,10 +272,21 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           proxyFingerprint?.seed ||
           (typeof existingFingerprint?.seed === "string" ? existingFingerprint.seed : null) ||
           claimed.workflow_id;
-        specWithFlags.fingerprint = generateWorkflowFingerprint(
+        const generatedFingerprint = generateWorkflowFingerprint(
           fingerprintSeed,
           proxy?.expectedCountry ?? null,
         );
+        const kyloSignup = specWithFlags.kylo_signup as Record<string, unknown> | undefined;
+        const forcedLocale =
+          typeof kyloSignup?.lang === "string" && kyloSignup.lang.trim()
+            ? kyloSignup.lang.trim()
+            : null;
+        specWithFlags.fingerprint = forcedLocale
+          ? { ...generatedFingerprint, locale: forcedLocale }
+          : generatedFingerprint;
+        if (forcedLocale) {
+          specWithFlags.locale = forcedLocale;
+        }
 
 
         return new Response(
