@@ -432,11 +432,12 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   );
 
   const langIssues = languageChecks.filter((c) => c.ok === false);
+  const langChecked = languageChecks.filter((c) => c.ok === true).length;
   log(
     langIssues.length > 0 ? "warn" : "info",
     langIssues.length > 0
-      ? `NYELVI HIBA: ${langIssues.length} oldalon nem angol szöveg jelent meg (${langIssues.map((c) => c.label).join(", ")})`
-      : `Nyelvi ellenőrzés: mind a ${languageChecks.length} vizsgált oldal angol volt.`,
+      ? `NYELVI HIBA: ${langIssues.length} oldalon nem a(z) ${expectedLang} nyelv jelent meg (${langIssues.map((c) => `${c.label}: ${c.reason || "?"}`).join(", ")})`
+      : `Nyelvi ellenőrzés: mind a ${langChecked} értékelt oldal ${expectedLang} nyelvű volt.`,
   );
 
   let finalUrl = null;
@@ -452,9 +453,11 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     platform,
     final_url: finalUrl,
     screenshots,
+    expected_lang: expectedLang,
     language_checks: languageChecks,
     language_issues: langIssues,
     language_ok: langIssues.length === 0,
+
   };
 
 }
