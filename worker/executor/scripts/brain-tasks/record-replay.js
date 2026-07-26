@@ -99,8 +99,11 @@ function groupTypeSessions(actions) {
   return groups;
 }
 
-function planSubstitutions(actions, creds, totpSecret) {
+function planSubstitutions(actions, creds, totpSecret, spec) {
   const groups = groupTypeSessions(actions);
+  const kyloSignup = spec?.kylo_signup || {};
+  const signupEmail = typeof kyloSignup.email === "string" ? kyloSignup.email : null;
+  const signupPassword = typeof kyloSignup.password === "string" ? kyloSignup.password : null;
   // Map: indexOfFirstTypeInGroup -> { role, valueOverride, groupEnd, groupText }
   const plan = new Map();
   const rolesUsed = new Set();
@@ -110,12 +113,12 @@ function planSubstitutions(actions, creds, totpSecret) {
     if (looksLikeTotp(g.text) && totpSecret) {
       role = "totp";
       override = generateTotp(totpSecret);
-    } else if (looksLikeEmail(g.text) && creds?.username) {
-      role = "username";
-      override = creds.username;
-    } else if (looksLikePassword(g.text) && creds?.password) {
+    } else if (looksLikeEmail(g.text) && (signupEmail || creds?.username)) {
+      role = signupEmail ? "signup_email" : "username";
+      override = signupEmail || creds.username;
+    } else if (looksLikePassword(g.text) && (signupPassword || creds?.password)) {
       role = "password";
-      override = creds.password;
+      override = signupPassword || creds.password;
     }
     plan.set(g.start, { role, override, groupEnd: g.end, groupText: g.text });
     rolesUsed.add(role);
@@ -159,7 +162,38 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   }
 
   const totpSecret = creds?.totpSecret || null;
-  const { plan, rolesUsed } = planSubstitutions(actions, creds || {}, totpSecret);
+  const { plan, rolesUsed } = planSubstitutions(actions, creds || {}, totpSecret, spec);
+
+  const cfg = spec?.kylo_signup || {};
+  const bypassToken = process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN || cfg.bypass_token;
+  const baseUrl = cfg.base_url || actions.find((a) => a.type === "navigate" && a.url)?.url || "https://kylo.study";
+  if (bypassToken) {
+    try {
+      const kyloOrigin = new URL(baseUrl).origin;
+      const signupEmail = typeof cfg.email === "string" ? cfg.email : "";
+      await page.route("**/*", async (route) => {
+        const request = route.request();
+        let sameKyloOrigin = false;
+        try {
+          sameKyloOrigin = new URL(request.url()).origin === kyloOrigin;
+        } catch {}
+        if (!sameKyloOrigin) {
+          await route.continue();
+          return;
+        }
+        await route.continue({
+          headers: {
+            ...request.headers(),
+            "x-kylo-test-bypass": bypassToken,
+            ...(signupEmail ? { "x-kylo-test-email": signupEmail } : {}),
+          },
+        });
+      });
+      log("info", `Replay: Kylo teszt-bypass fejléc aktív, csak saját domainre: ${kyloOrigin}`);
+    } catch (e) {
+      log("warn", `Replay: bypass fejléc beállítási hiba: ${e.message}`);
+    }
+  }
 
   log(
     "info",
@@ -184,6 +218,10 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
 
     try {
       if (a.type === "navigate") {
+        if (/access_token=|refresh_token=|type=signup|\/auth\/v1\/verify|\/elofizetesek\?|\/fizetes\?/i.test(String(a.url || ""))) {
+          log("info", `[${i + 1}/${actions.length}] navigate kihagyva — felvétel régi auth/checkout URL-je`);
+          continue;
+        }
         log("info", `[${i + 1}/${actions.length}] navigate → ${a.url}`);
         await page.goto(a.url, { waitUntil: "domcontentloaded", timeout: 45000 });
         await humanThink(page, 900);

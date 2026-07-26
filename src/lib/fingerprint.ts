@@ -61,6 +61,10 @@ const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
   PT: { locale: "pt-PT", tz: "Europe/Lisbon" },
   GR: { locale: "el-GR", tz: "Europe/Athens" },
   IL: { locale: "en-US", tz: "Asia/Jerusalem" },
+  TW: { locale: "zh-TW", tz: "Asia/Taipei" },
+  HK: { locale: "zh-HK", tz: "Asia/Hong_Kong" },
+  JP: { locale: "ja-JP", tz: "Asia/Tokyo" },
+  SG: { locale: "en-SG", tz: "Asia/Singapore" },
   BR: { locale: "pt-BR", tz: "America/Sao_Paulo" },
   MX: { locale: "es-MX", tz: "America/Mexico_City" },
 };
