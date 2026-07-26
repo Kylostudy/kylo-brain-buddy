@@ -73,10 +73,21 @@ function readResult(r: unknown): {
   final_url?: string;
   screenshots?: Array<{ label: string; at: string; b64?: string; error?: string }>;
   steps?: Array<Record<string, unknown>>;
+  language_ok?: boolean;
+  language_checks?: Array<{
+    label: string;
+    url?: string;
+    ok?: boolean | null;
+    html_lang?: string | null;
+    hungarian_words?: string[];
+    diacritic_count?: number;
+    sample?: string;
+  }>;
 } {
   if (!r || typeof r !== "object") return {};
   return r as never;
 }
+
 
 function SignupPage() {
   const { forceModule } = useModule();
@@ -407,6 +418,34 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
               <div className="whitespace-pre-wrap break-words">{run.error}</div>
             </div>
           )}
+          {Array.isArray(res.language_checks) && res.language_checks.length > 0 && (
+            <div
+              className={`rounded-md border p-2 ${
+                res.language_ok
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                  : "border-red-500/40 bg-red-500/10 text-red-300"
+              }`}
+            >
+              <div className="text-xs font-semibold uppercase">Nyelvi ellenőrzés (angolnak kell lennie)</div>
+              <div className="mb-1">
+                {res.language_ok
+                  ? `Mind a ${res.language_checks.length} vizsgált oldal angol volt.`
+                  : `${res.language_checks.filter((c) => c.ok === false).length} oldalon nem angol szöveg jelent meg.`}
+              </div>
+              <ul className="space-y-1 text-xs">
+                {res.language_checks.map((c, i) => (
+                  <li key={i} className="break-words">
+                    <span className="font-mono">{c.label}</span> · lang={c.html_lang ?? "?"} ·{" "}
+                    {c.ok === false
+                      ? `MAGYAR TALÁLAT: ${(c.hungarian_words ?? []).join(", ") || "ékezetes karakterek"} (${c.diacritic_count ?? 0})`
+                      : "OK"}
+                    {c.url ? ` · ${c.url}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {Array.isArray(res.steps) && res.steps.length > 0 && (
             <div>
               <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Lépések</div>

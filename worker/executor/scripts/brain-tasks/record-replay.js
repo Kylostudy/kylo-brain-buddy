@@ -155,6 +155,54 @@ async function humanClickAt(page, x, y) {
   await page.mouse.up();
 }
 
+// Screenshot (base64 JPEG) — a UI a result.screenshots tömböt jeleníti meg.
+async function shot(page, label) {
+  try {
+    const buf = await page.screenshot({ type: "jpeg", quality: 55, fullPage: false });
+    return { label, at: new Date().toISOString(), b64: buf.toString("base64") };
+  } catch (e) {
+    return { label, at: new Date().toISOString(), error: e.message };
+  }
+}
+
+// Nyelvi ellenőrzés: angol futásnál minden látható szöveg angol kell legyen.
+// Magyar (és egyéb nem-angol) maradványokat keresünk a látható szövegben.
+const LANG_AUDIT_FN = `(() => {
+  const text = (document.body?.innerText || "").replace(/\\s+/g, " ").trim();
+  const sample = text.slice(0, 20000);
+  const HU_WORDS = ["előfizet","fizetés","bejelentkez","regisztrá","jelszó","felhasznál","kezdés","árak","kosár","kilépés","beállítás","tovább","mégse","kötelező","hibás","sikeres","köszön","adatok","szolgáltat","havi","éves","ingyenes","próba","nyelv","profil om"];
+  const lower = sample.toLowerCase();
+  const hits = HU_WORDS.filter((w) => lower.includes(w));
+  const diacritics = (sample.match(/[őűáéíóúöüÁÉÍÓÚÖÜŐŰ]/g) || []).length;
+  const htmlLang = document.documentElement.getAttribute("lang") || null;
+  return {
+    url: location.href,
+    html_lang: htmlLang,
+    hungarian_words: hits.slice(0, 12),
+    diacritic_count: diacritics,
+    text_length: sample.length,
+    sample: sample.slice(0, 400),
+  };
+})()`;
+
+async function auditLanguage(page, label, log) {
+  try {
+    const r = await page.evaluate(LANG_AUDIT_FN);
+    const suspicious = r.hungarian_words.length > 0 || r.diacritic_count > 3;
+    const entry = { label, ...r, ok: !suspicious };
+    log(
+      suspicious ? "warn" : "info",
+      suspicious
+        ? `Nyelvi ellenőrzés (${label}): NEM angol tartalom — találatok: ${r.hungarian_words.join(", ") || "ékezetek"} (${r.diacritic_count} ékezetes karakter) · ${r.url}`
+        : `Nyelvi ellenőrzés (${label}): rendben, angol tartalom (html lang=${r.html_lang ?? "?"})`,
+    );
+    return entry;
+  } catch (e) {
+    return { label, ok: null, error: e.message };
+  }
+}
+
+
 async function runRecordReplay({ page, context, spec, creds, log }) {
   const actions = Array.isArray(spec.recorded_actions) ? spec.recorded_actions : [];
   if (actions.length === 0) {
@@ -209,7 +257,15 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   const viewport = page.viewportSize() || { width: 1280, height: 720 };
   log("info", `Viewport: ${viewport.width}x${viewport.height}`);
 
+  const screenshots = [];
+  const languageChecks = [];
+  const capture = async (label) => {
+    screenshots.push(await shot(page, label));
+    languageChecks.push(await auditLanguage(page, label, log));
+  };
+
   let skipUntil = -1;
+
   for (let i = 0; i < actions.length; i++) {
     if (i <= skipUntil) continue;
     const a = actions[i];
@@ -225,6 +281,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
         log("info", `[${i + 1}/${actions.length}] navigate → ${a.url}`);
         await page.goto(a.url, { waitUntil: "domcontentloaded", timeout: 45000 });
         await humanThink(page, 900);
+        await capture(`nav-${i + 1}`);
       } else if (a.type === "click") {
         if (typeof a.x === "number" && typeof a.y === "number") {
           const cx = a.x >= 0 && a.x <= 1 ? a.x * viewport.width : a.x;
@@ -242,6 +299,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
         const result = await page.evaluate(`(${KYLO_LOGO_UNLOCK_FN})(${clicks})`);
         if (!result?.ok) throw new Error(result?.reason || "Kylo logó-kapu nem kattintható");
         await humanThink(page, 900);
+        await capture(`after-logo-unlock-${i + 1}`);
       } else if (a.type === "gmail_confirm_link") {
         log("info", `[${i + 1}/${actions.length}] Gmail megerősítő link keresése`);
         const res = await getGmailConfirmationLink({
@@ -252,6 +310,8 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
         if (!res?.link) throw new Error("Nem találtam friss Gmail megerősítő linket");
         await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 45000 });
         await humanThink(page, 1500);
+        await capture(`after-email-confirm-${i + 1}`);
+
       } else if (a.type === "type") {
         const entry = plan.get(i);
         if (entry) {
@@ -283,8 +343,10 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     }
   }
 
-  // Végén szedjük össze a cookie-kat.
+  // Záró bizonyíték: végállapot képe + nyelvi ellenőrzés.
   await humanWait(page, 1500);
+  await capture("final-state");
+
   const cookies = await context.cookies();
   const domains = new Set(cookies.map((c) => c.domain));
 
@@ -299,6 +361,17 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     `Cookie gyűjtés kész: ${cookies.length} sütiről ${domains.size} doménről. Bejelentkezve: ${loggedIn ? "IGEN" : "NEM"} (marker=${marker || "n/a"})`,
   );
 
+  const langIssues = languageChecks.filter((c) => c.ok === false);
+  log(
+    langIssues.length > 0 ? "warn" : "info",
+    langIssues.length > 0
+      ? `NYELVI HIBA: ${langIssues.length} oldalon nem angol szöveg jelent meg (${langIssues.map((c) => c.label).join(", ")})`
+      : `Nyelvi ellenőrzés: mind a ${languageChecks.length} vizsgált oldal angol volt.`,
+  );
+
+  let finalUrl = null;
+  try { finalUrl = page.url(); } catch {}
+
   return {
     replay_action_count: actions.length,
     replay_roles_used: rolesUsed,
@@ -307,7 +380,13 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     cookie_domains: [...domains],
     logged_in: loggedIn,
     platform,
+    final_url: finalUrl,
+    screenshots,
+    language_checks: languageChecks,
+    language_issues: langIssues,
+    language_ok: langIssues.length === 0,
   };
+
 }
 
 export { runRecordReplay };
