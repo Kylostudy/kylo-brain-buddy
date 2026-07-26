@@ -11,6 +11,8 @@ import {
   ensureKyloSignupWorkflow,
   setKyloSignupRecorderProxy,
   deleteKyloSignupRun,
+  getKyloSignupRun,
+
 } from "@/lib/kylo-signup.functions";
 import { startGmailOAuth, disconnectGmail } from "@/lib/gmail.functions";
 import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
@@ -390,8 +392,18 @@ function SignupPage() {
 
 function RunDetailsDialog({ run }: { run: SignupRun }) {
   const [open, setOpen] = useState(false);
-  const spec = readSignupSpec(run.spec_snapshot);
-  const res = readResult(run.result);
+  const detailFn = useServerFn(getKyloSignupRun);
+  // A lista könnyű (nincs benne képernyőkép), a teljes adatot csak
+  // a részletek ablak nyitásakor töltjük le.
+  const { data: detail } = useQuery({
+    queryKey: ["kylo-signup-run", run.id],
+    queryFn: () => detailFn({ data: { runId: run.id } }),
+    enabled: open,
+  });
+  const full = (detail?.run ?? null) as SignupRun | null;
+  const spec = readSignupSpec(full?.spec_snapshot ?? run.spec_snapshot);
+  const res = readResult(full?.result ?? run.result);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

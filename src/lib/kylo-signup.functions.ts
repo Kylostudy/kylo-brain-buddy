@@ -537,10 +537,18 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
     const [runsRes, credRes, proxyCredRes] = await Promise.all([
       supabase
         .from("brain_workflow_runs")
-        .select("id, status, started_at, finished_at, spec_snapshot, result, error, proxy_id")
+        // csak a JSON-részleteket kérjük le, nem a teljes spec_snapshot/result
+        // oszlopot (azokban több MB-nyi felvett lépés és base64 kép van)
+        .select(
+          "id, status, started_at, finished_at, error, proxy_id, " +
+            "kylo_signup:spec_snapshot->kylo_signup, " +
+            "reached_stripe:result->reached_stripe, final_url:result->>final_url, " +
+            "language_ok:result->language_ok, expected_lang:result->>expected_lang",
+        )
         .eq("workflow_id", wf.id)
         .order("started_at", { ascending: false })
         .limit(50),
+
       supabase
         .from("workflow_credentials")
         .select("gmail_email, gmail_connected_at")
@@ -555,15 +563,88 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
         .maybeSingle(),
     ]);
 
+    // FONTOS: a lista könnyű maradjon. A spec_snapshot tartalmazza a teljes
+    // felvett kattintássort, a result pedig a base64 képernyőképeket — 50
+    // futásnál ez több MB-os választ adna, amitől a panel üresen maradt.
+    type SignupMeta = {
+      skin?: string;
+      lang?: string;
+      currency?: string;
+      email?: string;
+      expected_country?: string | null;
+      run_index?: number;
+    };
+    type SlimResult = {
+      reached_stripe?: boolean;
+      final_url?: string;
+      language_ok?: boolean;
+      expected_lang?: string;
+      steps?: unknown[];
+      screenshots?: unknown[];
+    };
+    const slimRun = (r: Record<string, unknown>) => ({
+      id: r.id as string,
+      status: r.status as string,
+      started_at: (r.started_at ?? null) as string | null,
+      finished_at: (r.finished_at ?? null) as string | null,
+      error: (r.error ?? null) as string | null,
+      proxy_id: (r.proxy_id ?? null) as string | null,
+      spec_snapshot: { kylo_signup: (r.kylo_signup ?? null) as SignupMeta | null },
+      result: {
+        reached_stripe: (r.reached_stripe ?? null) as boolean | null,
+        final_url: (r.final_url ?? null) as string | null,
+        language_ok: (r.language_ok ?? null) as boolean | null,
+        expected_lang: (r.expected_lang ?? null) as string | null,
+      },
+    });
+
+
+    const rawSpec = (wf.spec ?? {}) as {
+      monitor_type?: string;
+      kylo_signup?: { run_counter?: number; last_skin?: string; last_proxy_id?: string };
+      recorded_actions?: unknown[];
+    };
+    const wfSpec = {
+      monitor_type: rawSpec.monitor_type ?? null,
+      kylo_signup: rawSpec.kylo_signup ?? null,
+      recorded_actions_count: Array.isArray(rawSpec.recorded_actions) ? rawSpec.recorded_actions.length : 0,
+    };
+
+    if (runsRes.error) throw new Error(`runs: ${runsRes.error.message}`);
+
     return {
-      workflow: { id: wf.id, name: wf.name, spec: wf.spec },
-      runs: runsRes.data ?? [],
+      workflow: { id: wf.id as string, name: wf.name as string, spec: wfSpec },
+
+
+      runs: ((runsRes.data ?? []) as unknown as Record<string, unknown>[]).map(slimRun),
       gmail: credRes.data?.gmail_email
         ? { email: credRes.data.gmail_email as string, connectedAt: credRes.data.gmail_connected_at }
         : null,
       recorderProxyId: (proxyCredRes.data as { proxy_id?: string | null } | null)?.proxy_id ?? null,
     };
   });
+
+// ─────────────────────────────────────────────────────────────
+// getKyloSignupRun — egyetlen futás TELJES adata (képernyőképek,
+// lépések, nyelvi ellenőrzés) — csak a részletek ablak nyitásakor.
+// ─────────────────────────────────────────────────────────────
+
+export const getKyloSignupRun = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ runId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: run, error } = await supabase
+      .from("brain_workflow_runs")
+      .select("id, status, started_at, finished_at, spec_snapshot, result, error, proxy_id")
+      .eq("id", data.runId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { run: run ?? null };
+  });
+
 
 // ─────────────────────────────────────────────────────────────
 // setKyloSignupRecorderProxy — a Felvétel / Live Browse gombhoz
