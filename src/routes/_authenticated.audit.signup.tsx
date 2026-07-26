@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import {
   startKyloSignupRun,
+  startAllEnglishSignupRuns,
   listKyloSignupRuns,
   ensureKyloSignupWorkflow,
   setKyloSignupRecorderProxy,
@@ -81,6 +82,7 @@ function SignupPage() {
   const { forceModule } = useModule();
   const qc = useQueryClient();
   const startFn = useServerFn(startKyloSignupRun);
+  const startAllFn = useServerFn(startAllEnglishSignupRuns);
   const listFn = useServerFn(listKyloSignupRuns);
   const ensureFn = useServerFn(ensureKyloSignupWorkflow);
   const callStartRecording = useServerFn(startRecording);
@@ -121,6 +123,15 @@ function SignupPage() {
     mutationFn: () => startFn({ data: {} }),
     onSuccess: (r) => {
       toast.success(`Sign Up #${r.runIndex} sorba téve — skin=${r.skin}, alias=${r.email}, ország=${r.country ?? "?"}`);
+      qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const startAllMut = useMutation({
+    mutationFn: () => startAllFn({ data: {} }),
+    onSuccess: (r) => {
+      toast.success(`${r.count} futás sorba téve — ${r.queued.map((q) => `#${q.runIndex} ${q.country ?? "?"}`).join(", ")}`);
       qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -200,6 +211,15 @@ function SignupPage() {
             >
               <Video className="size-4" />
               <span className="ml-1.5">Felvétel</span>
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => startAllMut.mutate()}
+              disabled={startAllMut.isPending || !canStart}
+              title={canStart ? "Egyszerre indít egy futást minden angol nyelvterületi proxyra" : "Először kösd be a Gmail postafiókot"}
+            >
+              {startAllMut.isPending ? "Indítás…" : "Összes angol (terheléses)"}
             </Button>
             <Button
               size="lg"
