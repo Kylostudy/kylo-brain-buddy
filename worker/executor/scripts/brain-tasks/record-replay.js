@@ -165,42 +165,104 @@ async function shot(page, label) {
   }
 }
 
-// Nyelvi ellenőrzés: angol futásnál minden látható szöveg angol kell legyen.
-// Magyar (és egyéb nem-angol) maradványokat keresünk a látható szövegben.
-const LANG_AUDIT_FN = `(() => {
+// Nyelvi ellenőrzés: a futás nyelve (kylo_signup.lang, a proxy országából)
+// alapján várjuk el az oldal szövegét. Ha az elvárt nyelv nem angol, de a
+// szöveg angol → angol fallback = hiba.
+const LANG_MARKERS = {
+  en: ["the", "and", "your", "with", "sign in", "password", "account", "free", "price", "start"],
+  hu: ["és", "hogy", "jelszó", "bejelentkezés", "fiók", "ingyenes", "árak", "beállítások", "előfizetés"],
+  de: ["und", "das", "mit", "passwort", "anmelden", "konto", "kostenlos", "preise", "einstellungen"],
+  fr: ["et", "le", "vous", "mot de passe", "connexion", "compte", "gratuit", "prix", "paramètres"],
+  es: ["y", "el", "contraseña", "iniciar sesión", "cuenta", "gratis", "precios", "ajustes"],
+  it: ["e", "il", "password", "accedi", "account", "gratuito", "prezzi", "impostazioni"],
+  pt: ["e", "o", "senha", "entrar", "conta", "grátis", "preços", "configurações"],
+  nl: ["en", "het", "wachtwoord", "inloggen", "account", "gratis", "prijzen", "instellingen"],
+  pl: ["i", "hasło", "zaloguj", "konto", "darmowy", "ceny", "ustawienia", "nie"],
+  cs: ["a", "heslo", "přihlásit", "účet", "zdarma", "ceny", "nastavení"],
+  ro: ["și", "parolă", "conectare", "cont", "gratuit", "prețuri", "setări"],
+  tr: ["ve", "şifre", "giriş", "hesap", "ücretsiz", "fiyatlar", "ayarlar"],
+  el: ["και", "κωδικός", "σύνδεση", "λογαριασμός", "δωρεάν", "τιμές", "ρυθμίσεις"],
+  sv: ["och", "lösenord", "logga in", "konto", "gratis", "priser", "inställningar"],
+  fi: ["ja", "salasana", "kirjaudu", "tili", "ilmainen", "hinnat", "asetukset"],
+  no: ["og", "passord", "logg inn", "konto", "gratis", "priser", "innstillinger"],
+  da: ["og", "adgangskode", "log ind", "konto", "gratis", "priser", "indstillinger"],
+  ru: ["и", "пароль", "войти", "аккаунт", "бесплатно", "цены", "настройки"],
+  ja: ["ログイン", "パスワード", "アカウント", "無料", "料金", "設定"],
+  ko: ["로그인", "비밀번호", "계정", "무료", "요금", "설정"],
+  zh: ["登录", "密码", "账户", "免费", "价格", "设置", "帳戶", "登入", "免費", "價格", "設定"],
+  ar: ["كلمة المرور", "تسجيل الدخول", "حساب", "مجاني", "الأسعار", "الإعدادات"],
+  hi: ["पासवर्ड", "लॉग इन", "खाता", "मुफ़्त", "कीमत", "सेटिंग"],
+  uk: ["і", "пароль", "увійти", "обліковий", "безкоштовно", "ціни", "налаштування"],
+  vi: ["và", "mật khẩu", "đăng nhập", "tài khoản", "miễn phí", "giá", "cài đặt"],
+  th: ["รหัสผ่าน", "เข้าสู่ระบบ", "บัญชี", "ฟรี", "ราคา", "ตั้งค่า"],
+  id: ["dan", "kata sandi", "masuk", "akun", "gratis", "harga", "pengaturan"],
+};
+
+function langAuditFn(expectedLang) {
+  const expected = String(expectedLang || "en-GB");
+  const prefix = expected.toLowerCase().split("-")[0];
+  const markers = LANG_MARKERS[prefix] || [];
+  const english = LANG_MARKERS.en;
+  return `(() => {
+  const EXPECTED = ${JSON.stringify(expected)};
+  const PREFIX = ${JSON.stringify(prefix)};
+  const MARKERS = ${JSON.stringify(markers)};
+  const ENGLISH = ${JSON.stringify(english)};
   const text = (document.body?.innerText || "").replace(/\\s+/g, " ").trim();
   const sample = text.slice(0, 20000);
-  const HU_WORDS = ["előfizet","fizetés","bejelentkez","regisztrá","jelszó","felhasznál","kezdés","árak","kosár","kilépés","beállítás","tovább","mégse","kötelező","hibás","sikeres","köszön","adatok","szolgáltat","havi","éves","ingyenes","próba","nyelv","profil om"];
   const lower = sample.toLowerCase();
-  const hits = HU_WORDS.filter((w) => lower.includes(w));
-  const diacritics = (sample.match(/[őűáéíóúöüÁÉÍÓÚÖÜŐŰ]/g) || []).length;
+  const count = (list) => list.filter((w) => lower.includes(w.toLowerCase())).length;
+  const expectedHits = count(MARKERS);
+  const englishHits = count(ENGLISH);
   const htmlLang = document.documentElement.getAttribute("lang") || null;
+  const htmlOk = !!htmlLang && htmlLang.toLowerCase().split("-")[0] === PREFIX;
   return {
     url: location.href,
+    expected_lang: EXPECTED,
     html_lang: htmlLang,
-    hungarian_words: hits.slice(0, 12),
-    diacritic_count: diacritics,
+    html_lang_ok: htmlOk,
+    expected_hits: expectedHits,
+    english_hits: englishHits,
     text_length: sample.length,
     sample: sample.slice(0, 400),
   };
 })()`;
+}
 
-async function auditLanguage(page, label, log) {
+async function auditLanguage(page, label, log, expectedLang) {
+  const expected = String(expectedLang || "en-GB");
+  const prefix = expected.toLowerCase().split("-")[0];
   try {
-    const r = await page.evaluate(LANG_AUDIT_FN);
-    const suspicious = r.hungarian_words.length > 0 || r.diacritic_count > 3;
-    const entry = { label, ...r, ok: !suspicious };
+    const r = await page.evaluate(langAuditFn(expected));
+    let ok;
+    let reason = "";
+    if (r.text_length < 40) {
+      ok = null; // üres oldal — nem értékelhető
+      reason = "kevés szöveg";
+    } else if (prefix === "en") {
+      ok = r.html_lang_ok || r.english_hits >= 2;
+      if (!ok) reason = "nem angol tartalom";
+    } else {
+      const looksExpected = r.html_lang_ok || r.expected_hits >= 2;
+      const looksEnglish = r.english_hits >= 3 && r.expected_hits === 0;
+      ok = looksExpected && !(looksEnglish && !r.html_lang_ok);
+      if (!ok) reason = looksEnglish ? "angol fallback (nincs fordítás)" : "nem az elvárt nyelv";
+    }
+    const entry = { label, ...r, ok, reason: reason || null };
     log(
-      suspicious ? "warn" : "info",
-      suspicious
-        ? `Nyelvi ellenőrzés (${label}): NEM angol tartalom — találatok: ${r.hungarian_words.join(", ") || "ékezetek"} (${r.diacritic_count} ékezetes karakter) · ${r.url}`
-        : `Nyelvi ellenőrzés (${label}): rendben, angol tartalom (html lang=${r.html_lang ?? "?"})`,
+      ok === false ? "warn" : "info",
+      ok === false
+        ? `Nyelvi ellenőrzés (${label}): HIBA — elvárt ${expected}, de ${reason} (html lang=${r.html_lang ?? "?"}, elvárt találat=${r.expected_hits}, angol találat=${r.english_hits}) · ${r.url}`
+        : ok === null
+          ? `Nyelvi ellenőrzés (${label}): kihagyva (${reason})`
+          : `Nyelvi ellenőrzés (${label}): rendben, ${expected} nyelvű tartalom (html lang=${r.html_lang ?? "?"})`,
     );
     return entry;
   } catch (e) {
-    return { label, ok: null, error: e.message };
+    return { label, ok: null, expected_lang: expected, error: e.message };
   }
 }
+
 
 
 async function runRecordReplay({ page, context, spec, creds, log }) {
