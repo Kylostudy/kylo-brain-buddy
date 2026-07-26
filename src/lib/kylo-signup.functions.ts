@@ -335,6 +335,8 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
       .object({
         baseUrl: z.string().url().default("https://kylo.study"),
         scope: z.enum(["english", "non-english", "all"]).default("english"),
+        // Időzített indítás: a futás sorba kerül, de a worker csak ezután veszi fel.
+        notBefore: z.string().datetime().nullable().optional(),
       })
       .parse(i ?? {}),
   )
@@ -423,6 +425,7 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
         },
       };
 
+      const notBefore = data.notBefore ?? null;
       const { data: run, error: qErr } = await supabase
         .from("brain_workflow_runs")
         .insert({
@@ -433,12 +436,15 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
           status: "queued",
           proxy_id: p.id,
           spec_snapshot: spec as never,
-          started_at: new Date().toISOString(),
+          not_before: notBefore,
+          started_at: notBefore ? null : new Date().toISOString(),
           logs: [
             {
               ts: new Date().toISOString(),
               level: "info",
-              message: `Terheléses teszt — Sign Up #${counter} sorba téve (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`,
+              message: notBefore
+                ? `Időzítve — Sign Up #${counter} indul ${new Date(notBefore).toLocaleString("hu-HU")} után (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`
+                : `Terheléses teszt — Sign Up #${counter} sorba téve (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`,
             },
           ] as never,
         })

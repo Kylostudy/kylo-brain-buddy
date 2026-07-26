@@ -144,10 +144,24 @@ function SignupPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Következő hajnali 1 óra (helyi idő) ISO-ban.
+  const nextOneAm = () => {
+    const d = new Date();
+    const t = new Date(d);
+    t.setHours(1, 0, 0, 0);
+    if (t.getTime() <= d.getTime()) t.setDate(t.getDate() + 1);
+    return t;
+  };
+
   const startAllMut = useMutation({
-    mutationFn: (scope: "english" | "non-english" = "english") => startAllFn({ data: { scope } }),
-    onSuccess: (r) => {
-      toast.success(`${r.count} futás sorba téve — ${r.queued.map((q) => `#${q.runIndex} ${q.country ?? "?"}`).join(", ")}`);
+    mutationFn: (vars: { scope: "english" | "non-english"; notBefore?: string | null }) =>
+      startAllFn({ data: { scope: vars.scope, notBefore: vars.notBefore ?? null } }),
+    onSuccess: (r, vars) => {
+      toast.success(
+        vars.notBefore
+          ? `${r.count} futás időzítve ${new Date(vars.notBefore).toLocaleString("hu-HU")} utánra`
+          : `${r.count} futás sorba téve — ${r.queued.map((q) => `#${q.runIndex} ${q.country ?? "?"}`).join(", ")}`,
+      );
       qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -231,7 +245,7 @@ function SignupPage() {
             <Button
               variant="secondary"
               size="lg"
-              onClick={() => startAllMut.mutate("english")}
+              onClick={() => startAllMut.mutate({ scope: "english" })}
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Egyszerre indít egy futást minden angol nyelvterületi proxyra" : "Először kösd be a Gmail postafiókot"}
             >
@@ -240,11 +254,22 @@ function SignupPage() {
             <Button
               variant="secondary"
               size="lg"
-              onClick={() => startAllMut.mutate("non-english")}
+              onClick={() => startAllMut.mutate({ scope: "non-english" })}
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Egyszerre indít egy futást minden nem-angol proxyra, a proxy országának megfelelő nyelvvel" : "Először kösd be a Gmail postafiókot"}
             >
               {startAllMut.isPending ? "Indítás…" : "Összes nem-angol (nyelvi kör)"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() =>
+                startAllMut.mutate({ scope: "non-english", notBefore: nextOneAm().toISOString() })
+              }
+              disabled={startAllMut.isPending || !canStart}
+              title={canStart ? "Sorba teszi a nem-angol nyelvi kört, de a worker csak hajnali 1 után kezdi el" : "Először kösd be a Gmail postafiókot"}
+            >
+              {startAllMut.isPending ? "Ütemezés…" : "Nem-angol · hajnali 1 után"}
             </Button>
             <Button
               size="lg"

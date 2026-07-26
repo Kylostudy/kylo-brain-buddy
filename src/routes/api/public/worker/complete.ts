@@ -111,11 +111,19 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           message: l.message.length > 2000 ? `${l.message.slice(0, 2000)}…` : l.message,
         }));
 
+        // Nyelvi bukás valódi hibának számít: ha a futás egyébként sikeres,
+        // de az oldal nem a várt nyelven jelent meg, „failed"-re állítjuk.
+        const langOk = (slimResult as Record<string, unknown> | null)?.language_ok;
+        const expectedLang = (slimResult as Record<string, unknown> | null)?.expected_lang;
+        const languageFailed = parsed.status === "succeeded" && langOk === false;
+
         const update: Record<string, unknown> = {
-          status: parsed.status,
+          status: languageFailed ? "failed" : parsed.status,
           logs: trimmedLogs as never,
           result: slimResult as never,
-          error: parsed.error ?? null,
+          error: languageFailed
+            ? `Nyelvi ellenőrzés bukott: nem a(z) ${expectedLang ?? "várt"} nyelv jelent meg${parsed.error ? ` — ${parsed.error}` : ""}`
+            : parsed.error ?? null,
           finished_at: new Date().toISOString(),
         };
         if (parsed.preflight !== undefined) {

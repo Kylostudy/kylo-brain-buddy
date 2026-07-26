@@ -52,6 +52,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         // Lekérünk több queued sort + kiszűrjük azokat, ahol a workflow épp
         // csendes órában van (helyi éjszaka). A megmaradókból az elsőt CAS-szal
         // running-ra állítjuk.
+        const nowIso = new Date().toISOString();
         const { data: candidates } = await sb
           .from("brain_workflow_runs")
           .select(
@@ -59,6 +60,8 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           )
           .eq("status", "queued")
           .eq("runner", "docker")
+          // Időzített futás: csak akkor vehető fel, ha elérkezett az időpontja.
+          .or(`not_before.is.null,not_before.lte.${nowIso}`)
           .order("created_at", { ascending: true })
           .limit(20);
 
