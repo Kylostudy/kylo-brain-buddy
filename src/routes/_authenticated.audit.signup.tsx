@@ -74,13 +74,16 @@ function readResult(r: unknown): {
   screenshots?: Array<{ label: string; at: string; b64?: string; error?: string }>;
   steps?: Array<Record<string, unknown>>;
   language_ok?: boolean;
+  expected_lang?: string;
   language_checks?: Array<{
     label: string;
     url?: string;
     ok?: boolean | null;
     html_lang?: string | null;
-    hungarian_words?: string[];
-    diacritic_count?: number;
+    expected_lang?: string;
+    expected_hits?: number;
+    english_hits?: number;
+    reason?: string | null;
     sample?: string;
   }>;
 } {
@@ -140,7 +143,7 @@ function SignupPage() {
   });
 
   const startAllMut = useMutation({
-    mutationFn: () => startAllFn({ data: {} }),
+    mutationFn: (scope: "english" | "non-english" = "english") => startAllFn({ data: { scope } }),
     onSuccess: (r) => {
       toast.success(`${r.count} futás sorba téve — ${r.queued.map((q) => `#${q.runIndex} ${q.country ?? "?"}`).join(", ")}`);
       qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
@@ -226,11 +229,20 @@ function SignupPage() {
             <Button
               variant="secondary"
               size="lg"
-              onClick={() => startAllMut.mutate()}
+              onClick={() => startAllMut.mutate("english")}
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Egyszerre indít egy futást minden angol nyelvterületi proxyra" : "Először kösd be a Gmail postafiókot"}
             >
               {startAllMut.isPending ? "Indítás…" : "Összes angol (terheléses)"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => startAllMut.mutate("non-english")}
+              disabled={startAllMut.isPending || !canStart}
+              title={canStart ? "Egyszerre indít egy futást minden nem-angol proxyra, a proxy országának megfelelő nyelvvel" : "Először kösd be a Gmail postafiókot"}
+            >
+              {startAllMut.isPending ? "Indítás…" : "Összes nem-angol (nyelvi kör)"}
             </Button>
             <Button
               size="lg"
@@ -426,19 +438,23 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
                   : "border-red-500/40 bg-red-500/10 text-red-300"
               }`}
             >
-              <div className="text-xs font-semibold uppercase">Nyelvi ellenőrzés (angolnak kell lennie)</div>
+              <div className="text-xs font-semibold uppercase">
+                Nyelvi ellenőrzés — elvárt nyelv: {res.expected_lang ?? spec.lang ?? "?"}
+              </div>
               <div className="mb-1">
                 {res.language_ok
-                  ? `Mind a ${res.language_checks.length} vizsgált oldal angol volt.`
-                  : `${res.language_checks.filter((c) => c.ok === false).length} oldalon nem angol szöveg jelent meg.`}
+                  ? `Mind a ${res.language_checks.filter((c) => c.ok === true).length} értékelt oldal a várt nyelven jelent meg.`
+                  : `${res.language_checks.filter((c) => c.ok === false).length} oldalon nem a várt nyelv jelent meg.`}
               </div>
               <ul className="space-y-1 text-xs">
                 {res.language_checks.map((c, i) => (
                   <li key={i} className="break-words">
                     <span className="font-mono">{c.label}</span> · lang={c.html_lang ?? "?"} ·{" "}
                     {c.ok === false
-                      ? `MAGYAR TALÁLAT: ${(c.hungarian_words ?? []).join(", ") || "ékezetes karakterek"} (${c.diacritic_count ?? 0})`
-                      : "OK"}
+                      ? `HIBA: ${c.reason ?? "nem a várt nyelv"} (elvárt találat: ${c.expected_hits ?? 0}, angol találat: ${c.english_hits ?? 0})`
+                      : c.ok === null
+                        ? "kihagyva"
+                        : "OK"}
                     {c.url ? ` · ${c.url}` : ""}
                   </li>
                 ))}
