@@ -565,8 +565,28 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   log("info", `Sign Up indul — ${startUrl} · skin=${skin} · alias=${email} · currency=${currency}`);
 
+  // Teszt-bypass fejléc: ha a Kylo backend engedélyezi a bot-védelem (reCAPTCHA)
+  // kikapcsolását erre a tokenre, akkor átmegyünk a Recaptcha/humanity check-en.
+  // A token BRAIN_KYLO_TEST_BYPASS_TOKEN env változóból jön; ha nincs, csendben
+  // kihagyjuk (a régi viselkedés érvényes marad).
+  const bypassToken = process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN;
+  if (bypassToken) {
+    try {
+      await context.setExtraHTTPHeaders({
+        "X-Kylo-Test-Bypass": bypassToken,
+        "X-Kylo-Test-Email": email,
+      });
+      log("info", "Kylo teszt-bypass fejléc aktív (X-Kylo-Test-Bypass).");
+    } catch (e) {
+      log("warn", `Nem sikerült beállítani a bypass fejlécet: ${e.message}`);
+    }
+  } else {
+    log("warn", "Nincs BRAIN_KYLO_TEST_BYPASS_TOKEN — a Kylo captcha aktív marad.");
+  }
+
   // 1) főoldal
   await page.goto(startUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
+
   await page.waitForTimeout(1500);
   screenshots.push(await shot(page, "1-home"));
   steps.push({ step: "home", url: page.url() });
