@@ -335,6 +335,8 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
       .object({
         baseUrl: z.string().url().default("https://kylo.study"),
         scope: z.enum(["english", "non-english", "all"]).default("english"),
+        // Időzített indítás: a futás sorba kerül, de a worker csak ezután veszi fel.
+        notBefore: z.string().datetime().nullable().optional(),
       })
       .parse(i ?? {}),
   )
