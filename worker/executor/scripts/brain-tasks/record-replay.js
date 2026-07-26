@@ -155,6 +155,54 @@ async function humanClickAt(page, x, y) {
   await page.mouse.up();
 }
 
+// Screenshot (base64 JPEG) — a UI a result.screenshots tömböt jeleníti meg.
+async function shot(page, label) {
+  try {
+    const buf = await page.screenshot({ type: "jpeg", quality: 55, fullPage: false });
+    return { label, at: new Date().toISOString(), b64: buf.toString("base64") };
+  } catch (e) {
+    return { label, at: new Date().toISOString(), error: e.message };
+  }
+}
+
+// Nyelvi ellenőrzés: angol futásnál minden látható szöveg angol kell legyen.
+// Magyar (és egyéb nem-angol) maradványokat keresünk a látható szövegben.
+const LANG_AUDIT_FN = `(() => {
+  const text = (document.body?.innerText || "").replace(/\\s+/g, " ").trim();
+  const sample = text.slice(0, 20000);
+  const HU_WORDS = ["előfizet","fizetés","bejelentkez","regisztrá","jelszó","felhasznál","kezdés","árak","kosár","kilépés","beállítás","tovább","mégse","kötelező","hibás","sikeres","köszön","adatok","szolgáltat","havi","éves","ingyenes","próba","nyelv","profil om"];
+  const lower = sample.toLowerCase();
+  const hits = HU_WORDS.filter((w) => lower.includes(w));
+  const diacritics = (sample.match(/[őűáéíóúöüÁÉÍÓÚÖÜŐŰ]/g) || []).length;
+  const htmlLang = document.documentElement.getAttribute("lang") || null;
+  return {
+    url: location.href,
+    html_lang: htmlLang,
+    hungarian_words: hits.slice(0, 12),
+    diacritic_count: diacritics,
+    text_length: sample.length,
+    sample: sample.slice(0, 400),
+  };
+})()`;
+
+async function auditLanguage(page, label, log) {
+  try {
+    const r = await page.evaluate(LANG_AUDIT_FN);
+    const suspicious = r.hungarian_words.length > 0 || r.diacritic_count > 3;
+    const entry = { label, ...r, ok: !suspicious };
+    log(
+      suspicious ? "warn" : "info",
+      suspicious
+        ? `Nyelvi ellenőrzés (${label}): NEM angol tartalom — találatok: ${r.hungarian_words.join(", ") || "ékezetek"} (${r.diacritic_count} ékezetes karakter) · ${r.url}`
+        : `Nyelvi ellenőrzés (${label}): rendben, angol tartalom (html lang=${r.html_lang ?? "?"})`,
+    );
+    return entry;
+  } catch (e) {
+    return { label, ok: null, error: e.message };
+  }
+}
+
+
 async function runRecordReplay({ page, context, spec, creds, log }) {
   const actions = Array.isArray(spec.recorded_actions) ? spec.recorded_actions : [];
   if (actions.length === 0) {
