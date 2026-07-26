@@ -537,10 +537,18 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
     const [runsRes, credRes, proxyCredRes] = await Promise.all([
       supabase
         .from("brain_workflow_runs")
-        .select("id, status, started_at, finished_at, spec_snapshot, result, error, proxy_id")
+        // csak a JSON-részleteket kérjük le, nem a teljes spec_snapshot/result
+        // oszlopot (azokban több MB-nyi felvett lépés és base64 kép van)
+        .select(
+          "id, status, started_at, finished_at, error, proxy_id, " +
+            "kylo_signup:spec_snapshot->kylo_signup, " +
+            "reached_stripe:result->reached_stripe, final_url:result->>final_url, " +
+            "language_ok:result->language_ok, expected_lang:result->>expected_lang",
+        )
         .eq("workflow_id", wf.id)
         .order("started_at", { ascending: false })
         .limit(50),
+
       supabase
         .from("workflow_credentials")
         .select("gmail_email, gmail_connected_at")
