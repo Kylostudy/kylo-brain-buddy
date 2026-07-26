@@ -558,9 +558,24 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
     // FONTOS: a lista könnyű maradjon. A spec_snapshot tartalmazza a teljes
     // felvett kattintássort, a result pedig a base64 képernyőképeket — 50
     // futásnál ez több MB-os választ adna, amitől a panel üresen maradt.
-    type SlimResult = Record<string, unknown>;
+    type SignupMeta = {
+      skin?: string;
+      lang?: string;
+      currency?: string;
+      email?: string;
+      expected_country?: string | null;
+      run_index?: number;
+    };
+    type SlimResult = {
+      reached_stripe?: boolean;
+      final_url?: string;
+      language_ok?: boolean;
+      expected_lang?: string;
+      steps?: unknown[];
+      screenshots?: unknown[];
+    };
     const slimRun = (r: Record<string, unknown>) => {
-      const snap = (r.spec_snapshot ?? {}) as Record<string, unknown>;
+      const snap = (r.spec_snapshot ?? {}) as { kylo_signup?: SignupMeta };
       const res = (r.result ?? null) as SlimResult | null;
       return {
         id: r.id as string,
@@ -569,13 +584,13 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
         finished_at: (r.finished_at ?? null) as string | null,
         error: (r.error ?? null) as string | null,
         proxy_id: (r.proxy_id ?? null) as string | null,
-        spec_snapshot: { kylo_signup: snap.kylo_signup ?? null },
+        spec_snapshot: { kylo_signup: (snap.kylo_signup ?? null) as SignupMeta | null },
         result: res
           ? {
-              reached_stripe: res.reached_stripe,
-              final_url: res.final_url,
-              language_ok: res.language_ok,
-              expected_lang: res.expected_lang,
+              reached_stripe: res.reached_stripe ?? null,
+              final_url: res.final_url ?? null,
+              language_ok: res.language_ok ?? null,
+              expected_lang: res.expected_lang ?? null,
               steps_count: Array.isArray(res.steps) ? res.steps.length : 0,
               screenshots_count: Array.isArray(res.screenshots) ? res.screenshots.length : 0,
             }
@@ -583,13 +598,20 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
       };
     };
 
-    const wfSpec = { ...((wf.spec ?? {}) as Record<string, unknown>) };
-    const recCount = Array.isArray(wfSpec.recorded_actions) ? wfSpec.recorded_actions.length : 0;
-    delete wfSpec.recorded_actions;
-    (wfSpec as Record<string, unknown>).recorded_actions_count = recCount;
+    const rawSpec = (wf.spec ?? {}) as {
+      monitor_type?: string;
+      kylo_signup?: { run_counter?: number; last_skin?: string; last_proxy_id?: string };
+      recorded_actions?: unknown[];
+    };
+    const wfSpec = {
+      monitor_type: rawSpec.monitor_type ?? null,
+      kylo_signup: rawSpec.kylo_signup ?? null,
+      recorded_actions_count: Array.isArray(rawSpec.recorded_actions) ? rawSpec.recorded_actions.length : 0,
+    };
 
     return {
-      workflow: { id: wf.id, name: wf.name, spec: wfSpec },
+      workflow: { id: wf.id as string, name: wf.name as string, spec: wfSpec },
+
       runs: ((runsRes.data ?? []) as Record<string, unknown>[]).map(slimRun),
       gmail: credRes.data?.gmail_email
         ? { email: credRes.data.gmail_email as string, connectedAt: credRes.data.gmail_connected_at }
