@@ -638,6 +638,7 @@ async function fillSignupForm(page, email, password, log) {
 // Megpróbálja a submit / regisztráció megerősítő gombot megnyomni.
 async function submitForm(page, log) {
   await tickRequiredCheckboxes(page, log);
+  await page.waitForTimeout(800);
   const marker = `kylo-submit-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const found = await page.evaluate((marker) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
