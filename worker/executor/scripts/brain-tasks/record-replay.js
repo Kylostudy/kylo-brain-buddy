@@ -257,7 +257,15 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   const viewport = page.viewportSize() || { width: 1280, height: 720 };
   log("info", `Viewport: ${viewport.width}x${viewport.height}`);
 
+  const screenshots = [];
+  const languageChecks = [];
+  const capture = async (label) => {
+    screenshots.push(await shot(page, label));
+    languageChecks.push(await auditLanguage(page, label, log));
+  };
+
   let skipUntil = -1;
+
   for (let i = 0; i < actions.length; i++) {
     if (i <= skipUntil) continue;
     const a = actions[i];
