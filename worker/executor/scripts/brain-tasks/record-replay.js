@@ -158,7 +158,7 @@ async function humanClickAt(page, x, y) {
 // Screenshot (base64 JPEG) — a UI a result.screenshots tömböt jeleníti meg.
 async function shot(page, label) {
   try {
-    const buf = await page.screenshot({ type: "jpeg", quality: 55, fullPage: false });
+    const buf = await page.screenshot({ type: "jpeg", quality: 38, fullPage: false });
     return { label, at: new Date().toISOString(), b64: buf.toString("base64") };
   } catch (e) {
     return { label, at: new Date().toISOString(), error: e.message };
@@ -259,8 +259,12 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
 
   const screenshots = [];
   const languageChecks = [];
+  const maxStoredScreenshots = 4;
   const capture = async (label) => {
-    screenshots.push(await shot(page, label));
+    const shouldStoreScreenshot = label === "final-state" || screenshots.length < maxStoredScreenshots - 1;
+    if (shouldStoreScreenshot) {
+      screenshots.push(await shot(page, label));
+    }
     languageChecks.push(await auditLanguage(page, label, log));
   };
 
