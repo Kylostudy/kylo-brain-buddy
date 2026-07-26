@@ -305,6 +305,138 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
   });
 
 // ─────────────────────────────────────────────────────────────
+// startAllEnglishSignupRuns — terheléses teszt:
+// minden aktív angol nyelvterületi proxyra egyszerre sorba tesz 1 futást.
+// ─────────────────────────────────────────────────────────────
+
+export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ baseUrl: z.string().url().default("https://kylo.study") }).parse(i ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .single();
+    if (!prof?.tenant_id) throw new Error("Nincs tenant a profilhoz.");
+    const tenantId = prof.tenant_id;
+
+    const { data: wfRow } = await supabase
+      .from("workflows")
+      .select("id, spec")
+      .eq("tenant_id", tenantId)
+      .eq("module", "audit")
+      .contains("spec", { monitor_type: SIGNUP_MONITOR })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!wfRow?.id) throw new Error("Nincs Kylo Sign Up workflow — nyisd meg előbb az oldalt.");
+    const wfId = wfRow.id;
+    const currentSpec = (wfRow.spec as Record<string, unknown> | null) ?? {};
+
+    const { data: activeProxies } = await supabase
+      .from("proxies")
+      .select("id, country, label")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true)
+      .order("label", { ascending: true });
+    const english = (activeProxies ?? []).filter((p) =>
+      ENGLISH_SIGNUP_COUNTRIES.has(((p.country as string | null) || "").toUpperCase()),
+    );
+    if (english.length === 0) {
+      throw new Error("Nincs aktív angol nyelvterületi proxy (US/GB/CA/AU/NZ/IE).");
+    }
+
+    const state = readState(currentSpec);
+    const recordedActions = Array.isArray(currentSpec.recorded_actions)
+      ? currentSpec.recorded_actions
+      : [];
+
+    const queued: Array<{ runId: string; runIndex: number; country: string | null; skin: string; email: string }> = [];
+    let counter = state.run_counter;
+    let lastSkin = state.last_skin;
+
+    for (const p of english) {
+      counter += 1;
+      const skin = SKIN_ORDER[counter % SKIN_ORDER.length];
+      const expectedCountry = ((p.country as string | null) || "").toUpperCase() || null;
+      const lang = "en-GB";
+      const currency = currencyForCountry(expectedCountry);
+      const email = aliasFor(counter);
+      const password = generatePassword();
+
+      const spec = {
+        ...currentSpec,
+        monitor_type: SIGNUP_MONITOR,
+        account_label: `Kylo Sign Up #${counter} · ${expectedCountry ?? "??"} · ${skin}`,
+        ...(recordedActions.length > 0
+          ? {
+              brain_task: { task_type: "record_replay_login", platform: "kylo-study" },
+              recorded_actions: recordedActions,
+            }
+          : {}),
+        kylo_signup: {
+          base_url: data.baseUrl,
+          run_index: counter,
+          skin,
+          lang,
+          currency,
+          expected_country: expectedCountry,
+          email,
+          password,
+        },
+      };
+
+      const { data: run, error: qErr } = await supabase
+        .from("brain_workflow_runs")
+        .insert({
+          workflow_id: wfId,
+          tenant_id: tenantId,
+          module: "audit",
+          runner: "docker",
+          status: "queued",
+          proxy_id: p.id,
+          spec_snapshot: spec as never,
+          started_at: new Date().toISOString(),
+          logs: [
+            {
+              ts: new Date().toISOString(),
+              level: "info",
+              message: `Terheléses teszt — Sign Up #${counter} sorba téve (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`,
+            },
+          ] as never,
+        })
+        .select("id")
+        .single();
+      if (qErr) throw new Error(qErr.message);
+
+      lastSkin = skin;
+      queued.push({ runId: run!.id, runIndex: counter, country: expectedCountry, skin, email });
+    }
+
+    await supabase
+      .from("workflows")
+      .update({
+        spec: {
+          ...currentSpec,
+          monitor_type: SIGNUP_MONITOR,
+          kylo_signup: {
+            run_counter: counter,
+            last_proxy_id: english[english.length - 1].id,
+            last_skin: lastSkin,
+          },
+        } as never,
+      })
+      .eq("id", wfId);
+
+    return { queued, count: queued.length };
+  });
+
+// ─────────────────────────────────────────────────────────────
 // ensureKyloSignupWorkflow — a workflow eleve létrejön,
 // hogy a Hitelesítő adatok / Gmail beköthető legyen még az első futás előtt.
 // ─────────────────────────────────────────────────────────────
