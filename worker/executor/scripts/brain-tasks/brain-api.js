@@ -14,17 +14,30 @@ function assertConfigured() {
   }
 }
 
-async function brainPost(path, body) {
+async function brainPost(path, body, { timeoutMs = 30000 } = {}) {
   assertConfigured();
-  const res = await fetch(`${BRAIN_URL}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${WORKER_API_TOKEN}`,
-      "x-worker-token": WORKER_API_TOKEN,
-    },
-    body: JSON.stringify(body ?? {}),
-  });
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  let res;
+  try {
+    res = await fetch(`${BRAIN_URL}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${WORKER_API_TOKEN}`,
+        "x-worker-token": WORKER_API_TOKEN,
+      },
+      body: JSON.stringify(body ?? {}),
+      signal: ac.signal,
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if (e?.name === "AbortError") {
+      throw new Error(`Brain API ${path} → timeout ${timeoutMs}ms után`);
+    }
+    throw new Error(`Brain API ${path} → hálózati hiba: ${e.message}`);
+  }
+  clearTimeout(timer);
   const text = await res.text();
   let data = null;
   try {
@@ -38,6 +51,7 @@ async function brainPost(path, body) {
   }
   return data;
 }
+
 
 /** Lekérjük a tanult szelektorokat egy adott platform+page_type-ra. */
 export async function lookupLearnedSelectors(platform, pageType) {
