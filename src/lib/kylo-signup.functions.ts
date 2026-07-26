@@ -613,7 +613,7 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
     return {
       workflow: { id: wf.id as string, name: wf.name as string, spec: wfSpec },
 
-      runs: ((runsRes.data ?? []) as Record<string, unknown>[]).map(slimRun),
+      runs: ((runsRes.data ?? []) as unknown as Record<string, unknown>[]).map(slimRun),
       gmail: credRes.data?.gmail_email
         ? { email: credRes.data.gmail_email as string, connectedAt: credRes.data.gmail_connected_at }
         : null,
