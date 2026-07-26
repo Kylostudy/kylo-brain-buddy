@@ -210,7 +210,10 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
       expectedCountry = ((p?.country as string | null) || "").toUpperCase() || null;
     }
 
-    const lang = langForCountry(expectedCountry);
+    // A signup crawler stabilitása miatt egyelőre mindig ugyanazon a nyelven
+    // tesztelünk. A proxy országa továbbra is számít devizához és IP-ellenőrzéshez,
+    // de a UI-szövegek/gombok ne változzanak futásról futásra.
+    const lang = "en-GB";
     const currency = currencyForCountry(expectedCountry);
     const email = aliasFor(nextCounter);
     const password = generatePassword();
