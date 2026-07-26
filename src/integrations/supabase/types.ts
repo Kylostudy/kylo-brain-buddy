@@ -1569,6 +1569,7 @@ export type Database = {
     }
     Functions: {
       current_tenant_id: { Args: never; Returns: string }
+      fail_stuck_brain_runs: { Args: never; Returns: number }
       is_workflow_quiet_now: {
         Args: { _workflow_id: string }
         Returns: boolean
