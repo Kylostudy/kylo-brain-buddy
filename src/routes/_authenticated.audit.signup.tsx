@@ -245,7 +245,7 @@ function SignupPage() {
             <Button
               variant="secondary"
               size="lg"
-              onClick={() => startAllMut.mutate("english")}
+              onClick={() => startAllMut.mutate({ scope: "english" })}
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Egyszerre indít egy futást minden angol nyelvterületi proxyra" : "Először kösd be a Gmail postafiókot"}
             >
@@ -254,11 +254,22 @@ function SignupPage() {
             <Button
               variant="secondary"
               size="lg"
-              onClick={() => startAllMut.mutate("non-english")}
+              onClick={() => startAllMut.mutate({ scope: "non-english" })}
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Egyszerre indít egy futást minden nem-angol proxyra, a proxy országának megfelelő nyelvvel" : "Először kösd be a Gmail postafiókot"}
             >
               {startAllMut.isPending ? "Indítás…" : "Összes nem-angol (nyelvi kör)"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() =>
+                startAllMut.mutate({ scope: "non-english", notBefore: nextOneAm().toISOString() })
+              }
+              disabled={startAllMut.isPending || !canStart}
+              title={canStart ? "Sorba teszi a nem-angol nyelvi kört, de a worker csak hajnali 1 után kezdi el" : "Először kösd be a Gmail postafiókot"}
+            >
+              {startAllMut.isPending ? "Ütemezés…" : "Nem-angol · hajnali 1 után"}
             </Button>
             <Button
               size="lg"
