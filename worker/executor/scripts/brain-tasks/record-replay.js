@@ -349,7 +349,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
           continue;
         }
         log("info", `[${i + 1}/${actions.length}] navigate → ${a.url}`);
-        await page.goto(a.url, { waitUntil: "domcontentloaded", timeout: 45000 });
+        await page.goto(a.url, { waitUntil: "domcontentloaded", timeout: 90000 });
         await humanThink(page, 900);
         await capture(`nav-${i + 1}`);
       } else if (a.type === "click") {
@@ -360,7 +360,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
           await humanClickAt(page, cx, cy);
         } else if (a.selector) {
           log("info", `[${i + 1}/${actions.length}] click selector "${a.selector}"`);
-          const el = await page.waitForSelector(a.selector, { state: "visible", timeout: 15000 }).catch(() => null);
+          const el = await page.waitForSelector(a.selector, { state: "visible", timeout: 35000 }).catch(() => null);
           if (el) { const box = await el.boundingBox(); if (box) await humanClickAt(page, box.x + box.width / 2, box.y + box.height / 2); }
         }
       } else if (a.type === "kylo_unlock") {
@@ -378,7 +378,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
           recipient: spec?.kylo_signup?.email || undefined,
         });
         if (!res?.link) throw new Error("Nem találtam friss Gmail megerősítő linket");
-        await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 45000 });
+        await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 90000 });
         await humanThink(page, 1500);
         await capture(`after-email-confirm-${i + 1}`);
 

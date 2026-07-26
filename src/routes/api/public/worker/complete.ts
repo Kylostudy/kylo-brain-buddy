@@ -77,9 +77,43 @@ export const Route = createFileRoute("/api/public/worker/complete")({
               )
             : parsed.result ?? null;
 
+        // Méret-védelem: a base64 screenshotok együtt több MB-ot is kitehetnek,
+        // amitől a DB update elhasalt (500) és a futás „running"-ban ragadt.
+        // Csak annyi képet tartunk meg, ami biztosan belefér, a többit levágjuk.
+        const MAX_SHOTS_BYTES = 1_500_000;
+        if (slimResult && typeof slimResult === "object") {
+          const shots = (slimResult as { screenshots?: unknown }).screenshots;
+          if (Array.isArray(shots)) {
+            let used = 0;
+            let dropped = 0;
+            const kept = shots.map((shot) => {
+              if (!shot || typeof shot !== "object") return shot;
+              const s = shot as { b64?: unknown };
+              const size = typeof s.b64 === "string" ? s.b64.length : 0;
+              if (size && used + size > MAX_SHOTS_BYTES) {
+                dropped += 1;
+                const { b64: _omit, ...rest } = s as Record<string, unknown>;
+                return { ...rest, b64_omitted: true };
+              }
+              used += size;
+              return shot;
+            });
+            (slimResult as Record<string, unknown>).screenshots = kept;
+            if (dropped > 0) {
+              (slimResult as Record<string, unknown>).screenshots_dropped_for_size = dropped;
+            }
+          }
+        }
+
+        // A logokat is korlátozzuk (utolsó 600 sor, soronként max 2000 karakter).
+        const trimmedLogs = parsed.logs.slice(-600).map((l) => ({
+          ...l,
+          message: l.message.length > 2000 ? `${l.message.slice(0, 2000)}…` : l.message,
+        }));
+
         const update: Record<string, unknown> = {
           status: parsed.status,
-          logs: parsed.logs as never,
+          logs: trimmedLogs as never,
           result: slimResult as never,
           error: parsed.error ?? null,
           finished_at: new Date().toISOString(),
