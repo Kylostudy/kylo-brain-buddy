@@ -100,6 +100,50 @@ function payloadBytes(payload) {
   }
 }
 
+// A screenshotokat nem az adatbázisba küldjük, hanem a helyi (Hetzner) képpufferbe:
+// a base64 blob helyére csak egy URL kerül. Ha a puffer nem érhető el, marad a régi
+// viselkedés (base64 a riportban), hogy semmi ne vesszen el.
+const SHOTS_UPLOAD_URL = (process.env.SHOTS_UPLOAD_URL || "").replace(/\/$/, "");
+
+async function offloadScreenshots(runId, result) {
+  if (!SHOTS_UPLOAD_URL || !result || typeof result !== "object") return result;
+  const shots = result.screenshots;
+  if (!Array.isArray(shots) || shots.length === 0) return result;
+
+  let uploaded = 0;
+  let failed = 0;
+  const next = [];
+  for (const shot of shots) {
+    if (!shot || typeof shot !== "object" || typeof shot.b64 !== "string" || !shot.b64) {
+      next.push(shot);
+      continue;
+    }
+    try {
+      const res = await fetch(`${SHOTS_UPLOAD_URL}/upload`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${WORKER_API_TOKEN}`,
+          "x-worker-token": WORKER_API_TOKEN,
+        },
+        body: JSON.stringify({ runId: String(runId), b64: shot.b64, ext: "jpg" }),
+      });
+      if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`);
+      const data = await res.json();
+      const { b64, ...rest } = shot;
+      next.push({ ...rest, url: data.url, stored: "hetzner" });
+      uploaded += 1;
+    } catch (e) {
+      failed += 1;
+      next.push(shot);
+    }
+  }
+  if (uploaded || failed) {
+    console.log(`[shots ${runId}] ${uploaded} kép a helyi pufferbe, ${failed} maradt a riportban`);
+  }
+  return { ...result, screenshots: next, screenshots_storage: uploaded ? "hetzner" : "inline" };
+}
+
 function compactResultForRetry(result) {
   if (!result || typeof result !== "object") return result ?? null;
   const out = { ...result };
