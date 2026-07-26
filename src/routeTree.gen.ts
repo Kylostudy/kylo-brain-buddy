@@ -19,6 +19,7 @@ import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
 import { Route as AuthenticatedAuditSignupRouteImport } from './routes/_authenticated.audit.signup'
+import { Route as AuthenticatedAuditScenariosRouteImport } from './routes/_authenticated.audit.scenarios'
 import { Route as AuthenticatedAuditQaRouteImport } from './routes/_authenticated.audit.qa'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
@@ -37,6 +38,7 @@ import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/a
 import { Route as ApiPublicAdminImportIproyalRouteImport } from './routes/api/public/admin/import-iproyal'
 import { Route as ApiPublicAdminImportBrightdataKylogicRouteImport } from './routes/api/public/admin/import-brightdata-kylogic'
 import { Route as ApiPublicAdminCreateWarmupWorkflowsRouteImport } from './routes/api/public/admin/create-warmup-workflows'
+import { Route as ApiPublicWorkerScenarioJudgeRouteImport } from './routes/api/public/worker/scenario/judge'
 import { Route as ApiPublicWorkerQaUploadScreenshotRouteImport } from './routes/api/public/worker/qa/upload-screenshot'
 import { Route as ApiPublicWorkerQaReportIssueRouteImport } from './routes/api/public/worker/qa/report-issue'
 import { Route as ApiPublicWorkerQaReportCoverageRouteImport } from './routes/api/public/worker/qa/report-coverage'
@@ -102,6 +104,12 @@ const AuthenticatedAuditSignupRoute =
   AuthenticatedAuditSignupRouteImport.update({
     id: '/audit/signup',
     path: '/audit/signup',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAuditScenariosRoute =
+  AuthenticatedAuditScenariosRouteImport.update({
+    id: '/audit/scenarios',
+    path: '/audit/scenarios',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAuditQaRoute = AuthenticatedAuditQaRouteImport.update({
@@ -207,6 +215,12 @@ const ApiPublicAdminCreateWarmupWorkflowsRoute =
     path: '/api/public/admin/create-warmup-workflows',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerScenarioJudgeRoute =
+  ApiPublicWorkerScenarioJudgeRouteImport.update({
+    id: '/api/public/worker/scenario/judge',
+    path: '/api/public/worker/scenario/judge',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerQaUploadScreenshotRoute =
   ApiPublicWorkerQaUploadScreenshotRouteImport.update({
     id: '/api/public/worker/qa/upload-screenshot',
@@ -294,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
+  '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
   '/audit/signup': typeof AuthenticatedAuditSignupRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
@@ -325,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
   '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
   '/api/public/worker/qa/upload-screenshot': typeof ApiPublicWorkerQaUploadScreenshotRoute
+  '/api/public/worker/scenario/judge': typeof ApiPublicWorkerScenarioJudgeRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesByTo {
@@ -336,6 +352,7 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
+  '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
   '/audit/signup': typeof AuthenticatedAuditSignupRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
@@ -367,6 +384,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
   '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
   '/api/public/worker/qa/upload-screenshot': typeof ApiPublicWorkerQaUploadScreenshotRoute
+  '/api/public/worker/scenario/judge': typeof ApiPublicWorkerScenarioJudgeRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRoutesById {
@@ -380,6 +398,7 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/audit/qa': typeof AuthenticatedAuditQaRoute
+  '/_authenticated/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
   '/_authenticated/audit/signup': typeof AuthenticatedAuditSignupRoute
   '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
@@ -411,6 +430,7 @@ export interface FileRoutesById {
   '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
   '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
   '/api/public/worker/qa/upload-screenshot': typeof ApiPublicWorkerQaUploadScreenshotRoute
+  '/api/public/worker/scenario/judge': typeof ApiPublicWorkerScenarioJudgeRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
 export interface FileRouteTypes {
@@ -424,6 +444,7 @@ export interface FileRouteTypes {
     | '/reddit-warmup'
     | '/api/transcribe'
     | '/audit/qa'
+    | '/audit/scenarios'
     | '/audit/signup'
     | '/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
@@ -455,6 +476,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/qa/report-coverage'
     | '/api/public/worker/qa/report-issue'
     | '/api/public/worker/qa/upload-screenshot'
+    | '/api/public/worker/scenario/judge'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -466,6 +488,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/'
     | '/audit/qa'
+    | '/audit/scenarios'
     | '/audit/signup'
     | '/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
@@ -497,6 +520,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/qa/report-coverage'
     | '/api/public/worker/qa/report-issue'
     | '/api/public/worker/qa/upload-screenshot'
+    | '/api/public/worker/scenario/judge'
     | '/api/public/cross/kit/task/$task_id/log'
   id:
     | '__root__'
@@ -509,6 +533,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/_authenticated/'
     | '/_authenticated/audit/qa'
+    | '/_authenticated/audit/scenarios'
     | '/_authenticated/audit/signup'
     | '/_authenticated/w/$workflowId'
     | '/api/public/admin/create-warmup-workflows'
@@ -540,6 +565,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/qa/report-coverage'
     | '/api/public/worker/qa/report-issue'
     | '/api/public/worker/qa/upload-screenshot'
+    | '/api/public/worker/scenario/judge'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesById: FileRoutesById
 }
@@ -576,6 +602,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerQaReportCoverageRoute: typeof ApiPublicWorkerQaReportCoverageRoute
   ApiPublicWorkerQaReportIssueRoute: typeof ApiPublicWorkerQaReportIssueRoute
   ApiPublicWorkerQaUploadScreenshotRoute: typeof ApiPublicWorkerQaUploadScreenshotRoute
+  ApiPublicWorkerScenarioJudgeRoute: typeof ApiPublicWorkerScenarioJudgeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -648,6 +675,13 @@ declare module '@tanstack/react-router' {
       path: '/audit/signup'
       fullPath: '/audit/signup'
       preLoaderRoute: typeof AuthenticatedAuditSignupRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/audit/scenarios': {
+      id: '/_authenticated/audit/scenarios'
+      path: '/audit/scenarios'
+      fullPath: '/audit/scenarios'
+      preLoaderRoute: typeof AuthenticatedAuditScenariosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/audit/qa': {
@@ -776,6 +810,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/scenario/judge': {
+      id: '/api/public/worker/scenario/judge'
+      path: '/api/public/worker/scenario/judge'
+      fullPath: '/api/public/worker/scenario/judge'
+      preLoaderRoute: typeof ApiPublicWorkerScenarioJudgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/qa/upload-screenshot': {
       id: '/api/public/worker/qa/upload-screenshot'
       path: '/api/public/worker/qa/upload-screenshot'
@@ -877,6 +918,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRedditWarmupRoute: typeof AuthenticatedRedditWarmupRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAuditQaRoute: typeof AuthenticatedAuditQaRoute
+  AuthenticatedAuditScenariosRoute: typeof AuthenticatedAuditScenariosRoute
   AuthenticatedAuditSignupRoute: typeof AuthenticatedAuditSignupRoute
   AuthenticatedWWorkflowIdRoute: typeof AuthenticatedWWorkflowIdRoute
 }
@@ -888,6 +930,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRedditWarmupRoute: AuthenticatedRedditWarmupRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAuditQaRoute: AuthenticatedAuditQaRoute,
+  AuthenticatedAuditScenariosRoute: AuthenticatedAuditScenariosRoute,
   AuthenticatedAuditSignupRoute: AuthenticatedAuditSignupRoute,
   AuthenticatedWWorkflowIdRoute: AuthenticatedWWorkflowIdRoute,
 }
@@ -947,6 +990,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerQaReportIssueRoute: ApiPublicWorkerQaReportIssueRoute,
   ApiPublicWorkerQaUploadScreenshotRoute:
     ApiPublicWorkerQaUploadScreenshotRoute,
+  ApiPublicWorkerScenarioJudgeRoute: ApiPublicWorkerScenarioJudgeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
