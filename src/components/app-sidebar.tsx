@@ -211,7 +211,16 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath.startsWith("/audit/scenarios")}>
+                    <Link to="/audit/scenarios" className="flex items-center gap-2">
+                      <ClipboardCheck className="size-4 shrink-0" />
+                      <span className="truncate">Teszt-forgatókönyvek</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
+
             </SidebarGroupContent>
           </SidebarGroup>
         )}
