@@ -18,6 +18,7 @@ import { loadProxyUrlServer } from "@/lib/proxies.functions";
 const BASE_GMAIL = "sunyika.crypto@gmail.com";
 const SIGNUP_MONITOR = "kylo-study-signup";
 const SKIN_ORDER = ["puppy-cat", "alaszka"] as const;
+const ENGLISH_SIGNUP_COUNTRIES = new Set(["US", "GB", "CA", "AU", "NZ", "IE"]);
 
 // Proxy ország → Kylo felületi nyelv (lang query param).
 // A country cím a natív nyelvet kapja; angol nyelvterületen en-GB-t (a Kylo
@@ -194,10 +195,14 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
         .order("label", { ascending: true });
       const list = activeProxies ?? [];
       if (list.length === 0) throw new Error("Nincs aktív proxy — vegyél fel legalább egyet a Proxies oldalon.");
+      const languageSafeList = list.filter((p) =>
+        ENGLISH_SIGNUP_COUNTRIES.has(((p.country as string | null) || "").toUpperCase()),
+      );
+      const rotationList = languageSafeList.length > 0 ? languageSafeList : list;
       // Kerüljük a legutóbbit, ha van több választás.
-      const pool = list.length > 1 && state.last_proxy_id
-        ? list.filter((p) => p.id !== state.last_proxy_id)
-        : list;
+      const pool = rotationList.length > 1 && state.last_proxy_id
+        ? rotationList.filter((p) => p.id !== state.last_proxy_id)
+        : rotationList;
       const chosen = pool[nextCounter % pool.length];
       proxyId = chosen.id;
       expectedCountry = (chosen.country || "").toUpperCase() || null;
@@ -218,9 +223,23 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
     const email = aliasFor(nextCounter);
     const password = generatePassword();
 
+    const recordedActions = Array.isArray(currentSpec.recorded_actions)
+      ? currentSpec.recorded_actions
+      : [];
+
     const spec = {
+      ...currentSpec,
       monitor_type: SIGNUP_MONITOR,
       account_label: `Kylo Sign Up #${nextCounter} · ${(expectedCountry ?? "??")} · ${skin}`,
+      ...(recordedActions.length > 0
+        ? {
+            brain_task: {
+              task_type: "record_replay_login",
+              platform: "kylo-study",
+            },
+            recorded_actions: recordedActions,
+          }
+        : {}),
       kylo_signup: {
         base_url: data.baseUrl,
         run_index: nextCounter,
