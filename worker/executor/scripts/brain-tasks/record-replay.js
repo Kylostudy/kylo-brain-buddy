@@ -321,14 +321,17 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
 
   const screenshots = [];
   const languageChecks = [];
+  const expectedLang = cfg.lang || "en-GB";
+  log("info", `Elvárt felületi nyelv ehhez a futáshoz: ${expectedLang} (ország: ${cfg.expected_country || "?"})`);
   const maxStoredScreenshots = 4;
   const capture = async (label) => {
     const shouldStoreScreenshot = label === "final-state" || screenshots.length < maxStoredScreenshots - 1;
     if (shouldStoreScreenshot) {
       screenshots.push(await shot(page, label));
     }
-    languageChecks.push(await auditLanguage(page, label, log));
+    languageChecks.push(await auditLanguage(page, label, log, expectedLang));
   };
+
 
   let skipUntil = -1;
 
