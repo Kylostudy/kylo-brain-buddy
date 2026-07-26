@@ -144,9 +144,7 @@ function runContainer(job) {
       if (process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN) {
         createArgs.push("-e", `BRAIN_KYLO_TEST_BYPASS_TOKEN=${process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN}`);
       }
-      const _dummy = [
 
-      ];
       if (job.credentials) createArgs.push("-e", `CREDENTIALS_FILE=/job/credentials.json`);
       if (job.proxy) createArgs.push("-e", `PROXY_FILE=/job/proxy.json`);
       createArgs.push(IMAGE);
