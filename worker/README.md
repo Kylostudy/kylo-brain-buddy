@@ -81,3 +81,22 @@ cd /home/kylo/kylokit
 git pull            # vagy újabb scp
 docker compose up -d --build
 ```
+
+## Képpuffer a saját vason (shots)
+
+A futások képernyőképei már nem az adatbázisba mennek, hanem a Hetzner SSD-re,
+a `shots` szolgáltatásba. Az adatbázisba csak a kép linkje kerül.
+
+`.env` beállítások:
+
+```
+SHOTS_DATA_DIR=/srv/kylo-shots        # hol tárolja a képeket a vason
+SHOTS_PORT=8088                       # kívülről ezen a porton érhető el
+SHOTS_PUBLIC_URL=https://shots.pelda.hu   # a Brain felület ezt a linket tölti be
+SHOTS_RETENTION_DAYS=14               # ennél régebbi képeket automatikusan törli
+```
+
+Ha a `SHOTS_PUBLIC_URL` üres, a képek nem lesznek megjeleníthetők a felületen —
+állíts be egy nyilvános címet (domain vagy `http://<vps-ip>:8088`).
+
+Ellenőrzés: `curl http://localhost:8088/health`
