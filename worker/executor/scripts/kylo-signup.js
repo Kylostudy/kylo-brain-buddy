@@ -427,7 +427,11 @@ async function tickRequiredCheckboxes(page, log) {
       return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
     };
     const out = [];
-    const checkboxControls = Array.from(document.querySelectorAll('button[role="checkbox"], [role="checkbox"], input[type="checkbox"]'));
+    const roleCheckboxes = Array.from(document.querySelectorAll('button[role="checkbox"], [role="checkbox"]'));
+    const checkboxControls = roleCheckboxes.length > 0
+      ? roleCheckboxes
+      : Array.from(document.querySelectorAll('input[type="checkbox"]'));
+    const seenLabels = new Set();
     checkboxControls.forEach((el, idx) => {
       const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || el.parentElement?.parentElement?.innerText || "");
       if (!visible(el)) return;
@@ -436,6 +440,9 @@ async function tickRequiredCheckboxes(page, log) {
       const legalConsent = /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
       const optionalRole = /tanár|teacher|tanuló|student/i.test(label);
       if (!el.required && (!legalConsent || optionalRole)) return;
+      const labelKey = label.toLowerCase();
+      if (seenLabels.has(labelKey)) return;
+      seenLabels.add(labelKey);
       const marker = `kylo-checkbox-${Date.now()}-${idx}`;
       el.setAttribute("data-kylo-worker-checkbox", marker);
       out.push({ marker, label: label.slice(0, 80) });
