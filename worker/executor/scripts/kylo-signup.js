@@ -316,25 +316,52 @@ async function inspectAuthForm(page) {
 }
 
 async function ensureSignupMode(page, log) {
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const state = await inspectAuthForm(page);
-    const buttonSummary = state.buttons.map((b) => `${b.disabled ? "disabled " : ""}${b.text}`).slice(0, 10).join(" | ");
-    log("info", `Auth űrlap állapot ${attempt}/3 — email=${state.emailFields}, pw=${state.passwordFields}, signupSubmit=${state.signupSubmit}, signinSubmit=${state.signinSubmit}, checkbox=${state.requiredUnchecked}, gombok: ${buttonSummary || "n/a"}`);
-    if (state.emailFields === 0 || state.passwordFields === 0) {
-      return { ok: false, reason: "nincs email+jelszó űrlap", state };
+  // A password mező néha csak késve renderelődik (client-side hydration),
+  // vagy csak azután jelenik meg, hogy beírtuk az emailt és rákattintottunk
+  // egy "Tovább / Continue" gombra (2-step form). Ezért többször pollozunk,
+  // közben megpróbáljuk a signup togglet és a next-step gombot is.
+  for (let attempt = 1; attempt <= 6; attempt += 1) {
+    // Rövid poll: várunk max ~4s-ig, hátha a pw mező csak lassan renderelődik.
+    let state = await inspectAuthForm(page);
+    for (let i = 0; i < 8 && (state.emailFields === 0 || state.passwordFields === 0); i += 1) {
+      await page.waitForTimeout(500);
+      state = await inspectAuthForm(page);
     }
-    if (state.signupSubmit || !state.signinSubmit) {
+    const buttonSummary = state.buttons.map((b) => `${b.disabled ? "disabled " : ""}${b.text}`).slice(0, 10).join(" | ");
+    log("info", `Auth űrlap állapot ${attempt}/6 — email=${state.emailFields}, pw=${state.passwordFields}, signupSubmit=${state.signupSubmit}, signinSubmit=${state.signinSubmit}, url=${state.url}, gombok: ${buttonSummary || "n/a"}`);
+
+    if (state.emailFields > 0 && state.passwordFields > 0) {
+      if (state.signupSubmit || !state.signinSubmit) return { ok: true, state };
+      if (state.signupToggle) {
+        await clickByText(page, CLICK_HINTS_SIGNUP_MODE, log, "Regisztráció mód", { rejects: CLICK_REJECTS_SIGNIN });
+        await page.waitForTimeout(1200);
+        continue;
+      }
       return { ok: true, state };
     }
+
+    // Nincs pw mező. Először próbáljunk signup togglet.
     if (state.signupToggle) {
       const clicked = await clickByText(page, CLICK_HINTS_SIGNUP_MODE, log, "Regisztráció mód", { rejects: CLICK_REJECTS_SIGNIN });
-      await page.waitForTimeout(1200);
-      if (clicked) continue;
+      if (clicked) { await page.waitForTimeout(1500); continue; }
     }
-    return { ok: false, reason: "az űrlap belépés módban van, regisztráció kapcsolót nem találtam", state };
+
+    // 2-step űrlap: van email mező, próbáljunk Tovább / Continue gombot nyomni.
+    if (state.emailFields > 0) {
+      const nextClicked = await clickByText(
+        page,
+        ["tovább", "continue", "next", "weiter", "suivant", "続ける", "下一步", "siguiente", "avanti", "kontynuuj"],
+        log,
+        "Tovább (2-step)",
+        { rejects: [...CLICK_REJECTS_SIGNIN, "belép", "log in", "sign in"] },
+      );
+      if (nextClicked) { await page.waitForTimeout(1800); continue; }
+    }
+
+    return { ok: false, reason: "nincs email+jelszó űrlap", state };
   }
   const state = await inspectAuthForm(page);
-  return { ok: !!state.signupSubmit, reason: "nem sikerült stabil regisztráció módra váltani", state };
+  return { ok: !!(state.emailFields && state.passwordFields), reason: "nem sikerült stabil regisztráció módra váltani", state };
 }
 
 async function tickRequiredCheckboxes(page, log) {
