@@ -561,6 +561,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   const steps = [];
   const screenshots = [];
   const startUrl = withLang(baseUrl, lang);
+  const diag = installSignupDiagnostics(page, email, password, log);
 
   log("info", `Sign Up indul — ${startUrl} · skin=${skin} · alias=${email} · currency=${currency}`);
 
@@ -635,6 +636,12 @@ export async function runKyloSignup({ page, context, spec, log }) {
   screenshots.push(await shot(page, "2-after-signup-click"));
   steps.push({ step: "signup-cta", clicked: signupClicked, url: page.url() });
 
+  const signupMode = await ensureSignupMode(page, log);
+  screenshots.push(await shot(page, "2b-signup-mode-check"));
+  steps.push({ step: "signup-mode", ...signupMode });
+  if (!signupMode.ok) {
+    throw new Error(`Nem jutottunk regisztrációs űrlapig: ${signupMode.reason || "ismeretlen ok"}. url=${page.url()}`);
+  }
 
   // 3) űrlap kitöltés
   const filled = await fillSignupForm(page, email, password, log);
@@ -642,10 +649,36 @@ export async function runKyloSignup({ page, context, spec, log }) {
   steps.push({ step: "form-fill", filled });
 
   if (filled) {
-    await submitForm(page, log);
+    const beforeSubmitUrl = page.url();
+    diag.submit_at = Date.now();
+    const submit = await submitForm(page, log);
     await page.waitForTimeout(3000);
     screenshots.push(await shot(page, "4-after-submit"));
-    steps.push({ step: "submit", url: page.url() });
+    const evidence = submit.clicked
+      ? await waitForRegistrationEvidence(page, diag, email, password, log)
+      : { ok: false, reason: submit.reason || "submit nem kattant", page: await collectPageDiagnostics(page), network: [] };
+    screenshots.push(await shot(page, "4a-registration-evidence"));
+    steps.push({
+      step: "submit",
+      clicked: submit.clicked,
+      buttonText: submit.buttonText || null,
+      before_url: beforeSubmitUrl,
+      after_url: page.url(),
+      registration_evidence: evidence,
+    });
+
+    if (!evidence.ok) {
+      const pageMessages = evidence.page?.messages?.length ? ` Üzenet: ${evidence.page.messages.join(" | ")}` : "";
+      const networkSummary = evidence.network?.length
+        ? ` Network: ${evidence.network.map((n) => `${n.kind}:${n.status}`).join(", ")}`
+        : " Network: nincs releváns auth hívás.";
+      const failureSummary = evidence.failures?.length
+        ? ` Failures: ${evidence.failures.map((n) => `${n.kind}:${n.error}`).join(", ")}`
+        : "";
+      throw new Error(
+        `A regisztráció nem indult el, ezért nem várok Gmail e-mailre. Ok: ${evidence.reason}.${pageMessages}${networkSummary}${failureSummary} url=${page.url()}`,
+      );
+    }
 
     const confirmation = await openGmailConfirmationLink(page, email, log);
     screenshots.push(await shot(page, "4b-after-email-confirm"));
