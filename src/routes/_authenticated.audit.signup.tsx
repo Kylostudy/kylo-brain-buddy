@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import {
   startKyloSignupRun,
+  startAllEnglishSignupRuns,
   listKyloSignupRuns,
   ensureKyloSignupWorkflow,
   setKyloSignupRecorderProxy,
@@ -121,6 +122,15 @@ function SignupPage() {
     mutationFn: () => startFn({ data: {} }),
     onSuccess: (r) => {
       toast.success(`Sign Up #${r.runIndex} sorba téve — skin=${r.skin}, alias=${r.email}, ország=${r.country ?? "?"}`);
+      qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const startAllMut = useMutation({
+    mutationFn: () => startAllFn({ data: {} }),
+    onSuccess: (r) => {
+      toast.success(`${r.count} futás sorba téve — ${r.queued.map((q) => `#${q.runIndex} ${q.country ?? "?"}`).join(", ")}`);
       qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
     },
     onError: (e: Error) => toast.error(e.message),
