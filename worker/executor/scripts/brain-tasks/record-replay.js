@@ -281,6 +281,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
         log("info", `[${i + 1}/${actions.length}] navigate → ${a.url}`);
         await page.goto(a.url, { waitUntil: "domcontentloaded", timeout: 45000 });
         await humanThink(page, 900);
+        await capture(`nav-${i + 1}`);
       } else if (a.type === "click") {
         if (typeof a.x === "number" && typeof a.y === "number") {
           const cx = a.x >= 0 && a.x <= 1 ? a.x * viewport.width : a.x;
@@ -298,6 +299,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
         const result = await page.evaluate(`(${KYLO_LOGO_UNLOCK_FN})(${clicks})`);
         if (!result?.ok) throw new Error(result?.reason || "Kylo logó-kapu nem kattintható");
         await humanThink(page, 900);
+        await capture(`after-logo-unlock-${i + 1}`);
       } else if (a.type === "gmail_confirm_link") {
         log("info", `[${i + 1}/${actions.length}] Gmail megerősítő link keresése`);
         const res = await getGmailConfirmationLink({
@@ -308,6 +310,8 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
         if (!res?.link) throw new Error("Nem találtam friss Gmail megerősítő linket");
         await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 45000 });
         await humanThink(page, 1500);
+        await capture(`after-email-confirm-${i + 1}`);
+
       } else if (a.type === "type") {
         const entry = plan.get(i);
         if (entry) {
