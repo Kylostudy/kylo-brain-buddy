@@ -73,7 +73,7 @@ function readSignupSpec(spec: unknown): {
 function readResult(r: unknown): {
   reached_stripe?: boolean;
   final_url?: string;
-  screenshots?: Array<{ label: string; at: string; b64?: string; error?: string }>;
+  screenshots?: Array<{ label: string; at: string; b64?: string; url?: string; error?: string }>;
   steps?: Array<Record<string, unknown>>;
   language_ok?: boolean;
   expected_lang?: string;
