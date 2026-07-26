@@ -27,7 +27,7 @@ const BRAIN_URL = (process.env.BRAIN_URL || "").replace(/\/$/, "");
 const WORKER_API_TOKEN = process.env.WORKER_API_TOKEN;
 const WORKER_ID = process.env.WORKER_ID || "worker-1";
 const IMAGE = process.env.EXECUTOR_IMAGE || "kylo-executor:latest";
-const MAX_PARALLEL = Number(process.env.MAX_PARALLEL || 4);
+const MAX_PARALLEL = Number(process.env.MAX_PARALLEL || 12);
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 3000);
 
 if (!BRAIN_URL || !WORKER_API_TOKEN) {
