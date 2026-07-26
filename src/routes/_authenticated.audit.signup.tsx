@@ -73,10 +73,21 @@ function readResult(r: unknown): {
   final_url?: string;
   screenshots?: Array<{ label: string; at: string; b64?: string; error?: string }>;
   steps?: Array<Record<string, unknown>>;
+  language_ok?: boolean;
+  language_checks?: Array<{
+    label: string;
+    url?: string;
+    ok?: boolean | null;
+    html_lang?: string | null;
+    hungarian_words?: string[];
+    diacritic_count?: number;
+    sample?: string;
+  }>;
 } {
   if (!r || typeof r !== "object") return {};
   return r as never;
 }
+
 
 function SignupPage() {
   const { forceModule } = useModule();
