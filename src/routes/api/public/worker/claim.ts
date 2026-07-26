@@ -237,6 +237,18 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           specWithFlags.run_fingerprint_audit = true;
         }
 
+        const kyloBypassToken = process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN?.trim();
+        if (
+          kyloBypassToken &&
+          typeof specWithFlags.kylo_signup === "object" &&
+          specWithFlags.kylo_signup !== null
+        ) {
+          specWithFlags.kylo_signup = {
+            ...(specWithFlags.kylo_signup as Record<string, unknown>),
+            bypass_token: kyloBypassToken,
+          };
+        }
+
         // ---- Per-workflow böngésző-fingerprint ---------------------------
         // Determinisztikusan generált UA/viewport/locale/timezone — így egy
         // fiók mindig "ugyanarról a gépről" jelentkezik be. Csak akkor
