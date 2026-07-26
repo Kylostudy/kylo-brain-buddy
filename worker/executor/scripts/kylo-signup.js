@@ -427,9 +427,12 @@ async function tickRequiredCheckboxes(page, log) {
       return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
     };
     const out = [];
-    Array.from(document.querySelectorAll('input[type="checkbox"]')).forEach((el, idx) => {
-      const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || "");
-      if (!visible(el) || el.checked) return;
+    const checkboxControls = Array.from(document.querySelectorAll('button[role="checkbox"], [role="checkbox"], input[type="checkbox"]'));
+    checkboxControls.forEach((el, idx) => {
+      const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || el.parentElement?.parentElement?.innerText || "");
+      if (!visible(el)) return;
+      const isChecked = el.getAttribute("aria-checked") === "true" || !!el.checked;
+      if (isChecked) return;
       const legalConsent = /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
       const optionalRole = /tanár|teacher|tanuló|student/i.test(label);
       if (!el.required && (!legalConsent || optionalRole)) return;
@@ -647,7 +650,7 @@ async function submitForm(page, log) {
       if (signinRe.test(text)) score -= 20;
       if (!best || score > best.score) best = { el: b, score, text };
     }
-    if (!best || best.score < 0) return null;
+    if (!best || best.score < 10) return null;
     best.el.setAttribute("data-kylo-worker-submit", marker);
     return { text: best.text, score: best.score };
   }, marker);
