@@ -82,6 +82,7 @@ function SignupPage() {
   const { forceModule } = useModule();
   const qc = useQueryClient();
   const startFn = useServerFn(startKyloSignupRun);
+  const startAllFn = useServerFn(startAllEnglishSignupRuns);
   const listFn = useServerFn(listKyloSignupRuns);
   const ensureFn = useServerFn(ensureKyloSignupWorkflow);
   const callStartRecording = useServerFn(startRecording);
