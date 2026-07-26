@@ -1,41 +1,46 @@
-## Cél
-Reddit angol nyelvű regisztrációk beindítása 5 különböző account-tal, kommentek automatikus figyelése, és belső Inbox a kézi válaszadáshoz — mind a Brain modulon belül.
+## A lényeg
 
-## Lépés 1 — Reddit workflow-k (5 db)
-Létrehozok 5 Reddit workflow-t az adatbázisban a bejelentkezett felhasználó tenantjához:
-- `reddit-au` (Ausztrália)
-- `reddit-ca` (Kanada)
-- `reddit-gb` (Egyesült Királyság)
-- `reddit-us` (USA)
-- `reddit-nl` (Hollandia)
+A `Kylo Sign Up` workflow-t **nem másoljuk le**. Ami hetekig fájt, az a motor volt (felvétel → visszajátszás → proxy → riport), és az most stabil. Ha másolgatjuk, minden másolatban külön romlik el.
 
-Mindegyik: `module: 'brain'`, `status: 'draft'`, `spec.platform: 'reddit'`, `spec.monitor_type: 'reddit-account'`, `spec.locale` és `spec.subreddits` alapértékek.
+Helyette: **a motor egy darab marad, a tesztek adatok lesznek.** Új funkció tesztelése ezután felvétel + elnevezés, nem kódolás, nem `git pull`, nem VPS build.
 
-## Lépés 2 — Reddit Inbox adatbázis
-Új táblák a `public` sémában (RLS-sel, GRANT-tel):
+## Amit építünk
 
-- `reddit_accounts` — workflow-hoz kötött Reddit fiók metaadatok (username, karma, létrehozás dátuma, status).
-- `reddit_comments` — begyűjtött kommentek: workflow_id, account_id, permalink, author, body_en (eredeti), body_hu (magyar fordítás), suggested_reply_hu (Gemini javaslat magyarul), suggested_reply_en (Gemini javaslat angolul), reply_status (`pending` | `answered` | `ignored`), collected_at.
+**1. Teszt-forgatókönyv tár**
+Minden kis teszt egy sor az adatbázisban: név, funkció-címke (pl. „olvasónapló"), lépéslista, elvárások, nyelvvizsga-dimenzió. A meglévő signup flow lesz az első ilyen forgatókönyv — átalakítjuk, nem duplikáljuk.
 
-## Lépés 3 — Read-only monitoring backend
-- Új szerverfüggvény `reddit-monitor.functions.ts`:
-  - `fetchRedditComments(workflowId)` — pillanatnyilag Reddit publikus JSON API-ról olvassa be a subreddit inbox / user mentions listát (bejelentkezés nélkül, publikus adat).
-  - Minden új kommentre Gemini hívás: magyar fordítás + magyar és angol válaszjavaslat.
-  - Eredmény mentése `reddit_comments`-be.
-- `generateReplySuggestion(commentId, hungarianDraft)` — a felhasználó által írt magyar szöveget fordítja angolra Geminivel; visszaadja a tiszta angol szöveget másoláshoz.
-- Ütemezés: pg_cron TanStack public API route-ra hívva, kétnaponta reggel 8:00 CET.
+**2. Építőkocka-készlet (közös előjátékok)**
+Bejelentkezés, előfizetés bekapcsolása, nyelvvizsga kiválasztása, navigálás egy modulba. Egyszer vesszük fel, utána bármelyik teszt elé bepipálható. Így az olvasónapló-teszt nem rögzíti újra a belépést.
 
-## Lépés 4 — Inbox UI
-Új útvonal: `_authenticated.inbox.tsx` (a bal oldalsávban „Inbox" néven, csak Brain modulban).
-- Bal oldal: 5 Reddit account fül; jobb oldal: pending kommentek listája.
-- Egy komment kártya: eredeti angol szöveg, magyar fordítás, Gemini javaslat magyarul (szerkeszthető mező), plain-text mező a végleges magyar válaszhoz, „Fordítás angolra" gomb, „Másolás vágólapra" gomb (tiszta plain text), „Megválaszoltnak jelöl" és „Elrejt" gombok.
-- Nincs auto-post — csak kézi másolás és beillesztés Redditbe.
+**3. Kétféle létrehozás (a válaszod szerint mindkettő)**
+- *Felveszem*: végigkattintom a funkciót, rögzül, elnevezem.
+- *Összerakom*: kockákból kattintom össze.
+- A felvett lépéslista utólag szerkeszthető, sorok törölhetők/átnevezhetők.
 
-## Technikai megjegyzések
-- A Reddit crawler egyelőre a publikus JSON végponttal dolgozik (`old.reddit.com/user/<user>/comments.json`), később bejelentkezéses módra bővíthető, ha karmagyűjtés után account-specifikus feed kell.
-- A workflow-lock (nincs auto-run, ha nyitva a Live Browse) már az előző körben elkészült — nem érintjük.
-- Anti-detect a kézi Reddit használathoz: külön proxy account-onként, plain-text Ctrl+C/Ctrl+V (nem Wordből), pár perces késleltetés a posztolás előtt.
+**4. Kettős Gemini-ellenőrzés**
+- **A) Megfigyelő**: mit adott ki a Kylo (feladat, javítás, magyarázat) — képernyőkép + kiolvasott szöveg alapján leírja, mi történt.
+- **B) Bíró**: külön, független hívás. Csak a feladatot és a Kylo válaszát kapja meg, az A) véleményét NEM. Ítél: helyes-e, releváns-e, jó nyelvi szinten van-e. Pontszám + indoklás.
+Így nem tudja magát felmenteni a rendszer.
 
-## Nem része ennek a körnek
-- Reddit auto-poster runner (VPS worker kód) — külön körben.
-- Fejlettebb keyword-alapú subreddit scraping — később.
+**5. Nyelvvizsga-mátrix**
+A vizsgatípus nem külön teszt, hanem dimenzió. Egy forgatókönyv opcionálisan végigfut az összes vizsgán, és a riport mátrixban mutatja: vizsga × funkció → zöld/piros. Ezzel a dinamikus menü is tesztelve lesz: rögzítjük, melyik vizsgánál mely funkcióknak KELL megjelennie, és eltérésnél hibát jelez.
+
+**6. Riport**
+Forgatókönyvenként: lépések, képernyőképek, bírói pontszám, nyelvi ellenőrzés, proxy/ország. Fölötte összesítő mátrix.
+
+## Sorrend
+
+1. Adatbázis: forgatókönyvek, építőkockák, vizsga-mátrix táblák.
+2. Felület `/audit/scenarios` alatt: lista, felvétel, kockákból építés, szerkesztés, indítás.
+3. A signup flow átemelése első forgatókönyvnek (bizonyíték, hogy a motor változatlanul jó).
+4. Kettős Gemini bíró bekötése.
+5. Első új teszt: **olvasónapló** — végigkattintva, bíróval.
+6. Vizsga-mátrix bekapcsolása.
+
+## Technikai megjegyzés
+
+A worker oldalon a `record-replay` motor és az orchestrator **nem változik** — csak a rá küldött feladat-leírás lesz általánosabb (forgatókönyv-azonosító + lépések + elvárások). Így nem kell VPS-t újraépíteni minden új teszthez; a VPS-en futó kód ugyanaz marad, csak más adatot kap. Ez oldja meg azt, amitől tartasz: nem fordulhat elő újra, hogy egy új workflow miatt egy napot a motorral kell küzdeni.
+
+## Egy nyitott kérdés
+
+A nyelvvizsga-típusok pontos listája (hány darab, mi a nevük) — ezt még megadod, addig a mátrixot úgy építem, hogy a felületen te tudod felvenni őket.

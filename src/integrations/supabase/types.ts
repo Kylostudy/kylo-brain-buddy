@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_exam_types: {
+        Row: {
+          code: string
+          created_at: string
+          expected_features: string[]
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expected_features?: string[]
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expected_features?: string[]
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_qa_coverage: {
         Row: {
           id: string
@@ -306,6 +342,121 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "audit_qa_schedules_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_scenario_verdicts: {
+        Row: {
+          created_at: string
+          exam_code: string | null
+          id: string
+          judge: Json
+          observer: Json
+          passed: boolean | null
+          run_id: string | null
+          scenario_id: string | null
+          score: number | null
+          summary: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          exam_code?: string | null
+          id?: string
+          judge?: Json
+          observer?: Json
+          passed?: boolean | null
+          run_id?: string | null
+          scenario_id?: string | null
+          score?: number | null
+          summary?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          exam_code?: string | null
+          id?: string
+          judge?: Json
+          observer?: Json
+          passed?: boolean | null
+          run_id?: string | null
+          scenario_id?: string | null
+          score?: number | null
+          summary?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_scenario_verdicts_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "audit_scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_scenarios: {
+        Row: {
+          base_url: string
+          created_at: string
+          description: string | null
+          expectations: Json
+          feature_tag: string | null
+          id: string
+          is_active: boolean
+          kind: string
+          name: string
+          prelude_block_ids: string[]
+          run_per_exam: boolean
+          sort_order: number
+          steps: Json
+          tenant_id: string
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          base_url?: string
+          created_at?: string
+          description?: string | null
+          expectations?: Json
+          feature_tag?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name: string
+          prelude_block_ids?: string[]
+          run_per_exam?: boolean
+          sort_order?: number
+          steps?: Json
+          tenant_id: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          base_url?: string
+          created_at?: string
+          description?: string | null
+          expectations?: Json
+          feature_tag?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name?: string
+          prelude_block_ids?: string[]
+          run_per_exam?: boolean
+          sort_order?: number
+          steps?: Json
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_scenarios_workflow_id_fkey"
             columns: ["workflow_id"]
             isOneToOne: false
             referencedRelation: "workflows"
