@@ -202,6 +202,15 @@ function SignupPage() {
               <span className="ml-1.5">Felvétel</span>
             </Button>
             <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => startAllMut.mutate()}
+              disabled={startAllMut.isPending || !canStart}
+              title={canStart ? "Egyszerre indít egy futást minden angol nyelvterületi proxyra" : "Először kösd be a Gmail postafiókot"}
+            >
+              {startAllMut.isPending ? "Indítás…" : "Összes angol (terheléses)"}
+            </Button>
+            <Button
               size="lg"
               onClick={() => startMut.mutate()}
               disabled={startMut.isPending || !canStart}
