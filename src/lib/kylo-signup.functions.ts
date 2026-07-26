@@ -582,29 +582,22 @@ export const listKyloSignupRuns = createServerFn({ method: "GET" })
       steps?: unknown[];
       screenshots?: unknown[];
     };
-    const slimRun = (r: Record<string, unknown>) => {
-      const snap = (r.spec_snapshot ?? {}) as { kylo_signup?: SignupMeta };
-      const res = (r.result ?? null) as SlimResult | null;
-      return {
-        id: r.id as string,
-        status: r.status as string,
-        started_at: (r.started_at ?? null) as string | null,
-        finished_at: (r.finished_at ?? null) as string | null,
-        error: (r.error ?? null) as string | null,
-        proxy_id: (r.proxy_id ?? null) as string | null,
-        spec_snapshot: { kylo_signup: (snap.kylo_signup ?? null) as SignupMeta | null },
-        result: res
-          ? {
-              reached_stripe: res.reached_stripe ?? null,
-              final_url: res.final_url ?? null,
-              language_ok: res.language_ok ?? null,
-              expected_lang: res.expected_lang ?? null,
-              steps_count: Array.isArray(res.steps) ? res.steps.length : 0,
-              screenshots_count: Array.isArray(res.screenshots) ? res.screenshots.length : 0,
-            }
-          : null,
-      };
-    };
+    const slimRun = (r: Record<string, unknown>) => ({
+      id: r.id as string,
+      status: r.status as string,
+      started_at: (r.started_at ?? null) as string | null,
+      finished_at: (r.finished_at ?? null) as string | null,
+      error: (r.error ?? null) as string | null,
+      proxy_id: (r.proxy_id ?? null) as string | null,
+      spec_snapshot: { kylo_signup: (r.kylo_signup ?? null) as SignupMeta | null },
+      result: {
+        reached_stripe: (r.reached_stripe ?? null) as boolean | null,
+        final_url: (r.final_url ?? null) as string | null,
+        language_ok: (r.language_ok ?? null) as boolean | null,
+        expected_lang: (r.expected_lang ?? null) as string | null,
+      },
+    });
+
 
     const rawSpec = (wf.spec ?? {}) as {
       monitor_type?: string;
