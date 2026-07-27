@@ -946,7 +946,10 @@ type Summary = {
   byError: Record<string, number>;
   byLang: Record<string, { total: number; ok: number; bad: number }>;
   loggedIn: number;
+  reachedStripe?: number;
+  reachedProfile?: number;
   avgActions: number | null;
+
 };
 
 function SummaryCard() {
