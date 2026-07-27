@@ -1,0 +1,11 @@
+[Unit]
+Description=Kylo worker watchdog időzítő
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=15s
+Unit=kylo-watchdog.service
+
+[Install]
+WantedBy=timers.target
