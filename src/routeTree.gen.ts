@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as AuthenticatedWorkerHealthRouteImport } from './routes/_authenticated.worker-health'
 import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authenticated.reddit-warmup'
 import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenticated.reddit-scout'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
@@ -27,6 +28,7 @@ import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/pu
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
 import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
 import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
+import { Route as ApiPublicWorkerHeartbeatRouteImport } from './routes/api/public/worker/heartbeat'
 import { Route as ApiPublicWorkerGmailConfirmationLinkRouteImport } from './routes/api/public/worker/gmail-confirmation-link'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
@@ -72,6 +74,12 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWorkerHealthRoute =
+  AuthenticatedWorkerHealthRouteImport.update({
+    id: '/worker-health',
+    path: '/worker-health',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRedditWarmupRoute =
   AuthenticatedRedditWarmupRouteImport.update({
     id: '/reddit-warmup',
@@ -150,6 +158,12 @@ const ApiPublicWorkerLearnedSelectorsRoute =
   ApiPublicWorkerLearnedSelectorsRouteImport.update({
     id: '/api/public/worker/learned-selectors',
     path: '/api/public/worker/learned-selectors',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerHeartbeatRoute =
+  ApiPublicWorkerHeartbeatRouteImport.update({
+    id: '/api/public/worker/heartbeat',
+    path: '/api/public/worker/heartbeat',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWorkerGmailConfirmationLinkRoute =
@@ -306,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
+  '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
   '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
@@ -322,6 +337,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
+  '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
@@ -349,6 +365,7 @@ export interface FileRoutesByTo {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
+  '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
@@ -366,6 +383,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
+  '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
@@ -395,6 +413,7 @@ export interface FileRoutesById {
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
   '/_authenticated/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/_authenticated/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
+  '/_authenticated/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/audit/qa': typeof AuthenticatedAuditQaRoute
@@ -412,6 +431,7 @@ export interface FileRoutesById {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
+  '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
@@ -442,6 +462,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/reddit-scout'
     | '/reddit-warmup'
+    | '/worker-health'
     | '/api/transcribe'
     | '/audit/qa'
     | '/audit/scenarios'
@@ -458,6 +479,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/gmail-confirmation-link'
+    | '/api/public/worker/heartbeat'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
@@ -485,6 +507,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/reddit-scout'
     | '/reddit-warmup'
+    | '/worker-health'
     | '/api/transcribe'
     | '/'
     | '/audit/qa'
@@ -502,6 +525,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/gmail-confirmation-link'
+    | '/api/public/worker/heartbeat'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
@@ -530,6 +554,7 @@ export interface FileRouteTypes {
     | '/_authenticated/proxies'
     | '/_authenticated/reddit-scout'
     | '/_authenticated/reddit-warmup'
+    | '/_authenticated/worker-health'
     | '/api/transcribe'
     | '/_authenticated/'
     | '/_authenticated/audit/qa'
@@ -547,6 +572,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/gmail-confirmation-link'
+    | '/api/public/worker/heartbeat'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
@@ -584,6 +610,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
   ApiPublicWorkerGmailConfirmationLinkRoute: typeof ApiPublicWorkerGmailConfirmationLinkRoute
+  ApiPublicWorkerHeartbeatRoute: typeof ApiPublicWorkerHeartbeatRoute
   ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
   ApiPublicWorkerProgressRoute: typeof ApiPublicWorkerProgressRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
@@ -634,6 +661,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/worker-health': {
+      id: '/_authenticated/worker-health'
+      path: '/worker-health'
+      fullPath: '/worker-health'
+      preLoaderRoute: typeof AuthenticatedWorkerHealthRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/reddit-warmup': {
       id: '/_authenticated/reddit-warmup'
@@ -731,6 +765,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/learned-selectors'
       fullPath: '/api/public/worker/learned-selectors'
       preLoaderRoute: typeof ApiPublicWorkerLearnedSelectorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/heartbeat': {
+      id: '/api/public/worker/heartbeat'
+      path: '/api/public/worker/heartbeat'
+      fullPath: '/api/public/worker/heartbeat'
+      preLoaderRoute: typeof ApiPublicWorkerHeartbeatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/gmail-confirmation-link': {
@@ -916,6 +957,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
   AuthenticatedRedditScoutRoute: typeof AuthenticatedRedditScoutRoute
   AuthenticatedRedditWarmupRoute: typeof AuthenticatedRedditWarmupRoute
+  AuthenticatedWorkerHealthRoute: typeof AuthenticatedWorkerHealthRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAuditQaRoute: typeof AuthenticatedAuditQaRoute
   AuthenticatedAuditScenariosRoute: typeof AuthenticatedAuditScenariosRoute
@@ -928,6 +970,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
   AuthenticatedRedditScoutRoute: AuthenticatedRedditScoutRoute,
   AuthenticatedRedditWarmupRoute: AuthenticatedRedditWarmupRoute,
+  AuthenticatedWorkerHealthRoute: AuthenticatedWorkerHealthRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAuditQaRoute: AuthenticatedAuditQaRoute,
   AuthenticatedAuditScenariosRoute: AuthenticatedAuditScenariosRoute,
@@ -970,6 +1013,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
   ApiPublicWorkerGmailConfirmationLinkRoute:
     ApiPublicWorkerGmailConfirmationLinkRoute,
+  ApiPublicWorkerHeartbeatRoute: ApiPublicWorkerHeartbeatRoute,
   ApiPublicWorkerLearnedSelectorsRoute: ApiPublicWorkerLearnedSelectorsRoute,
   ApiPublicWorkerProgressRoute: ApiPublicWorkerProgressRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,

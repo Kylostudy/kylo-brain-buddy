@@ -1510,6 +1510,57 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_heartbeats: {
+        Row: {
+          containers_running: number | null
+          cpu_percent: number | null
+          created_at: string
+          detail: Json
+          disk_percent: number | null
+          id: string
+          inflight_jobs: number | null
+          load1: number | null
+          load5: number | null
+          mem_percent: number | null
+          mem_total_mb: number | null
+          mem_used_mb: number | null
+          uptime_seconds: number | null
+          worker_id: string
+        }
+        Insert: {
+          containers_running?: number | null
+          cpu_percent?: number | null
+          created_at?: string
+          detail?: Json
+          disk_percent?: number | null
+          id?: string
+          inflight_jobs?: number | null
+          load1?: number | null
+          load5?: number | null
+          mem_percent?: number | null
+          mem_total_mb?: number | null
+          mem_used_mb?: number | null
+          uptime_seconds?: number | null
+          worker_id: string
+        }
+        Update: {
+          containers_running?: number | null
+          cpu_percent?: number | null
+          created_at?: string
+          detail?: Json
+          disk_percent?: number | null
+          id?: string
+          inflight_jobs?: number | null
+          load1?: number | null
+          load5?: number | null
+          mem_percent?: number | null
+          mem_total_mb?: number | null
+          mem_used_mb?: number | null
+          uptime_seconds?: number | null
+          worker_id?: string
+        }
+        Relationships: []
+      }
       worker_learned_selectors: {
         Row: {
           created_at: string
