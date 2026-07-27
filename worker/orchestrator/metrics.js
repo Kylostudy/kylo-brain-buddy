@@ -82,6 +82,9 @@ export function startHeartbeat({ brainFetch, workerId, getInflight, intervalMs =
           containers: names.slice(0, 40),
         },
       }, { timeoutMs: 15000 });
+      console.log(
+        `[heartbeat] elküldve — RAM ${Math.round((memUsed / memTotal) * 100)}%, load1 ${load1.toFixed(2)}, konténer ${names.length}`,
+      );
     } catch (e) {
       console.error("[heartbeat] hiba:", e.message);
     }
