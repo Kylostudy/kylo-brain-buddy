@@ -17,6 +17,7 @@ import { createClient } from "@supabase/supabase-js";
 import { spawn, spawnSync } from "node:child_process";
 import ws from "ws";
 import { buildFingerprintInitScript } from "./fingerprint-patch.js";
+import { createHealth, installGracefulShutdown, installCrashGuards } from "./health.js";
 
 let chromium = null;
 async function getChromium() {
@@ -1274,20 +1275,39 @@ async function loop() {
   console.log(
     `[${WORKER_ID}] recording poll aktív: ${POLL_INTERVAL_MS}ms-onként nézem a /api/public/worker/record-claim végpontot`,
   );
+
+  installCrashGuards();
+  const health = createHealth({
+    port: Number(process.env.HEALTH_PORT || 9091),
+    label: `recorder ${WORKER_ID}`,
+    getInflight: () => active.size,
+    getLimit: () => MAX_SESSIONS,
+  });
+  installGracefulShutdown({
+    state: health.state,
+    getInflight: () => active.size,
+    maxWaitMs: Number(process.env.RECORDER_DRAIN_TIMEOUT_MS || 20 * 60 * 1000),
+  });
+
   while (true) {
-    if (active.size < MAX_SESSIONS) {
-      const payload = await claimNext();
-      if (payload?.session) {
-        const id = payload.session.id;
-        const p = runSession(payload)
-          .catch(async (e) => {
-            console.error(`[session ${id}] crashed`, e.message);
-            await fetchStatus(id, { error: e.message?.slice(0, 500) ?? "unknown" });
-          })
-          .finally(() => active.delete(id));
-        active.set(id, p);
-        continue; // azonnal próbálj még egyet
+    try {
+      health.tick();
+      if (!health.state.draining && active.size < MAX_SESSIONS) {
+        const payload = await claimNext();
+        if (payload?.session) {
+          const id = payload.session.id;
+          const p = runSession(payload)
+            .catch(async (e) => {
+              console.error(`[session ${id}] crashed`, e.message);
+              await fetchStatus(id, { error: e.message?.slice(0, 500) ?? "unknown" });
+            })
+            .finally(() => active.delete(id));
+          active.set(id, p);
+          continue; // azonnal próbálj még egyet
+        }
       }
+    } catch (e) {
+      console.error("[loop] hiba, folytatom:", e?.message || e);
     }
     await sleep(POLL_INTERVAL_MS);
   }
@@ -1297,3 +1317,4 @@ loop().catch((e) => {
   console.error("[recorder] fatal", e);
   process.exit(1);
 });
+

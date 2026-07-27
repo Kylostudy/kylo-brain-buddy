@@ -15,6 +15,8 @@ import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { startHeartbeat } from "./metrics.js";
+import { createHealth, installGracefulShutdown, installCrashGuards } from "./health.js";
+import { currentLimit, HARD_MAX } from "./capacity.js";
 
 // A payloadokat (spec, credentials, proxy) fájlon keresztül adjuk át a
 // konténernek. Régebben env változóként (SPEC_JSON=...) argv-be raktuk, de
@@ -398,23 +400,60 @@ async function processOne() {
 
 async function loop() {
   console.log(
-    `[${WORKER_ID}] orchestrator → ${BRAIN_URL} | max ${MAX_PARALLEL} párhuzamos`,
+    `[${WORKER_ID}] orchestrator → ${BRAIN_URL} | felső korlát ${HARD_MAX} párhuzamos (dinamikus fékkel)`,
   );
   console.log(
     `[${WORKER_ID}] workflow poll aktív: ${POLL_INTERVAL_MS}ms-onként nézem a /api/public/worker/claim végpontot`,
   );
+
+  installCrashGuards();
+
+  let effectiveLimit = HARD_MAX;
+  const health = createHealth({
+    port: Number(process.env.HEALTH_PORT || 9090),
+    label: `orchestrator ${WORKER_ID}`,
+    getInflight: () => inflight.size,
+    getLimit: () => effectiveLimit,
+  });
+
+  installGracefulShutdown({
+    state: health.state,
+    getInflight: () => inflight.size,
+  });
+
   startHeartbeat({
     brainFetch,
     workerId: WORKER_ID,
     getInflight: () => inflight.size,
     intervalMs: Number(process.env.HEARTBEAT_INTERVAL_MS || 60000),
   });
+
+  let lastThrottleLogAt = 0;
   while (true) {
-    if (inflight.size < MAX_PARALLEL) {
-      processOne().catch((e) => console.error("processOne", e));
+    try {
+      health.tick();
+      const cap = currentLimit(inflight.size);
+      effectiveLimit = cap.limit;
+
+      if (health.state.draining) {
+        // Leállás alatt nem veszünk fel újat, de a futókat kivárjuk.
+      } else if (inflight.size < cap.limit) {
+        processOne().catch((e) => console.error("processOne", e));
+      } else if (cap.reasons.length && Date.now() - lastThrottleLogAt > 60000) {
+        lastThrottleLogAt = Date.now();
+        console.warn(
+          `[fék] ${inflight.size} futás fut, új munkát most nem veszek fel — ${cap.reasons.join(", ")}`,
+        );
+      }
+    } catch (e) {
+      console.error("[loop] hiba, folytatom:", e?.message || e);
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 }
 
-loop();
+loop().catch((e) => {
+  console.error("[orchestrator] fatal", e?.stack || e?.message || e);
+  process.exit(1);
+});
+
