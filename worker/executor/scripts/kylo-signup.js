@@ -921,7 +921,7 @@ async function openGmailConfirmationLink(page, email, log) {
           log("info", `Gmail ${attempt}/${MAX_ATTEMPTS} — TALÁLAT: feladó=${res.from || "?"}, tárgy="${res.subject || "?"}", link=${res.link.slice(0, 80)}…`);
           await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 45000 });
           await page.waitForTimeout(2500);
-          return { ok: true, subject: res.subject || null, from: res.from || null, url: page.url() };
+          return { ok: true, subject: res.subject || null, from: res.from || null, snippet: res.snippet || null, url: page.url() };
         }
         // Nincs találat — logoljuk mit látott a Gmail (ha a szerver visszaadja)
         const meta = res?.debug || res?.meta || {};
