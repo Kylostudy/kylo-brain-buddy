@@ -264,7 +264,11 @@ async function auditLanguage(page, label, log, expectedLang) {
       ok = looksExpected && !(looksEnglish && !r.html_lang_ok);
       if (!ok) reason = looksEnglish ? "angol fallback (nincs fordítás)" : "nem az elvárt nyelv";
     }
-    const entry = { label, ...r, ok, reason: reason || null };
+    const entry = { label, ...r, ok, reason: reason || null, landing_page: landing };
+    if (landing) {
+      log("info", `Nyitóoldal (${label}): szándékosan angol — nem számít nyelvi hibának · ${r.url}`);
+    }
+
     log(
       ok === false ? "warn" : "info",
       ok === false
