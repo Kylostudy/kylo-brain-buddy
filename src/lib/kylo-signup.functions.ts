@@ -421,12 +421,9 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
         ...currentSpec,
         monitor_type: SIGNUP_MONITOR,
         account_label: `Kylo Sign Up #${counter} · ${expectedCountry ?? "??"} · ${skin}`,
-        ...(recordedActions.length > 0
-          ? {
-              brain_task: { task_type: "record_replay_login", platform: "kylo-study" },
-              recorded_actions: recordedActions,
-            }
-          : {}),
+        // A felvett lépések útmutatóként mennek — a signup script követi az
+        // eredeti regisztrációs űrlapot, de friss aliasszal regisztrál.
+        ...(recordedActions.length > 0 ? { recorded_actions: recordedActions, brain_task: null } : {}),
         kylo_signup: {
           base_url: data.baseUrl,
           run_index: counter,
