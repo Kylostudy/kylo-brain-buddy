@@ -37,7 +37,16 @@ export const Route = createFileRoute("/api/public/auth/password")({
         });
 
         const payload = await authResponse.json().catch(() => null) as
-          | { access_token?: string; refresh_token?: string; user?: unknown; msg?: string; error_description?: string; error?: string }
+          | {
+              access_token?: string;
+              refresh_token?: string;
+              expires_at?: number;
+              expires_in?: number;
+              user?: unknown;
+              msg?: string;
+              error_description?: string;
+              error?: string;
+            }
           | null;
 
         if (!authResponse.ok || !payload?.access_token || !payload.refresh_token || !payload.user) {
@@ -48,7 +57,12 @@ export const Route = createFileRoute("/api/public/auth/password")({
           );
         }
 
-        return Response.json({ session: payload });
+        return Response.json({
+          session: {
+            ...payload,
+            expires_at: payload.expires_at ?? Math.floor(Date.now() / 1000) + (payload.expires_in ?? 3600),
+          },
+        });
       },
     },
   },
