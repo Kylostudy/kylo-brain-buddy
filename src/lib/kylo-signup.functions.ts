@@ -119,6 +119,50 @@ function generatePassword(): string {
   return `Kylo!${out}`;
 }
 
+// A generált alias e-mail + jelszó párost eltároljuk (jelszó titkosítva),
+// hogy a későbbi funkcionális tesztek már belépéssel induljanak, ne új
+// regisztrációval.
+async function saveTestAccount(
+  supabase: { from: (t: string) => any },
+  row: {
+    tenantId: string;
+    workflowId: string;
+    runId: string;
+    email: string;
+    password: string;
+    runIndex: number;
+    skin: string;
+    country: string | null;
+    lang: string;
+    currency: string;
+  },
+) {
+  try {
+    const enc = await encryptString(row.password);
+    await supabase
+      .from("audit_test_accounts")
+      .upsert(
+        {
+          tenant_id: row.tenantId,
+          workflow_id: row.workflowId,
+          run_id: row.runId,
+          email: row.email,
+          password_ciphertext: enc.ciphertext,
+          password_nonce: enc.nonce,
+          run_index: row.runIndex,
+          skin: row.skin,
+          country: row.country,
+          lang: row.lang,
+          currency: row.currency,
+          status: "pending",
+        },
+        { onConflict: "tenant_id,email" },
+      );
+  } catch (e) {
+    console.error("[kylo-signup] teszt fiók mentése sikertelen:", e);
+  }
+}
+
 type SignupState = {
   run_counter: number;
   last_proxy_id: string | null;
@@ -291,6 +335,21 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
       .single();
     if (qErr) throw new Error(qErr.message);
 
+    await saveTestAccount(supabase as never, {
+      tenantId,
+      workflowId: wfId,
+      runId: run!.id,
+      email,
+      password,
+      runIndex: nextCounter,
+      skin,
+      country: expectedCountry,
+      lang,
+      currency,
+    });
+
+
+
     // Rotáció állapot mentése
     const nextState: SignupState = {
       run_counter: nextCounter,
@@ -461,6 +520,21 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
         .select("id")
         .single();
       if (qErr) throw new Error(qErr.message);
+
+      await saveTestAccount(supabase as never, {
+        tenantId,
+        workflowId: wfId,
+        runId: run!.id,
+        email,
+        password,
+        runIndex: counter,
+        skin,
+        country: expectedCountry,
+        lang,
+        currency,
+      });
+
+
 
       lastSkin = skin;
       queued.push({ runId: run!.id, runIndex: counter, country: expectedCountry, skin, email });
@@ -934,4 +1008,68 @@ export const getKyloSignupSummary = createServerFn({ method: "GET" })
       avgActions: actsCount ? Math.round(actsSum / actsCount) : null,
     };
 
+  });
+
+// ─────────────────────────────────────────────────────────────
+// Teszt fiókok (alias e-mail + jelszó) — mentés, listázás, jelszó előhívás.
+// A későbbi funkcionális teszteknél már ezekkel lépünk be, nem regisztrálunk újra.
+// ─────────────────────────────────────────────────────────────
+
+export const listKyloTestAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const { data, error } = await supabase
+      .from("audit_test_accounts")
+      .select(
+        "id, email, run_index, skin, country, lang, currency, status, registered_at, last_login_at, created_at, notes",
+      )
+      .order("created_at", { ascending: false })
+      .limit(300);
+    if (error) throw new Error(error.message);
+    return { accounts: data ?? [] };
+  });
+
+export const revealKyloTestPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await supabase
+      .from("audit_test_accounts")
+      .select("id, email, password_ciphertext, password_nonce")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Nincs ilyen teszt fiók.");
+    const { decryptString } = await import("@/lib/credentials/crypto.server");
+    const password = await decryptString(
+      row.password_ciphertext as string,
+      row.password_nonce as string,
+    );
+    return { email: row.email as string, password };
+  });
+
+export const markKyloTestAccountLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("audit_test_accounts")
+      .update({ last_login_at: new Date().toISOString() } as never)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteKyloTestAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("audit_test_accounts")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

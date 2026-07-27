@@ -22,6 +22,7 @@ import { startGmailOAuth, disconnectGmail } from "@/lib/gmail.functions";
 import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
 import { listProxies } from "@/lib/proxies.functions";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
+import { TestAccountsPanel } from "@/components/audit-qa/test-accounts-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -434,6 +435,9 @@ function SignupPage() {
 
 
       <SummaryCard />
+
+      <TestAccountsPanel />
+
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
