@@ -92,10 +92,31 @@ function readResult(r: unknown): {
     reason?: string | null;
     sample?: string;
   }>;
+  criteria?: Record<string, boolean>;
+  criteria_failed?: string[];
+  flow_ok?: boolean;
+
 } {
   if (!r || typeof r !== "object") return {};
   return r as never;
 }
+
+const CRITERIA_LABELS_HU: Record<string, string> = {
+  landing_english: "Nyitóoldal angolul jelenik meg",
+  auth_dialog_language: "Belépési panel a cél nyelven",
+  signup_form_language: "Regisztrációs űrlap a cél nyelven",
+  registration_submitted: "Regisztráció elküldve",
+  confirmation_email_received: "Megerősítő e-mail megérkezett",
+  confirmation_email_language: "Megerősítő e-mail a cél nyelven",
+  plan_page_language: "Csomagválasztó a cél nyelven",
+  billing_form_language: "Számlázási űrlap a cél nyelven",
+  reached_stripe: "Eljutott a Stripe fizetésig",
+  stripe_paid: "Fizetés elküldve",
+  payment_success_page_language: "Sikeres fizetés oldal a cél nyelven",
+  reached_profile: "Eljutott a profil oldalra",
+  profile_page_language: "Profil oldal a cél nyelven",
+};
+
 
 
 function SignupPage() {
@@ -605,7 +626,31 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
               <div className="whitespace-pre-wrap break-words">{run.error}</div>
             </div>
           )}
+          {res.criteria && Object.keys(res.criteria).length > 0 && (
+            <div
+              className={`rounded-md border p-2 ${
+                res.flow_ok
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                  : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+              }`}
+            >
+              <div className="text-xs font-semibold uppercase">
+                Sikerességi kritériumok — {Object.values(res.criteria).filter(Boolean).length}/
+                {Object.keys(res.criteria).length} teljesült
+              </div>
+              <ul className="mt-1 space-y-0.5 text-xs">
+                {Object.entries(CRITERIA_LABELS_HU).map(([key, label]) =>
+                  key in (res.criteria ?? {}) ? (
+                    <li key={key}>
+                      {res.criteria?.[key] ? "✅" : "❌"} {label}
+                    </li>
+                  ) : null,
+                )}
+              </ul>
+            </div>
+          )}
           {Array.isArray(res.language_checks) && res.language_checks.length > 0 && (
+
             <div
               className={`rounded-md border p-2 ${
                 res.language_ok

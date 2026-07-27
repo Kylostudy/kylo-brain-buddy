@@ -17,6 +17,24 @@
 
 import { getGmailConfirmationLink } from "./brain-tasks/brain-api.js";
 import { humanClick, humanType } from "./humanize.js";
+import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
+
+// Számlázási űrlap kitöltéséhez használt tesztadatok.
+const BILLING_TEST = {
+  name: "Kylo Test",
+  line1: "1 Test Street",
+  city: "Testville",
+  postal: "10001",
+  phone: "+15555550123",
+};
+
+const CLICK_HINTS_PAY = [
+  "fizetés", "fizetek", "tovább a fizetéshez", "pay", "pay now", "continue to payment",
+  "proceed to payment", "checkout", "continue", "tovább", "weiter", "zur kasse", "bezahlen",
+  "payer", "continuer", "pagar", "continuar", "paga", "continua", "оплатить", "продолжить",
+  "支払い", "お支払い", "続ける", "支付", "付款", "결제", "ödeme", "devam",
+];
+
 
 const CLICK_HINTS_SIGNUP = [
   "register/sign in", "register", "sign up", "signup", "sign-up", "regisztráció", "regisztrálok", "regisztrál",
@@ -903,7 +921,7 @@ async function openGmailConfirmationLink(page, email, log) {
           log("info", `Gmail ${attempt}/${MAX_ATTEMPTS} — TALÁLAT: feladó=${res.from || "?"}, tárgy="${res.subject || "?"}", link=${res.link.slice(0, 80)}…`);
           await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 45000 });
           await page.waitForTimeout(2500);
-          return { ok: true, subject: res.subject || null, from: res.from || null, url: page.url() };
+          return { ok: true, subject: res.subject || null, from: res.from || null, snippet: res.snippet || null, url: page.url() };
         }
         // Nincs találat — logoljuk mit látott a Gmail (ha a szerver visszaadja)
         const meta = res?.debug || res?.meta || {};
@@ -929,6 +947,50 @@ async function openGmailConfirmationLink(page, email, log) {
   }
 }
 
+// Számlázási adatok űrlapjának best-effort kitöltése (a Stripe előtti lépés).
+async function fillBillingForm(page, email, log) {
+  const targets = [
+    { keys: ["name", "nev", "név", "fullname", "cardholder", "billingname"], value: BILLING_TEST.name },
+    { keys: ["email", "e-mail"], value: email },
+    { keys: ["address", "line1", "street", "cim", "cím"], value: BILLING_TEST.line1 },
+    { keys: ["city", "town", "varos", "város"], value: BILLING_TEST.city },
+    { keys: ["zip", "postal", "postcode", "iranyitoszam", "irányítószám"], value: BILLING_TEST.postal },
+    { keys: ["phone", "tel"], value: BILLING_TEST.phone },
+  ];
+  let filledCount = 0;
+  try {
+    const inputs = await page.$$('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), textarea');
+    for (const el of inputs) {
+      try {
+        const meta = await el.evaluate((n) => ({
+          key: `${n.name || ""} ${n.id || ""} ${n.getAttribute("placeholder") || ""} ${n.getAttribute("autocomplete") || ""} ${n.getAttribute("aria-label") || ""}`.toLowerCase(),
+          visible: !!(n.offsetWidth || n.offsetHeight),
+          value: n.value || "",
+        }));
+        if (!meta.visible || meta.value) continue;
+        const match = targets.find((t) => t.keys.some((k) => meta.key.includes(k)));
+        if (!match) continue;
+        await el.fill(match.value, { timeout: 2500 });
+        filledCount += 1;
+      } catch {}
+    }
+    // Kötelező jelölőnégyzetek (ÁSZF stb.)
+    const boxes = await page.$$('input[type="checkbox"]');
+    for (const b of boxes) {
+      try {
+        const need = await b.evaluate((n) => !!(n.required || /terms|aszf|ászf|accept|elfogad|agree/i.test(`${n.name || ""} ${n.id || ""}`)));
+        if (need) await b.check({ timeout: 1500 });
+      } catch {}
+    }
+  } catch (e) {
+    log("warn", `Számlázási űrlap kitöltés hiba: ${e.message}`);
+  }
+  log("info", `Számlázási űrlap: ${filledCount} mező kitöltve`);
+  return filledCount > 0;
+}
+
+
+
 export async function runKyloSignup({ page, context, spec, log }) {
   const cfg = spec.kylo_signup || {};
   const baseUrl = cfg.base_url || "https://kylo.study";
@@ -944,6 +1006,34 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   const steps = [];
   const screenshots = [];
+  const langChecks = [];
+  let registrationOk = false;
+  let emailConfirmed = false;
+  let emailLangOk = null;
+
+  // Korai megszakításnál is átadjuk az addig készült screenshotokat és
+  // nyelvi ellenőrzéseket, hogy a riportban látszódjon, meddig jutottunk.
+  const failEarly = (message) => {
+    const err = new Error(message);
+    err.partialResult = {
+      ok: false,
+      email,
+      skin,
+      lang,
+      currency,
+      expected_lang: lang,
+      kylo_flow_checked: true,
+      flow_ok: false,
+      language_checks: langChecks,
+      language_ok: langChecks.every((c) => c.ok !== false),
+      steps,
+      screenshots,
+    };
+    throw err;
+  };
+
+
+
   const startUrl = withLang(baseUrl, lang);
   const diag = installSignupDiagnostics(page, email, password, log);
 
@@ -989,6 +1079,9 @@ export async function runKyloSignup({ page, context, spec, log }) {
   await page.waitForTimeout(1500);
   screenshots.push(await shot(page, "1-home"));
   steps.push({ step: "home", url: page.url() });
+  // A nyitóoldal szándékosan MINDIG angol — ezt is ellenőrizzük.
+  langChecks.push(await auditLanguage(page, "nyitóoldal (angol)", log, "en-GB"));
+
 
   await acceptCookies(page, log);
 
@@ -1083,13 +1176,17 @@ export async function runKyloSignup({ page, context, spec, log }) {
   }
   screenshots.push(await shot(page, "2-after-signup-click"));
   steps.push({ step: "signup-cta", clicked: signupClicked, navigated: signupNavigated, url: page.url() });
+  // A logó mögötti belépési párbeszédnek már a cél nyelven kell megjelennie.
+  langChecks.push(await auditLanguage(page, "belépési párbeszéd", log, lang));
 
   const signupMode = await ensureSignupMode(page, log);
   screenshots.push(await shot(page, "2b-signup-mode-check"));
   steps.push({ step: "signup-mode", ...signupMode });
   if (!signupMode.ok) {
-    throw new Error(`Nem jutottunk regisztrációs űrlapig: ${signupMode.reason || "ismeretlen ok"}. url=${page.url()}`);
+    failEarly(`Nem jutottunk regisztrációs űrlapig: ${signupMode.reason || "ismeretlen ok"}. url=${page.url()}`);
   }
+  // A regisztrációs űrlapnak is a cél nyelven kell megjelennie.
+  langChecks.push(await auditLanguage(page, "regisztrációs űrlap", log, lang));
 
   // 3) űrlap kitöltés
   const filled = await fillSignupForm(page, email, password, log);
@@ -1123,15 +1220,32 @@ export async function runKyloSignup({ page, context, spec, log }) {
       const failureSummary = evidence.failures?.length
         ? ` Failures: ${evidence.failures.map((n) => `${n.kind}:${n.error}`).join(", ")}`
         : "";
-      throw new Error(
+      failEarly(
         `A regisztráció nem indult el, ezért nem várok Gmail e-mailre. Ok: ${evidence.reason}.${pageMessages}${networkSummary}${failureSummary} url=${page.url()}`,
       );
+
     }
+    registrationOk = true;
 
     const confirmation = await openGmailConfirmationLink(page, email, log);
     screenshots.push(await shot(page, "4b-after-email-confirm"));
-    steps.push({ step: "email-confirm", ...confirmation });
+    emailConfirmed = confirmation.ok === true;
+    // A konfirmációs e-mail (tárgy + kivonat) nyelvi ellenőrzése.
+    const emailText = `${confirmation.subject || ""} ${confirmation.snippet || ""}`.trim();
+    if (emailConfirmed && emailText) {
+      const emailCheck = auditTextLanguage("konfirmációs e-mail", emailText, lang);
+      langChecks.push(emailCheck);
+      emailLangOk = emailCheck.ok;
+      log(
+        emailCheck.ok === false ? "warn" : "info",
+        `Konfirmációs e-mail nyelve: ${emailCheck.ok === false ? `HIBA (${emailCheck.reason})` : emailCheck.ok === null ? "nem értékelhető" : "rendben"}`,
+      );
+    }
+    // A megerősítő link megnyitása utáni oldal is a cél nyelven kell legyen.
+    if (emailConfirmed) langChecks.push(await auditLanguage(page, "e-mail megerősítés utáni oldal", log, lang));
+    steps.push({ step: "email-confirm", ...confirmation, language_ok: emailLangOk });
   }
+
 
   // 4) skin — ide még nem építünk be UI-t, csak localStorage seed
   try {
@@ -1144,14 +1258,39 @@ export async function runKyloSignup({ page, context, spec, log }) {
     log("info", `Skin seed elmentve: ${skin}`);
   } catch {}
 
-  // 5) próbáljunk eljutni a Stripe / előfizetés oldalig
-  const subClicked = await clickByText(page, CLICK_HINTS_SUBSCRIBE, log, "Előfizetés / Checkout");
+  // 5) Csomagválasztó → számlázási adatok → Stripe.
+  //    Minden köztes oldalnak a proxy szerinti nyelven kell megjelennie.
+  await page.waitForTimeout(1500);
+  screenshots.push(await shot(page, "5-plan-page"));
+  langChecks.push(await auditLanguage(page, "csomagválasztó", log, lang));
+
+  const subClicked = await clickByText(page, CLICK_HINTS_SUBSCRIBE, log, "Előfizetés / Csomag");
   await page.waitForTimeout(4500);
-  screenshots.push(await shot(page, "5-after-subscribe-click"));
+  screenshots.push(await shot(page, "5b-after-plan-click"));
   let currentUrl = page.url();
-  const reachedStripe = /checkout\.stripe\.com|stripe\.com/.test(currentUrl);
+  let reachedStripe = isStripeUrl(currentUrl);
   steps.push({ step: "subscribe-cta", clicked: subClicked, url: currentUrl, reached_stripe: reachedStripe });
+
+  // Ha még nem vagyunk a Stripe-on, akkor a számlázási űrlap következik.
+  if (!reachedStripe) {
+    langChecks.push(await auditLanguage(page, "számlázási űrlap", log, lang));
+    const billingFilled = await fillBillingForm(page, email, log);
+    screenshots.push(await shot(page, "5c-billing-filled"));
+    const payClicked = await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább");
+    steps.push({ step: "billing", filled: billingFilled, pay_clicked: payClicked, url: page.url() });
+
+    const stripeDeadline = Date.now() + 60_000;
+    while (Date.now() < stripeDeadline) {
+      currentUrl = page.url();
+      if (isStripeUrl(currentUrl)) break;
+      await page.waitForTimeout(1500);
+    }
+    currentUrl = page.url();
+    reachedStripe = isStripeUrl(currentUrl);
+    screenshots.push(await shot(page, "5d-after-pay-click"));
+  }
   log(reachedStripe ? "info" : "warn", `Stripe elérve: ${reachedStripe ? "IGEN" : "NEM"} — ${currentUrl}`);
+
 
   // 6) Stripe Checkout kitöltése tesztkártyával (4242 4242 4242 4242)
   let stripeFilled = false;
@@ -1235,7 +1374,31 @@ export async function runKyloSignup({ page, context, spec, log }) {
     }
   }
 
+  // 6b) Stripe callback → "sikeres fizetés" oldal a Kylón, a cél nyelven.
+  if (stripeSubmitted) {
+    try {
+      const cbDeadline = Date.now() + 90_000;
+      while (Date.now() < cbDeadline) {
+        const u = page.url();
+        if (/kylo\.study/i.test(u) && !isStripeUrl(u)) break;
+        await page.waitForTimeout(1500);
+      }
+      await page.waitForTimeout(1500);
+      screenshots.push(await shot(page, "6b-payment-success"));
+      const back = /kylo\.study/i.test(page.url()) && !isStripeUrl(page.url());
+      if (back) {
+        langChecks.push(await auditLanguage(page, "sikeres fizetés oldal", log, lang));
+      } else {
+        log("warn", "A Stripe callback nem tért vissza a Kylo oldalra 90 másodpercen belül.");
+      }
+      steps.push({ step: "payment-callback", returned: back, url: page.url() });
+    } catch (e) {
+      log("warn", `Fizetési callback várakozás hiba: ${e.message}`);
+    }
+  }
+
   // 7) Vissza a Kylo profil oldalra — success feltétel
+
   let reachedProfile = false;
   let profileUrl = null;
   const profileRe = /kylo\.study.*\/(profile|profil|account|dashboard|app|my|settings)/i;
@@ -1269,7 +1432,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
     log("warn", `Profil várakozás hiba: ${e.message}`);
   }
 
+  // A callback után 3 másodperc várakozás, majd a profil oldal nyelvi ellenőrzése.
+  await page.waitForTimeout(3000);
   screenshots.push(await shot(page, "7-final-profile"));
+  if (reachedProfile) langChecks.push(await auditLanguage(page, "profil oldal", log, lang));
   const finalUrl = page.url();
   steps.push({ step: "profile-check", reached_profile: reachedProfile, profile_url: profileUrl, final_url: finalUrl });
   log(reachedProfile ? "info" : "warn", `Profil oldal elérve: ${reachedProfile ? "IGEN" : "NEM"} — ${finalUrl}`);
@@ -1282,26 +1448,84 @@ export async function runKyloSignup({ page, context, spec, log }) {
     );
   }
 
-  if (!reachedProfile) {
-    throw new Error(
-      `Kylo signup nem érte el a profil oldalt. reached_stripe=${reachedStripe}, ` +
-      `stripe_filled=${stripeFilled}, stripe_submitted=${stripeSubmitted}, final_url=${finalUrl}`,
-    );
-  }
+  // ── Sikerességi kritériumok kiértékelése ────────────────────────────────
+  const failedLangChecks = langChecks.filter((c) => c.ok === false);
+  const languageOk = failedLangChecks.length === 0;
 
-  return {
-    ok: reachedProfile,
+  const criteria = {
+    landing_english: langChecks.find((c) => c.label === "nyitóoldal (angol)")?.ok !== false,
+    auth_dialog_language: langChecks.find((c) => c.label === "belépési párbeszéd")?.ok !== false,
+    signup_form_language: langChecks.find((c) => c.label === "regisztrációs űrlap")?.ok !== false,
+    registration_submitted: registrationOk,
+    confirmation_email_received: emailConfirmed,
+    confirmation_email_language: emailLangOk !== false,
+    plan_page_language: langChecks.find((c) => c.label === "csomagválasztó")?.ok !== false,
+    billing_form_language: langChecks.find((c) => c.label === "számlázási űrlap")?.ok !== false,
+    reached_stripe: reachedStripe,
+    stripe_paid: stripeSubmitted,
+    payment_success_page_language: langChecks.find((c) => c.label === "sikeres fizetés oldal")?.ok !== false,
+    reached_profile: reachedProfile,
+    profile_page_language: langChecks.find((c) => c.label === "profil oldal")?.ok !== false,
+  };
+
+  const CRITERIA_LABELS = {
+    landing_english: "A nyitóoldal angol",
+    auth_dialog_language: "Belépési párbeszéd a cél nyelven",
+    signup_form_language: "Regisztrációs űrlap a cél nyelven",
+    registration_submitted: "Regisztráció elküldve",
+    confirmation_email_received: "Konfirmációs e-mail megérkezett",
+    confirmation_email_language: "Konfirmációs e-mail a cél nyelven",
+    plan_page_language: "Csomagválasztó a cél nyelven",
+    billing_form_language: "Számlázási űrlap a cél nyelven",
+    reached_stripe: "Stripe fizetés elérve",
+    stripe_paid: "Stripe fizetés elküldve",
+    payment_success_page_language: "Sikeres fizetés oldal a cél nyelven",
+    reached_profile: "Profil oldal elérve a callback után",
+    profile_page_language: "Profil oldal a cél nyelven",
+  };
+
+  const criteriaFailed = Object.entries(criteria)
+    .filter(([, v]) => v !== true)
+    .map(([k]) => CRITERIA_LABELS[k] || k);
+
+  const flowOk = criteriaFailed.length === 0;
+
+  log(
+    flowOk ? "info" : "warn",
+    flowOk
+      ? "Minden sikerességi kritérium teljesült — a Kylo Sign Up teszt SIKERES."
+      : `Nem teljesült kritériumok (${criteriaFailed.length}): ${criteriaFailed.join(", ")}`,
+  );
+
+  const result = {
+    ok: flowOk,
     email,
     skin,
     lang,
     currency,
+    expected_lang: lang,
     reached_stripe: reachedStripe,
     stripe_filled: stripeFilled,
     stripe_submitted: stripeSubmitted,
     reached_profile: reachedProfile,
     profile_url: profileUrl,
     final_url: finalUrl,
+    kylo_flow_checked: true,
+    flow_ok: flowOk,
+    criteria,
+    criteria_failed: criteriaFailed,
+    language_checks: langChecks,
+    language_ok: languageOk,
     steps,
     screenshots,
   };
+
+  if (!flowOk) {
+    const err = new Error(`Kylo signup nem teljesítette a kritériumokat: ${criteriaFailed.join(", ")}. final_url=${finalUrl}`);
+    err.partialResult = result;
+    throw err;
+  }
+
+  return result;
 }
+
