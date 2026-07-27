@@ -344,13 +344,30 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   const expectedLang = cfg.lang || "en-GB";
   log("info", `Elvárt felületi nyelv ehhez a futáshoz: ${expectedLang} (ország: ${cfg.expected_country || "?"})`);
   const maxStoredScreenshots = 4;
+
+  // Folyamat-mérföldkövek: eljutott-e a fizetésig, majd a profil oldalig.
+  const PROFILE_RE = /\/(profile|profil|fiok|fiók|account|dashboard|my|settings|beallitasok)\b/i;
+  const milestones = { reached_stripe: false, reached_profile: false, profile_url: null };
+  const noteUrl = () => {
+    let u = "";
+    try { u = page.url(); } catch { return; }
+    if (/stripe\.com|\/fizetes|\/checkout|session_id=cs_/i.test(u)) milestones.reached_stripe = true;
+    if (PROFILE_RE.test(u) && !/stripe\.com/i.test(u)) {
+      milestones.reached_profile = true;
+      milestones.profile_url = u;
+    }
+  };
+  page.on("framenavigated", (f) => { if (f === page.mainFrame()) noteUrl(); });
+
   const capture = async (label) => {
+    noteUrl();
     const shouldStoreScreenshot = label === "final-state" || screenshots.length < maxStoredScreenshots - 1;
     if (shouldStoreScreenshot) {
       screenshots.push(await shot(page, label));
     }
     languageChecks.push(await auditLanguage(page, label, log, expectedLang));
   };
+
 
 
   let skipUntil = -1;
