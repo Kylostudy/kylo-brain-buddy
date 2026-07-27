@@ -1011,6 +1011,29 @@ export async function runKyloSignup({ page, context, spec, log }) {
   let emailConfirmed = false;
   let emailLangOk = null;
 
+  // Korai megszakításnál is átadjuk az addig készült screenshotokat és
+  // nyelvi ellenőrzéseket, hogy a riportban látszódjon, meddig jutottunk.
+  const failEarly = (message) => {
+    const err = new Error(message);
+    err.partialResult = {
+      ok: false,
+      email,
+      skin,
+      lang,
+      currency,
+      expected_lang: lang,
+      kylo_flow_checked: true,
+      flow_ok: false,
+      language_checks: langChecks,
+      language_ok: langChecks.every((c) => c.ok !== false),
+      steps,
+      screenshots,
+    };
+    throw err;
+  };
+
+
+
   const startUrl = withLang(baseUrl, lang);
   const diag = installSignupDiagnostics(page, email, password, log);
 
