@@ -861,9 +861,18 @@ async function submitForm(page, log) {
     if (handle) await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
     else await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-submit="${marker}"]`)?.click(), marker);
     log("info", `Regisztráció submit megnyomva: „${found.text || "submit"}".`);
+    // Diagnosztika: mi takarja a gombot, és mely kötelező mezők üresek/érvénytelenek?
+    const blockers = await collectSubmitBlockers(page, marker).catch(() => null);
+    if (blockers) {
+      log(
+        "info",
+        `Submit diagnosztika — gomb a ponton: ${blockers.elementAtPoint || "?"}, űrlap érvényes: ${blockers.formValid === null ? "n/a" : blockers.formValid ? "igen" : "nem"}, hiányzó/érvénytelen mezők: ${blockers.invalidFields.join(", ") || "nincs"}`,
+      );
+    }
     await page.waitForTimeout(2500);
     return { clicked: true, buttonText: found.text || null };
   }
+
   log("warn", "Nem találtam regisztrációs submit gombot az űrlapban (belépés gombot nem nyomok meg). ");
   return { clicked: false, reason: "no-signup-submit" };
 }
