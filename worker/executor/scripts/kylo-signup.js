@@ -1241,7 +1241,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   langChecks.push(await auditLanguage(page, "regisztrációs űrlap", log, lang));
 
   // 3) űrlap kitöltés
-  const filled = await fillSignupForm(page, email, password, log);
+  const filled = await fillSignupForm(page, email, password, log, recordedPlan);
   screenshots.push(await shot(page, "3-form-filled"));
   steps.push({ step: "form-fill", filled });
 
