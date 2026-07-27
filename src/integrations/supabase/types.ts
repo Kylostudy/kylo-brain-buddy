@@ -1642,6 +1642,36 @@ export type Database = {
           },
         ]
       }
+      workflow_folders: {
+        Row: {
+          created_at: string
+          id: string
+          module: Database["public"]["Enums"]["app_module"]
+          name: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          module?: Database["public"]["Enums"]["app_module"]
+          name: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          module?: Database["public"]["Enums"]["app_module"]
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workflows: {
         Row: {
           active: boolean
@@ -1651,6 +1681,7 @@ export type Database = {
           cookie_jar_updated_at: string | null
           created_at: string
           daily_cap: number
+          folder_id: string | null
           id: string
           language: string | null
           module: Database["public"]["Enums"]["app_module"]
@@ -1675,6 +1706,7 @@ export type Database = {
           cookie_jar_updated_at?: string | null
           created_at?: string
           daily_cap?: number
+          folder_id?: string | null
           id?: string
           language?: string | null
           module?: Database["public"]["Enums"]["app_module"]
@@ -1699,6 +1731,7 @@ export type Database = {
           cookie_jar_updated_at?: string | null
           created_at?: string
           daily_cap?: number
+          folder_id?: string | null
           id?: string
           language?: string | null
           module?: Database["public"]["Enums"]["app_module"]
@@ -1715,7 +1748,15 @@ export type Database = {
           timezone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workflows_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

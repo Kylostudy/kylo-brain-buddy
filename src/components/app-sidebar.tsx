@@ -1,8 +1,27 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, MessageSquare, Trash2, Pencil, Check, X, Copy, Globe, ClipboardCheck, Inbox, Radar, Flame } from "lucide-react";
+import {
+  Plus,
+  MessageSquare,
+  Trash2,
+  Pencil,
+  Check,
+  X,
+  Copy,
+  Globe,
+  ClipboardCheck,
+  Inbox,
+  Radar,
+  Flame,
+  Folder,
+  FolderPlus,
+  FolderOpen,
+  ChevronRight,
+  ChevronDown,
+  FolderInput,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -17,6 +36,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +59,13 @@ type Workflow = {
   status: string;
   updated_at: string;
   spec: unknown;
+  folder_id: string | null;
+};
+
+type WorkflowFolder = {
+  id: string;
+  name: string;
+  sort_order: number;
 };
 
 function getMonitorType(spec: unknown): string | null {
@@ -43,12 +77,24 @@ function getMonitorType(spec: unknown): string | null {
 async function fetchWorkflows(module: AppModule): Promise<Workflow[]> {
   const { data, error } = await supabase
     .from("workflows")
-    .select("id, name, status, updated_at, spec")
+    .select("id, name, status, updated_at, spec, folder_id")
     .eq("module", module)
     .order("updated_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
+
+async function fetchFolders(module: AppModule): Promise<WorkflowFolder[]> {
+  const { data, error } = await supabase
+    .from("workflow_folders")
+    .select("id, name, sort_order")
+    .eq("module", module)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 
 
 export function AppSidebar() {
@@ -70,9 +116,105 @@ export function AppSidebar() {
     queryFn: () => fetchWorkflows(module),
   });
 
+  const { data: folders = [] } = useQuery({
+    queryKey: ["workflow-folders", module],
+    queryFn: () => fetchFolders(module),
+  });
+
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [folderDraft, setFolderDraft] = useState("");
+
+  const grouped = useMemo(() => {
+    const byFolder = new Map<string, Workflow[]>();
+    const loose: Workflow[] = [];
+    for (const wf of workflows) {
+      if (wf.folder_id && folders.some((f) => f.id === wf.folder_id)) {
+        const list = byFolder.get(wf.folder_id) ?? [];
+        list.push(wf);
+        byFolder.set(wf.folder_id, list);
+      } else {
+        loose.push(wf);
+      }
+    }
+    return { byFolder, loose };
+  }, [workflows, folders]);
+
   useEffect(() => {
     if (editingId) editInputRef.current?.focus();
   }, [editingId]);
+
+  async function getTenantId(): Promise<string | null> {
+    const uid = readStoredSupabaseSession()?.user?.id;
+    if (!uid) return null;
+    const { data } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", uid)
+      .maybeSingle();
+    return data?.tenant_id ?? null;
+  }
+
+  async function createFolder() {
+    const tenantId = await getTenantId();
+    if (!tenantId) {
+      toast.error("Nincs tenant hozzárendelve a felhasználóhoz.");
+      return;
+    }
+    const { data, error } = await supabase
+      .from("workflow_folders")
+      .insert({ name: "Új mappa", module, tenant_id: tenantId })
+      .select("id")
+      .single();
+    if (error) {
+      toast.error(`Mappa létrehozása sikertelen: ${error.message}`);
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["workflow-folders", module] });
+    setFolderDraft("Új mappa");
+    setEditingFolderId(data.id);
+  }
+
+  async function commitFolderName(id: string) {
+    const next = folderDraft.trim();
+    setEditingFolderId(null);
+    if (!next) return;
+    const { error } = await supabase
+      .from("workflow_folders")
+      .update({ name: next })
+      .eq("id", id);
+    if (error) {
+      toast.error("Mappa átnevezése sikertelen");
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["workflow-folders", module] });
+  }
+
+  async function deleteFolder(id: string) {
+    const { error } = await supabase.from("workflow_folders").delete().eq("id", id);
+    if (error) {
+      toast.error("Mappa törlése sikertelen");
+      return;
+    }
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["workflow-folders", module] }),
+      qc.invalidateQueries({ queryKey: ["workflows", module] }),
+    ]);
+    toast.success("Mappa törölve — a workflow-k megmaradtak.");
+  }
+
+  async function moveWorkflow(workflowId: string, folderId: string | null) {
+    const { error } = await supabase
+      .from("workflows")
+      .update({ folder_id: folderId })
+      .eq("id", workflowId);
+    if (error) {
+      toast.error(`Áthelyezés sikertelen: ${error.message}`);
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["workflows", module] });
+  }
+
 
   async function createWorkflow() {
     const uid = readStoredSupabaseSession()?.user?.id;
@@ -156,7 +298,167 @@ export function AppSidebar() {
     }
   }
 
+  function renderWorkflow(wf: Workflow) {
+    const monitorType = getMonitorType(wf.spec);
+    const isKyloStudyQa = module === "audit" && monitorType === "kylo-study-qa";
+    const isKyloSignup = module === "audit" && monitorType === "kylo-study-signup";
+    const active = isKyloStudyQa
+      ? currentPath.startsWith("/audit/qa")
+      : isKyloSignup
+      ? currentPath.startsWith("/audit/signup")
+      : currentPath === `/w/${wf.id}`;
+    const isEditing = editingId === wf.id;
+    const ItemIcon = isKyloStudyQa || isKyloSignup ? ClipboardCheck : MessageSquare;
+    return (
+      <SidebarMenuItem key={wf.id}>
+        {isEditing ? (
+          <div className="flex items-center gap-1 px-1 group-data-[collapsible=icon]:hidden">
+            <Input
+              ref={editInputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitEdit(wf.id);
+                if (e.key === "Escape") setEditingId(null);
+              }}
+              onBlur={() => commitEdit(wf.id)}
+              className="h-7 text-xs"
+              placeholder="Workflow neve"
+            />
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                commitEdit(wf.id);
+              }}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+              aria-label="Mentés"
+            >
+              <Check className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setEditingId(null);
+              }}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+              aria-label="Mégse"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="group/item flex items-center gap-1">
+            <SidebarMenuButton asChild isActive={active} className="flex-1">
+              {isKyloStudyQa ? (
+                <Link
+                  to="/audit/qa"
+                  onDoubleClick={(e) => startEdit(wf, e)}
+                  className="flex items-center gap-2"
+                >
+                  <ItemIcon className="size-4 shrink-0" />
+                  <span className="truncate">{wf.name}</span>
+                </Link>
+              ) : isKyloSignup ? (
+                <Link
+                  to="/audit/signup"
+                  onDoubleClick={(e) => startEdit(wf, e)}
+                  className="flex items-center gap-2"
+                >
+                  <ItemIcon className="size-4 shrink-0" />
+                  <span className="truncate">{wf.name}</span>
+                </Link>
+              ) : (
+                <Link
+                  to="/w/$workflowId"
+                  params={{ workflowId: wf.id }}
+                  onDoubleClick={(e) => startEdit(wf, e)}
+                  className="flex items-center gap-2"
+                >
+                  <ItemIcon className="size-4 shrink-0" />
+                  <span className="truncate">{wf.name}</span>
+                </Link>
+              )}
+            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden"
+                  aria-label="Mappába helyezés"
+                >
+                  <FolderInput className="size-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-52">
+                <DropdownMenuLabel>Áthelyezés mappába</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {folders.length === 0 && (
+                  <DropdownMenuItem disabled>Még nincs mappa</DropdownMenuItem>
+                )}
+                {folders.map((f) => (
+                  <DropdownMenuItem
+                    key={f.id}
+                    disabled={wf.folder_id === f.id}
+                    onSelect={() => moveWorkflow(wf.id, f.id)}
+                  >
+                    <Folder className="size-4" />
+                    {f.name}
+                  </DropdownMenuItem>
+                ))}
+                {wf.folder_id && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => moveWorkflow(wf.id, null)}>
+                      <X className="size-4" />
+                      Kivétel a mappából
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <button
+              type="button"
+              onClick={(e) => startEdit(wf, e)}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden"
+              aria-label="Átnevezés"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+            {!isKyloStudyQa && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  duplicateWorkflowFn(wf.id);
+                }}
+                className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+                aria-label="Másolat készítése"
+              >
+                <Copy className="size-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                deleteWorkflow(wf.id);
+              }}
+              className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+              aria-label="Törlés"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        )}
+      </SidebarMenuItem>
+    );
+  }
+
   return (
+
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <Link to="/" className="flex items-center gap-2 px-2 py-1.5">
@@ -176,7 +478,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupContent className="px-2">
+          <SidebarGroupContent className="flex flex-col gap-1.5 px-2">
             <Button
               size="sm"
               className="w-full justify-start gap-2"
@@ -187,8 +489,20 @@ export function AppSidebar() {
                 Új workflow
               </span>
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={createFolder}
+            >
+              <FolderPlus className="size-4" />
+              <span className="group-data-[collapsible=icon]:hidden">
+                Új mappa
+              </span>
+            </Button>
           </SidebarGroupContent>
         </SidebarGroup>
+
 
         {module === "audit" && (
           <SidebarGroup>
@@ -239,127 +553,95 @@ export function AppSidebar() {
                   Még nincs workflow.
                 </div>
               )}
-              {workflows.map((wf) => {
-                const monitorType = getMonitorType(wf.spec);
-                const isKyloStudyQa = module === "audit" && monitorType === "kylo-study-qa";
-                const isKyloSignup = module === "audit" && monitorType === "kylo-study-signup";
-                const active = isKyloStudyQa
-                  ? currentPath.startsWith("/audit/qa")
-                  : isKyloSignup
-                  ? currentPath.startsWith("/audit/signup")
-                  : currentPath === `/w/${wf.id}`;
-                const isEditing = editingId === wf.id;
-                const ItemIcon = isKyloStudyQa || isKyloSignup ? ClipboardCheck : MessageSquare;
+              {folders.map((folder) => {
+                const items = grouped.byFolder.get(folder.id) ?? [];
+                const isOpen = !collapsed[folder.id];
                 return (
-                  <SidebarMenuItem key={wf.id}>
-                    {isEditing ? (
-                      <div className="flex items-center gap-1 px-1 group-data-[collapsible=icon]:hidden">
+                  <SidebarMenuItem key={folder.id} className="flex-col items-stretch">
+                    <div className="group/folder flex items-center gap-1">
+                      {editingFolderId === folder.id ? (
                         <Input
-                          ref={editInputRef}
-                          value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
+                          autoFocus
+                          value={folderDraft}
+                          onChange={(e) => setFolderDraft(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") commitEdit(wf.id);
-                            if (e.key === "Escape") setEditingId(null);
+                            if (e.key === "Enter") commitFolderName(folder.id);
+                            if (e.key === "Escape") setEditingFolderId(null);
                           }}
-                          onBlur={() => commitEdit(wf.id)}
+                          onBlur={() => commitFolderName(folder.id)}
                           className="h-7 text-xs"
-                          placeholder="Workflow neve"
+                          placeholder="Mappa neve"
                         />
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            commitEdit(wf.id);
-                          }}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-                          aria-label="Mentés"
-                        >
-                          <Check className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setEditingId(null);
-                          }}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-                          aria-label="Mégse"
-                        >
-                          <X className="size-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="group/item flex items-center gap-1">
-                        <SidebarMenuButton asChild isActive={active} className="flex-1">
-                          {isKyloStudyQa ? (
-                            <Link
-                              to="/audit/qa"
-                              onDoubleClick={(e) => startEdit(wf, e)}
-                              className="flex items-center gap-2"
-                            >
-                              <ItemIcon className="size-4 shrink-0" />
-                              <span className="truncate">{wf.name}</span>
-                            </Link>
-                          ) : isKyloSignup ? (
-                            <Link
-                              to="/audit/signup"
-                              onDoubleClick={(e) => startEdit(wf, e)}
-                              className="flex items-center gap-2"
-                            >
-                              <ItemIcon className="size-4 shrink-0" />
-                              <span className="truncate">{wf.name}</span>
-                            </Link>
-                          ) : (
-                            <Link
-                              to="/w/$workflowId"
-                              params={{ workflowId: wf.id }}
-                              onDoubleClick={(e) => startEdit(wf, e)}
-                              className="flex items-center gap-2"
-                            >
-                              <ItemIcon className="size-4 shrink-0" />
-                              <span className="truncate">{wf.name}</span>
-                            </Link>
-                          )}
-                        </SidebarMenuButton>
-                        <button
-                          type="button"
-                          onClick={(e) => startEdit(wf, e)}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden"
-                          aria-label="Átnevezés"
-                        >
-                          <Pencil className="size-3.5" />
-                        </button>
-                        {!isKyloStudyQa && (
+                      ) : (
+                        <>
+                          <SidebarMenuButton
+                            className="flex-1"
+                            onClick={() =>
+                              setCollapsed((c) => ({ ...c, [folder.id]: isOpen }))
+                            }
+                            onDoubleClick={() => {
+                              setFolderDraft(folder.name);
+                              setEditingFolderId(folder.id);
+                            }}
+                          >
+                            {isOpen ? (
+                              <ChevronDown className="size-3.5 shrink-0" />
+                            ) : (
+                              <ChevronRight className="size-3.5 shrink-0" />
+                            )}
+                            {isOpen ? (
+                              <FolderOpen className="size-4 shrink-0" />
+                            ) : (
+                              <Folder className="size-4 shrink-0" />
+                            )}
+                            <span className="truncate font-medium">{folder.name}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">
+                              {items.length}
+                            </span>
+                          </SidebarMenuButton>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              duplicateWorkflowFn(wf.id);
+                            onClick={() => {
+                              setFolderDraft(folder.name);
+                              setEditingFolderId(folder.id);
                             }}
-                            className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
-                            aria-label="Másolat készítése"
+                            className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden"
+                            aria-label="Mappa átnevezése"
                           >
-                            <Copy className="size-3.5" />
+                            <Pencil className="size-3.5" />
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteFolder(folder.id)}
+                            className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/folder:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+                            aria-label="Mappa törlése"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {isOpen && (
+                      <div className="mt-0.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-2 group-data-[collapsible=icon]:hidden">
+                        {items.length === 0 && (
+                          <div className="px-2 py-1 text-xs text-muted-foreground">
+                            Üres mappa
+                          </div>
                         )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            deleteWorkflow(wf.id);
-                          }}
-                          className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
-                          aria-label="Törlés"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
+                        {items.map((wf) => renderWorkflow(wf))}
                       </div>
                     )}
                   </SidebarMenuItem>
                 );
               })}
+
+              {folders.length > 0 && grouped.loose.length > 0 && (
+                <div className="px-2 pt-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                  Mappa nélkül
+                </div>
+              )}
+              {grouped.loose.map((wf) => renderWorkflow(wf))}
+
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
