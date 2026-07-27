@@ -1,8 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-
-import type { Database } from "@/integrations/supabase/types";
 
 const passwordLoginSchema = z.object({
   email: z.string().email(),
@@ -30,23 +27,42 @@ export const Route = createFileRoute("/api/public/auth/password")({
           );
         }
 
-        const supabase = createClient<Database>(supabaseUrl, publishableKey, {
-          auth: {
-            storage: undefined,
-            persistSession: false,
-            autoRefreshToken: false,
+        const authResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: publishableKey,
           },
+          body: JSON.stringify(parsed.data),
         });
 
-        const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-        if (error || !data.session) {
+        const payload = await authResponse.json().catch(() => null) as
+          | {
+              access_token?: string;
+              refresh_token?: string;
+              expires_at?: number;
+              expires_in?: number;
+              user?: unknown;
+              msg?: string;
+              error_description?: string;
+              error?: string;
+            }
+          | null;
+
+        if (!authResponse.ok || !payload?.access_token || !payload.refresh_token || !payload.user) {
+          const message = payload?.msg || payload?.error_description || payload?.error || "Sikertelen bejelentkezés.";
           return Response.json(
-            { error: error?.message ?? "Sikertelen bejelentkezés." },
-            { status: 401 },
+            { error: message },
+            { status: authResponse.status === 400 ? 401 : authResponse.status },
           );
         }
 
-        return Response.json({ session: data.session });
+        return Response.json({
+          session: {
+            ...payload,
+            expires_at: payload.expires_at ?? Math.floor(Date.now() / 1000) + (payload.expires_in ?? 3600),
+          },
+        });
       },
     },
   },
