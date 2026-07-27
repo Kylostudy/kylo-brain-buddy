@@ -521,6 +521,21 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
         .single();
       if (qErr) throw new Error(qErr.message);
 
+      await saveTestAccount(supabase as never, {
+        tenantId,
+        workflowId: wfId,
+        runId: run!.id,
+        email,
+        password,
+        runIndex: counter,
+        skin,
+        country: expectedCountry,
+        lang,
+        currency,
+      });
+
+
+
       lastSkin = skin;
       queued.push({ runId: run!.id, runIndex: counter, country: expectedCountry, skin, email });
     }
