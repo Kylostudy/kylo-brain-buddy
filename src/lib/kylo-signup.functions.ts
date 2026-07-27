@@ -740,8 +740,25 @@ export const deleteKyloSignupRun = createServerFn({ method: "POST" })
       .eq("id", data.runId)
       .eq("tenant_id", prof.tenant_id);
     if (error) throw new Error(error.message);
-    return { ok: true };
+
+    // A képek a Hetzner puffer szolgáltatásban vannak — azokat is töröljük.
+    const shotsUrl = (process.env.SHOTS_UPLOAD_URL || "").replace(/\/$/, "");
+    const token = (process.env.WORKER_API_TOKEN || "").trim();
+    let shotsDeleted = false;
+    if (shotsUrl && token) {
+      try {
+        const res = await fetch(`${shotsUrl}/run/${data.runId}`, {
+          method: "DELETE",
+          headers: { authorization: `Bearer ${token}` },
+        });
+        shotsDeleted = res.ok;
+      } catch {
+        shotsDeleted = false;
+      }
+    }
+    return { ok: true, shotsDeleted };
   });
+
 
 
 
