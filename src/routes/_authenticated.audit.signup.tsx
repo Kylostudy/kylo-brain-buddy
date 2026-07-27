@@ -11,6 +11,8 @@ import {
   ensureKyloSignupWorkflow,
   setKyloSignupRecorderProxy,
   deleteKyloSignupRun,
+  deleteKyloSignupRuns,
+  getKyloSignupSummary,
   getKyloSignupRun,
   cancelPendingSignupRuns,
 
