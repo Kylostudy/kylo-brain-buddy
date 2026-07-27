@@ -1287,7 +1287,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
     log("warn", `Profil várakozás hiba: ${e.message}`);
   }
 
+  // A callback után 3 másodperc várakozás, majd a profil oldal nyelvi ellenőrzése.
+  await page.waitForTimeout(3000);
   screenshots.push(await shot(page, "7-final-profile"));
+  if (reachedProfile) langChecks.push(await auditLanguage(page, "profil oldal", log, lang));
   const finalUrl = page.url();
   steps.push({ step: "profile-check", reached_profile: reachedProfile, profile_url: profileUrl, final_url: finalUrl });
   log(reachedProfile ? "info" : "warn", `Profil oldal elérve: ${reachedProfile ? "IGEN" : "NEM"} — ${finalUrl}`);
@@ -1300,26 +1303,84 @@ export async function runKyloSignup({ page, context, spec, log }) {
     );
   }
 
-  if (!reachedProfile) {
-    throw new Error(
-      `Kylo signup nem érte el a profil oldalt. reached_stripe=${reachedStripe}, ` +
-      `stripe_filled=${stripeFilled}, stripe_submitted=${stripeSubmitted}, final_url=${finalUrl}`,
-    );
-  }
+  // ── Sikerességi kritériumok kiértékelése ────────────────────────────────
+  const failedLangChecks = langChecks.filter((c) => c.ok === false);
+  const languageOk = failedLangChecks.length === 0;
 
-  return {
-    ok: reachedProfile,
+  const criteria = {
+    landing_english: langChecks.find((c) => c.label === "nyitóoldal (angol)")?.ok !== false,
+    auth_dialog_language: langChecks.find((c) => c.label === "belépési párbeszéd")?.ok !== false,
+    signup_form_language: langChecks.find((c) => c.label === "regisztrációs űrlap")?.ok !== false,
+    registration_submitted: registrationOk,
+    confirmation_email_received: emailConfirmed,
+    confirmation_email_language: emailLangOk !== false,
+    plan_page_language: langChecks.find((c) => c.label === "csomagválasztó")?.ok !== false,
+    billing_form_language: langChecks.find((c) => c.label === "számlázási űrlap")?.ok !== false,
+    reached_stripe: reachedStripe,
+    stripe_paid: stripeSubmitted,
+    payment_success_page_language: langChecks.find((c) => c.label === "sikeres fizetés oldal")?.ok !== false,
+    reached_profile: reachedProfile,
+    profile_page_language: langChecks.find((c) => c.label === "profil oldal")?.ok !== false,
+  };
+
+  const CRITERIA_LABELS = {
+    landing_english: "A nyitóoldal angol",
+    auth_dialog_language: "Belépési párbeszéd a cél nyelven",
+    signup_form_language: "Regisztrációs űrlap a cél nyelven",
+    registration_submitted: "Regisztráció elküldve",
+    confirmation_email_received: "Konfirmációs e-mail megérkezett",
+    confirmation_email_language: "Konfirmációs e-mail a cél nyelven",
+    plan_page_language: "Csomagválasztó a cél nyelven",
+    billing_form_language: "Számlázási űrlap a cél nyelven",
+    reached_stripe: "Stripe fizetés elérve",
+    stripe_paid: "Stripe fizetés elküldve",
+    payment_success_page_language: "Sikeres fizetés oldal a cél nyelven",
+    reached_profile: "Profil oldal elérve a callback után",
+    profile_page_language: "Profil oldal a cél nyelven",
+  };
+
+  const criteriaFailed = Object.entries(criteria)
+    .filter(([, v]) => v !== true)
+    .map(([k]) => CRITERIA_LABELS[k] || k);
+
+  const flowOk = criteriaFailed.length === 0;
+
+  log(
+    flowOk ? "info" : "warn",
+    flowOk
+      ? "Minden sikerességi kritérium teljesült — a Kylo Sign Up teszt SIKERES."
+      : `Nem teljesült kritériumok (${criteriaFailed.length}): ${criteriaFailed.join(", ")}`,
+  );
+
+  const result = {
+    ok: flowOk,
     email,
     skin,
     lang,
     currency,
+    expected_lang: lang,
     reached_stripe: reachedStripe,
     stripe_filled: stripeFilled,
     stripe_submitted: stripeSubmitted,
     reached_profile: reachedProfile,
     profile_url: profileUrl,
     final_url: finalUrl,
+    kylo_flow_checked: true,
+    flow_ok: flowOk,
+    criteria,
+    criteria_failed: criteriaFailed,
+    language_checks: langChecks,
+    language_ok: languageOk,
     steps,
     screenshots,
   };
+
+  if (!flowOk) {
+    const err = new Error(`Kylo signup nem teljesítette a kritériumokat: ${criteriaFailed.join(", ")}. final_url=${finalUrl}`);
+    err.partialResult = result;
+    throw err;
+  }
+
+  return result;
 }
+
