@@ -14,6 +14,7 @@
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { startHeartbeat } from "./metrics.js";
 
 // A payloadokat (spec, credentials, proxy) fájlon keresztül adjuk át a
 // konténernek. Régebben env változóként (SPEC_JSON=...) argv-be raktuk, de
@@ -402,6 +403,12 @@ async function loop() {
   console.log(
     `[${WORKER_ID}] workflow poll aktív: ${POLL_INTERVAL_MS}ms-onként nézem a /api/public/worker/claim végpontot`,
   );
+  startHeartbeat({
+    brainFetch,
+    workerId: WORKER_ID,
+    getInflight: () => inflight.size,
+    intervalMs: Number(process.env.HEARTBEAT_INTERVAL_MS || 60000),
+  });
   while (true) {
     if (inflight.size < MAX_PARALLEL) {
       processOne().catch((e) => console.error("processOne", e));

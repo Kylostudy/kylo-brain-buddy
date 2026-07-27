@@ -27,6 +27,7 @@ import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/pu
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
 import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
 import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
+import { Route as ApiPublicWorkerHeartbeatRouteImport } from './routes/api/public/worker/heartbeat'
 import { Route as ApiPublicWorkerGmailConfirmationLinkRouteImport } from './routes/api/public/worker/gmail-confirmation-link'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
@@ -150,6 +151,12 @@ const ApiPublicWorkerLearnedSelectorsRoute =
   ApiPublicWorkerLearnedSelectorsRouteImport.update({
     id: '/api/public/worker/learned-selectors',
     path: '/api/public/worker/learned-selectors',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerHeartbeatRoute =
+  ApiPublicWorkerHeartbeatRouteImport.update({
+    id: '/api/public/worker/heartbeat',
+    path: '/api/public/worker/heartbeat',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWorkerGmailConfirmationLinkRoute =
@@ -322,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
+  '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
@@ -366,6 +374,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
+  '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
@@ -412,6 +421,7 @@ export interface FileRoutesById {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
+  '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
@@ -458,6 +468,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/gmail-confirmation-link'
+    | '/api/public/worker/heartbeat'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
@@ -502,6 +513,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/gmail-confirmation-link'
+    | '/api/public/worker/heartbeat'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
@@ -547,6 +559,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/gmail-confirmation-link'
+    | '/api/public/worker/heartbeat'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
@@ -584,6 +597,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
   ApiPublicWorkerGmailConfirmationLinkRoute: typeof ApiPublicWorkerGmailConfirmationLinkRoute
+  ApiPublicWorkerHeartbeatRoute: typeof ApiPublicWorkerHeartbeatRoute
   ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
   ApiPublicWorkerProgressRoute: typeof ApiPublicWorkerProgressRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
@@ -731,6 +745,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/learned-selectors'
       fullPath: '/api/public/worker/learned-selectors'
       preLoaderRoute: typeof ApiPublicWorkerLearnedSelectorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/heartbeat': {
+      id: '/api/public/worker/heartbeat'
+      path: '/api/public/worker/heartbeat'
+      fullPath: '/api/public/worker/heartbeat'
+      preLoaderRoute: typeof ApiPublicWorkerHeartbeatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/gmail-confirmation-link': {
@@ -970,6 +991,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
   ApiPublicWorkerGmailConfirmationLinkRoute:
     ApiPublicWorkerGmailConfirmationLinkRoute,
+  ApiPublicWorkerHeartbeatRoute: ApiPublicWorkerHeartbeatRoute,
   ApiPublicWorkerLearnedSelectorsRoute: ApiPublicWorkerLearnedSelectorsRoute,
   ApiPublicWorkerProgressRoute: ApiPublicWorkerProgressRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
