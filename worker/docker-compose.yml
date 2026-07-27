@@ -7,6 +7,19 @@ services:
     command: ["true"]   # csak image-et építünk vele, ne fusson tartósan
     restart: "no"
 
+  # Öngyógyítás: ha egy konténer "unhealthy" lesz, ez újraindítja. Csak azokat
+  # bántja, amiken ott az autoheal címke — a futó executor konténerekhez nem nyúl.
+  autoheal:
+    image: willfarrell/autoheal:latest
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+      - AUTOHEAL_INTERVAL=30
+      - AUTOHEAL_START_PERIOD=120
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=1800
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+
   # Képpuffer a saját SSD-n: a futások screenshotjai ide kerülnek,
   # az adatbázisba csak a link megy. 14 napnál régebbi képeket automatikusan törli.
   shots:
@@ -23,7 +36,15 @@ services:
     ports:
       - "${SHOTS_PORT:-8088}:8080"
     command: node index.js
-    restart: unless-stopped
+    restart: always
+    labels:
+      - autoheal=true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   orchestrator:
     image: node:20-alpine
@@ -38,14 +59,32 @@ services:
       - WORKER_ID=${WORKER_ID:-worker-1}
       - EXECUTOR_IMAGE=kylo-executor:latest
       - MAX_PARALLEL=${MAX_PARALLEL:-12}
+      - MIN_PARALLEL=${MIN_PARALLEL:-1}
+      - LOAD_PER_CPU_LIMIT=${LOAD_PER_CPU_LIMIT:-1.5}
+      - MEM_PER_JOB_MB=${MEM_PER_JOB_MB:-1200}
+      - MEM_HARD_LIMIT_PCT=${MEM_HARD_LIMIT_PCT:-90}
       - POLL_INTERVAL_MS=${POLL_INTERVAL_MS:-3000}
+      - HEALTH_PORT=9090
+      - HEALTH_STALL_MS=${HEALTH_STALL_MS:-120000}
+      - DRAIN_TIMEOUT_MS=${DRAIN_TIMEOUT_MS:-2700000}
       - SHOTS_UPLOAD_URL=${SHOTS_UPLOAD_URL:-http://shots:8080}
       - SHOTS_PUBLIC_URL=${SHOTS_PUBLIC_URL:-}
     command: sh -c "apk add --no-cache docker-cli && node index.js"
     depends_on:
       - executor-image
       - shots
-    restart: unless-stopped
+    restart: always
+    # Újraindításkor NEM lőjük ki a futó munkákat: 45 percet kap a szabályos
+    # leállásra (drain), addig befejezi a folyamatban lévő futásokat.
+    stop_grace_period: 2700s
+    labels:
+      - autoheal=true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
 
   recorder:
     build:
@@ -62,7 +101,18 @@ services:
       - RECORD_FPS=${RECORD_FPS:-5}
       - RECORD_VIEWPORT_W=${RECORD_VIEWPORT_W:-1280}
       - RECORD_VIEWPORT_H=${RECORD_VIEWPORT_H:-800}
+      - HEALTH_PORT=9091
+      - HEALTH_STALL_MS=${HEALTH_STALL_MS:-120000}
+      - RECORDER_DRAIN_TIMEOUT_MS=${RECORDER_DRAIN_TIMEOUT_MS:-1200000}
       - PROXY_1=${PROXY_1:-}
       - PROXY_2=${PROXY_2:-}
-    restart: unless-stopped
-
+    restart: always
+    stop_grace_period: 1200s
+    labels:
+      - autoheal=true
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:9091/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
