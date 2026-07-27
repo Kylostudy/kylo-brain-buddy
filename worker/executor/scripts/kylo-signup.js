@@ -1101,6 +1101,8 @@ export async function runKyloSignup({ page, context, spec, log }) {
   }
   screenshots.push(await shot(page, "2-after-signup-click"));
   steps.push({ step: "signup-cta", clicked: signupClicked, navigated: signupNavigated, url: page.url() });
+  // A logó mögötti belépési párbeszédnek már a cél nyelven kell megjelennie.
+  langChecks.push(await auditLanguage(page, "belépési párbeszéd", log, lang));
 
   const signupMode = await ensureSignupMode(page, log);
   screenshots.push(await shot(page, "2b-signup-mode-check"));
@@ -1108,6 +1110,8 @@ export async function runKyloSignup({ page, context, spec, log }) {
   if (!signupMode.ok) {
     throw new Error(`Nem jutottunk regisztrációs űrlapig: ${signupMode.reason || "ismeretlen ok"}. url=${page.url()}`);
   }
+  // A regisztrációs űrlapnak is a cél nyelven kell megjelennie.
+  langChecks.push(await auditLanguage(page, "regisztrációs űrlap", log, lang));
 
   // 3) űrlap kitöltés
   const filled = await fillSignupForm(page, email, password, log);
@@ -1145,11 +1149,27 @@ export async function runKyloSignup({ page, context, spec, log }) {
         `A regisztráció nem indult el, ezért nem várok Gmail e-mailre. Ok: ${evidence.reason}.${pageMessages}${networkSummary}${failureSummary} url=${page.url()}`,
       );
     }
+    registrationOk = true;
 
     const confirmation = await openGmailConfirmationLink(page, email, log);
     screenshots.push(await shot(page, "4b-after-email-confirm"));
-    steps.push({ step: "email-confirm", ...confirmation });
+    emailConfirmed = confirmation.ok === true;
+    // A konfirmációs e-mail (tárgy + kivonat) nyelvi ellenőrzése.
+    const emailText = `${confirmation.subject || ""} ${confirmation.snippet || ""}`.trim();
+    if (emailConfirmed && emailText) {
+      const emailCheck = auditTextLanguage("konfirmációs e-mail", emailText, lang);
+      langChecks.push(emailCheck);
+      emailLangOk = emailCheck.ok;
+      log(
+        emailCheck.ok === false ? "warn" : "info",
+        `Konfirmációs e-mail nyelve: ${emailCheck.ok === false ? `HIBA (${emailCheck.reason})` : emailCheck.ok === null ? "nem értékelhető" : "rendben"}`,
+      );
+    }
+    // A megerősítő link megnyitása utáni oldal is a cél nyelven kell legyen.
+    if (emailConfirmed) langChecks.push(await auditLanguage(page, "e-mail megerősítés utáni oldal", log, lang));
+    steps.push({ step: "email-confirm", ...confirmation, language_ok: emailLangOk });
   }
+
 
   // 4) skin — ide még nem építünk be UI-t, csak localStorage seed
   try {
