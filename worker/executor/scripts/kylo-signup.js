@@ -947,6 +947,50 @@ async function openGmailConfirmationLink(page, email, log) {
   }
 }
 
+// Számlázási adatok űrlapjának best-effort kitöltése (a Stripe előtti lépés).
+async function fillBillingForm(page, email, log) {
+  const targets = [
+    { keys: ["name", "nev", "név", "fullname", "cardholder", "billingname"], value: BILLING_TEST.name },
+    { keys: ["email", "e-mail"], value: email },
+    { keys: ["address", "line1", "street", "cim", "cím"], value: BILLING_TEST.line1 },
+    { keys: ["city", "town", "varos", "város"], value: BILLING_TEST.city },
+    { keys: ["zip", "postal", "postcode", "iranyitoszam", "irányítószám"], value: BILLING_TEST.postal },
+    { keys: ["phone", "tel"], value: BILLING_TEST.phone },
+  ];
+  let filledCount = 0;
+  try {
+    const inputs = await page.$$('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), textarea');
+    for (const el of inputs) {
+      try {
+        const meta = await el.evaluate((n) => ({
+          key: `${n.name || ""} ${n.id || ""} ${n.getAttribute("placeholder") || ""} ${n.getAttribute("autocomplete") || ""} ${n.getAttribute("aria-label") || ""}`.toLowerCase(),
+          visible: !!(n.offsetWidth || n.offsetHeight),
+          value: n.value || "",
+        }));
+        if (!meta.visible || meta.value) continue;
+        const match = targets.find((t) => t.keys.some((k) => meta.key.includes(k)));
+        if (!match) continue;
+        await el.fill(match.value, { timeout: 2500 });
+        filledCount += 1;
+      } catch {}
+    }
+    // Kötelező jelölőnégyzetek (ÁSZF stb.)
+    const boxes = await page.$$('input[type="checkbox"]');
+    for (const b of boxes) {
+      try {
+        const need = await b.evaluate((n) => !!(n.required || /terms|aszf|ászf|accept|elfogad|agree/i.test(`${n.name || ""} ${n.id || ""}`)));
+        if (need) await b.check({ timeout: 1500 });
+      } catch {}
+    }
+  } catch (e) {
+    log("warn", `Számlázási űrlap kitöltés hiba: ${e.message}`);
+  }
+  log("info", `Számlázási űrlap: ${filledCount} mező kitöltve`);
+  return filledCount > 0;
+}
+
+
+
 export async function runKyloSignup({ page, context, spec, log }) {
   const cfg = spec.kylo_signup || {};
   const baseUrl = cfg.base_url || "https://kylo.study";
