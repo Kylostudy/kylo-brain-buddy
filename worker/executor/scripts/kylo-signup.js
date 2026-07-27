@@ -1197,9 +1197,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
       const failureSummary = evidence.failures?.length
         ? ` Failures: ${evidence.failures.map((n) => `${n.kind}:${n.error}`).join(", ")}`
         : "";
-      throw new Error(
+      failEarly(
         `A regisztráció nem indult el, ezért nem várok Gmail e-mailre. Ok: ${evidence.reason}.${pageMessages}${networkSummary}${failureSummary} url=${page.url()}`,
       );
+
     }
     registrationOk = true;
 
