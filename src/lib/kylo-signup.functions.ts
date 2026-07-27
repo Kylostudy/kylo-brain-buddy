@@ -119,6 +119,50 @@ function generatePassword(): string {
   return `Kylo!${out}`;
 }
 
+// A generált alias e-mail + jelszó párost eltároljuk (jelszó titkosítva),
+// hogy a későbbi funkcionális tesztek már belépéssel induljanak, ne új
+// regisztrációval.
+async function saveTestAccount(
+  supabase: { from: (t: string) => any },
+  row: {
+    tenantId: string;
+    workflowId: string;
+    runId: string;
+    email: string;
+    password: string;
+    runIndex: number;
+    skin: string;
+    country: string | null;
+    lang: string;
+    currency: string;
+  },
+) {
+  try {
+    const enc = await encryptString(row.password);
+    await supabase
+      .from("audit_test_accounts")
+      .upsert(
+        {
+          tenant_id: row.tenantId,
+          workflow_id: row.workflowId,
+          run_id: row.runId,
+          email: row.email,
+          password_ciphertext: enc.ciphertext,
+          password_nonce: enc.nonce,
+          run_index: row.runIndex,
+          skin: row.skin,
+          country: row.country,
+          lang: row.lang,
+          currency: row.currency,
+          status: "pending",
+        },
+        { onConflict: "tenant_id,email" },
+      );
+  } catch (e) {
+    console.error("[kylo-signup] teszt fiók mentése sikertelen:", e);
+  }
+}
+
 type SignupState = {
   run_counter: number;
   last_proxy_id: string | null;
