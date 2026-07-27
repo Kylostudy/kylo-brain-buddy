@@ -303,12 +303,31 @@ function SignupPage() {
               type="button"
               variant="secondary"
               size="lg"
-              onClick={() => startBulk({ scope: "non-english", notBefore: nextOneAm().toISOString() }, "scheduled-non-english")}
+              onClick={() => {
+                if (window.confirm("Ez a nem-angol kört hajnali 1 utánra teszi sorba (angol futás NEM indul). Mehet?")) {
+                  startBulk({ scope: "non-english", notBefore: nextOneAm().toISOString() }, "scheduled-non-english");
+                }
+              }}
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Sorba teszi a nem-angol nyelvi kört, de a worker csak hajnali 1 után kezdi el" : "Először kösd be a Gmail postafiókot"}
             >
               {bulkAction === "scheduled-non-english" && startAllMut.isPending ? "Ütemezés…" : "Nem-angol · hajnali 1 után"}
             </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              onClick={() => {
+                if (window.confirm("Minden sorban álló (még el nem indult) futás visszavonása. Mehet?")) {
+                  cancelPendingMut.mutate();
+                }
+              }}
+              disabled={cancelPendingMut.isPending}
+              title="Vészfék: visszavonja az összes még el nem indult futást"
+            >
+              {cancelPendingMut.isPending ? "Visszavonás…" : "Sorban állók visszavonása"}
+            </Button>
+
             <Button
               type="button"
               size="lg"
