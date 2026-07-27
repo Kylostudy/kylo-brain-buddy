@@ -725,6 +725,21 @@ async function fillSignupForm(page, email, password, log, recordedPlan = []) {
     month: "06",
     day: "15",
   };
+  // A felvett űrlap a mérvadó: onnan vesszük a mezőket és a sorrendet, az email /
+  // jelszó / felhasználónév viszont mindig friss (alias), hogy ÚJ fiók jöjjön létre.
+  const planned = [];
+  for (const field of recordedPlan) {
+    if (["email", "password"].includes(roleOfField(field.id))) continue;
+    const value =
+      roleOfField(field.id) === "username" ? usernameGuess : field.value || defaults[field.id] || "";
+    if (!value) continue;
+    planned.push({ id: field.id, value });
+  }
+  for (const [id, val] of Object.entries(defaults)) {
+    if (["year", "month", "day"].includes(id)) continue;
+    if (planned.some((p) => p.id === id)) continue;
+    planned.push({ id, value: val });
+  }
   const extraFilled = {};
   const fillById = async (id, value) => {
     const el = await page.$(`#${id}`);
@@ -739,9 +754,14 @@ async function fillSignupForm(page, email, password, log, recordedPlan = []) {
       return false;
     }
   };
-  for (const [id, val] of Object.entries(defaults)) {
-    if (["year", "month", "day"].includes(id)) continue;
-    await fillById(id, val);
+  if (recordedPlan.length > 0) {
+    log(
+      "info",
+      `Felvett űrlap követése — mezők: ${recordedPlan.map((f) => f.id).join(", ")}`,
+    );
+  }
+  for (const { id, value } of planned) {
+    await fillById(id, value);
   }
   // Születési dátum: placeholder alapján (ÉÉÉÉ / HH / NN)
   const dateSpecs = [
