@@ -926,6 +926,7 @@ async function forceResubmit(page, log, label) {
 
 async function collectPageDiagnostics(page) {
   return page.evaluate(() => {
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
 
     const visible = (el) => {
       const r = el.getBoundingClientRect();
