@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -108,6 +108,7 @@ function SignupPage() {
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordMode, setRecordMode] = useState<"record" | "browse">("record");
   const [bulkAction, setBulkAction] = useState<"english" | "non-english" | "scheduled-non-english" | null>(null);
+  const bulkLockRef = useRef(false);
 
   useEffect(() => {
     forceModule("audit");
@@ -166,14 +167,18 @@ function SignupPage() {
       qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
     },
     onError: (e: Error) => toast.error(e.message),
-    onSettled: () => setBulkAction(null),
+    onSettled: () => {
+      bulkLockRef.current = false;
+      setBulkAction(null);
+    },
   });
 
   function startBulk(
     vars: { scope: "english" | "non-english"; notBefore?: string | null },
     action: "english" | "non-english" | "scheduled-non-english",
   ) {
-    if (startAllMut.isPending) return;
+    if (startAllMut.isPending || bulkLockRef.current) return;
+    bulkLockRef.current = true;
     setBulkAction(action);
     startAllMut.mutate(vars);
   }

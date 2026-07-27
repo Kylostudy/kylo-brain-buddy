@@ -406,7 +406,9 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
     let counter = state.run_counter;
     let lastSkin = state.last_skin;
 
-    for (const p of english) {
+    const baseNotBeforeMs = data.notBefore ? Date.parse(data.notBefore) : null;
+
+    for (const [index, p] of english.entries()) {
       counter += 1;
       const skin = SKIN_ORDER[counter % SKIN_ORDER.length];
       const expectedCountry = ((p.country as string | null) || "").toUpperCase() || null;
@@ -437,7 +439,10 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
         },
       };
 
-      const notBefore = data.notBefore ?? null;
+      const notBefore =
+        baseNotBeforeMs && Number.isFinite(baseNotBeforeMs)
+          ? new Date(baseNotBeforeMs + index * 10 * 60 * 1000).toISOString()
+          : null;
       const { data: run, error: qErr } = await supabase
         .from("brain_workflow_runs")
         .insert({
