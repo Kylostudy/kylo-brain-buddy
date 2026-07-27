@@ -167,6 +167,24 @@ export const Route = createFileRoute("/api/public/worker/complete")({
             headers: { "content-type": "application/json" },
           });
 
+        // Teszt fiók állapota: ha a Sign Up futás végigment, a hozzá tartozó
+        // alias e-mail + jelszó pár „regisztrált" lesz, így később belépésre
+        // használható; ha bukott, jelöljük hibásnak.
+        try {
+          if (flowChecked) {
+            const registered = !languageFailed && !flowFailed && parsed.status === "succeeded";
+            await sb
+              .from("audit_test_accounts")
+              .update({
+                status: registered ? "registered" : "failed",
+                registered_at: registered ? new Date().toISOString() : null,
+              } as never)
+              .eq("run_id", parsed.runId);
+          }
+        } catch (e) {
+          console.error("[complete] teszt fiók állapot frissítése sikertelen:", e);
+        }
+
         // Warmup cookie-jar persist — ha a worker `cookies_export`-tal tért vissza,
         // titkosítva beírjuk a workflow_credentials.cookie_ciphertext mezőbe.
         // Fontos: a workflows.tenant_id-t használjuk (RLS + NOT NULL a credentials-en).
