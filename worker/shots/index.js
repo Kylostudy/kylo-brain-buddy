@@ -155,7 +155,27 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // Futás törlésekor a hozzá tartozó képek is menjenek. DELETE /run/<runId>
+  if (req.method === "DELETE" && url.pathname.startsWith("/run/")) {
+    if (!authorized(req)) return json(res, 401, { error: "unauthorized" });
+    const runId = normalize(url.pathname).split("/").filter(Boolean)[1] || "";
+    if (!SAFE.test(runId)) return json(res, 400, { error: "bad runId" });
+    const dir = join(DATA_DIR, runId);
+    let removed = 0;
+    try {
+      if (existsSync(dir)) {
+        removed = dirSize(dir).files;
+        rmSync(dir, { recursive: true, force: true });
+      }
+    } catch (e) {
+      return json(res, 500, { error: e.message });
+    }
+    console.log(`[shots] futás törölve: ${runId} (${removed} kép)`);
+    return json(res, 200, { ok: true, removed });
+  }
+
   if (req.method === "GET" && url.pathname.startsWith("/s/")) {
+
     const parts = normalize(url.pathname).split("/").filter(Boolean); // s, run, file
     if (parts.length !== 3 || !SAFE.test(parts[1]) || !SAFE.test(parts[2])) {
       return json(res, 400, { error: "bad path" });
