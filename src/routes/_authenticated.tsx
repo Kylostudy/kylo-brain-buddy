@@ -4,7 +4,7 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { clearStoredSupabaseSession, readStoredSupabaseSession } from "@/lib/auth-session";
@@ -68,7 +68,7 @@ function AppShell({
 }) {
   const { meta } = useModule();
   return (
-    <SidebarProvider>
+    <SidebarProvider style={{ "--sidebar-width": "20rem" } as CSSProperties}>
       <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
         <AppSidebar />
         <div className="flex h-screen min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
