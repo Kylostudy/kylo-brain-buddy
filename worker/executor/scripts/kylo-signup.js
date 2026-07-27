@@ -1162,14 +1162,39 @@ export async function runKyloSignup({ page, context, spec, log }) {
     log("info", `Skin seed elmentve: ${skin}`);
   } catch {}
 
-  // 5) próbáljunk eljutni a Stripe / előfizetés oldalig
-  const subClicked = await clickByText(page, CLICK_HINTS_SUBSCRIBE, log, "Előfizetés / Checkout");
+  // 5) Csomagválasztó → számlázási adatok → Stripe.
+  //    Minden köztes oldalnak a proxy szerinti nyelven kell megjelennie.
+  await page.waitForTimeout(1500);
+  screenshots.push(await shot(page, "5-plan-page"));
+  langChecks.push(await auditLanguage(page, "csomagválasztó", log, lang));
+
+  const subClicked = await clickByText(page, CLICK_HINTS_SUBSCRIBE, log, "Előfizetés / Csomag");
   await page.waitForTimeout(4500);
-  screenshots.push(await shot(page, "5-after-subscribe-click"));
+  screenshots.push(await shot(page, "5b-after-plan-click"));
   let currentUrl = page.url();
-  const reachedStripe = /checkout\.stripe\.com|stripe\.com/.test(currentUrl);
+  let reachedStripe = isStripeUrl(currentUrl);
   steps.push({ step: "subscribe-cta", clicked: subClicked, url: currentUrl, reached_stripe: reachedStripe });
+
+  // Ha még nem vagyunk a Stripe-on, akkor a számlázási űrlap következik.
+  if (!reachedStripe) {
+    langChecks.push(await auditLanguage(page, "számlázási űrlap", log, lang));
+    const billingFilled = await fillBillingForm(page, email, log);
+    screenshots.push(await shot(page, "5c-billing-filled"));
+    const payClicked = await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább");
+    steps.push({ step: "billing", filled: billingFilled, pay_clicked: payClicked, url: page.url() });
+
+    const stripeDeadline = Date.now() + 60_000;
+    while (Date.now() < stripeDeadline) {
+      currentUrl = page.url();
+      if (isStripeUrl(currentUrl)) break;
+      await page.waitForTimeout(1500);
+    }
+    currentUrl = page.url();
+    reachedStripe = isStripeUrl(currentUrl);
+    screenshots.push(await shot(page, "5d-after-pay-click"));
+  }
   log(reachedStripe ? "info" : "warn", `Stripe elérve: ${reachedStripe ? "IGEN" : "NEM"} — ${currentUrl}`);
+
 
   // 6) Stripe Checkout kitöltése tesztkártyával (4242 4242 4242 4242)
   let stripeFilled = false;
