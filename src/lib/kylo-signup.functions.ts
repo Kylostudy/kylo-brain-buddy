@@ -385,6 +385,18 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
       );
     }
 
+    const { count: activeCount, error: activeErr } = await supabase
+      .from("brain_workflow_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("workflow_id", wfId)
+      .in("status", ["queued", "scheduled", "running"]);
+    if (activeErr) throw new Error(activeErr.message);
+    if ((activeCount ?? 0) > 0) {
+      throw new Error(
+        "Már van futó vagy időzített Kylo Sign Up kör. Előbb várjuk meg, amíg kifut, különben túlterheljük a rendszert.",
+      );
+    }
+
     const state = readState(currentSpec);
     const recordedActions = Array.isArray(currentSpec.recorded_actions)
       ? currentSpec.recorded_actions
@@ -433,7 +445,7 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
           tenant_id: tenantId,
           module: "audit",
           runner: "docker",
-          status: "queued",
+          status: (notBefore ? "scheduled" : "queued") as never,
           proxy_id: p.id,
           spec_snapshot: spec as never,
           not_before: notBefore,

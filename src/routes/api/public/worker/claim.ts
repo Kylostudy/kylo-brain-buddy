@@ -58,7 +58,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           .select(
             "id, workflow_id, spec_snapshot, runner, proxy_id, workflows!inner(quiet_hours_start, quiet_hours_end, quiet_hours_timezone)"
           )
-          .eq("status", "queued")
+          .in("status", ["queued", "scheduled"])
           .eq("runner", "docker")
           // Időzített futás: csak akkor vehető fel, ha elérkezett az időpontja.
           .or(`not_before.is.null,not_before.lte.${nowIso}`)
@@ -99,7 +99,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
             started_at: new Date().toISOString(),
           })
           .eq("id", candidate.id)
-          .eq("status", "queued")
+          .in("status", ["queued", "scheduled"])
           .select("id, workflow_id, spec_snapshot, proxy_id")
           .maybeSingle();
 
