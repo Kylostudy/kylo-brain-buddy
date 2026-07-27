@@ -1160,7 +1160,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   screenshots.push(await shot(page, "2b-signup-mode-check"));
   steps.push({ step: "signup-mode", ...signupMode });
   if (!signupMode.ok) {
-    throw new Error(`Nem jutottunk regisztrációs űrlapig: ${signupMode.reason || "ismeretlen ok"}. url=${page.url()}`);
+    failEarly(`Nem jutottunk regisztrációs űrlapig: ${signupMode.reason || "ismeretlen ok"}. url=${page.url()}`);
   }
   // A regisztrációs űrlapnak is a cél nyelven kell megjelennie.
   langChecks.push(await auditLanguage(page, "regisztrációs űrlap", log, lang));
