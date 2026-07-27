@@ -476,8 +476,11 @@ async function main() {
   } catch (e) {
     log("error", `Futtatás hibára futott: ${e.message}`);
     await browser.close().catch(() => {});
-    finish("failed", null, e.message);
+    // Ha a script részeredményt (screenshotok, nyelvi ellenőrzések) csatolt a
+    // hibához, azt megtartjuk, hogy a riportban látszódjon, meddig jutott.
+    finish("failed", e.partialResult ?? null, e.message);
   }
+
 }
 
 main().catch((e) => finish("failed", null, e.message));
