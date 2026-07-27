@@ -15,6 +15,8 @@ import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { startHeartbeat } from "./metrics.js";
+import { createHealth, installGracefulShutdown, installCrashGuards } from "./health.js";
+import { currentLimit, HARD_MAX } from "./capacity.js";
 
 // A payloadokat (spec, credentials, proxy) fájlon keresztül adjuk át a
 // konténernek. Régebben env változóként (SPEC_JSON=...) argv-be raktuk, de
