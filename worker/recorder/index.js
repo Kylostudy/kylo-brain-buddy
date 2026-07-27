@@ -17,6 +17,7 @@ import { createClient } from "@supabase/supabase-js";
 import { spawn, spawnSync } from "node:child_process";
 import ws from "ws";
 import { buildFingerprintInitScript } from "./fingerprint-patch.js";
+import { createHealth, installGracefulShutdown, installCrashGuards } from "./health.js";
 
 let chromium = null;
 async function getChromium() {
