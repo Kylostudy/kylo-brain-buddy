@@ -976,6 +976,7 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
   // hanem legfeljebb 55s-es bizonyíték-várakozás kell.
   const deadline = startedAt + 55_000;
   let lastProgressLogAt = 0;
+  const retriesDone = new Set();
   for (let i = 0; Date.now() < deadline; i += 1) {
     await page.waitForTimeout(i === 0 ? 1200 : 2000);
     lastPageDiag = await collectPageDiagnostics(page);
@@ -986,6 +987,17 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
     const precheckOk = network.find((e) => e.kind === "email-precheck" && e.status >= 200 && e.status < 400);
     const precheckFailed = network.find((e) => e.kind === "email-precheck" && e.status >= 400);
     const authFailure = failures.find((e) => e.kind === "email-precheck" || e.kind === "auth-signup" || e.kind === "auth-otp");
+
+    // Ha a kattintás után semmilyen hálózati jel nincs, a gomb sem vált állapotot,
+    // akkor a kattintás valószínűleg "elnyelődött" — próbáljuk közvetlenül újra.
+    const elapsed = Date.now() - startedAt;
+    for (const at of [9000, 24000]) {
+      if (elapsed > at && !retriesDone.has(at) && !network.length && !lastPageDiag.hasConfirmationText) {
+        retriesDone.add(at);
+        await forceResubmit(page, log, `${Math.round(at / 1000)}s`);
+      }
+    }
+
 
     if (Date.now() - lastProgressLogAt > 10_000) {
       lastProgressLogAt = Date.now();
