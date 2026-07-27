@@ -657,8 +657,40 @@ async function selectComboboxOption(page, log, config) {
   return true;
 }
 
+// A felvett (rögzített) regisztrációs folyamatból kiolvassa, hogy MELYIK mezőket
+// kell kitölteni és milyen sorrendben. A gépelt karaktereket összefűzi mezőnként.
+// A személyes adatok (email, jelszó, felhasználónév) mindig frissre cserélődnek.
+export function planFromRecording(recordedActions) {
+  const list = Array.isArray(recordedActions) ? recordedActions : [];
+  const order = [];
+  const values = new Map();
+  for (const a of list) {
+    if (!a || a.type !== "type" || !a.selector) continue;
+    const sel = String(a.selector);
+    if (!/^#[A-Za-z0-9_-]+$/.test(sel)) continue; // csak stabil id-alapú mezők
+    if (!values.has(sel)) {
+      values.set(sel, "");
+      order.push(sel);
+    }
+    values.set(sel, values.get(sel) + String(a.value ?? ""));
+  }
+  return order.map((selector) => ({
+    id: selector.slice(1),
+    selector,
+    value: values.get(selector),
+  }));
+}
+
+function roleOfField(id) {
+  const k = id.toLowerCase();
+  if (k.includes("mail")) return "email";
+  if (k.includes("pass") || k.includes("jelszo")) return "password";
+  if (k.includes("user") || k.includes("felhasznal")) return "username";
+  return "other";
+}
+
 // Beírja az emailt és jelszót az első általunk felismert űrlapba.
-async function fillSignupForm(page, email, password, log) {
+async function fillSignupForm(page, email, password, log, recordedPlan = []) {
   const emailField = await page.$('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]');
   const pwFields = await page.$$('input[type="password"]');
   let filledEmail = 0;
@@ -693,6 +725,21 @@ async function fillSignupForm(page, email, password, log) {
     month: "06",
     day: "15",
   };
+  // A felvett űrlap a mérvadó: onnan vesszük a mezőket és a sorrendet, az email /
+  // jelszó / felhasználónév viszont mindig friss (alias), hogy ÚJ fiók jöjjön létre.
+  const planned = [];
+  for (const field of recordedPlan) {
+    if (["email", "password"].includes(roleOfField(field.id))) continue;
+    const value =
+      roleOfField(field.id) === "username" ? usernameGuess : field.value || defaults[field.id] || "";
+    if (!value) continue;
+    planned.push({ id: field.id, value });
+  }
+  for (const [id, val] of Object.entries(defaults)) {
+    if (["year", "month", "day"].includes(id)) continue;
+    if (planned.some((p) => p.id === id)) continue;
+    planned.push({ id, value: val });
+  }
   const extraFilled = {};
   const fillById = async (id, value) => {
     const el = await page.$(`#${id}`);
@@ -707,9 +754,14 @@ async function fillSignupForm(page, email, password, log) {
       return false;
     }
   };
-  for (const [id, val] of Object.entries(defaults)) {
-    if (["year", "month", "day"].includes(id)) continue;
-    await fillById(id, val);
+  if (recordedPlan.length > 0) {
+    log(
+      "info",
+      `Felvett űrlap követése — mezők: ${recordedPlan.map((f) => f.id).join(", ")}`,
+    );
+  }
+  for (const { id, value } of planned) {
+    await fillById(id, value);
   }
   // Születési dátum: placeholder alapján (ÉÉÉÉ / HH / NN)
   const dateSpecs = [
@@ -999,6 +1051,15 @@ export async function runKyloSignup({ page, context, spec, log }) {
   const email = cfg.email;
   const password = cfg.password;
   const currency = cfg.currency || "USD";
+  // A mentett workflow felvétele: ebből tudjuk, milyen mezők vannak a regisztrációs
+  // űrlapon és milyen sorrendben — nem találgatunk.
+  const recordedPlan = planFromRecording(spec.recorded_actions);
+  log(
+    "info",
+    recordedPlan.length > 0
+      ? `Mentett regisztrációs felvétel betöltve — ${recordedPlan.length} mező: ${recordedPlan.map((f) => f.id).join(", ")}`
+      : "Nincs mentett felvétel a workflow-ban — beépített űrlaptérkép szerint megyünk.",
+  );
 
   if (!email || !password) {
     throw new Error("Hiányzó email / jelszó a signup spec-ből.");
@@ -1189,7 +1250,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   langChecks.push(await auditLanguage(page, "regisztrációs űrlap", log, lang));
 
   // 3) űrlap kitöltés
-  const filled = await fillSignupForm(page, email, password, log);
+  const filled = await fillSignupForm(page, email, password, log, recordedPlan);
   screenshots.push(await shot(page, "3-form-filled"));
   steps.push({ step: "form-fill", filled });
 

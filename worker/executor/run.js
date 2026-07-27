@@ -432,7 +432,13 @@ async function main() {
     let result;
     // Böngészős brain_task ág (metrics_snapshot stb.) — a page/context/creds
     // rendelkezésre áll, mert végigment a proxy + preflight + cookie lépéseken.
-    if (isBrainTask(spec) && needsBrowser(spec.brain_task)) {
+    const isSignupMonitor =
+      monitorType === "kylo-study-signup" ||
+      monitorType === "kylo_signup" ||
+      monitorType === "kylo-signup";
+    // A Kylo Sign Up mindig a saját (13 pontos kritériumot ellenőrző) scriptet
+    // futtatja — a felvett lépéseket az útmutatóként kapja meg, nem vak replay-ként.
+    if (!isSignupMonitor && isBrainTask(spec) && needsBrowser(spec.brain_task)) {
       result = await runBrainTask({
         brainTask: spec.brain_task,
         page,
