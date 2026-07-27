@@ -961,10 +961,16 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
   const network = diag.network.filter((e) => e.at >= startedAt - 500);
   const failures = diag.request_failures.filter((e) => e.at >= startedAt - 500);
   const precheckOk = network.find((e) => e.kind === "email-precheck" && e.status >= 200 && e.status < 400);
-  const reason = precheckOk
+  const btnInfo = lastPageDiag?.submitState
+    ? ` Submit gomb: „${lastPageDiag.submitState.text}"${lastPageDiag.submitState.disabled ? " (letiltva)" : ""}.`
+    : "";
+  const reason = (precheckOk
     ? "email előellenőrzés lefutott, de auth signup hívás nem indult"
-    : "nem látszik sem auth signup, sem megerősítő e-mail állapot";
+    : "nem látszik sem auth signup, sem megerősítő e-mail állapot")
+    + btnInfo
+    + (lastPageDiag?.hasCaptcha ? " Captcha jelen van az oldalon." : "");
   return { ok: false, reason, page: lastPageDiag, network, failures };
+
 }
 
 async function openGmailConfirmationLink(page, email, log) {
