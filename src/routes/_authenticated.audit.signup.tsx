@@ -199,6 +199,33 @@ function SignupPage() {
   }
 
   const runs = (data?.runs as SignupRun[] | undefined) ?? [];
+
+  // — Kijelölés + tömeges törlés —
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const allSelected = runs.length > 0 && runs.every((r) => selected.has(r.id));
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(runs.map((r) => r.id)));
+  }
+  const callBulkDelete = useServerFn(deleteKyloSignupRuns);
+  const bulkDeleteMut = useMutation({
+    mutationFn: (ids: string[]) => callBulkDelete({ data: { runIds: ids } }),
+    onSuccess: (res: { deleted?: number }) => {
+      toast.success(`${res?.deleted ?? 0} futás törölve`);
+      setSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+      qc.invalidateQueries({ queryKey: ["kylo-signup-summary"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const nextSkinHint = (() => {
     const spec = data?.workflow?.spec as { kylo_signup?: { last_skin?: string } } | null;
     const last = spec?.kylo_signup?.last_skin;
