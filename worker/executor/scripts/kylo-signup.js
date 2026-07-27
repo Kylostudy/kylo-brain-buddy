@@ -17,6 +17,24 @@
 
 import { getGmailConfirmationLink } from "./brain-tasks/brain-api.js";
 import { humanClick, humanType } from "./humanize.js";
+import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
+
+// Számlázási űrlap kitöltéséhez használt tesztadatok.
+const BILLING_TEST = {
+  name: "Kylo Test",
+  line1: "1 Test Street",
+  city: "Testville",
+  postal: "10001",
+  phone: "+15555550123",
+};
+
+const CLICK_HINTS_PAY = [
+  "fizetés", "fizetek", "tovább a fizetéshez", "pay", "pay now", "continue to payment",
+  "proceed to payment", "checkout", "continue", "tovább", "weiter", "zur kasse", "bezahlen",
+  "payer", "continuer", "pagar", "continuar", "paga", "continua", "оплатить", "продолжить",
+  "支払い", "お支払い", "続ける", "支付", "付款", "결제", "ödeme", "devam",
+];
+
 
 const CLICK_HINTS_SIGNUP = [
   "register/sign in", "register", "sign up", "signup", "sign-up", "regisztráció", "regisztrálok", "regisztrál",
