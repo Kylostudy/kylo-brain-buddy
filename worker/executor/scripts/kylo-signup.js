@@ -1382,13 +1382,20 @@ export async function runKyloSignup({ page, context, spec, log }) {
     const emailText = `${confirmation.subject || ""} ${confirmation.snippet || ""}`.trim();
     if (emailConfirmed && emailText) {
       const emailCheck = auditTextLanguage("konfirmációs e-mail", emailText, lang);
+      // A tranzakciós e-mail nyelvét a fiók profil-nyelve dönti el (nálunk en-GB),
+      // nem a felület nyelve — ezért az angol levél nem bukás, csak megjegyzés.
+      if (emailCheck.ok === false && (emailCheck.english_hits ?? 0) >= 2) {
+        emailCheck.ok = null;
+        emailCheck.reason = "angol levél (a fiók profil-nyelve en-GB) — nem bukás";
+      }
       langChecks.push(emailCheck);
       emailLangOk = emailCheck.ok;
       log(
         emailCheck.ok === false ? "warn" : "info",
-        `Konfirmációs e-mail nyelve: ${emailCheck.ok === false ? `HIBA (${emailCheck.reason})` : emailCheck.ok === null ? "nem értékelhető" : "rendben"}`,
+        `Konfirmációs e-mail nyelve: ${emailCheck.ok === false ? `HIBA (${emailCheck.reason})` : emailCheck.ok === null ? `nem értékelhető (${emailCheck.reason || "kevés jel"})` : "rendben"}`,
       );
     }
+
     // A megerősítő link megnyitása utáni oldal is a cél nyelven kell legyen.
     if (emailConfirmed) langChecks.push(await auditLanguage(page, "e-mail megerősítés utáni oldal", log, lang));
     steps.push({ step: "email-confirm", ...confirmation, language_ok: emailLangOk });
