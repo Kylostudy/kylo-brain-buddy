@@ -1009,3 +1009,67 @@ export const getKyloSignupSummary = createServerFn({ method: "GET" })
     };
 
   });
+
+// ─────────────────────────────────────────────────────────────
+// Teszt fiókok (alias e-mail + jelszó) — mentés, listázás, jelszó előhívás.
+// A későbbi funkcionális teszteknél már ezekkel lépünk be, nem regisztrálunk újra.
+// ─────────────────────────────────────────────────────────────
+
+export const listKyloTestAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const { data, error } = await supabase
+      .from("audit_test_accounts")
+      .select(
+        "id, email, run_index, skin, country, lang, currency, status, registered_at, last_login_at, created_at, notes",
+      )
+      .order("created_at", { ascending: false })
+      .limit(300);
+    if (error) throw new Error(error.message);
+    return { accounts: data ?? [] };
+  });
+
+export const revealKyloTestPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await supabase
+      .from("audit_test_accounts")
+      .select("id, email, password_ciphertext, password_nonce")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Nincs ilyen teszt fiók.");
+    const { decryptString } = await import("@/lib/credentials/crypto.server");
+    const password = await decryptString(
+      row.password_ciphertext as string,
+      row.password_nonce as string,
+    );
+    return { email: row.email as string, password };
+  });
+
+export const markKyloTestAccountLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("audit_test_accounts")
+      .update({ last_login_at: new Date().toISOString() } as never)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteKyloTestAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("audit_test_accounts")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
