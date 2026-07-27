@@ -1,8 +1,27 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, MessageSquare, Trash2, Pencil, Check, X, Copy, Globe, ClipboardCheck, Inbox, Radar, Flame } from "lucide-react";
+import {
+  Plus,
+  MessageSquare,
+  Trash2,
+  Pencil,
+  Check,
+  X,
+  Copy,
+  Globe,
+  ClipboardCheck,
+  Inbox,
+  Radar,
+  Flame,
+  Folder,
+  FolderPlus,
+  FolderOpen,
+  ChevronRight,
+  ChevronDown,
+  FolderInput,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -17,6 +36,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +59,13 @@ type Workflow = {
   status: string;
   updated_at: string;
   spec: unknown;
+  folder_id: string | null;
+};
+
+type WorkflowFolder = {
+  id: string;
+  name: string;
+  sort_order: number;
 };
 
 function getMonitorType(spec: unknown): string | null {
@@ -43,12 +77,24 @@ function getMonitorType(spec: unknown): string | null {
 async function fetchWorkflows(module: AppModule): Promise<Workflow[]> {
   const { data, error } = await supabase
     .from("workflows")
-    .select("id, name, status, updated_at, spec")
+    .select("id, name, status, updated_at, spec, folder_id")
     .eq("module", module)
     .order("updated_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
+
+async function fetchFolders(module: AppModule): Promise<WorkflowFolder[]> {
+  const { data, error } = await supabase
+    .from("workflow_folders")
+    .select("id, name, sort_order")
+    .eq("module", module)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 
 
 export function AppSidebar() {
