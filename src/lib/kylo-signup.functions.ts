@@ -792,3 +792,143 @@ export const cancelPendingSignupRuns = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, canceled: rows?.length ?? 0 };
   });
+
+
+// ─────────────────────────────────────────────────────────────
+// deleteKyloSignupRuns — több futás törlése egyszerre (kijelölés
+// alapján). A Hetzner képpufferből is töröljük a képeket.
+// ─────────────────────────────────────────────────────────────
+
+export const deleteKyloSignupRuns = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ runIds: z.array(z.string().uuid()).min(1).max(500) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .single();
+    if (!prof?.tenant_id) throw new Error("Nincs tenant.");
+
+    const { data: rows, error } = await supabase
+      .from("brain_workflow_runs")
+      .delete()
+      .in("id", data.runIds)
+      .eq("tenant_id", prof.tenant_id)
+      .select("id");
+    if (error) throw new Error(error.message);
+
+    const shotsUrl = (process.env.SHOTS_UPLOAD_URL || "").replace(/\/$/, "");
+    const token = (process.env.WORKER_API_TOKEN || "").trim();
+    if (shotsUrl && token) {
+      await Promise.all(
+        data.runIds.map((id) =>
+          fetch(`${shotsUrl}/run/${id}`, {
+            method: "DELETE",
+            headers: { authorization: `Bearer ${token}` },
+          }).catch(() => null),
+        ),
+      );
+    }
+    return { ok: true, deleted: rows?.length ?? 0 };
+  });
+
+// ─────────────────────────────────────────────────────────────
+// getKyloSignupSummary — összkép az ÖSSZES eddigi futásról:
+// státuszok, hibaokok kategóriánként, nyelvenkénti fordítás-állapot.
+// ─────────────────────────────────────────────────────────────
+
+function classifyError(err: string | null): string {
+  const e = (err ?? "").toLowerCase();
+  if (!e) return "ismeretlen";
+  if (e.includes("watchdog")) return "beragadt futás (worker nem jelentkezett)";
+  if (e.includes("kézi leállítás")) return "kézzel visszavonva (sorban állt)";
+  if (e.includes("nem sikerült kiolvasni az országot")) return "proxy/ország ellenőrzés bukott";
+  if (e.includes("timeout")) return "időtúllépés (lassú oldal / proxy)";
+  if (e.includes("proxy")) return "proxy hiba";
+  if (e.includes("nyelv")) return "nyelvi ellenőrzés bukott";
+  return "egyéb";
+}
+
+export const getKyloSignupSummary = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .single();
+    if (!prof?.tenant_id) return null;
+
+    const { data: wf } = await supabase
+      .from("workflows")
+      .select("id")
+      .eq("tenant_id", prof.tenant_id)
+      .eq("module", "audit")
+      .contains("spec", { monitor_type: SIGNUP_MONITOR })
+      .maybeSingle();
+    if (!wf?.id) return null;
+
+    const { data, error } = await supabase
+      .from("brain_workflow_runs")
+      .select(
+        "id, status, error, " +
+          "language_ok:result->language_ok, expected_lang:result->>expected_lang, " +
+          "logged_in:result->logged_in, final_url:result->>final_url, " +
+          "shots:result->screenshots_count, acts:result->replay_action_count",
+      )
+      .eq("workflow_id", wf.id)
+      .limit(1000);
+    if (error) throw new Error(error.message);
+
+    const rows = (data ?? []) as unknown as Array<{
+      status: string;
+      error: string | null;
+      language_ok: boolean | null;
+      expected_lang: string | null;
+      logged_in: boolean | null;
+      final_url: string | null;
+      shots: number | null;
+      acts: number | null;
+    }>;
+
+    const byStatus: Record<string, number> = {};
+    const byError: Record<string, number> = {};
+    const byLang: Record<string, { total: number; ok: number; bad: number }> = {};
+    let loggedIn = 0;
+    let actsSum = 0;
+    let actsCount = 0;
+
+    for (const r of rows) {
+      byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+      if (r.status === "failed") {
+        const k = classifyError(r.error);
+        byError[k] = (byError[k] ?? 0) + 1;
+      }
+      if (r.status === "succeeded") {
+        if (r.logged_in) loggedIn += 1;
+        if (typeof r.acts === "number") {
+          actsSum += r.acts;
+          actsCount += 1;
+        }
+        const lang = r.expected_lang ?? "ismeretlen";
+        const b = (byLang[lang] ??= { total: 0, ok: 0, bad: 0 });
+        b.total += 1;
+        if (r.language_ok === true) b.ok += 1;
+        else b.bad += 1;
+      }
+    }
+
+    return {
+      total: rows.length,
+      byStatus,
+      byError,
+      byLang,
+      loggedIn,
+      avgActions: actsCount ? Math.round(actsSum / actsCount) : null,
+    };
+  });
