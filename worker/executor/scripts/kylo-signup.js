@@ -1253,7 +1253,31 @@ export async function runKyloSignup({ page, context, spec, log }) {
     }
   }
 
+  // 6b) Stripe callback → "sikeres fizetés" oldal a Kylón, a cél nyelven.
+  if (stripeSubmitted) {
+    try {
+      const cbDeadline = Date.now() + 90_000;
+      while (Date.now() < cbDeadline) {
+        const u = page.url();
+        if (/kylo\.study/i.test(u) && !isStripeUrl(u)) break;
+        await page.waitForTimeout(1500);
+      }
+      await page.waitForTimeout(1500);
+      screenshots.push(await shot(page, "6b-payment-success"));
+      const back = /kylo\.study/i.test(page.url()) && !isStripeUrl(page.url());
+      if (back) {
+        langChecks.push(await auditLanguage(page, "sikeres fizetés oldal", log, lang));
+      } else {
+        log("warn", "A Stripe callback nem tért vissza a Kylo oldalra 90 másodpercen belül.");
+      }
+      steps.push({ step: "payment-callback", returned: back, url: page.url() });
+    } catch (e) {
+      log("warn", `Fizetési callback várakozás hiba: ${e.message}`);
+    }
+  }
+
   // 7) Vissza a Kylo profil oldalra — success feltétel
+
   let reachedProfile = false;
   let profileUrl = null;
   const profileRe = /kylo\.study.*\/(profile|profil|account|dashboard|app|my|settings)/i;
