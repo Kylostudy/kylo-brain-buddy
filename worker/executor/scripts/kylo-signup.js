@@ -1051,6 +1051,15 @@ export async function runKyloSignup({ page, context, spec, log }) {
   const email = cfg.email;
   const password = cfg.password;
   const currency = cfg.currency || "USD";
+  // A mentett workflow felvétele: ebből tudjuk, milyen mezők vannak a regisztrációs
+  // űrlapon és milyen sorrendben — nem találgatunk.
+  const recordedPlan = planFromRecording(spec.recorded_actions);
+  log(
+    "info",
+    recordedPlan.length > 0
+      ? `Mentett regisztrációs felvétel betöltve — ${recordedPlan.length} mező: ${recordedPlan.map((f) => f.id).join(", ")}`
+      : "Nincs mentett felvétel a workflow-ban — beépített űrlaptérkép szerint megyünk.",
+  );
 
   if (!email || !password) {
     throw new Error("Hiányzó email / jelszó a signup spec-ből.");
