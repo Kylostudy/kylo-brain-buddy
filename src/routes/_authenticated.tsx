@@ -4,7 +4,7 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { clearStoredSupabaseSession, readStoredSupabaseSession } from "@/lib/auth-session";
