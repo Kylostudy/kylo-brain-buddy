@@ -1,0 +1,7 @@
+[Unit]
+Description=Kylo worker watchdog (percenként ellenőrzi a stacket)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/kylo/kylo-worker/worker
+ExecStart=/bin/sh /home/kylo/kylo-worker/worker/watchdog.sh
