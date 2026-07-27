@@ -92,6 +92,10 @@ function readResult(r: unknown): {
     reason?: string | null;
     sample?: string;
   }>;
+  criteria?: Record<string, boolean>;
+  criteria_failed?: string[];
+  flow_ok?: boolean;
+
 } {
   if (!r || typeof r !== "object") return {};
   return r as never;
