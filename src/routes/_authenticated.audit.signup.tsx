@@ -157,7 +157,18 @@ function SignupPage() {
     return t;
   };
 
+  const cancelPendingFn = useServerFn(cancelPendingSignupRuns);
+  const cancelPendingMut = useMutation({
+    mutationFn: () => cancelPendingFn(),
+    onSuccess: (r) => {
+      toast.success(`${r.canceled} sorban álló futás visszavonva`);
+      qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const startAllMut = useMutation({
+
     mutationFn: (vars: { scope: "english" | "non-english"; notBefore?: string | null }) =>
       startAllFn({ data: { scope: vars.scope, notBefore: vars.notBefore ?? null } }),
     onSuccess: (r, vars) => {
