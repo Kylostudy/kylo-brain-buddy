@@ -385,6 +385,18 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
       );
     }
 
+    const { count: activeCount, error: activeErr } = await supabase
+      .from("brain_workflow_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("workflow_id", wfId)
+      .in("status", ["queued", "scheduled", "running"]);
+    if (activeErr) throw new Error(activeErr.message);
+    if ((activeCount ?? 0) > 0) {
+      throw new Error(
+        "Már van futó vagy időzített Kylo Sign Up kör. Előbb várjuk meg, amíg kifut, különben túlterheljük a rendszert.",
+      );
+    }
+
     const state = readState(currentSpec);
     const recordedActions = Array.isArray(currentSpec.recorded_actions)
       ? currentSpec.recorded_actions
@@ -394,7 +406,9 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
     let counter = state.run_counter;
     let lastSkin = state.last_skin;
 
-    for (const p of english) {
+    const baseNotBeforeMs = data.notBefore ? Date.parse(data.notBefore) : null;
+
+    for (const [index, p] of english.entries()) {
       counter += 1;
       const skin = SKIN_ORDER[counter % SKIN_ORDER.length];
       const expectedCountry = ((p.country as string | null) || "").toUpperCase() || null;
@@ -425,7 +439,10 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
         },
       };
 
-      const notBefore = data.notBefore ?? null;
+      const notBefore =
+        baseNotBeforeMs && Number.isFinite(baseNotBeforeMs)
+          ? new Date(baseNotBeforeMs + index * 10 * 60 * 1000).toISOString()
+          : null;
       const { data: run, error: qErr } = await supabase
         .from("brain_workflow_runs")
         .insert({
@@ -433,7 +450,7 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
           tenant_id: tenantId,
           module: "audit",
           runner: "docker",
-          status: "queued",
+          status: (notBefore ? "scheduled" : "queued") as never,
           proxy_id: p.id,
           spec_snapshot: spec as never,
           not_before: notBefore,

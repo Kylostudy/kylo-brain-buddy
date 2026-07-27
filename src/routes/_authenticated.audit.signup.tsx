@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -107,6 +107,8 @@ function SignupPage() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordMode, setRecordMode] = useState<"record" | "browse">("record");
+  const [bulkAction, setBulkAction] = useState<"english" | "non-english" | "scheduled-non-english" | null>(null);
+  const bulkLockRef = useRef(false);
 
   useEffect(() => {
     forceModule("audit");
@@ -165,7 +167,21 @@ function SignupPage() {
       qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => {
+      bulkLockRef.current = false;
+      setBulkAction(null);
+    },
   });
+
+  function startBulk(
+    vars: { scope: "english" | "non-english"; notBefore?: string | null },
+    action: "english" | "non-english" | "scheduled-non-english",
+  ) {
+    if (startAllMut.isPending || bulkLockRef.current) return;
+    bulkLockRef.current = true;
+    setBulkAction(action);
+    startAllMut.mutate(vars);
+  }
 
   const runs = (data?.runs as SignupRun[] | undefined) ?? [];
   const nextSkinHint = (() => {
@@ -243,35 +259,45 @@ function SignupPage() {
               <span className="ml-1.5">Felvétel</span>
             </Button>
             <Button
+              type="button"
               variant="secondary"
               size="lg"
-              onClick={() => startAllMut.mutate({ scope: "english" })}
+              onClick={() => {
+                if (window.confirm("Ez azonnal több angol futást indít. Biztos most indítsuk?")) {
+                  startBulk({ scope: "english" }, "english");
+                }
+              }}
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Egyszerre indít egy futást minden angol nyelvterületi proxyra" : "Először kösd be a Gmail postafiókot"}
             >
-              {startAllMut.isPending ? "Indítás…" : "Összes angol (terheléses)"}
+              {bulkAction === "english" && startAllMut.isPending ? "Indítás…" : "Összes angol (terheléses)"}
             </Button>
             <Button
+              type="button"
               variant="secondary"
               size="lg"
-              onClick={() => startAllMut.mutate({ scope: "non-english" })}
+              onClick={() => {
+                if (window.confirm("Ez azonnal több nem-angol futást indít. Biztos most indítsuk?")) {
+                  startBulk({ scope: "non-english" }, "non-english");
+                }
+              }}
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Egyszerre indít egy futást minden nem-angol proxyra, a proxy országának megfelelő nyelvvel" : "Először kösd be a Gmail postafiókot"}
             >
-              {startAllMut.isPending ? "Indítás…" : "Összes nem-angol (nyelvi kör)"}
+              {bulkAction === "non-english" && startAllMut.isPending ? "Indítás…" : "Összes nem-angol (nyelvi kör)"}
             </Button>
             <Button
+              type="button"
               variant="secondary"
               size="lg"
-              onClick={() =>
-                startAllMut.mutate({ scope: "non-english", notBefore: nextOneAm().toISOString() })
-              }
+              onClick={() => startBulk({ scope: "non-english", notBefore: nextOneAm().toISOString() }, "scheduled-non-english")}
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Sorba teszi a nem-angol nyelvi kört, de a worker csak hajnali 1 után kezdi el" : "Először kösd be a Gmail postafiókot"}
             >
-              {startAllMut.isPending ? "Ütemezés…" : "Nem-angol · hajnali 1 után"}
+              {bulkAction === "scheduled-non-english" && startAllMut.isPending ? "Ütemezés…" : "Nem-angol · hajnali 1 után"}
             </Button>
             <Button
+              type="button"
               size="lg"
               onClick={() => startMut.mutate()}
               disabled={startMut.isPending || !canStart}
