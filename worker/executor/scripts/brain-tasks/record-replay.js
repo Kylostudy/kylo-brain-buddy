@@ -229,9 +229,25 @@ function langAuditFn(expectedLang) {
 })()`;
 }
 
+// A kylo.study nyitóoldala (landing, "/") szándékosan MINDIG angol —
+// csak a mögötte lévő regisztrációs folyamatnak kell a célnyelven lennie.
+// Ezért a landingot angolként értékeljük, és sosem bukik a célnyelv miatt.
+function isLandingUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.pathname === "/" || u.pathname === "" || /^\/(index|home)\/?$/i.test(u.pathname);
+  } catch {
+    return false;
+  }
+}
+
 async function auditLanguage(page, label, log, expectedLang) {
-  const expected = String(expectedLang || "en-GB");
+  let currentUrl = "";
+  try { currentUrl = page.url(); } catch {}
+  const landing = isLandingUrl(currentUrl);
+  const expected = landing ? "en-GB" : String(expectedLang || "en-GB");
   const prefix = expected.toLowerCase().split("-")[0];
+
   try {
     const r = await page.evaluate(langAuditFn(expected));
     let ok;
@@ -248,7 +264,11 @@ async function auditLanguage(page, label, log, expectedLang) {
       ok = looksExpected && !(looksEnglish && !r.html_lang_ok);
       if (!ok) reason = looksEnglish ? "angol fallback (nincs fordítás)" : "nem az elvárt nyelv";
     }
-    const entry = { label, ...r, ok, reason: reason || null };
+    const entry = { label, ...r, ok, reason: reason || null, landing_page: landing };
+    if (landing) {
+      log("info", `Nyitóoldal (${label}): szándékosan angol — nem számít nyelvi hibának · ${r.url}`);
+    }
+
     log(
       ok === false ? "warn" : "info",
       ok === false
@@ -324,13 +344,30 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   const expectedLang = cfg.lang || "en-GB";
   log("info", `Elvárt felületi nyelv ehhez a futáshoz: ${expectedLang} (ország: ${cfg.expected_country || "?"})`);
   const maxStoredScreenshots = 4;
+
+  // Folyamat-mérföldkövek: eljutott-e a fizetésig, majd a profil oldalig.
+  const PROFILE_RE = /\/(profile|profil|fiok|fiók|account|dashboard|my|settings|beallitasok)\b/i;
+  const milestones = { reached_stripe: false, reached_profile: false, profile_url: null };
+  const noteUrl = () => {
+    let u = "";
+    try { u = page.url(); } catch { return; }
+    if (/stripe\.com|\/fizetes|\/checkout|session_id=cs_/i.test(u)) milestones.reached_stripe = true;
+    if (PROFILE_RE.test(u) && !/stripe\.com/i.test(u)) {
+      milestones.reached_profile = true;
+      milestones.profile_url = u;
+    }
+  };
+  page.on("framenavigated", (f) => { if (f === page.mainFrame()) noteUrl(); });
+
   const capture = async (label) => {
+    noteUrl();
     const shouldStoreScreenshot = label === "final-state" || screenshots.length < maxStoredScreenshots - 1;
     if (shouldStoreScreenshot) {
       screenshots.push(await shot(page, label));
     }
     languageChecks.push(await auditLanguage(page, label, log, expectedLang));
   };
+
 
 
   let skipUntil = -1;
@@ -442,6 +479,18 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
 
   let finalUrl = null;
   try { finalUrl = page.url(); } catch {}
+  noteUrl();
+
+  // Kylo signup folyamat: csak akkor sikeres, ha a fizetésig ÉS a profil oldalig eljutott.
+  const isKyloSignup = !!cfg && (!!cfg.email || !!cfg.base_url || !!cfg.lang);
+  const flowOk = milestones.reached_stripe && milestones.reached_profile;
+  if (isKyloSignup) {
+    log(
+      flowOk ? "info" : "warn",
+      `Folyamat mérföldkövek — fizetés (Stripe): ${milestones.reached_stripe ? "IGEN" : "NEM"}, ` +
+        `profil oldal: ${milestones.reached_profile ? `IGEN (${milestones.profile_url})` : "NEM"} · utolsó URL: ${finalUrl}`,
+    );
+  }
 
   return {
     replay_action_count: actions.length,
@@ -457,8 +506,13 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     language_checks: languageChecks,
     language_issues: langIssues,
     language_ok: langIssues.length === 0,
-
+    reached_stripe: milestones.reached_stripe,
+    reached_profile: milestones.reached_profile,
+    profile_url: milestones.profile_url,
+    kylo_flow_checked: isKyloSignup,
+    flow_ok: isKyloSignup ? flowOk : null,
   };
+
 
 }
 

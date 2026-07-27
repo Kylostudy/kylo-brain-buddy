@@ -879,6 +879,7 @@ export const getKyloSignupSummary = createServerFn({ method: "GET" })
         "id, status, error, " +
           "language_ok:result->language_ok, expected_lang:result->>expected_lang, " +
           "logged_in:result->logged_in, final_url:result->>final_url, " +
+          "reached_stripe:result->reached_stripe, reached_profile:result->reached_profile, " +
           "shots:result->screenshots_count, acts:result->replay_action_count",
       )
       .eq("workflow_id", wf.id)
@@ -892,6 +893,8 @@ export const getKyloSignupSummary = createServerFn({ method: "GET" })
       expected_lang: string | null;
       logged_in: boolean | null;
       final_url: string | null;
+      reached_stripe: boolean | null;
+      reached_profile: boolean | null;
       shots: number | null;
       acts: number | null;
     }>;
@@ -900,6 +903,8 @@ export const getKyloSignupSummary = createServerFn({ method: "GET" })
     const byError: Record<string, number> = {};
     const byLang: Record<string, { total: number; ok: number; bad: number }> = {};
     let loggedIn = 0;
+    let reachedStripe = 0;
+    let reachedProfile = 0;
     let actsSum = 0;
     let actsCount = 0;
 
@@ -909,6 +914,8 @@ export const getKyloSignupSummary = createServerFn({ method: "GET" })
         const k = classifyError(r.error);
         byError[k] = (byError[k] ?? 0) + 1;
       }
+      if (r.reached_stripe === true) reachedStripe += 1;
+      if (r.reached_profile === true) reachedProfile += 1;
       if (r.status === "succeeded") {
         if (r.logged_in) loggedIn += 1;
         if (typeof r.acts === "number") {
@@ -929,6 +936,9 @@ export const getKyloSignupSummary = createServerFn({ method: "GET" })
       byError,
       byLang,
       loggedIn,
+      reachedStripe,
+      reachedProfile,
       avgActions: actsCount ? Math.round(actsSum / actsCount) : null,
     };
+
   });
