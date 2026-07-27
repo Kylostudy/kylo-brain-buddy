@@ -861,16 +861,73 @@ async function submitForm(page, log) {
     if (handle) await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
     else await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-submit="${marker}"]`)?.click(), marker);
     log("info", `Regisztráció submit megnyomva: „${found.text || "submit"}".`);
+    // Diagnosztika: mi takarja a gombot, és mely kötelező mezők üresek/érvénytelenek?
+    const blockers = await collectSubmitBlockers(page, marker).catch(() => null);
+    if (blockers) {
+      log(
+        "info",
+        `Submit diagnosztika — gomb a ponton: ${blockers.elementAtPoint || "?"}, űrlap érvényes: ${blockers.formValid === null ? "n/a" : blockers.formValid ? "igen" : "nem"}, hiányzó/érvénytelen mezők: ${blockers.invalidFields.join(", ") || "nincs"}`,
+      );
+    }
     await page.waitForTimeout(2500);
     return { clicked: true, buttonText: found.text || null };
   }
+
   log("warn", "Nem találtam regisztrációs submit gombot az űrlapban (belépés gombot nem nyomok meg). ");
   return { clicked: false, reason: "no-signup-submit" };
+}
+
+async function collectSubmitBlockers(page, marker) {
+  return page.evaluate((marker) => {
+    const btn = document.querySelector(`[data-kylo-worker-submit="${marker}"]`);
+    if (!btn) return { elementAtPoint: "gomb eltűnt", formValid: null, invalidFields: [] };
+    const r = btn.getBoundingClientRect();
+    const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const desc = (el) =>
+      el ? `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}${el.className && typeof el.className === "string" ? "." + el.className.split(/\s+/).slice(0, 2).join(".") : ""}` : "nincs";
+    const form = btn.closest("form");
+    const invalidFields = [];
+    const scope = form || document;
+    scope.querySelectorAll("input, select, textarea").forEach((el) => {
+      if (el.type === "hidden" || el.disabled) return;
+      const bad = (el.required && !el.value && el.type !== "checkbox") || (el.willValidate && !el.checkValidity());
+      if (!bad) return;
+      const label = el.name || el.id || el.placeholder || el.getAttribute("aria-label") || el.type;
+      invalidFields.push(String(label).slice(0, 40));
+    });
+    return {
+      elementAtPoint: at === btn || btn.contains(at) ? "maga a gomb" : desc(at),
+      formValid: form ? form.checkValidity() : null,
+      invalidFields: invalidFields.slice(0, 12),
+    };
+  }, marker);
+}
+
+async function forceResubmit(page, log, label) {
+  const done = await page
+    .evaluate(() => {
+      const btn = document.querySelector("[data-kylo-worker-submit]");
+      if (!btn) return "gomb nem található";
+      const form = btn.closest("form");
+      try {
+        btn.click();
+      } catch (_) {}
+      if (form && typeof form.requestSubmit === "function") {
+        try {
+          form.requestSubmit(btn);
+          return "gomb.click() + form.requestSubmit()";
+        } catch (_) {}
+      }
+      return "gomb.click()";
+    })
+    .catch(() => "hiba");
+  log("info", `Submit újrapróba (${label}) — ${done}`);
 }
 
 async function collectPageDiagnostics(page) {
   return page.evaluate(() => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+
     const visible = (el) => {
       const r = el.getBoundingClientRect();
       const st = window.getComputedStyle(el);
@@ -919,6 +976,7 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
   // hanem legfeljebb 55s-es bizonyíték-várakozás kell.
   const deadline = startedAt + 55_000;
   let lastProgressLogAt = 0;
+  const retriesDone = new Set();
   for (let i = 0; Date.now() < deadline; i += 1) {
     await page.waitForTimeout(i === 0 ? 1200 : 2000);
     lastPageDiag = await collectPageDiagnostics(page);
@@ -929,6 +987,17 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
     const precheckOk = network.find((e) => e.kind === "email-precheck" && e.status >= 200 && e.status < 400);
     const precheckFailed = network.find((e) => e.kind === "email-precheck" && e.status >= 400);
     const authFailure = failures.find((e) => e.kind === "email-precheck" || e.kind === "auth-signup" || e.kind === "auth-otp");
+
+    // Ha a kattintás után semmilyen hálózati jel nincs, a gomb sem vált állapotot,
+    // akkor a kattintás valószínűleg "elnyelődött" — próbáljuk közvetlenül újra.
+    const elapsed = Date.now() - startedAt;
+    for (const at of [9000, 24000]) {
+      if (elapsed > at && !retriesDone.has(at) && !network.length && !lastPageDiag.hasConfirmationText) {
+        retriesDone.add(at);
+        await forceResubmit(page, log, `${Math.round(at / 1000)}s`);
+      }
+    }
+
 
     if (Date.now() - lastProgressLogAt > 10_000) {
       lastProgressLogAt = Date.now();
