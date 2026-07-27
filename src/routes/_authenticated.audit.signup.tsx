@@ -412,9 +412,41 @@ function SignupPage() {
       )}
 
 
+      <SummaryCard />
+
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle>Legutóbbi futások</CardTitle>
+          <div className="flex items-center gap-2">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                className="size-4 accent-primary"
+                checked={allSelected}
+                onChange={toggleAll}
+              />
+              Összes kijelölése
+            </label>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-400 hover:text-red-300"
+              disabled={selected.size === 0 || bulkDeleteMut.isPending}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Biztos törlöd a kijelölt ${selected.size} futást? Ez nem visszavonható.`,
+                  )
+                ) {
+                  bulkDeleteMut.mutate(Array.from(selected));
+                }
+              }}
+            >
+              {bulkDeleteMut.isPending
+                ? "Törlés…"
+                : `Kijelöltek törlése (${selected.size})`}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading && <div className="text-sm text-muted-foreground">Betöltés…</div>}
@@ -428,6 +460,15 @@ function SignupPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                    <th className="py-2 pr-3">
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-primary"
+                        checked={allSelected}
+                        onChange={toggleAll}
+                        aria-label="Összes kijelölése"
+                      />
+                    </th>
                     <th className="py-2 pr-3">#</th>
                     <th className="py-2 pr-3">Idő</th>
                     <th className="py-2 pr-3">Státusz</th>
@@ -445,7 +486,17 @@ function SignupPage() {
                     const res = readResult(r.result);
                     return (
                       <tr key={r.id} className="border-b last:border-0">
+                        <td className="py-2 pr-3">
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-primary"
+                            checked={selected.has(r.id)}
+                            onChange={() => toggleOne(r.id)}
+                            aria-label="Futás kijelölése"
+                          />
+                        </td>
                         <td className="py-2 pr-3 text-muted-foreground">{spec.run_index ?? "—"}</td>
+
                         <td className="py-2 pr-3">
                           {r.started_at ? new Date(r.started_at).toLocaleString("hu-HU") : "—"}
                         </td>
