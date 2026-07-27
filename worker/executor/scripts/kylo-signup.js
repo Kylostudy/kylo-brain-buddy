@@ -657,8 +657,40 @@ async function selectComboboxOption(page, log, config) {
   return true;
 }
 
+// A felvett (rögzített) regisztrációs folyamatból kiolvassa, hogy MELYIK mezőket
+// kell kitölteni és milyen sorrendben. A gépelt karaktereket összefűzi mezőnként.
+// A személyes adatok (email, jelszó, felhasználónév) mindig frissre cserélődnek.
+export function planFromRecording(recordedActions) {
+  const list = Array.isArray(recordedActions) ? recordedActions : [];
+  const order = [];
+  const values = new Map();
+  for (const a of list) {
+    if (!a || a.type !== "type" || !a.selector) continue;
+    const sel = String(a.selector);
+    if (!/^#[A-Za-z0-9_-]+$/.test(sel)) continue; // csak stabil id-alapú mezők
+    if (!values.has(sel)) {
+      values.set(sel, "");
+      order.push(sel);
+    }
+    values.set(sel, values.get(sel) + String(a.value ?? ""));
+  }
+  return order.map((selector) => ({
+    id: selector.slice(1),
+    selector,
+    value: values.get(selector),
+  }));
+}
+
+function roleOfField(id) {
+  const k = id.toLowerCase();
+  if (k.includes("mail")) return "email";
+  if (k.includes("pass") || k.includes("jelszo")) return "password";
+  if (k.includes("user") || k.includes("felhasznal")) return "username";
+  return "other";
+}
+
 // Beírja az emailt és jelszót az első általunk felismert űrlapba.
-async function fillSignupForm(page, email, password, log) {
+async function fillSignupForm(page, email, password, log, recordedPlan = []) {
   const emailField = await page.$('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]');
   const pwFields = await page.$$('input[type="password"]');
   let filledEmail = 0;
