@@ -609,7 +609,31 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
               <div className="whitespace-pre-wrap break-words">{run.error}</div>
             </div>
           )}
+          {res.criteria && Object.keys(res.criteria).length > 0 && (
+            <div
+              className={`rounded-md border p-2 ${
+                res.flow_ok
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                  : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+              }`}
+            >
+              <div className="text-xs font-semibold uppercase">
+                Sikerességi kritériumok — {Object.values(res.criteria).filter(Boolean).length}/
+                {Object.keys(res.criteria).length} teljesült
+              </div>
+              <ul className="mt-1 space-y-0.5 text-xs">
+                {Object.entries(CRITERIA_LABELS_HU).map(([key, label]) =>
+                  key in (res.criteria ?? {}) ? (
+                    <li key={key}>
+                      {res.criteria?.[key] ? "✅" : "❌"} {label}
+                    </li>
+                  ) : null,
+                )}
+              </ul>
+            </div>
+          )}
           {Array.isArray(res.language_checks) && res.language_checks.length > 0 && (
+
             <div
               className={`rounded-md border p-2 ${
                 res.language_ok
