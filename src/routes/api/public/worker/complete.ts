@@ -113,19 +113,36 @@ export const Route = createFileRoute("/api/public/worker/complete")({
 
         // Nyelvi bukás valódi hibának számít: ha a futás egyébként sikeres,
         // de az oldal nem a várt nyelven jelent meg, „failed"-re állítjuk.
-        const langOk = (slimResult as Record<string, unknown> | null)?.language_ok;
-        const expectedLang = (slimResult as Record<string, unknown> | null)?.expected_lang;
+        // (A kylo.study nyitóoldala szándékosan angol — azt a worker nem jelenti hibának.)
+        const res = slimResult as Record<string, unknown> | null;
+        const langOk = res?.language_ok;
+        const expectedLang = res?.expected_lang;
         const languageFailed = parsed.status === "succeeded" && langOk === false;
 
+        // Kylo signup: csak akkor sikeres, ha a fizetésig ÉS a profil oldalig eljutott.
+        const flowChecked = res?.kylo_flow_checked === true;
+        const flowFailed =
+          parsed.status === "succeeded" && flowChecked && res?.flow_ok !== true;
+        const flowReason = flowChecked
+          ? `A folyamat nem ért célba: fizetés (Stripe) ${res?.reached_stripe ? "IGEN" : "NEM"}, profil oldal ${res?.reached_profile ? "IGEN" : "NEM"}`
+          : "";
+
+        const failedReasons = [
+          languageFailed
+            ? `Nyelvi ellenőrzés bukott: nem a(z) ${expectedLang ?? "várt"} nyelv jelent meg`
+            : null,
+          flowFailed ? flowReason : null,
+          parsed.error ?? null,
+        ].filter(Boolean);
+
         const update: Record<string, unknown> = {
-          status: languageFailed ? "failed" : parsed.status,
+          status: languageFailed || flowFailed ? "failed" : parsed.status,
           logs: trimmedLogs as never,
           result: slimResult as never,
-          error: languageFailed
-            ? `Nyelvi ellenőrzés bukott: nem a(z) ${expectedLang ?? "várt"} nyelv jelent meg${parsed.error ? ` — ${parsed.error}` : ""}`
-            : parsed.error ?? null,
+          error: failedReasons.length > 0 ? failedReasons.join(" — ") : null,
           finished_at: new Date().toISOString(),
         };
+
         if (parsed.preflight !== undefined) {
           update.preflight_result = parsed.preflight as never;
         }
