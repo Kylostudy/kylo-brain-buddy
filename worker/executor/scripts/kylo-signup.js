@@ -891,14 +891,21 @@ async function collectPageDiagnostics(page) {
     }
     const bodyText = norm(document.body?.innerText || "").slice(0, 6000);
     const confirmationRe = /check your (email|inbox)|verify your email|confirmation email|sent (you )?(an )?email|email has been sent|nézd meg az email|ellenőrző email|megerősítő email|確認メール|验证码|verifica tu correo|confirme seu email|vérifiez votre e-mail/i;
+    const submitBtn = Array.from(document.querySelectorAll('button, [type="submit"]')).find(
+      (b) => visible(b) && /regist|sign ?up|regisztr|créer|registrieren|iscri|cadastr|登録/i.test(norm(b.innerText || b.value || "")),
+    );
     return {
       url: location.href,
       title: document.title,
       messages: messages.slice(0, 12),
       hasConfirmationText: confirmationRe.test(bodyText),
       hasCaptcha: !!document.querySelector('iframe[src*="recaptcha"], iframe[src*="hcaptcha"], iframe[src*="turnstile"], [class*="captcha" i]'),
+      submitState: submitBtn
+        ? { text: norm(submitBtn.innerText || submitBtn.value || "").slice(0, 80), disabled: !!submitBtn.disabled }
+        : null,
       bodySample: bodyText.slice(0, 500),
     };
+
   });
 }
 
@@ -928,7 +935,12 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
       const seen = network.length
         ? network.map((e) => `${e.kind}:${e.status}`).join(", ")
         : "nincs még auth hálózati jel";
-      log("info", `Regisztráció bizonyíték várakozás — ${Math.round((Date.now() - startedAt) / 1000)}s, ${seen}, url=${lastPageDiag.url}`);
+      const btn = lastPageDiag.submitState
+        ? `gomb="${lastPageDiag.submitState.text}"${lastPageDiag.submitState.disabled ? " (letiltva)" : ""}`
+        : "gomb=nem látszik";
+      const msgs = lastPageDiag.messages.length ? ` üzenetek: ${lastPageDiag.messages.join(" | ").slice(0, 300)}` : "";
+      log("info", `Regisztráció bizonyíték várakozás — ${Math.round((Date.now() - startedAt) / 1000)}s, ${seen}, ${btn}, captcha=${lastPageDiag.hasCaptcha ? "igen" : "nem"}, url=${lastPageDiag.url}${msgs}`);
+
     }
 
     if (signupOk || lastPageDiag.hasConfirmationText) {
@@ -949,10 +961,16 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
   const network = diag.network.filter((e) => e.at >= startedAt - 500);
   const failures = diag.request_failures.filter((e) => e.at >= startedAt - 500);
   const precheckOk = network.find((e) => e.kind === "email-precheck" && e.status >= 200 && e.status < 400);
-  const reason = precheckOk
+  const btnInfo = lastPageDiag?.submitState
+    ? ` Submit gomb: „${lastPageDiag.submitState.text}"${lastPageDiag.submitState.disabled ? " (letiltva)" : ""}.`
+    : "";
+  const reason = (precheckOk
     ? "email előellenőrzés lefutott, de auth signup hívás nem indult"
-    : "nem látszik sem auth signup, sem megerősítő e-mail állapot";
+    : "nem látszik sem auth signup, sem megerősítő e-mail állapot")
+    + btnInfo
+    + (lastPageDiag?.hasCaptcha ? " Captcha jelen van az oldalon." : "");
   return { ok: false, reason, page: lastPageDiag, network, failures };
+
 }
 
 async function openGmailConfirmationLink(page, email, log) {
