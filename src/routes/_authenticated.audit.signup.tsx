@@ -435,6 +435,9 @@ function SignupPage() {
 
       <SummaryCard />
 
+      <TestAccountsPanel />
+
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle>Legutóbbi futások</CardTitle>
