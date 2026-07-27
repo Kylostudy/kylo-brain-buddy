@@ -318,7 +318,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupContent className="px-2">
+          <SidebarGroupContent className="flex flex-col gap-1.5 px-2">
             <Button
               size="sm"
               className="w-full justify-start gap-2"
@@ -329,8 +329,20 @@ export function AppSidebar() {
                 Új workflow
               </span>
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={createFolder}
+            >
+              <FolderPlus className="size-4" />
+              <span className="group-data-[collapsible=icon]:hidden">
+                Új mappa
+              </span>
+            </Button>
           </SidebarGroupContent>
         </SidebarGroup>
+
 
         {module === "audit" && (
           <SidebarGroup>
