@@ -688,6 +688,14 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={currentPath === "/worker-health"}>
+                  <Link to="/worker-health" className="flex items-center gap-2">
+                    <Activity className="size-4 shrink-0" />
+                    <span className="truncate">Worker terhelés</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
