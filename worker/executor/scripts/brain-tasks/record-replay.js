@@ -229,9 +229,25 @@ function langAuditFn(expectedLang) {
 })()`;
 }
 
+// A kylo.study nyitóoldala (landing, "/") szándékosan MINDIG angol —
+// csak a mögötte lévő regisztrációs folyamatnak kell a célnyelven lennie.
+// Ezért a landingot angolként értékeljük, és sosem bukik a célnyelv miatt.
+function isLandingUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.pathname === "/" || u.pathname === "" || /^\/(index|home)\/?$/i.test(u.pathname);
+  } catch {
+    return false;
+  }
+}
+
 async function auditLanguage(page, label, log, expectedLang) {
-  const expected = String(expectedLang || "en-GB");
+  let currentUrl = "";
+  try { currentUrl = page.url(); } catch {}
+  const landing = isLandingUrl(currentUrl);
+  const expected = landing ? "en-GB" : String(expectedLang || "en-GB");
   const prefix = expected.toLowerCase().split("-")[0];
+
   try {
     const r = await page.evaluate(langAuditFn(expected));
     let ok;
