@@ -11,6 +11,8 @@ import {
   ensureKyloSignupWorkflow,
   setKyloSignupRecorderProxy,
   deleteKyloSignupRun,
+  deleteKyloSignupRuns,
+  getKyloSignupSummary,
   getKyloSignupRun,
   cancelPendingSignupRuns,
 
@@ -197,6 +199,33 @@ function SignupPage() {
   }
 
   const runs = (data?.runs as SignupRun[] | undefined) ?? [];
+
+  // — Kijelölés + tömeges törlés —
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const allSelected = runs.length > 0 && runs.every((r) => selected.has(r.id));
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(runs.map((r) => r.id)));
+  }
+  const callBulkDelete = useServerFn(deleteKyloSignupRuns);
+  const bulkDeleteMut = useMutation({
+    mutationFn: (ids: string[]) => callBulkDelete({ data: { runIds: ids } }),
+    onSuccess: (res: { deleted?: number }) => {
+      toast.success(`${res?.deleted ?? 0} futás törölve`);
+      setSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+      qc.invalidateQueries({ queryKey: ["kylo-signup-summary"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const nextSkinHint = (() => {
     const spec = data?.workflow?.spec as { kylo_signup?: { last_skin?: string } } | null;
     const last = spec?.kylo_signup?.last_skin;
@@ -383,9 +412,41 @@ function SignupPage() {
       )}
 
 
+      <SummaryCard />
+
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle>Legutóbbi futások</CardTitle>
+          <div className="flex items-center gap-2">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                className="size-4 accent-primary"
+                checked={allSelected}
+                onChange={toggleAll}
+              />
+              Összes kijelölése
+            </label>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-400 hover:text-red-300"
+              disabled={selected.size === 0 || bulkDeleteMut.isPending}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Biztos törlöd a kijelölt ${selected.size} futást? Ez nem visszavonható.`,
+                  )
+                ) {
+                  bulkDeleteMut.mutate(Array.from(selected));
+                }
+              }}
+            >
+              {bulkDeleteMut.isPending
+                ? "Törlés…"
+                : `Kijelöltek törlése (${selected.size})`}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading && <div className="text-sm text-muted-foreground">Betöltés…</div>}
@@ -399,6 +460,15 @@ function SignupPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                    <th className="py-2 pr-3">
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-primary"
+                        checked={allSelected}
+                        onChange={toggleAll}
+                        aria-label="Összes kijelölése"
+                      />
+                    </th>
                     <th className="py-2 pr-3">#</th>
                     <th className="py-2 pr-3">Idő</th>
                     <th className="py-2 pr-3">Státusz</th>
@@ -416,7 +486,17 @@ function SignupPage() {
                     const res = readResult(r.result);
                     return (
                       <tr key={r.id} className="border-b last:border-0">
+                        <td className="py-2 pr-3">
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-primary"
+                            checked={selected.has(r.id)}
+                            onChange={() => toggleOne(r.id)}
+                            aria-label="Futás kijelölése"
+                          />
+                        </td>
                         <td className="py-2 pr-3 text-muted-foreground">{spec.run_index ?? "—"}</td>
+
                         <td className="py-2 pr-3">
                           {r.started_at ? new Date(r.started_at).toLocaleString("hu-HU") : "—"}
                         </td>
@@ -856,3 +936,102 @@ function RecorderProxyCard({
 }
 
 
+
+// ─────────────────────────────────────────────────────────────
+// SummaryCard — összkép az ÖSSZES eddigi futásról
+// ─────────────────────────────────────────────────────────────
+type Summary = {
+  total: number;
+  byStatus: Record<string, number>;
+  byError: Record<string, number>;
+  byLang: Record<string, { total: number; ok: number; bad: number }>;
+  loggedIn: number;
+  avgActions: number | null;
+};
+
+function SummaryCard() {
+  const callSummary = useServerFn(getKyloSignupSummary);
+  const { data, isLoading } = useQuery({
+    queryKey: ["kylo-signup-summary"],
+    queryFn: () => callSummary({}),
+  });
+  const s = data as Summary | null | undefined;
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Összesítés</CardTitle></CardHeader>
+        <CardContent className="text-sm text-muted-foreground">Számolás…</CardContent>
+      </Card>
+    );
+  }
+  if (!s || s.total === 0) return null;
+
+  const ok = s.byStatus.succeeded ?? 0;
+  const bad = s.byStatus.failed ?? 0;
+  const langs = Object.entries(s.byLang).sort((a, b) => a[0].localeCompare(b[0]));
+  const errs = Object.entries(s.byError).sort((a, b) => b[1] - a[1]);
+  const translated = langs.filter(([, v]) => v.bad === 0).map(([k]) => k);
+  const notTranslated = langs.filter(([, v]) => v.bad > 0).map(([k]) => k);
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Összesítés — összes futás ({s.total})</CardTitle></CardHeader>
+      <CardContent className="space-y-5 text-sm">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className={statusColor("succeeded")}>Sikeres: {ok}</Badge>
+          <Badge variant="outline" className={statusColor("failed")}>Hibás: {bad}</Badge>
+          {Object.entries(s.byStatus)
+            .filter(([k]) => k !== "succeeded" && k !== "failed")
+            .map(([k, v]) => (
+              <Badge key={k} variant="outline" className={statusColor(k)}>{k}: {v}</Badge>
+            ))}
+          <Badge variant="outline">Bejelentkezett a profilba: {s.loggedIn}</Badge>
+          {s.avgActions !== null && (
+            <Badge variant="outline">Átlag {s.avgActions} lépés / futás</Badge>
+          )}
+        </div>
+
+        <div>
+          <div className="mb-2 font-medium">Miért buktak el?</div>
+          {errs.length === 0 ? (
+            <div className="text-muted-foreground">Nincs hibás futás.</div>
+          ) : (
+            <ul className="space-y-1">
+              {errs.map(([k, v]) => (
+                <li key={k} className="flex justify-between gap-3 border-b py-1 last:border-0">
+                  <span>{k}</span>
+                  <span className="font-mono text-muted-foreground">{v}×</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div>
+          <div className="mb-2 font-medium">Fordítás nyelvenként (sikeres futások alapján)</div>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {langs.map(([lang, v]) => (
+              <div key={lang} className="flex items-center justify-between gap-3 border-b py-1">
+                <span className="font-mono">{lang}</span>
+                <span>
+                  {v.bad === 0 ? (
+                    <Badge variant="outline" className={statusColor("succeeded")}>rendben</Badge>
+                  ) : (
+                    <Badge variant="outline" className={statusColor("failed")}>
+                      hiányos ({v.bad}/{v.total} futás)
+                    </Badge>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Rendben: {translated.join(", ") || "—"} · Hiányos vagy angol fallback:{" "}
+            {notTranslated.join(", ") || "—"}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
