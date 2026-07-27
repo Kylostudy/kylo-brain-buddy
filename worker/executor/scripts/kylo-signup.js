@@ -935,7 +935,12 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
       const seen = network.length
         ? network.map((e) => `${e.kind}:${e.status}`).join(", ")
         : "nincs még auth hálózati jel";
-      log("info", `Regisztráció bizonyíték várakozás — ${Math.round((Date.now() - startedAt) / 1000)}s, ${seen}, url=${lastPageDiag.url}`);
+      const btn = lastPageDiag.submitState
+        ? `gomb="${lastPageDiag.submitState.text}"${lastPageDiag.submitState.disabled ? " (letiltva)" : ""}`
+        : "gomb=nem látszik";
+      const msgs = lastPageDiag.messages.length ? ` üzenetek: ${lastPageDiag.messages.join(" | ").slice(0, 300)}` : "";
+      log("info", `Regisztráció bizonyíték várakozás — ${Math.round((Date.now() - startedAt) / 1000)}s, ${seen}, ${btn}, captcha=${lastPageDiag.hasCaptcha ? "igen" : "nem"}, url=${lastPageDiag.url}${msgs}`);
+
     }
 
     if (signupOk || lastPageDiag.hasConfirmationText) {
