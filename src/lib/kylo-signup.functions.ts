@@ -762,3 +762,33 @@ export const deleteKyloSignupRun = createServerFn({ method: "POST" })
 
 
 
+// ─────────────────────────────────────────────────────────────
+// cancelPendingSignupRuns — az összes még el nem indult (queued /
+// scheduled) futás visszavonása egy kattintással. Ez a "vészfék",
+// ha véletlenül túl sok futás került egyszerre a sorba.
+// ─────────────────────────────────────────────────────────────
+
+export const cancelPendingSignupRuns = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .single();
+    if (!prof?.tenant_id) throw new Error("Nincs tenant.");
+
+    const { data: rows, error } = await supabase
+      .from("brain_workflow_runs")
+      .update({
+        status: "failed" as never,
+        finished_at: new Date().toISOString(),
+        error: "kézi leállítás: sorban álló futás visszavonva (túlterhelés elkerülése)",
+      } as never)
+      .eq("tenant_id", prof.tenant_id)
+      .in("status", ["queued", "scheduled"])
+      .select("id");
+    if (error) throw new Error(error.message);
+    return { ok: true, canceled: rows?.length ?? 0 };
+  });
