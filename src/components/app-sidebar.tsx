@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronDown,
   FolderInput,
+  Activity,
 } from "lucide-react";
 import { toast } from "sonner";
 
