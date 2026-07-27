@@ -393,127 +393,95 @@ export function AppSidebar() {
                   Még nincs workflow.
                 </div>
               )}
-              {workflows.map((wf) => {
-                const monitorType = getMonitorType(wf.spec);
-                const isKyloStudyQa = module === "audit" && monitorType === "kylo-study-qa";
-                const isKyloSignup = module === "audit" && monitorType === "kylo-study-signup";
-                const active = isKyloStudyQa
-                  ? currentPath.startsWith("/audit/qa")
-                  : isKyloSignup
-                  ? currentPath.startsWith("/audit/signup")
-                  : currentPath === `/w/${wf.id}`;
-                const isEditing = editingId === wf.id;
-                const ItemIcon = isKyloStudyQa || isKyloSignup ? ClipboardCheck : MessageSquare;
+              {folders.map((folder) => {
+                const items = grouped.byFolder.get(folder.id) ?? [];
+                const isOpen = !collapsed[folder.id];
                 return (
-                  <SidebarMenuItem key={wf.id}>
-                    {isEditing ? (
-                      <div className="flex items-center gap-1 px-1 group-data-[collapsible=icon]:hidden">
+                  <SidebarMenuItem key={folder.id} className="flex-col items-stretch">
+                    <div className="group/folder flex items-center gap-1">
+                      {editingFolderId === folder.id ? (
                         <Input
-                          ref={editInputRef}
-                          value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
+                          autoFocus
+                          value={folderDraft}
+                          onChange={(e) => setFolderDraft(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") commitEdit(wf.id);
-                            if (e.key === "Escape") setEditingId(null);
+                            if (e.key === "Enter") commitFolderName(folder.id);
+                            if (e.key === "Escape") setEditingFolderId(null);
                           }}
-                          onBlur={() => commitEdit(wf.id)}
+                          onBlur={() => commitFolderName(folder.id)}
                           className="h-7 text-xs"
-                          placeholder="Workflow neve"
+                          placeholder="Mappa neve"
                         />
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            commitEdit(wf.id);
-                          }}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-                          aria-label="Mentés"
-                        >
-                          <Check className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setEditingId(null);
-                          }}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-                          aria-label="Mégse"
-                        >
-                          <X className="size-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="group/item flex items-center gap-1">
-                        <SidebarMenuButton asChild isActive={active} className="flex-1">
-                          {isKyloStudyQa ? (
-                            <Link
-                              to="/audit/qa"
-                              onDoubleClick={(e) => startEdit(wf, e)}
-                              className="flex items-center gap-2"
-                            >
-                              <ItemIcon className="size-4 shrink-0" />
-                              <span className="truncate">{wf.name}</span>
-                            </Link>
-                          ) : isKyloSignup ? (
-                            <Link
-                              to="/audit/signup"
-                              onDoubleClick={(e) => startEdit(wf, e)}
-                              className="flex items-center gap-2"
-                            >
-                              <ItemIcon className="size-4 shrink-0" />
-                              <span className="truncate">{wf.name}</span>
-                            </Link>
-                          ) : (
-                            <Link
-                              to="/w/$workflowId"
-                              params={{ workflowId: wf.id }}
-                              onDoubleClick={(e) => startEdit(wf, e)}
-                              className="flex items-center gap-2"
-                            >
-                              <ItemIcon className="size-4 shrink-0" />
-                              <span className="truncate">{wf.name}</span>
-                            </Link>
-                          )}
-                        </SidebarMenuButton>
-                        <button
-                          type="button"
-                          onClick={(e) => startEdit(wf, e)}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden"
-                          aria-label="Átnevezés"
-                        >
-                          <Pencil className="size-3.5" />
-                        </button>
-                        {!isKyloStudyQa && (
+                      ) : (
+                        <>
+                          <SidebarMenuButton
+                            className="flex-1"
+                            onClick={() =>
+                              setCollapsed((c) => ({ ...c, [folder.id]: isOpen }))
+                            }
+                            onDoubleClick={() => {
+                              setFolderDraft(folder.name);
+                              setEditingFolderId(folder.id);
+                            }}
+                          >
+                            {isOpen ? (
+                              <ChevronDown className="size-3.5 shrink-0" />
+                            ) : (
+                              <ChevronRight className="size-3.5 shrink-0" />
+                            )}
+                            {isOpen ? (
+                              <FolderOpen className="size-4 shrink-0" />
+                            ) : (
+                              <Folder className="size-4 shrink-0" />
+                            )}
+                            <span className="truncate font-medium">{folder.name}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">
+                              {items.length}
+                            </span>
+                          </SidebarMenuButton>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              duplicateWorkflowFn(wf.id);
+                            onClick={() => {
+                              setFolderDraft(folder.name);
+                              setEditingFolderId(folder.id);
                             }}
-                            className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
-                            aria-label="Másolat készítése"
+                            className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden"
+                            aria-label="Mappa átnevezése"
                           >
-                            <Copy className="size-3.5" />
+                            <Pencil className="size-3.5" />
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteFolder(folder.id)}
+                            className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/folder:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+                            aria-label="Mappa törlése"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {isOpen && (
+                      <div className="mt-0.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-2 group-data-[collapsible=icon]:hidden">
+                        {items.length === 0 && (
+                          <div className="px-2 py-1 text-xs text-muted-foreground">
+                            Üres mappa
+                          </div>
                         )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            deleteWorkflow(wf.id);
-                          }}
-                          className="hidden size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover/item:opacity-100 hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
-                          aria-label="Törlés"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
+                        {items.map((wf) => renderWorkflow(wf))}
                       </div>
                     )}
                   </SidebarMenuItem>
                 );
               })}
+
+              {folders.length > 0 && grouped.loose.length > 0 && (
+                <div className="px-2 pt-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                  Mappa nélkül
+                </div>
+              )}
+              {grouped.loose.map((wf) => renderWorkflow(wf))}
+
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
