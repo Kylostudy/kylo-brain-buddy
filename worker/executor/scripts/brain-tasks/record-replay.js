@@ -479,6 +479,18 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
 
   let finalUrl = null;
   try { finalUrl = page.url(); } catch {}
+  noteUrl();
+
+  // Kylo signup folyamat: csak akkor sikeres, ha a fizetésig ÉS a profil oldalig eljutott.
+  const isKyloSignup = !!cfg && (!!cfg.email || !!cfg.base_url || !!cfg.lang);
+  const flowOk = milestones.reached_stripe && milestones.reached_profile;
+  if (isKyloSignup) {
+    log(
+      flowOk ? "info" : "warn",
+      `Folyamat mérföldkövek — fizetés (Stripe): ${milestones.reached_stripe ? "IGEN" : "NEM"}, ` +
+        `profil oldal: ${milestones.reached_profile ? `IGEN (${milestones.profile_url})` : "NEM"} · utolsó URL: ${finalUrl}`,
+    );
+  }
 
   return {
     replay_action_count: actions.length,
@@ -494,8 +506,13 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     language_checks: languageChecks,
     language_issues: langIssues,
     language_ok: langIssues.length === 0,
-
+    reached_stripe: milestones.reached_stripe,
+    reached_profile: milestones.reached_profile,
+    profile_url: milestones.profile_url,
+    kylo_flow_checked: isKyloSignup,
+    flow_ok: isKyloSignup ? flowOk : null,
   };
+
 
 }
 
