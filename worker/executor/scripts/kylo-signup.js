@@ -891,14 +891,21 @@ async function collectPageDiagnostics(page) {
     }
     const bodyText = norm(document.body?.innerText || "").slice(0, 6000);
     const confirmationRe = /check your (email|inbox)|verify your email|confirmation email|sent (you )?(an )?email|email has been sent|nézd meg az email|ellenőrző email|megerősítő email|確認メール|验证码|verifica tu correo|confirme seu email|vérifiez votre e-mail/i;
+    const submitBtn = Array.from(document.querySelectorAll('button, [type="submit"]')).find(
+      (b) => visible(b) && /regist|sign ?up|regisztr|créer|registrieren|iscri|cadastr|登録/i.test(norm(b.innerText || b.value || "")),
+    );
     return {
       url: location.href,
       title: document.title,
       messages: messages.slice(0, 12),
       hasConfirmationText: confirmationRe.test(bodyText),
       hasCaptcha: !!document.querySelector('iframe[src*="recaptcha"], iframe[src*="hcaptcha"], iframe[src*="turnstile"], [class*="captcha" i]'),
+      submitState: submitBtn
+        ? { text: norm(submitBtn.innerText || submitBtn.value || "").slice(0, 80), disabled: !!submitBtn.disabled }
+        : null,
       bodySample: bodyText.slice(0, 500),
     };
+
   });
 }
 
