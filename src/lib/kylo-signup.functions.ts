@@ -335,6 +335,21 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
       .single();
     if (qErr) throw new Error(qErr.message);
 
+    await saveTestAccount(supabase as never, {
+      tenantId,
+      workflowId: wfId,
+      runId: run!.id,
+      email,
+      password,
+      runIndex: nextCounter,
+      skin,
+      country: expectedCountry,
+      lang,
+      currency,
+    });
+
+
+
     // Rotáció állapot mentése
     const nextState: SignupState = {
       run_counter: nextCounter,
