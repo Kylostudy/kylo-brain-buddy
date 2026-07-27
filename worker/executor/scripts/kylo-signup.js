@@ -1007,6 +1007,9 @@ export async function runKyloSignup({ page, context, spec, log }) {
   await page.waitForTimeout(1500);
   screenshots.push(await shot(page, "1-home"));
   steps.push({ step: "home", url: page.url() });
+  // A nyitóoldal szándékosan MINDIG angol — ezt is ellenőrizzük.
+  langChecks.push(await auditLanguage(page, "nyitóoldal (angol)", log, "en-GB"));
+
 
   await acceptCookies(page, log);
 
