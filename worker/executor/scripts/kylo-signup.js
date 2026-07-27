@@ -962,6 +962,11 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   const steps = [];
   const screenshots = [];
+  const langChecks = [];
+  let registrationOk = false;
+  let emailConfirmed = false;
+  let emailLangOk = null;
+
   const startUrl = withLang(baseUrl, lang);
   const diag = installSignupDiagnostics(page, email, password, log);
 
