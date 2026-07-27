@@ -464,6 +464,69 @@ export type Database = {
           },
         ]
       }
+      audit_test_accounts: {
+        Row: {
+          country: string | null
+          created_at: string
+          currency: string | null
+          email: string
+          id: string
+          lang: string | null
+          last_login_at: string | null
+          notes: string | null
+          password_ciphertext: string
+          password_nonce: string
+          registered_at: string | null
+          run_id: string | null
+          run_index: number | null
+          skin: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          email: string
+          id?: string
+          lang?: string | null
+          last_login_at?: string | null
+          notes?: string | null
+          password_ciphertext: string
+          password_nonce: string
+          registered_at?: string | null
+          run_id?: string | null
+          run_index?: number | null
+          skin?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          email?: string
+          id?: string
+          lang?: string | null
+          last_login_at?: string | null
+          notes?: string | null
+          password_ciphertext?: string
+          password_nonce?: string
+          registered_at?: string | null
+          run_id?: string | null
+          run_index?: number | null
+          skin?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: []
+      }
       audit_workflow_runs: {
         Row: {
           created_at: string
