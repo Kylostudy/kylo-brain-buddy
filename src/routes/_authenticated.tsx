@@ -68,7 +68,7 @@ function AppShell({
 }) {
   const { meta } = useModule();
   return (
-    <SidebarProvider>
+    <SidebarProvider style={{ "--sidebar-width": "20rem" } as React.CSSProperties}>
       <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
         <AppSidebar />
         <div className="flex h-screen min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
