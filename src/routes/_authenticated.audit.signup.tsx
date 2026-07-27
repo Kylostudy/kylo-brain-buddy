@@ -101,6 +101,23 @@ function readResult(r: unknown): {
   return r as never;
 }
 
+const CRITERIA_LABELS_HU: Record<string, string> = {
+  landing_english: "Nyitóoldal angolul jelenik meg",
+  auth_dialog_language: "Belépési panel a cél nyelven",
+  signup_form_language: "Regisztrációs űrlap a cél nyelven",
+  registration_submitted: "Regisztráció elküldve",
+  confirmation_email_received: "Megerősítő e-mail megérkezett",
+  confirmation_email_language: "Megerősítő e-mail a cél nyelven",
+  plan_page_language: "Csomagválasztó a cél nyelven",
+  billing_form_language: "Számlázási űrlap a cél nyelven",
+  reached_stripe: "Eljutott a Stripe fizetésig",
+  stripe_paid: "Fizetés elküldve",
+  payment_success_page_language: "Sikeres fizetés oldal a cél nyelven",
+  reached_profile: "Eljutott a profil oldalra",
+  profile_page_language: "Profil oldal a cél nyelven",
+};
+
+
 
 function SignupPage() {
   const { forceModule } = useModule();
