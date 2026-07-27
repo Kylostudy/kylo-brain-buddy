@@ -116,9 +116,105 @@ export function AppSidebar() {
     queryFn: () => fetchWorkflows(module),
   });
 
+  const { data: folders = [] } = useQuery({
+    queryKey: ["workflow-folders", module],
+    queryFn: () => fetchFolders(module),
+  });
+
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [folderDraft, setFolderDraft] = useState("");
+
+  const grouped = useMemo(() => {
+    const byFolder = new Map<string, Workflow[]>();
+    const loose: Workflow[] = [];
+    for (const wf of workflows) {
+      if (wf.folder_id && folders.some((f) => f.id === wf.folder_id)) {
+        const list = byFolder.get(wf.folder_id) ?? [];
+        list.push(wf);
+        byFolder.set(wf.folder_id, list);
+      } else {
+        loose.push(wf);
+      }
+    }
+    return { byFolder, loose };
+  }, [workflows, folders]);
+
   useEffect(() => {
     if (editingId) editInputRef.current?.focus();
   }, [editingId]);
+
+  async function getTenantId(): Promise<string | null> {
+    const uid = readStoredSupabaseSession()?.user?.id;
+    if (!uid) return null;
+    const { data } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", uid)
+      .maybeSingle();
+    return data?.tenant_id ?? null;
+  }
+
+  async function createFolder() {
+    const tenantId = await getTenantId();
+    if (!tenantId) {
+      toast.error("Nincs tenant hozzárendelve a felhasználóhoz.");
+      return;
+    }
+    const { data, error } = await supabase
+      .from("workflow_folders")
+      .insert({ name: "Új mappa", module, tenant_id: tenantId })
+      .select("id")
+      .single();
+    if (error) {
+      toast.error(`Mappa létrehozása sikertelen: ${error.message}`);
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["workflow-folders", module] });
+    setFolderDraft("Új mappa");
+    setEditingFolderId(data.id);
+  }
+
+  async function commitFolderName(id: string) {
+    const next = folderDraft.trim();
+    setEditingFolderId(null);
+    if (!next) return;
+    const { error } = await supabase
+      .from("workflow_folders")
+      .update({ name: next })
+      .eq("id", id);
+    if (error) {
+      toast.error("Mappa átnevezése sikertelen");
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["workflow-folders", module] });
+  }
+
+  async function deleteFolder(id: string) {
+    const { error } = await supabase.from("workflow_folders").delete().eq("id", id);
+    if (error) {
+      toast.error("Mappa törlése sikertelen");
+      return;
+    }
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["workflow-folders", module] }),
+      qc.invalidateQueries({ queryKey: ["workflows", module] }),
+    ]);
+    toast.success("Mappa törölve — a workflow-k megmaradtak.");
+  }
+
+  async function moveWorkflow(workflowId: string, folderId: string | null) {
+    const { error } = await supabase
+      .from("workflows")
+      .update({ folder_id: folderId })
+      .eq("id", workflowId);
+    if (error) {
+      toast.error(`Áthelyezés sikertelen: ${error.message}`);
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["workflows", module] });
+  }
+
 
   async function createWorkflow() {
     const uid = readStoredSupabaseSession()?.user?.id;
