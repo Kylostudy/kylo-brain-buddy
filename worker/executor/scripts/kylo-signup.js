@@ -877,9 +877,56 @@ async function submitForm(page, log) {
   return { clicked: false, reason: "no-signup-submit" };
 }
 
+async function collectSubmitBlockers(page, marker) {
+  return page.evaluate((marker) => {
+    const btn = document.querySelector(`[data-kylo-worker-submit="${marker}"]`);
+    if (!btn) return { elementAtPoint: "gomb eltűnt", formValid: null, invalidFields: [] };
+    const r = btn.getBoundingClientRect();
+    const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const desc = (el) =>
+      el ? `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}${el.className && typeof el.className === "string" ? "." + el.className.split(/\s+/).slice(0, 2).join(".") : ""}` : "nincs";
+    const form = btn.closest("form");
+    const invalidFields = [];
+    const scope = form || document;
+    scope.querySelectorAll("input, select, textarea").forEach((el) => {
+      if (el.type === "hidden" || el.disabled) return;
+      const bad = (el.required && !el.value && el.type !== "checkbox") || (el.willValidate && !el.checkValidity());
+      if (!bad) return;
+      const label = el.name || el.id || el.placeholder || el.getAttribute("aria-label") || el.type;
+      invalidFields.push(String(label).slice(0, 40));
+    });
+    return {
+      elementAtPoint: at === btn || btn.contains(at) ? "maga a gomb" : desc(at),
+      formValid: form ? form.checkValidity() : null,
+      invalidFields: invalidFields.slice(0, 12),
+    };
+  }, marker);
+}
+
+async function forceResubmit(page, log, label) {
+  const done = await page
+    .evaluate(() => {
+      const btn = document.querySelector("[data-kylo-worker-submit]");
+      if (!btn) return "gomb nem található";
+      const form = btn.closest("form");
+      try {
+        btn.click();
+      } catch (_) {}
+      if (form && typeof form.requestSubmit === "function") {
+        try {
+          form.requestSubmit(btn);
+          return "gomb.click() + form.requestSubmit()";
+        } catch (_) {}
+      }
+      return "gomb.click()";
+    })
+    .catch(() => "hiba");
+  log("info", `Submit újrapróba (${label}) — ${done}`);
+}
+
 async function collectPageDiagnostics(page) {
   return page.evaluate(() => {
-    const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+
     const visible = (el) => {
       const r = el.getBoundingClientRect();
       const st = window.getComputedStyle(el);
