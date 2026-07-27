@@ -936,3 +936,102 @@ function RecorderProxyCard({
 }
 
 
+
+// ─────────────────────────────────────────────────────────────
+// SummaryCard — összkép az ÖSSZES eddigi futásról
+// ─────────────────────────────────────────────────────────────
+type Summary = {
+  total: number;
+  byStatus: Record<string, number>;
+  byError: Record<string, number>;
+  byLang: Record<string, { total: number; ok: number; bad: number }>;
+  loggedIn: number;
+  avgActions: number | null;
+};
+
+function SummaryCard() {
+  const callSummary = useServerFn(getKyloSignupSummary);
+  const { data, isLoading } = useQuery({
+    queryKey: ["kylo-signup-summary"],
+    queryFn: () => callSummary({}),
+  });
+  const s = data as Summary | null | undefined;
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Összesítés</CardTitle></CardHeader>
+        <CardContent className="text-sm text-muted-foreground">Számolás…</CardContent>
+      </Card>
+    );
+  }
+  if (!s || s.total === 0) return null;
+
+  const ok = s.byStatus.succeeded ?? 0;
+  const bad = s.byStatus.failed ?? 0;
+  const langs = Object.entries(s.byLang).sort((a, b) => a[0].localeCompare(b[0]));
+  const errs = Object.entries(s.byError).sort((a, b) => b[1] - a[1]);
+  const translated = langs.filter(([, v]) => v.bad === 0).map(([k]) => k);
+  const notTranslated = langs.filter(([, v]) => v.bad > 0).map(([k]) => k);
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Összesítés — összes futás ({s.total})</CardTitle></CardHeader>
+      <CardContent className="space-y-5 text-sm">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className={statusColor("succeeded")}>Sikeres: {ok}</Badge>
+          <Badge variant="outline" className={statusColor("failed")}>Hibás: {bad}</Badge>
+          {Object.entries(s.byStatus)
+            .filter(([k]) => k !== "succeeded" && k !== "failed")
+            .map(([k, v]) => (
+              <Badge key={k} variant="outline" className={statusColor(k)}>{k}: {v}</Badge>
+            ))}
+          <Badge variant="outline">Bejelentkezett a profilba: {s.loggedIn}</Badge>
+          {s.avgActions !== null && (
+            <Badge variant="outline">Átlag {s.avgActions} lépés / futás</Badge>
+          )}
+        </div>
+
+        <div>
+          <div className="mb-2 font-medium">Miért buktak el?</div>
+          {errs.length === 0 ? (
+            <div className="text-muted-foreground">Nincs hibás futás.</div>
+          ) : (
+            <ul className="space-y-1">
+              {errs.map(([k, v]) => (
+                <li key={k} className="flex justify-between gap-3 border-b py-1 last:border-0">
+                  <span>{k}</span>
+                  <span className="font-mono text-muted-foreground">{v}×</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div>
+          <div className="mb-2 font-medium">Fordítás nyelvenként (sikeres futások alapján)</div>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {langs.map(([lang, v]) => (
+              <div key={lang} className="flex items-center justify-between gap-3 border-b py-1">
+                <span className="font-mono">{lang}</span>
+                <span>
+                  {v.bad === 0 ? (
+                    <Badge variant="outline" className={statusColor("succeeded")}>rendben</Badge>
+                  ) : (
+                    <Badge variant="outline" className={statusColor("failed")}>
+                      hiányos ({v.bad}/{v.total} futás)
+                    </Badge>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Rendben: {translated.join(", ") || "—"} · Hiányos vagy angol fallback:{" "}
+            {notTranslated.join(", ") || "—"}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
