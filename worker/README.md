@@ -100,3 +100,48 @@ Ha a `SHOTS_PUBLIC_URL` üres, a képek nem lesznek megjeleníthetők a felület
 állíts be egy nyilvános címet (domain vagy `http://<vps-ip>:8088`).
 
 Ellenőrzés: `curl http://localhost:8088/health`
+
+## Öngyógyítás (stabilitás)
+
+Négy réteg védi a futásokat:
+
+1. **Docker restart: always** — konténer összeomlásnál azonnal újraindul.
+2. **Healthcheck + autoheal** — az orchestrator és a recorder saját health portot
+   nyit (9090 / 9091). Ha a fő ciklus 2 percig nem pörög (befagyott), a konténer
+   `unhealthy` lesz, és az `autoheal` szolgáltatás újraindítja.
+3. **Gépszintű watchdog** — ha az egész stack leáll (reboot, docker restart),
+   a `watchdog.sh` percenként visszahozza.
+4. **Szabályos leállás (drain)** — újraindításkor a worker NEM lövi ki a futó
+   munkákat: abbahagyja az újak felvételét, és megvárja a folyamatban lévőket
+   (orchestrator: max 45 perc, recorder: max 20 perc). Így egy frissítés nem
+   szakítja félbe a Brain 45 perces süti-gyűjtéseit.
+
+### Telepítés a VPS-en (egyszer)
+
+```sh
+cd ~/kylo-worker/worker
+sudo cp systemd/kylo-worker.service systemd/kylo-watchdog.service systemd/kylo-watchdog.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now kylo-worker.service kylo-watchdog.timer
+```
+
+Ellenőrzés:
+
+```sh
+systemctl status kylo-watchdog.timer
+docker compose ps            # minden konténer "healthy"
+docker compose exec orchestrator wget -qO- http://127.0.0.1:9090/health
+```
+
+### Dinamikus párhuzamossági fék
+
+A `MAX_PARALLEL` a felső korlát, de az orchestrator méri a gép terhelését, és
+ha kevés a szabad RAM vagy magas a load, átmenetileg nem vesz fel új munkát
+(a logban `[fék] ...` sor jelzi). `.env` hangolás:
+
+```
+MAX_PARALLEL=12          # felső korlát (nagy vason 40-60)
+MEM_PER_JOB_MB=1200      # ennyi szabad RAM kell egy új munkához
+LOAD_PER_CPU_LIMIT=1.5   # load/mag arány, felette fékez
+MEM_HARD_LIMIT_PCT=90    # e fölött semmit nem indít
+```
