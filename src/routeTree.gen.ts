@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as AuthenticatedWorkerHealthRouteImport } from './routes/_authenticated.worker-health'
 import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authenticated.reddit-warmup'
 import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenticated.reddit-scout'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
@@ -73,6 +74,12 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWorkerHealthRoute =
+  AuthenticatedWorkerHealthRouteImport.update({
+    id: '/worker-health',
+    path: '/worker-health',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRedditWarmupRoute =
   AuthenticatedRedditWarmupRouteImport.update({
     id: '/reddit-warmup',
@@ -313,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
+  '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
   '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
@@ -357,6 +365,7 @@ export interface FileRoutesByTo {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
+  '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
@@ -404,6 +413,7 @@ export interface FileRoutesById {
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
   '/_authenticated/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/_authenticated/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
+  '/_authenticated/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/audit/qa': typeof AuthenticatedAuditQaRoute
@@ -452,6 +462,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/reddit-scout'
     | '/reddit-warmup'
+    | '/worker-health'
     | '/api/transcribe'
     | '/audit/qa'
     | '/audit/scenarios'
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/reddit-scout'
     | '/reddit-warmup'
+    | '/worker-health'
     | '/api/transcribe'
     | '/'
     | '/audit/qa'
@@ -542,6 +554,7 @@ export interface FileRouteTypes {
     | '/_authenticated/proxies'
     | '/_authenticated/reddit-scout'
     | '/_authenticated/reddit-warmup'
+    | '/_authenticated/worker-health'
     | '/api/transcribe'
     | '/_authenticated/'
     | '/_authenticated/audit/qa'
@@ -648,6 +661,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/worker-health': {
+      id: '/_authenticated/worker-health'
+      path: '/worker-health'
+      fullPath: '/worker-health'
+      preLoaderRoute: typeof AuthenticatedWorkerHealthRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/reddit-warmup': {
       id: '/_authenticated/reddit-warmup'
@@ -937,6 +957,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
   AuthenticatedRedditScoutRoute: typeof AuthenticatedRedditScoutRoute
   AuthenticatedRedditWarmupRoute: typeof AuthenticatedRedditWarmupRoute
+  AuthenticatedWorkerHealthRoute: typeof AuthenticatedWorkerHealthRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAuditQaRoute: typeof AuthenticatedAuditQaRoute
   AuthenticatedAuditScenariosRoute: typeof AuthenticatedAuditScenariosRoute
@@ -949,6 +970,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
   AuthenticatedRedditScoutRoute: AuthenticatedRedditScoutRoute,
   AuthenticatedRedditWarmupRoute: AuthenticatedRedditWarmupRoute,
+  AuthenticatedWorkerHealthRoute: AuthenticatedWorkerHealthRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAuditQaRoute: AuthenticatedAuditQaRoute,
   AuthenticatedAuditScenariosRoute: AuthenticatedAuditScenariosRoute,
