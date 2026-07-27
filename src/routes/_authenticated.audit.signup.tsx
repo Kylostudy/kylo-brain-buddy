@@ -989,7 +989,14 @@ function SummaryCard() {
             .map(([k, v]) => (
               <Badge key={k} variant="outline" className={statusColor(k)}>{k}: {v}</Badge>
             ))}
-          <Badge variant="outline">Bejelentkezett a profilba: {s.loggedIn}</Badge>
+          <Badge variant="outline">Belépett: {s.loggedIn}</Badge>
+          <Badge variant="outline" className={(s.reachedStripe ?? 0) > 0 ? "" : "text-destructive"}>
+            Eljutott a fizetésig: {s.reachedStripe ?? 0}
+          </Badge>
+          <Badge variant="outline" className={(s.reachedProfile ?? 0) > 0 ? "" : "text-destructive"}>
+            Eljutott a profil oldalig: {s.reachedProfile ?? 0}
+          </Badge>
+
           {s.avgActions !== null && (
             <Badge variant="outline">Átlag {s.avgActions} lépés / futás</Badge>
           )}
