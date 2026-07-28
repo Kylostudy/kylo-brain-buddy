@@ -938,25 +938,31 @@ async function collectSubmitBlockers(page, marker) {
 }
 
 async function forceResubmit(page, log, label) {
+  // FONTOS: csak EGYETLEN beküldés történhet. A #119-es futásnál a
+  // btn.click() + form.requestSubmit() páros két auth/v1/signup hívást
+  // indított 11 ms-on belül, és a második 500-as "Database error saving
+  // new user" hibát adott (a fiók már létrejött az elsőtől).
   const done = await page
     .evaluate(() => {
       const btn = document.querySelector("[data-kylo-worker-submit]");
       if (!btn) return "gomb nem található";
       const form = btn.closest("form");
-      try {
-        btn.click();
-      } catch (_) {}
       if (form && typeof form.requestSubmit === "function") {
         try {
           form.requestSubmit(btn);
-          return "gomb.click() + form.requestSubmit()";
+          return "form.requestSubmit()";
         } catch (_) {}
       }
-      return "gomb.click()";
+      try {
+        btn.click();
+        return "gomb.click()";
+      } catch (_) {}
+      return "nem sikerült";
     })
     .catch(() => "hiba");
   log("info", `Submit újrapróba (${label}) — ${done}`);
 }
+
 
 async function collectPageDiagnostics(page) {
   return page.evaluate(() => {
