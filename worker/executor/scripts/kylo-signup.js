@@ -1264,17 +1264,117 @@ async function fillBillingForm(page, email, log) {
         }
       }
 
-      return { filled, skipped };
+      // Natív <select> mezők (pl. közterület jellege: utca / tér / körút ...)
+      const selects = [];
+      for (const s of Array.from(document.querySelectorAll("select"))) {
+        if (!(s.offsetWidth || s.offsetHeight) || s.disabled) continue;
+        const cur = String(s.value || "").trim();
+        const curText = (s.selectedOptions?.[0]?.innerText || "").trim().toLowerCase();
+        const placeholderish = !cur || /válass|valass|select|choose|^-+$/.test(curText);
+        if (!placeholderish) continue;
+        const opts = Array.from(s.options).filter(
+          (o) => String(o.value || "").trim() && !/válass|valass|select|choose/.test((o.innerText || "").toLowerCase()),
+        );
+        if (!opts.length) continue;
+        const ctx = `${s.name || ""} ${s.id || ""} ${labelTextFor(s)}`.toLowerCase();
+        const isStreetType = /jelleg|közterület|kozterulet|street ?type|utca ?típus|utca ?tipus|address ?type|cím ?típus/.test(ctx);
+        const pick =
+          (isStreetType &&
+            opts.find((o) => /^(utca|street)$/i.test((o.innerText || "").trim()))) ||
+          (isStreetType && opts.find((o) => /utca|street/i.test(o.innerText || ""))) ||
+          opts[0];
+        s.value = pick.value;
+        s.dispatchEvent(new Event("input", { bubbles: true }));
+        s.dispatchEvent(new Event("change", { bubbles: true }));
+        s.dispatchEvent(new Event("blur", { bubbles: true }));
+        selects.push(`${ctx.trim().slice(0, 40)} = ${(pick.innerText || pick.value).trim().slice(0, 20)}`);
+      }
+
+      return { filled, skipped, selects };
     },
     { billing: BILLING_TEST, email },
   ).catch((e) => {
     log("warn", `Számlázási űrlap kitöltés hiba: ${e.message}`);
-    return { filled: [], skipped: [] };
+    return { filled: [], skipped: [], selects: [] };
   });
 
+  if (result.selects?.length) {
+    log("info", `Számlázási legördülők (natív): ${result.selects.join(" | ")}`);
+  }
+
+  // Shadcn/Radix stílusú (nem natív) legördülők: közterület jellege + ország
+  const streetTypePicked = await selectComboboxOption(page, log, {
+    label: "Közterület jellege",
+    labelTexts: ["jelleg", "közterület", "kozterulet", "street type", "utca típusa", "utca tipusa", "address type", "cím típusa"],
+    buttonTexts: ["válassz", "select", "típus", "type", "jelleg", "utca"],
+    optionTexts: ["utca", "street", "road"],
+  }).catch(() => false);
+  if (streetTypePicked) log("info", "Számlázás: közterület jellege = utca kiválasztva.");
+
+  // Bármely további üresen maradt Radix legördülő ("Válassz..." feliratú) — az első opciót választjuk,
+  // mert ezek gyakran némán blokkolják a továbblépést hibaüzenet nélkül.
+  for (let i = 0; i < 3; i++) {
+    const picked = await pickFirstEmptyCombobox(page, log);
+    if (!picked) break;
+  }
+
   log("info", `Számlázási űrlap: ${result.filled.length} mező kitöltve — ${result.filled.join(" | ") || "nincs"}`);
-  return result.filled.length > 0;
+  return result.filled.length > 0 || streetTypePicked || (result.selects?.length || 0) > 0;
 }
+
+// Megkeres egy még ki nem választott (placeholder feliratú) Radix legördülőt és választ benne.
+async function pickFirstEmptyCombobox(page, log) {
+  const marker = `kylo-empty-combo-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const found = await page
+    .evaluate((marker) => {
+      const visible = (el) => {
+        const r = el.getBoundingClientRect();
+        const st = window.getComputedStyle(el);
+        return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
+      };
+      const els = Array.from(document.querySelectorAll('[role="combobox"]')).filter(visible);
+      for (const el of els) {
+        if (el.getAttribute("data-kylo-combo-done")) continue;
+        const txt = (el.innerText || "").replace(/\s+/g, " ").trim().toLowerCase();
+        if (!txt || /válass|valass|select|choose|^-+$/.test(txt)) {
+          el.scrollIntoView({ block: "center" });
+          el.setAttribute("data-kylo-combo-done", "1");
+          el.setAttribute("data-kylo-empty-combo", marker);
+          const ctx = (el.closest(".space-y-2")?.innerText || el.parentElement?.innerText || "").replace(/\s+/g, " ").trim();
+          return { ctx: ctx.slice(0, 60) };
+        }
+      }
+      return null;
+    }, marker)
+    .catch(() => null);
+  if (!found) return false;
+  const handle = await page.$(`[data-kylo-empty-combo="${marker}"]`);
+  if (!handle) return false;
+  await humanClick(page, handle, { noMisclick: true, timeout: 3000 }).catch(() => {});
+  await page.waitForTimeout(600);
+  const ok = await page
+    .evaluate(() => {
+      const visible = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 3 && r.height > 3;
+      };
+      const opts = Array.from(document.querySelectorAll('[role="option"], [cmdk-item], [role="menuitem"]')).filter(visible);
+      if (!opts.length) return null;
+      const preferred = opts.find((o) => /^(utca|street)$/i.test((o.innerText || "").trim())) || opts[0];
+      const text = (preferred.innerText || "").trim().slice(0, 40);
+      preferred.click();
+      return text;
+    })
+    .catch(() => null);
+  if (!ok) {
+    await page.keyboard.press("Escape").catch(() => {});
+    return false;
+  }
+  log("info", `Legördülő kitöltve (${found.ctx || "?"}): ${ok}`);
+  await page.waitForTimeout(400);
+  return true;
+}
+
 
 // Mi maradt üresen / mi tiltja a "Tovább a fizetéshez" gombot?
 async function collectBillingBlockers(page) {
@@ -1287,6 +1387,15 @@ async function collectBillingBlockers(page) {
       const empty = Array.from(document.querySelectorAll("input, textarea, select"))
         .filter((n) => (n.offsetWidth || n.offsetHeight) && n.type !== "checkbox" && !String(n.value || "").trim())
         .map(label);
+      const unselected = Array.from(document.querySelectorAll('[role="combobox"]'))
+        .filter((n) => n.offsetWidth || n.offsetHeight)
+        .filter((n) => {
+          const t = (n.innerText || "").replace(/\s+/g, " ").trim().toLowerCase();
+          return !t || /válass|valass|select|choose|^-+$/.test(t);
+        })
+        .map((n) => (n.closest(".space-y-2")?.innerText || n.innerText || "?").replace(/\s+/g, " ").trim().slice(0, 40));
+      empty.push(...unselected.map((u) => `[legördülő nincs kiválasztva] ${u}`));
+
       const errors = Array.from(document.querySelectorAll('[role="alert"], .text-destructive, .error, [aria-invalid="true"]'))
         .map((n) => (n.innerText || "").trim())
         .filter(Boolean)
