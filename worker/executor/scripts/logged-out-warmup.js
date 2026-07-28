@@ -298,22 +298,34 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
   let blacklistBlocks = 0;
   const visitedDomains = new Set();
 
+  let googleFails = 0;
+  let googleDisabled = false;
+
   while (Date.now() - started < durationMs) {
     const remainingSec = Math.floor((durationMs - (Date.now() - started)) / 1000);
     log("info", `Még ~${remainingSec}s hátra a warmup-ból. Meglátogatva: ${pagesVisited} oldal, ${visitedDomains.size} domain.`);
 
     // 40% eséllyel Google-keresés, 60% direkt portál
     let landingUrl;
-    if (Math.random() < 0.4) {
+    if (!googleDisabled && Math.random() < 0.4) {
       const q = queries[Math.floor(Math.random() * queries.length)];
       log("info", `Google keresés (${googleDomain}): "${q}"`);
-      landingUrl = await googleSearchAndClick(page, q, googleDomain, cookieAcceptTexts, extraBlocked, log);
-      if (landingUrl) {
-        if (isBlacklisted(landingUrl, extraBlocked)) {
-          log("warn", `Feketelistás találat kihagyva: ${hostOf(landingUrl)}`);
-          blacklistBlocks++;
-          landingUrl = null;
+      landingUrl = await withTimeout(
+        () => googleSearchAndClick(page, q, googleDomain, cookieAcceptTexts, extraBlocked, log),
+        90000,
+        "google keresés",
+        log,
+      );
+      if (!landingUrl) {
+        googleFails++;
+        if (googleFails >= 3) {
+          googleDisabled = true;
+          log("warn", "A Google háromszor nem válaszolt ezen a proxyn — a hátralévő időben csak portálokat böngészünk.");
         }
+      } else if (isBlacklisted(landingUrl, extraBlocked)) {
+        log("warn", `Feketelistás találat kihagyva: ${hostOf(landingUrl)}`);
+        blacklistBlocks++;
+        landingUrl = null;
       }
     }
     if (!landingUrl) {
@@ -330,8 +342,8 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
     pagesVisited++;
     visitedDomains.add(hostOf(landingUrl));
 
-    await humanWait(page, 900);
-    await tryCloseCookieBanner(page, cookieAcceptTexts, log);
+    await humanWait(page, 900).catch(() => {});
+    await withTimeout(() => tryCloseCookieBanner(page, cookieAcceptTexts, log), 20000, "cookie sáv", log);
     await browsePage(page, log);
 
     // Belső kattintás 0-2 közötti mélységre
@@ -339,10 +351,12 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
     for (let i = 0; i < clicks; i++) {
       if (Date.now() - started >= durationMs) break;
       const currentHost = hostOf(page.url());
-      const link = await pickRandomInternalLink(page, currentHost, [
-        ...HARD_BLACKLIST,
-        ...extraBlocked,
-      ]);
+      const link = await withTimeout(
+        () => pickRandomInternalLink(page, currentHost, [...HARD_BLACKLIST, ...extraBlocked]),
+        20000,
+        "belső link keresés",
+        log,
+      );
       if (!link) break;
       if (isBlacklisted(link.href, extraBlocked)) {
         blacklistBlocks++;
@@ -357,12 +371,13 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
 
       // Dwell 20-90 mp
       const dwellSec = minDwell + Math.random() * (maxDwell - minDwell);
-      await page.waitForTimeout(dwellSec * 1000);
+      await page.waitForTimeout(dwellSec * 1000).catch(() => {});
     }
 
     // Kis pauza két portál között
-    await humanWait(page, 2500 + Math.random() * 3500);
+    await humanWait(page, 2500 + Math.random() * 3500).catch(() => {});
   }
+
 
   // Sütitár export — Playwright standard formátum, ugyanaz mint a claim küld.
   let cookies = [];
