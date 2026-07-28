@@ -44,6 +44,11 @@ import svLocale from "./warmup-locales/sv.js";
 import plLocale from "./warmup-locales/pl.js";
 import ptBRLocale from "./warmup-locales/pt-BR.js";
 import arLocale from "./warmup-locales/ar.js";
+import frLocale from "./warmup-locales/fr.js";
+import itLocale from "./warmup-locales/it.js";
+import fiLocale from "./warmup-locales/fi.js";
+import jaLocale from "./warmup-locales/ja.js";
+import trLocale from "./warmup-locales/tr.js";
 
 const LOCALES = {
   en: enLocale,
@@ -56,7 +61,13 @@ const LOCALES = {
   "pt-br": ptBRLocale,
   pt: ptBRLocale,
   ar: arLocale,
+  fr: frLocale,
+  it: itLocale,
+  fi: fiLocale,
+  ja: jaLocale,
+  tr: trLocale,
 };
+
 
 // Fallback (angol) — ha valamiért nem érkezik spec.language.
 const DEFAULT_LOCALE = enLocale;
