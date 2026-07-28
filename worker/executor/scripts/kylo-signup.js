@@ -1536,8 +1536,20 @@ export async function runKyloSignup({ page, context, spec, log }) {
   // 5) Csomagválasztó → számlázási adatok → Stripe.
   //    Minden köztes oldalnak a proxy szerinti nyelven kell megjelennie.
   await page.waitForTimeout(1500);
+  // Ha valamiért nem a csomagválasztón állunk (pl. visszadobott a /regisztracio),
+  // navigáljunk oda közvetlenül, különben a Stripe lépés biztosan elbukik.
+  try {
+    if (!/\/elofizetes|\/subscription|\/plans/i.test(page.url()) && !isStripeUrl(page.url())) {
+      log("info", `Nem a csomagválasztón állunk (${page.url()}) — átnavigálok az előfizetési oldalra.`);
+      await page.goto("https://kylo.study/elofizetesek?role=pro&first=true", { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.waitForTimeout(3000);
+    }
+  } catch (e) {
+    log("warn", `Csomagválasztó navigáció hiba: ${e.message}`);
+  }
   screenshots.push(await shot(page, "5-plan-page"));
   langChecks.push(await auditLanguage(page, "csomagválasztó", log, lang));
+
 
   const subClicked = await clickByText(page, CLICK_HINTS_SUBSCRIBE, log, "Előfizetés / Csomag");
   await page.waitForTimeout(4500);
