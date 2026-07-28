@@ -1922,19 +1922,31 @@ export async function runKyloSignup({ page, context, spec, log }) {
       const cvcOk = await fillAnywhere(CVC_SELECTORS, "123", "CVC");
       log("info", `Stripe kártya kitöltés — card=${cardOk} exp=${expOk} cvc=${cvcOk}`);
 
-      // Cardholder név (ha van)
-      try {
-        const name = await page.$('input[name="billingName"], input#billingName, input[autocomplete="cc-name"]');
-        if (name) { await name.fill("Kylo Test", { timeout: 2000 }); }
-      } catch {}
-
-      // Ország / irányítószám — ha megjelenik
-      try {
-        const zip = await page.$('input[name="billingPostalCode"], input#billingPostalCode, input[autocomplete="postal-code"]');
-        if (zip) { await zip.fill("10001", { timeout: 2000 }); }
-      } catch {}
+      // Cardholder név / irányítószám / cím — ezek is lehetnek iframe-ben,
+      // ezért ugyanazzal a "bárhol keres" segédfüggvénnyel töltjük ki.
+      await fillAnywhere(
+        'input[name="billingName"], input#billingName, input[autocomplete="cc-name"], input[name="cardholderName"]',
+        "Kylo Test",
+        "kártyabirtokos név",
+      ).catch(() => false);
+      await fillAnywhere(
+        'input[name="billingPostalCode"], input#billingPostalCode, input[autocomplete="postal-code"], input[name="postalCode"]',
+        "M5H 2N2",
+        "irányítószám",
+      ).catch(() => false);
+      await fillAnywhere(
+        'input[name="billingAddressLine1"], input#billingAddressLine1, input[autocomplete="address-line1"]',
+        "100 King Street West",
+        "cím",
+      ).catch(() => false);
+      await fillAnywhere(
+        'input[name="billingLocality"], input#billingLocality, input[autocomplete="address-level2"]',
+        "Toronto",
+        "város",
+      ).catch(() => false);
 
       stripeFilled = cardOk && expOk && cvcOk;
+
       if (!stripeFilled) {
         // Diagnosztika: mit lát egyáltalán az oldalon / a frame-ekben?
         try {
