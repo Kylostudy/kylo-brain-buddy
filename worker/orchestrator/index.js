@@ -330,8 +330,24 @@ function runContainer(job) {
     // Ha épp nincs új log (pl. hosszú oldalbetöltés vagy emberi dwell), akkor is
     // küldünk ritka életjelet, különben a 15 perces watchdog tévesen megöli a runt.
     let lastProgressAt = 0;
+    // Ha 20 percen át egyetlen új naplósor sem jön, a futás némán beragadt
+    // (pl. Playwright hívás, ami sosem tér vissza) — ilyenkor megöljük.
+    let lastLineAt = Date.now();
+    let stalled = false;
+    const STALL_MS = 20 * 60 * 1000;
     const flushTimer = setInterval(async () => {
       const now = Date.now();
+      if (dirty) lastLineAt = now;
+      if (!stalled && now - lastLineAt > STALL_MS) {
+        stalled = true;
+        logs.push({
+          ts: new Date().toISOString(),
+          level: "error",
+          message: `Beragadt futás: 20 perce nincs új naplósor — a konténert leállítjuk.`,
+        });
+        dirty = true;
+        try { await dockerCommand(["rm", "-f", containerId]); } catch {}
+      }
       if (!dirty && now - lastProgressAt < 30000) return;
       dirty = false;
       lastProgressAt = now;
@@ -344,6 +360,7 @@ function runContainer(job) {
         // csendben — a végén /complete úgyis rögzíti
       }
     }, 2000);
+
 
     proc.on("close", async (code) => {
       clearInterval(flushTimer);

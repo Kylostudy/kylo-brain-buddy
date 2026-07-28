@@ -182,22 +182,53 @@ async function pickRandomInternalLink(page, currentHost, blockedHosts) {
   return links[Math.floor(Math.random() * links.length)];
 }
 
+// Minden fázist időkorlátba zárunk: ha egy Playwright hívás némán beragad
+// (pl. egérmozgás egy soha be nem töltődő oldalon), akkor sem áll meg a run.
+function withTimeout(promiseFactory, ms, label, log) {
+  let timer;
+  return Promise.race([
+    Promise.resolve()
+      .then(promiseFactory)
+      .finally(() => clearTimeout(timer)),
+    new Promise((resolve) => {
+      timer = setTimeout(() => {
+        try {
+          log("warn", `Időkorlát (${Math.round(ms / 1000)}s) — lépés kihagyva: ${label}`);
+        } catch {}
+        resolve(null);
+      }, ms);
+    }),
+  ]).catch((e) => {
+    try {
+      log("warn", `Lépés hiba (${label}): ${e?.message || e}`);
+    } catch {}
+    return null;
+  });
+}
+
 async function browsePage(page, log) {
   // 1-3 kör görgetés + drift + gondolkodó pauza
   const rounds = 1 + Math.floor(Math.random() * 3);
   for (let i = 0; i < rounds; i++) {
-    await humanCasualScroll(page, { rounds: 1 + Math.floor(Math.random() * 2) });
-    if (Math.random() < 0.4) await humanIdleDrift(page);
-    await humanThink(page, 1500 + Math.random() * 2500);
+    await withTimeout(
+      () => humanCasualScroll(page, { rounds: 1 + Math.floor(Math.random() * 2) }),
+      45000,
+      "görgetés",
+      log,
+    );
+    if (Math.random() < 0.4) await withTimeout(() => humanIdleDrift(page), 20000, "kurzor drift", log);
+    await humanThink(page, 1500 + Math.random() * 2500).catch(() => {});
   }
-  await humanBrowseMoment(page);
+  await withTimeout(() => humanBrowseMoment(page), 30000, "böngészési pillanat", log);
 }
 
 async function googleSearchAndClick(page, query, googleDomain, cookieAcceptTexts, blockedHosts, log) {
-  await safeGoto(page, googleDomain, log);
-  await humanWait(page, 800);
-  await tryCloseCookieBanner(page, cookieAcceptTexts, log);
-  await humanWait(page, 400);
+  const ok = await safeGoto(page, googleDomain, log);
+  if (!ok) return null;
+  await humanWait(page, 800).catch(() => {});
+  await withTimeout(() => tryCloseCookieBanner(page, cookieAcceptTexts, log), 20000, "cookie sáv", log);
+  await humanWait(page, 400).catch(() => {});
+
 
   try {
     const input = page.locator('textarea[name="q"], input[name="q"]').first();
@@ -267,22 +298,34 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
   let blacklistBlocks = 0;
   const visitedDomains = new Set();
 
+  let googleFails = 0;
+  let googleDisabled = false;
+
   while (Date.now() - started < durationMs) {
     const remainingSec = Math.floor((durationMs - (Date.now() - started)) / 1000);
     log("info", `Még ~${remainingSec}s hátra a warmup-ból. Meglátogatva: ${pagesVisited} oldal, ${visitedDomains.size} domain.`);
 
     // 40% eséllyel Google-keresés, 60% direkt portál
     let landingUrl;
-    if (Math.random() < 0.4) {
+    if (!googleDisabled && Math.random() < 0.4) {
       const q = queries[Math.floor(Math.random() * queries.length)];
       log("info", `Google keresés (${googleDomain}): "${q}"`);
-      landingUrl = await googleSearchAndClick(page, q, googleDomain, cookieAcceptTexts, extraBlocked, log);
-      if (landingUrl) {
-        if (isBlacklisted(landingUrl, extraBlocked)) {
-          log("warn", `Feketelistás találat kihagyva: ${hostOf(landingUrl)}`);
-          blacklistBlocks++;
-          landingUrl = null;
+      landingUrl = await withTimeout(
+        () => googleSearchAndClick(page, q, googleDomain, cookieAcceptTexts, extraBlocked, log),
+        90000,
+        "google keresés",
+        log,
+      );
+      if (!landingUrl) {
+        googleFails++;
+        if (googleFails >= 3) {
+          googleDisabled = true;
+          log("warn", "A Google háromszor nem válaszolt ezen a proxyn — a hátralévő időben csak portálokat böngészünk.");
         }
+      } else if (isBlacklisted(landingUrl, extraBlocked)) {
+        log("warn", `Feketelistás találat kihagyva: ${hostOf(landingUrl)}`);
+        blacklistBlocks++;
+        landingUrl = null;
       }
     }
     if (!landingUrl) {
@@ -299,8 +342,8 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
     pagesVisited++;
     visitedDomains.add(hostOf(landingUrl));
 
-    await humanWait(page, 900);
-    await tryCloseCookieBanner(page, cookieAcceptTexts, log);
+    await humanWait(page, 900).catch(() => {});
+    await withTimeout(() => tryCloseCookieBanner(page, cookieAcceptTexts, log), 20000, "cookie sáv", log);
     await browsePage(page, log);
 
     // Belső kattintás 0-2 közötti mélységre
@@ -308,10 +351,12 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
     for (let i = 0; i < clicks; i++) {
       if (Date.now() - started >= durationMs) break;
       const currentHost = hostOf(page.url());
-      const link = await pickRandomInternalLink(page, currentHost, [
-        ...HARD_BLACKLIST,
-        ...extraBlocked,
-      ]);
+      const link = await withTimeout(
+        () => pickRandomInternalLink(page, currentHost, [...HARD_BLACKLIST, ...extraBlocked]),
+        20000,
+        "belső link keresés",
+        log,
+      );
       if (!link) break;
       if (isBlacklisted(link.href, extraBlocked)) {
         blacklistBlocks++;
@@ -326,12 +371,13 @@ export async function runLoggedOutWarmup({ page, context, spec, log }) {
 
       // Dwell 20-90 mp
       const dwellSec = minDwell + Math.random() * (maxDwell - minDwell);
-      await page.waitForTimeout(dwellSec * 1000);
+      await page.waitForTimeout(dwellSec * 1000).catch(() => {});
     }
 
     // Kis pauza két portál között
-    await humanWait(page, 2500 + Math.random() * 3500);
+    await humanWait(page, 2500 + Math.random() * 3500).catch(() => {});
   }
+
 
   // Sütitár export — Playwright standard formátum, ugyanaz mint a claim küld.
   let cookies = [];
