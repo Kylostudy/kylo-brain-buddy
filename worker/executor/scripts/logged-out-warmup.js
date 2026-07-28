@@ -43,6 +43,7 @@ import esLocale from "./warmup-locales/es.js";
 import svLocale from "./warmup-locales/sv.js";
 import plLocale from "./warmup-locales/pl.js";
 import ptBRLocale from "./warmup-locales/pt-BR.js";
+import arLocale from "./warmup-locales/ar.js";
 
 const LOCALES = {
   en: enLocale,
@@ -54,6 +55,7 @@ const LOCALES = {
   "pt-BR": ptBRLocale,
   "pt-br": ptBRLocale,
   pt: ptBRLocale,
+  ar: arLocale,
 };
 
 // Fallback (angol) — ha valamiért nem érkezik spec.language.

@@ -217,16 +217,23 @@ export const Route = createFileRoute("/api/public/worker/complete")({
                 .maybeSingle();
 
               const payload = {
-                workflow_id: runFull.workflow_id,
                 tenant_id: runFull.tenant_id,
                 platform: existing?.platform ?? "warmup",
                 username: existing?.username ?? "warmup-jar",
                 cookie_ciphertext: ciphertext,
                 cookie_nonce: nonce,
+                proxy_id: runFull.proxy_id,
               };
-              await sb
-                .from("workflow_credentials")
-                .upsert(payload as never, { onConflict: "workflow_id" });
+              if (existing?.id) {
+                await sb
+                  .from("workflow_credentials")
+                  .update(payload as never)
+                  .eq("id", existing.id);
+              } else {
+                await sb
+                  .from("workflow_credentials")
+                  .insert({ ...payload, workflow_id: runFull.workflow_id } as never);
+              }
 
               // Cookie jar meta: melyik ország proxyval gyűjtöttük + statisztika.
               let proxyCountry: string | null = null;
@@ -281,6 +288,41 @@ export const Route = createFileRoute("/api/public/worker/complete")({
                 .from("workflows")
                 .update(workflowUpdate as never)
                 .eq("id", runFull.workflow_id);
+
+              // Ugyanaz a proxy-ország cookie-csomag használható a hozzá kötött
+              // Reddit / cél workflow-knál is. Korábban a warmup sikerült, de a
+              // Reddit workflow üres maradt, ezért úgy tűnt, mintha újra és újra
+              // külön Reddit warmup kellene. Itt átmásoljuk a friss süti-csomagot
+              // minden ugyanarra a proxyra kötött workflow credential sorba.
+              if (runFull.proxy_id) {
+                const { data: siblingCreds } = await sb
+                  .from("workflow_credentials")
+                  .select("workflow_id, platform, username")
+                  .eq("proxy_id", runFull.proxy_id)
+                  .neq("workflow_id", runFull.workflow_id);
+
+                const siblingIds = (siblingCreds ?? [])
+                  .map((row) => row.workflow_id)
+                  .filter(Boolean);
+
+                if (siblingCreds && siblingCreds.length > 0) {
+                  await sb
+                    .from("workflow_credentials")
+                    .update({
+                      proxy_id: runFull.proxy_id,
+                      cookie_ciphertext: ciphertext,
+                      cookie_nonce: nonce,
+                    } as never)
+                    .eq("proxy_id", runFull.proxy_id);
+                }
+
+                if (siblingIds.length > 0) {
+                  await sb
+                    .from("workflows")
+                    .update(workflowUpdate as never)
+                    .in("id", siblingIds);
+                }
+              }
             }
           }
         } catch (e) {
@@ -299,10 +341,15 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           const spec = (runFull?.spec_snapshot ?? {}) as Record<string, unknown>;
           const isWarmup = spec.is_warmup === true;
           if (isWarmup && runFull?.proxy_id) {
-            const daysFromNow = 6 + Math.random() * 2; // 6-8 nap
-            const hourJitter = 9 + Math.random() * 11; // 9-20 óra UTC-ben (elég közel a nappalhoz)
-            const next = new Date(Date.now() + daysFromNow * 86400 * 1000);
-            next.setUTCHours(Math.floor(hourJitter), Math.floor(Math.random() * 60), 0, 0);
+            const succeeded = update.status === "succeeded";
+            const delayMs = succeeded
+              ? (6 + Math.random() * 2) * 86400 * 1000 // siker után 6-8 nap
+              : (2 + Math.random() * 4) * 60 * 60 * 1000; // hiba után 2-6 óra, nem egy hét
+            const next = new Date(Date.now() + delayMs);
+            if (succeeded) {
+              const hourJitter = 9 + Math.random() * 11; // 9-20 óra UTC-ben
+              next.setUTCHours(Math.floor(hourJitter), Math.floor(Math.random() * 60), 0, 0);
+            }
 
             await sb
               .from("proxies")

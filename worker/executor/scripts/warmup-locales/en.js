@@ -9,7 +9,7 @@ export default {
     "https://weather.com/",
     "https://en.wikipedia.org/wiki/Main_Page",
     "https://www.imdb.com/",
-    "https://www.reddit.com/r/worldnews/",
+    "https://apnews.com/",
   ],
   queries: [
     "weather forecast today",
