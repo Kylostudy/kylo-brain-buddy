@@ -1179,6 +1179,7 @@ async function signInAfterConfirmation(page, email, password, log) {
       await page.waitForTimeout(2500);
     }
     return { ok: false, reason: "a belépés nem lépett tovább", url: page.url() };
+
   } catch (e) {
     return { ok: false, reason: e.message };
   }
