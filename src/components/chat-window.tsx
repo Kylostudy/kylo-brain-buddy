@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Brain, Play, Pencil, Video, KeyRound, Globe } from "lucide-react";
 import { MicButton } from "@/components/mic-button";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
-import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
+import { startRecording, startLiveBrowse, getActiveSession } from "@/lib/recording.functions";
 
 
 import {
