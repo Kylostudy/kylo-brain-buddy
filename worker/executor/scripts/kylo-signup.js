@@ -1130,11 +1130,23 @@ async function openGmailConfirmationLink(page, email, log) {
 // viszont nem jelenik meg a csomagválasztó, így a Stripe sem érhető el.
 async function signInAfterConfirmation(page, email, password, log) {
   try {
-    const alreadyIn = await page.evaluate(() => /\/profil|\/dashboard|\/fiok/i.test(location.pathname));
+    // A megerősítő link gyakran MÁR beléptet és egyből a csomagválasztóra
+    // dob (/elofizetesek?role=pro&first=true). Ilyenkor tilos újra belépni:
+    // a #119-es futásnál ez dobta vissza a /regisztracio oldalra
+    // "Your email address is not yet confirmed" üzenettel.
+    const alreadyIn = await page.evaluate(() => {
+      const t = (document.body?.innerText || "").toLowerCase();
+      const path = location.pathname.toLowerCase();
+      if (/\/profil|\/dashboard|\/fiok/.test(path)) return "profil oldal";
+      if (/log ?out|sign ?out|kijelentkez/.test(t)) return "kijelentkezés link látszik";
+      if (/\/elofizetes|\/subscription|\/plans/.test(path) && !/sign in|bejelentkez/.test(t)) return "csomagválasztó oldal";
+      return null;
+    });
     if (alreadyIn) {
-      log("info", `Belépés: már be vagyunk lépve (${page.url?.() || "n/a"})`);
-      return { ok: true, reason: "már belépve", url: null };
+      log("info", `Belépés kihagyva: már be vagyunk lépve (${alreadyIn}) — ${page.url()}`);
+      return { ok: true, reason: `már belépve (${alreadyIn})`, url: page.url() };
     }
+
     await page.goto("https://kylo.study/regisztracio", { waitUntil: "domcontentloaded", timeout: 45000 });
     await page.waitForTimeout(2500);
 
