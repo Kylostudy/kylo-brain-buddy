@@ -282,15 +282,28 @@ async function clickByText(page, hints, log, label, options = {}) {
     }
     return null;
   }, { lowerHints, lowerRejects, marker });
+
+  let found = await findTarget().catch(() => "retry");
+  if (found === "retry") {
+    // navigáció közben kaptuk el az oldalt — megvárjuk és újrapróbáljuk
+    await page.waitForLoadState("domcontentloaded", { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(1200);
+    found = await findTarget().catch(() => null);
+  }
   if (!found) {
     log("warn", `Nem találtam ${label} gombot / linket.`);
     return false;
   }
-  const handle = await page.$(`[data-kylo-worker-target="${marker}"]`);
-  if (handle) {
-    await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
-  } else {
-    await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-target="${marker}"]`)?.click(), marker);
+  const handle = await page.$(`[data-kylo-worker-target="${marker}"]`).catch(() => null);
+  try {
+    if (handle) {
+      await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
+    } else {
+      await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-target="${marker}"]`)?.click(), marker);
+    }
+  } catch (e) {
+    if (!/context was destroyed|Target closed|navigation/i.test(e?.message || "")) throw e;
+    log("info", `${label}: az oldal a kattintás közben navigált — folytatjuk.`);
   }
   await page.evaluate((marker) => {
     document.querySelectorAll(`[data-kylo-worker-target="${marker}"]`).forEach((el) => el.removeAttribute("data-kylo-worker-target"));
