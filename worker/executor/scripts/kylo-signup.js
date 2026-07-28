@@ -1387,6 +1387,15 @@ async function collectBillingBlockers(page) {
       const empty = Array.from(document.querySelectorAll("input, textarea, select"))
         .filter((n) => (n.offsetWidth || n.offsetHeight) && n.type !== "checkbox" && !String(n.value || "").trim())
         .map(label);
+      const unselected = Array.from(document.querySelectorAll('[role="combobox"]'))
+        .filter((n) => n.offsetWidth || n.offsetHeight)
+        .filter((n) => {
+          const t = (n.innerText || "").replace(/\s+/g, " ").trim().toLowerCase();
+          return !t || /válass|valass|select|choose|^-+$/.test(t);
+        })
+        .map((n) => (n.closest(".space-y-2")?.innerText || n.innerText || "?").replace(/\s+/g, " ").trim().slice(0, 40));
+      empty.push(...unselected.map((u) => `[legördülő nincs kiválasztva] ${u}`));
+
       const errors = Array.from(document.querySelectorAll('[role="alert"], .text-destructive, .error, [aria-invalid="true"]'))
         .map((n) => (n.innerText || "").trim())
         .filter(Boolean)
