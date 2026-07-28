@@ -44,6 +44,13 @@ export async function runBrainTask(args) {
     case "record_replay_login":
       return await runRecordReplay(args);
 
+    case "reddit_warmup":
+      return await runRedditWarmup(args);
+
+    case "reddit_register":
+      return await runRedditRegister(args);
+
+
     case "metrics_snapshot": {
       const platform = (brainTask.platform || args.spec?.platform || "").toLowerCase();
       if (platform === "linkedin") {
