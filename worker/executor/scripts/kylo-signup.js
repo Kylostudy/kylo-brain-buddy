@@ -1922,19 +1922,31 @@ export async function runKyloSignup({ page, context, spec, log }) {
       const cvcOk = await fillAnywhere(CVC_SELECTORS, "123", "CVC");
       log("info", `Stripe kártya kitöltés — card=${cardOk} exp=${expOk} cvc=${cvcOk}`);
 
-      // Cardholder név (ha van)
-      try {
-        const name = await page.$('input[name="billingName"], input#billingName, input[autocomplete="cc-name"]');
-        if (name) { await name.fill("Kylo Test", { timeout: 2000 }); }
-      } catch {}
-
-      // Ország / irányítószám — ha megjelenik
-      try {
-        const zip = await page.$('input[name="billingPostalCode"], input#billingPostalCode, input[autocomplete="postal-code"]');
-        if (zip) { await zip.fill("10001", { timeout: 2000 }); }
-      } catch {}
+      // Cardholder név / irányítószám / cím — ezek is lehetnek iframe-ben,
+      // ezért ugyanazzal a "bárhol keres" segédfüggvénnyel töltjük ki.
+      await fillAnywhere(
+        'input[name="billingName"], input#billingName, input[autocomplete="cc-name"], input[name="cardholderName"]',
+        "Kylo Test",
+        "kártyabirtokos név",
+      ).catch(() => false);
+      await fillAnywhere(
+        'input[name="billingPostalCode"], input#billingPostalCode, input[autocomplete="postal-code"], input[name="postalCode"]',
+        "M5H 2N2",
+        "irányítószám",
+      ).catch(() => false);
+      await fillAnywhere(
+        'input[name="billingAddressLine1"], input#billingAddressLine1, input[autocomplete="address-line1"]',
+        "100 King Street West",
+        "cím",
+      ).catch(() => false);
+      await fillAnywhere(
+        'input[name="billingLocality"], input#billingLocality, input[autocomplete="address-level2"]',
+        "Toronto",
+        "város",
+      ).catch(() => false);
 
       stripeFilled = cardOk && expOk && cvcOk;
+
       if (!stripeFilled) {
         // Diagnosztika: mit lát egyáltalán az oldalon / a frame-ekben?
         try {
@@ -1965,15 +1977,23 @@ export async function runKyloSignup({ page, context, spec, log }) {
           scope
             .evaluate((src) => {
               const re = new RegExp(src, "i");
-              const btns = Array.from(
-                document.querySelectorAll('button[type="submit"], button.SubmitButton, button, [role="button"]'),
+              document
+                .querySelectorAll('[data-kylo-pay="1"]')
+                .forEach((e) => e.removeAttribute("data-kylo-pay"));
+              // Először a Stripe hivatalos fizetés gombja, csak utána bármi más.
+              const preferred = Array.from(
+                document.querySelectorAll(
+                  '[data-testid="hosted-payment-submit-button"], button.SubmitButton, form button[type="submit"]',
+                ),
               );
-              for (const b of btns) {
+              const rest = Array.from(document.querySelectorAll('button, [role="button"]'));
+              for (const b of [...preferred, ...rest]) {
                 const t = (b.innerText || b.textContent || "").trim();
                 const r = b.getBoundingClientRect();
                 if (r.width < 5 || r.height < 5) continue;
                 if (b.disabled) continue;
-                if (b.type === "submit" || re.test(t)) {
+                const isPreferred = preferred.includes(b);
+                if (isPreferred || re.test(t)) {
                   b.setAttribute("data-kylo-pay", "1");
                   b.scrollIntoView({ block: "center", behavior: "instant" });
                   return t.slice(0, 60) || "submit";
@@ -1982,6 +2002,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
               return null;
             }, PAY_RE.source)
             .catch(() => null);
+
 
         let submitted = false;
         for (let attempt = 1; attempt <= 3 && !submitted; attempt++) {
@@ -2025,10 +2046,51 @@ export async function runKyloSignup({ page, context, spec, log }) {
         stripeSubmitted = submitted;
         log("info", `Stripe submit: ${submitted}`);
         screenshots.push(await shot(page, "6a-stripe-pay-click"));
+
+        // Ha 30 mp után is a Stripe oldalon vagyunk, olvassuk ki, MIT kifogásol
+        // (hibaüzenetek, üresen maradt kötelező mezők) — eddig ez néma volt.
+        if (submitted) {
+          const waitUntil = Date.now() + 30_000;
+          while (Date.now() < waitUntil && isStripeUrl(page.url())) {
+            await page.waitForTimeout(1500);
+          }
+          if (isStripeUrl(page.url())) {
+            const diag = { errors: [], empty: [] };
+            for (const sc of [page, ...page.frames()]) {
+              const errs = await sc
+                .$$eval(
+                  '[role="alert"], .FieldError, .Error, [class*="error" i], [aria-live="polite"]',
+                  (els) =>
+                    els
+                      .map((e) => (e.innerText || e.textContent || "").trim())
+                      .filter((t) => t && t.length > 1 && t.length < 200),
+                )
+                .catch(() => []);
+              const empties = await sc
+                .$$eval("input", (els) =>
+                  els
+                    .filter((e) => e.type !== "hidden" && !e.value && e.offsetParent !== null)
+                    .map((e) => e.name || e.id || e.getAttribute("autocomplete") || "?"),
+                )
+                .catch(() => []);
+              diag.errors.push(...errs);
+              diag.empty.push(...empties);
+            }
+            diag.errors = [...new Set(diag.errors)].slice(0, 20);
+            diag.empty = [...new Set(diag.empty)].slice(0, 20);
+            steps.push({ step: "stripe-blocked", url: page.url(), ...diag });
+            log(
+              "warn",
+              `Stripe elakadt — hibák: ${JSON.stringify(diag.errors)} · üres mezők: ${JSON.stringify(diag.empty)}`,
+            );
+            screenshots.push(await shot(page, "6a2-stripe-blocked"));
+          }
+        }
       }
 
 
       steps.push({ step: "stripe-fill", cardOk, expOk, cvcOk, submitted: stripeSubmitted });
+
     } catch (e) {
       log("warn", `Stripe kitöltés hiba: ${e.message}`);
       steps.push({ step: "stripe-fill", error: e.message });
