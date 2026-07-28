@@ -1186,47 +1186,117 @@ async function signInAfterConfirmation(page, email, password, log) {
 }
 
 
-// Számlázási adatok űrlapjának best-effort kitöltése (a Stripe előtti lépés).
+// Számlázási adatok űrlapjának kitöltése (a Stripe előtti lépés).
+// Nem csak name/id/placeholder alapján keresünk, hanem a látható CÍMKE szövegét is
+// nézzük — a /fizetes oldalon a mezőknek gyakran csak label-je van (pl. "House number").
 async function fillBillingForm(page, email, log) {
-  const targets = [
-    { keys: ["name", "nev", "név", "fullname", "cardholder", "billingname"], value: BILLING_TEST.name },
-    { keys: ["email", "e-mail"], value: email },
-    { keys: ["address", "line1", "street", "cim", "cím"], value: BILLING_TEST.line1 },
-    { keys: ["city", "town", "varos", "város"], value: BILLING_TEST.city },
-    { keys: ["zip", "postal", "postcode", "iranyitoszam", "irányítószám"], value: BILLING_TEST.postal },
-    { keys: ["phone", "tel"], value: BILLING_TEST.phone },
-  ];
-  let filledCount = 0;
-  try {
-    const inputs = await page.$$('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), textarea');
-    for (const el of inputs) {
-      try {
-        const meta = await el.evaluate((n) => ({
-          key: `${n.name || ""} ${n.id || ""} ${n.getAttribute("placeholder") || ""} ${n.getAttribute("autocomplete") || ""} ${n.getAttribute("aria-label") || ""}`.toLowerCase(),
-          visible: !!(n.offsetWidth || n.offsetHeight),
-          value: n.value || "",
-        }));
-        if (!meta.visible || meta.value) continue;
-        const match = targets.find((t) => t.keys.some((k) => meta.key.includes(k)));
-        if (!match) continue;
-        await el.fill(match.value, { timeout: 2500 });
-        filledCount += 1;
-      } catch {}
-    }
-    // Kötelező jelölőnégyzetek (ÁSZF stb.)
-    const boxes = await page.$$('input[type="checkbox"]');
-    for (const b of boxes) {
-      try {
-        const need = await b.evaluate((n) => !!(n.required || /terms|aszf|ászf|accept|elfogad|agree/i.test(`${n.name || ""} ${n.id || ""}`)));
-        if (need) await b.check({ timeout: 1500 });
-      } catch {}
-    }
-  } catch (e) {
+  const result = await page.evaluate(
+    ({ billing, email }) => {
+      const targets = [
+        { keys: ["housenumber", "house number", "hazszam", "házszám", "house_no", "houseno"], value: billing.houseNumber },
+        { keys: ["zip", "postal", "postcode", "post code", "iranyitoszam", "irányítószám"], value: billing.postal },
+        { keys: ["city", "town", "varos", "város"], value: billing.city },
+        { keys: ["address", "line1", "street", "utca", "cim", "cím"], value: billing.line1 },
+        { keys: ["email", "e-mail"], value: email },
+        { keys: ["phone", "tel"], value: billing.phone },
+        { keys: ["name", "nev", "név", "fullname", "cardholder", "billingname"], value: billing.name },
+      ];
+
+      const labelTextFor = (n) => {
+        let t = "";
+        if (n.id) {
+          const l = document.querySelector(`label[for="${CSS.escape(n.id)}"]`);
+          if (l) t += " " + l.innerText;
+        }
+        const wrap = n.closest("label");
+        if (wrap) t += " " + wrap.innerText;
+        const field = n.closest("div");
+        if (field) {
+          const l2 = field.querySelector("label");
+          if (l2) t += " " + l2.innerText;
+        }
+        return t;
+      };
+
+      const setValue = (n, v) => {
+        const proto = n instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, "value").set;
+        setter.call(n, v);
+        n.dispatchEvent(new Event("input", { bubbles: true }));
+        n.dispatchEvent(new Event("change", { bubbles: true }));
+        n.dispatchEvent(new Event("blur", { bubbles: true }));
+      };
+
+      const filled = [];
+      const skipped = [];
+      const nodes = Array.from(
+        document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="submit"]), textarea'),
+      );
+      for (const n of nodes) {
+        if (!(n.offsetWidth || n.offsetHeight)) continue;
+        if (n.disabled || n.readOnly) continue;
+        if (n.value && n.value.trim()) continue;
+        const key = `${n.name || ""} ${n.id || ""} ${n.getAttribute("placeholder") || ""} ${n.getAttribute("autocomplete") || ""} ${n.getAttribute("aria-label") || ""} ${labelTextFor(n)}`.toLowerCase();
+        const match = targets.find((t) => t.keys.some((k) => key.includes(k)));
+        if (match) {
+          setValue(n, match.value);
+          filled.push(key.trim().slice(0, 60));
+        } else {
+          // Ismeretlen, de kötelező mező: inkább kitöltjük, mint hogy elakadjunk.
+          const required = n.required || /\*/.test(labelTextFor(n));
+          if (required) {
+            setValue(n, billing.fallback);
+            filled.push("(fallback) " + key.trim().slice(0, 60));
+          } else {
+            skipped.push(key.trim().slice(0, 60));
+          }
+        }
+      }
+
+      // Kötelező jelölőnégyzetek (ÁSZF stb.)
+      for (const b of Array.from(document.querySelectorAll('input[type="checkbox"]'))) {
+        const ctx = `${b.name || ""} ${b.id || ""} ${labelTextFor(b)}`.toLowerCase();
+        if ((b.required || /terms|aszf|ászf|accept|elfogad|agree|privacy|adatkezel/.test(ctx)) && !b.checked) {
+          b.click();
+        }
+      }
+
+      return { filled, skipped };
+    },
+    { billing: BILLING_TEST, email },
+  ).catch((e) => {
     log("warn", `Számlázási űrlap kitöltés hiba: ${e.message}`);
-  }
-  log("info", `Számlázási űrlap: ${filledCount} mező kitöltve`);
-  return filledCount > 0;
+    return { filled: [], skipped: [] };
+  });
+
+  log("info", `Számlázási űrlap: ${result.filled.length} mező kitöltve — ${result.filled.join(" | ") || "nincs"}`);
+  return result.filled.length > 0;
 }
+
+// Mi maradt üresen / mi tiltja a "Tovább a fizetéshez" gombot?
+async function collectBillingBlockers(page) {
+  return page
+    .evaluate(() => {
+      const label = (n) => {
+        const l = n.id ? document.querySelector(`label[for="${CSS.escape(n.id)}"]`) : null;
+        return (l?.innerText || n.closest("div")?.querySelector("label")?.innerText || n.name || n.id || "?").trim().slice(0, 40);
+      };
+      const empty = Array.from(document.querySelectorAll("input, textarea, select"))
+        .filter((n) => (n.offsetWidth || n.offsetHeight) && n.type !== "checkbox" && !String(n.value || "").trim())
+        .map(label);
+      const errors = Array.from(document.querySelectorAll('[role="alert"], .text-destructive, .error, [aria-invalid="true"]'))
+        .map((n) => (n.innerText || "").trim())
+        .filter(Boolean)
+        .slice(0, 8);
+      const buttons = Array.from(document.querySelectorAll("button")).map((b) => ({
+        text: (b.innerText || "").trim().slice(0, 40),
+        disabled: b.disabled,
+      }));
+      return { url: location.href, empty_fields: empty, errors, buttons };
+    })
+    .catch(() => null);
+}
+
 
 
 
