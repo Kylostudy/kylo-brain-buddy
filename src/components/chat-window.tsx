@@ -339,8 +339,12 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
             <Button
               type="button"
               size="sm"
-              variant="outline"
+              variant={liveSession ? "default" : "outline"}
               onClick={async () => {
+                if (liveSession?.id) {
+                  rejoinLiveSession();
+                  return;
+                }
                 try {
                   const session = await callStartLiveBrowse({
                     data: { workflowId },
@@ -356,11 +360,18 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                   );
                 }
               }}
-              title="Élő böngésző az accounthoz (kézi belépés, kézi válasz — nem menti a lépéseket, csak sütiket)"
+              title={
+                liveSession
+                  ? "Van egy élő munkamenet ezen a workflow-n — kattints a visszalépéshez"
+                  : "Élő böngésző az accounthoz (kézi belépés, kézi válasz — nem menti a lépéseket, csak sütiket)"
+              }
             >
               <Globe className="size-4" />
-              <span className="ml-1.5 hidden sm:inline">Live Browse</span>
+              <span className="ml-1.5 hidden sm:inline">
+                {liveSession ? "Vissza az élő munkamenetbe" : "Live Browse"}
+              </span>
             </Button>
+
             <Button
               type="button"
               size="sm"
