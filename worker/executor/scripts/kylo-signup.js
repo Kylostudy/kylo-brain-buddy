@@ -1412,15 +1412,36 @@ async function collectBillingBlockers(page) {
         .map((n) => (n.closest(".space-y-2")?.innerText || n.innerText || "?").replace(/\s+/g, " ").trim().slice(0, 40));
       empty.push(...unselected.map((u) => `[legördülő nincs kiválasztva] ${u}`));
 
-      const errors = Array.from(document.querySelectorAll('[role="alert"], .text-destructive, .error, [aria-invalid="true"]'))
-        .map((n) => (n.innerText || "").trim())
-        .filter(Boolean)
-        .slice(0, 8);
+      // A csillag (*) csak a „kötelező mező" jelölés — az nem hibaüzenet.
+      // Ezért csak az érdemi, legalább 3 karakteres, betűt tartalmazó szövegeket tartjuk meg.
+      const meaningful = (t) => t && t.replace(/\s+/g, " ").trim().length >= 3 && /[\p{L}]/u.test(t);
+      const errors = Array.from(
+        document.querySelectorAll('[role="alert"], .text-destructive, .text-red-500, .text-red-600, .error, [data-error], [id$="-error"], [id$="-message"]'),
+      )
+        .map((n) => (n.innerText || "").replace(/\s+/g, " ").trim())
+        .filter(meaningful)
+        .slice(0, 10);
+
+      // Amelyik mezőt a form érvénytelennek jelöli — névvel és a beírt értékkel együtt,
+      // hogy látszódjon, mi nem tetszik neki (pl. rossz formátumú irányítószám).
+      const invalid = Array.from(document.querySelectorAll("input, textarea, select"))
+        .filter((n) => (n.offsetWidth || n.offsetHeight))
+        .filter((n) => n.getAttribute("aria-invalid") === "true" || (n.willValidate && !n.checkValidity()))
+        .map((n) => `${label(n)} = "${String(n.value || "").slice(0, 30)}" (${n.validationMessage || "aria-invalid"})`)
+        .slice(0, 10);
+      errors.push(...invalid);
+
+      // Teljes mezőkép a riporthoz: mi van most ténylegesen beírva.
+      const field_values = Array.from(document.querySelectorAll("input, textarea, select"))
+        .filter((n) => (n.offsetWidth || n.offsetHeight) && n.type !== "checkbox" && n.type !== "radio")
+        .map((n) => `${label(n)}="${String(n.value || "").slice(0, 30)}"`)
+        .slice(0, 25);
+
       const buttons = Array.from(document.querySelectorAll("button")).map((b) => ({
         text: (b.innerText || "").trim().slice(0, 40),
         disabled: b.disabled,
       }));
-      return { url: location.href, empty_fields: empty, errors, buttons };
+      return { url: location.href, empty_fields: empty, errors, field_values, buttons };
     })
     .catch(() => null);
 }
