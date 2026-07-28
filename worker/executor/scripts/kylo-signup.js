@@ -23,10 +23,13 @@ import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
 const BILLING_TEST = {
   name: "Kylo Test",
   line1: "1 Test Street",
+  houseNumber: "12",
   city: "Testville",
   postal: "10001",
   phone: "+15555550123",
+  fallback: "Test",
 };
+
 
 const CLICK_HINTS_PAY = [
   "fizetés", "fizetek", "tovább a fizetéshez", "pay", "pay now", "continue to payment",
