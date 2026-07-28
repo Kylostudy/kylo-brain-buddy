@@ -938,25 +938,31 @@ async function collectSubmitBlockers(page, marker) {
 }
 
 async function forceResubmit(page, log, label) {
+  // FONTOS: csak EGYETLEN beküldés történhet. A #119-es futásnál a
+  // btn.click() + form.requestSubmit() páros két auth/v1/signup hívást
+  // indított 11 ms-on belül, és a második 500-as "Database error saving
+  // new user" hibát adott (a fiók már létrejött az elsőtől).
   const done = await page
     .evaluate(() => {
       const btn = document.querySelector("[data-kylo-worker-submit]");
       if (!btn) return "gomb nem található";
       const form = btn.closest("form");
-      try {
-        btn.click();
-      } catch (_) {}
       if (form && typeof form.requestSubmit === "function") {
         try {
           form.requestSubmit(btn);
-          return "gomb.click() + form.requestSubmit()";
+          return "form.requestSubmit()";
         } catch (_) {}
       }
-      return "gomb.click()";
+      try {
+        btn.click();
+        return "gomb.click()";
+      } catch (_) {}
+      return "nem sikerült";
     })
     .catch(() => "hiba");
   log("info", `Submit újrapróba (${label}) — ${done}`);
 }
+
 
 async function collectPageDiagnostics(page) {
   return page.evaluate(() => {
@@ -1124,11 +1130,23 @@ async function openGmailConfirmationLink(page, email, log) {
 // viszont nem jelenik meg a csomagválasztó, így a Stripe sem érhető el.
 async function signInAfterConfirmation(page, email, password, log) {
   try {
-    const alreadyIn = await page.evaluate(() => /\/profil|\/dashboard|\/fiok/i.test(location.pathname));
+    // A megerősítő link gyakran MÁR beléptet és egyből a csomagválasztóra
+    // dob (/elofizetesek?role=pro&first=true). Ilyenkor tilos újra belépni:
+    // a #119-es futásnál ez dobta vissza a /regisztracio oldalra
+    // "Your email address is not yet confirmed" üzenettel.
+    const alreadyIn = await page.evaluate(() => {
+      const t = (document.body?.innerText || "").toLowerCase();
+      const path = location.pathname.toLowerCase();
+      if (/\/profil|\/dashboard|\/fiok/.test(path)) return "profil oldal";
+      if (/log ?out|sign ?out|kijelentkez/.test(t)) return "kijelentkezés link látszik";
+      if (/\/elofizetes|\/subscription|\/plans/.test(path) && !/sign in|bejelentkez/.test(t)) return "csomagválasztó oldal";
+      return null;
+    });
     if (alreadyIn) {
-      log("info", `Belépés: már be vagyunk lépve (${page.url?.() || "n/a"})`);
-      return { ok: true, reason: "már belépve", url: null };
+      log("info", `Belépés kihagyva: már be vagyunk lépve (${alreadyIn}) — ${page.url()}`);
+      return { ok: true, reason: `már belépve (${alreadyIn})`, url: page.url() };
     }
+
     await page.goto("https://kylo.study/regisztracio", { waitUntil: "domcontentloaded", timeout: 45000 });
     await page.waitForTimeout(2500);
 
@@ -1161,6 +1179,7 @@ async function signInAfterConfirmation(page, email, password, log) {
       await page.waitForTimeout(2500);
     }
     return { ok: false, reason: "a belépés nem lépett tovább", url: page.url() };
+
   } catch (e) {
     return { ok: false, reason: e.message };
   }
@@ -1517,8 +1536,20 @@ export async function runKyloSignup({ page, context, spec, log }) {
   // 5) Csomagválasztó → számlázási adatok → Stripe.
   //    Minden köztes oldalnak a proxy szerinti nyelven kell megjelennie.
   await page.waitForTimeout(1500);
+  // Ha valamiért nem a csomagválasztón állunk (pl. visszadobott a /regisztracio),
+  // navigáljunk oda közvetlenül, különben a Stripe lépés biztosan elbukik.
+  try {
+    if (!/\/elofizetes|\/subscription|\/plans/i.test(page.url()) && !isStripeUrl(page.url())) {
+      log("info", `Nem a csomagválasztón állunk (${page.url()}) — átnavigálok az előfizetési oldalra.`);
+      await page.goto("https://kylo.study/elofizetesek?role=pro&first=true", { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.waitForTimeout(3000);
+    }
+  } catch (e) {
+    log("warn", `Csomagválasztó navigáció hiba: ${e.message}`);
+  }
   screenshots.push(await shot(page, "5-plan-page"));
   langChecks.push(await auditLanguage(page, "csomagválasztó", log, lang));
+
 
   const subClicked = await clickByText(page, CLICK_HINTS_SUBSCRIBE, log, "Előfizetés / Csomag");
   await page.waitForTimeout(4500);
