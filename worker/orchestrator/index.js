@@ -327,9 +327,14 @@ function runContainer(job) {
     });
 
     // Élő log-flush a Brain-nek ~2 mp-enként, hogy a UI-n látszódjon a folyamat.
+    // Ha épp nincs új log (pl. hosszú oldalbetöltés vagy emberi dwell), akkor is
+    // küldünk ritka életjelet, különben a 15 perces watchdog tévesen megöli a runt.
+    let lastProgressAt = 0;
     const flushTimer = setInterval(async () => {
-      if (!dirty) return;
+      const now = Date.now();
+      if (!dirty && now - lastProgressAt < 30000) return;
       dirty = false;
+      lastProgressAt = now;
       try {
         await brainFetch("/api/public/worker/progress", {
           runId: job.id,

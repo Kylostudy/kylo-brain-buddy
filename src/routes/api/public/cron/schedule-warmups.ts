@@ -74,6 +74,26 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
         const skipped: Array<{ proxy_id: string; reason: string }> = [];
 
         for (const p of due ?? []) {
+          const { data: openRun } = await supabaseAdmin
+            .from("brain_workflow_runs")
+            .select("id, status")
+            .eq("proxy_id", p.id)
+            .in("status", ["queued", "scheduled", "running"])
+            .limit(1)
+            .maybeSingle();
+
+          if (openRun) {
+            skipped.push({
+              proxy_id: p.id,
+              reason: `already has open warmup run (${openRun.status})`,
+            });
+            await supabaseAdmin
+              .from("proxies")
+              .update({ warmup_running_at: null, warmup_next_scheduled_at: null })
+              .eq("id", p.id);
+            continue;
+          }
+
           // Warmup workflow lekérése: spec.proxy_id = p.id ÉS spec.is_warmup = true.
           // Postgrest jsonb szűrés:
           const { data: wfs } = await supabaseAdmin
