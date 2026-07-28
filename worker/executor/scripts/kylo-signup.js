@@ -514,23 +514,41 @@ async function closeJoinModalIfOpen(page, log) {
 }
 
 async function clearOptionalRoleCheckboxes(page, log) {
+  // A Pro csomaghoz SEMMILYEN szerepkört nem választunk. Nem csak a régi
+  // fix ID-kra megyünk rá, hanem minden olyan bepipált jelölőnégyzetre,
+  // aminek a felirata szerepkörre utal (tanár / tanuló / csatlakozás).
   const roleIds = ["nyelvtanar", "osztalyfonok", "szaktanar", "nyelvtanar20", "nyelvtanulo"];
   for (let round = 0; round < 4; round += 1) {
     const checked = await page.evaluate((roleIds) => {
+      const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
       const visible = (el) => {
         const r = el.getBoundingClientRect();
         const st = window.getComputedStyle(el);
         return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
       };
+      const ROLE_RE = /tanár|teacher|tutor|tanuló|student|learner|osztályfőnök|szaktanár|nyelvtanár|nyelvtanuló|class teacher|csatlakoz|join/i;
       const out = [];
-      for (const id of roleIds) {
-        const el = document.getElementById(id);
-        if (!el || !visible(el)) continue;
+      const candidates = Array.from(
+        document.querySelectorAll('button[role="checkbox"], [role="checkbox"], input[type="checkbox"], [role="radio"], input[type="radio"]'),
+      );
+      let idx = 0;
+      for (const el of candidates) {
+        if (!visible(el)) continue;
         const isChecked = el.getAttribute("aria-checked") === "true" || !!el.checked;
         if (!isChecked) continue;
-        const marker = `kylo-role-clear-${id}-${Date.now()}`;
+        const label = norm(
+          el.closest("label")?.innerText ||
+            el.getAttribute("aria-label") ||
+            el.parentElement?.innerText ||
+            el.parentElement?.parentElement?.innerText ||
+            "",
+        );
+        const isRole = roleIds.includes(el.id || "") || ROLE_RE.test(label);
+        if (!isRole) continue;
+        idx += 1;
+        const marker = `kylo-role-clear-${idx}-${Date.now()}`;
         el.setAttribute("data-kylo-role-clear", marker);
-        out.push({ id, marker });
+        out.push({ id: el.id || label.slice(0, 60) || `checkbox#${idx}`, marker });
       }
       return out;
     }, roleIds).catch(() => []);
@@ -541,16 +559,17 @@ async function clearOptionalRoleCheckboxes(page, log) {
       if (!handle) continue;
       try {
         await humanClick(page, handle, { noMisclick: true, timeout: 3000 });
-        log("info", `Opcionális szerep kikapcsolva: ${item.id}`);
+        log("info", `Szerepkör kikapcsolva (Pro csomaghoz nem kell): ${item.id}`);
         await page.waitForTimeout(500);
         await closeJoinModalIfOpen(page, log);
       } catch (e) {
-        log("warn", `Opcionális szerep kikapcsolási hiba (${item.id}): ${e.message}`);
+        log("warn", `Szerepkör kikapcsolási hiba (${item.id}): ${e.message}`);
       }
     }
   }
   await closeJoinModalIfOpen(page, log);
 }
+
 
 async function inspectSubmitReadiness(page) {
   return page.evaluate(() => {
