@@ -1426,7 +1426,14 @@ export async function runKyloSignup({ page, context, spec, log }) {
     screenshots.push(await shot(page, "4b-after-email-confirm"));
     emailConfirmed = confirmation.ok === true;
     // A konfirmációs e-mail (tárgy + kivonat) nyelvi ellenőrzése.
-    const emailText = `${confirmation.subject || ""} ${confirmation.snippet || ""}`.trim();
+    // A levelek tele vannak láthatatlan „preheader" karakterekkel (zero-width,
+    // BOM stb.) — ezeket ki kell szűrni, különben a szöveg hosszúnak tűnik,
+    // miközben valódi szó alig van benne, és téves nyelvi bukást okoz.
+    const emailTextRaw = `${confirmation.subject || ""} ${confirmation.snippet || ""}`.trim();
+    const emailText = emailTextRaw
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u00AD]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
     if (emailConfirmed && emailText) {
       const emailCheck = auditTextLanguage("konfirmációs e-mail", emailText, lang);
       // A tranzakciós e-mail nyelvét a fiók profil-nyelve dönti el (nálunk en-GB),
@@ -1436,6 +1443,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
         emailCheck.ok = null;
         emailCheck.reason = "angol / túl rövid levélszöveg (a fiók profil-nyelve en-GB) — nem bukás";
       }
+
       langChecks.push(emailCheck);
       emailLangOk = emailCheck.ok;
       log(
