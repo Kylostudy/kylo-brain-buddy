@@ -146,6 +146,13 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       setUrlDraft(p.url);
       setPageText("");
     });
+    ch.on("broadcast", { event: "navError" }, ({ payload }) => {
+      const p = payload as { url?: string; message?: string };
+      toast.error(
+        `Nem sikerült megnyitni: ${p.url || "ismeretlen cím"}${p.message ? ` — ${p.message}` : ""}`,
+      );
+    });
+
     ch.on("broadcast", { event: "pageText" }, ({ payload }) => {
       const p = payload as { text?: string };
       setPageText(p.text ?? "");

@@ -49,7 +49,16 @@ export function normalizeRecordingStartUrl(
       }
     }
 
+    // A gmail.com csak egy átirányító; proxy mögött gyakran elakad, ezért
+    // egyből a valódi postafiók címére megyünk.
+    if (host === "gmail.com" || host === "www.gmail.com") {
+      return url.pathname && url.pathname !== "/"
+        ? `https://mail.google.com${url.pathname}${url.search}`
+        : "https://mail.google.com/mail/u/0/";
+    }
+
     return url.toString();
+
   } catch {
     return pinterestish ? PINTEREST_LOGIN_URL : undefined;
   }

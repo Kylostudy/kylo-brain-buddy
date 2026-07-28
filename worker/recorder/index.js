@@ -229,8 +229,8 @@ function normalizeUrl(rawUrl) {
 
   try {
     const parsed = new URL(withProtocol);
+    const host = parsed.hostname.toLowerCase();
     if (pinterestish) {
-      const host = parsed.hostname.toLowerCase();
       const official =
         host === "pinterest.com" ||
         host.endsWith(".pinterest.com") ||
@@ -238,11 +238,19 @@ function normalizeUrl(rawUrl) {
         host.endsWith(".pin.it");
       if (!official) return PINTEREST_LOGIN_URL;
     }
+    // A puszta gmail.com egy régi átirányító, ami proxy mögött gyakran elakad.
+    // Rögtön a valódi postafiók / regisztrációs címre megyünk.
+    if (host === "gmail.com" || host === "www.gmail.com") {
+      return parsed.pathname && parsed.pathname !== "/"
+        ? `https://mail.google.com${parsed.pathname}${parsed.search}`
+        : "https://mail.google.com/mail/u/0/";
+    }
     return parsed.toString();
   } catch {
     return pinterestish ? PINTEREST_LOGIN_URL : null;
   }
 }
+
 
 async function brainPost(path, body) {
   return fetch(`${BRAIN_URL}${path}`, {
@@ -966,14 +974,35 @@ async function runSession(payload) {
   });
 
   channel.on("broadcast", { event: "goto" }, async ({ payload }) => {
+    const raw = String(payload?.url || "");
     try {
-      const url = normalizeUrl(payload?.url);
-      if (!url) return;
-      await page.goto(url, { waitUntil: "domcontentloaded" });
+      const url = normalizeUrl(raw);
+      if (!url) {
+        await channel.send({
+          type: "broadcast",
+          event: "navError",
+          payload: { url: raw, message: "Érvénytelen webcím." },
+        });
+        return;
+      }
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+      await channel.send({
+        type: "broadcast",
+        event: "nav",
+        payload: { url: page.url() },
+      });
     } catch (e) {
       console.error(`[session ${session.id}] goto error`, e.message);
+      await channel
+        .send({
+          type: "broadcast",
+          event: "navError",
+          payload: { url: raw, message: e.message },
+        })
+        .catch(() => {});
     }
   });
+
 
   channel.on("broadcast", { event: "back" }, () => page.goBack().catch(() => {}));
   channel.on("broadcast", { event: "forward" }, () => page.goForward().catch(() => {}));
