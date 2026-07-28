@@ -17,5 +17,8 @@ MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = 
 - [Munkafegyelem](mem://features/work-discipline) — Egy folyamat = végigvinni, nem ugrálni másikra közben
 - [VPS worker repó](mem://features/vps-worker-repo) — worker/ mappa ebben a repóban él; deploy: git pull + docker compose build a VPS-en
 - [Skálázási irány](mem://features/scaling-strategy) — Record & replay + spec-alapú építőkockák. Új workflow-hoz SOHA ne kelljen VPS build.
+- [Warmup fogalmak](mem://features/warmup-terminology) — „Reddit warmup" = a Reddit FIÓK bemelegítése (görgetés, upvote); „országos warmup" = proxy sütigyűjtés. Két külön dolog.
+- [Hibás IPRoyal proxyk](mem://features/broken-iproyal-proxies) — FR és HK proxy folyamatosan rossz geolokáció, cserét kell kérni.
+
 
 
