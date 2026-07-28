@@ -1912,22 +1912,75 @@ export async function runKyloSignup({ page, context, spec, log }) {
       screenshots.push(await shot(page, "6-stripe-filled"));
 
       if (stripeFilled) {
-        const submitted = await page.evaluate(() => {
-          const btns = Array.from(document.querySelectorAll('button[type="submit"], button.SubmitButton, button'));
-          for (const b of btns) {
-            const t = (b.innerText || "").toLowerCase();
-            const r = b.getBoundingClientRect();
-            if (r.width < 5 || r.height < 5) continue;
-            if (b.type === "submit" || /pay|fizet|subscribe|előfizet|start|begin/.test(t)) {
-              b.click();
-              return true;
+        // A Stripe oldal a betöltés után gyakran "lejjebb ugrik" (layout shift),
+        // ezért görgetünk, megvárjuk hogy megálljon, és csak utána kattintunk.
+        const PAY_RE = /pay|fizet|subscribe|előfizet|start|begin|jetzt|bezahl|paga|pagar|payer/i;
+        const markPayButton = async (scope) =>
+          scope
+            .evaluate((src) => {
+              const re = new RegExp(src, "i");
+              const btns = Array.from(
+                document.querySelectorAll('button[type="submit"], button.SubmitButton, button, [role="button"]'),
+              );
+              for (const b of btns) {
+                const t = (b.innerText || b.textContent || "").trim();
+                const r = b.getBoundingClientRect();
+                if (r.width < 5 || r.height < 5) continue;
+                if (b.disabled) continue;
+                if (b.type === "submit" || re.test(t)) {
+                  b.setAttribute("data-kylo-pay", "1");
+                  b.scrollIntoView({ block: "center", behavior: "instant" });
+                  return t.slice(0, 60) || "submit";
+                }
+              }
+              return null;
+            }, PAY_RE.source)
+            .catch(() => null);
+
+        let submitted = false;
+        for (let attempt = 1; attempt <= 3 && !submitted; attempt++) {
+          // Görgessünk az oldal aljára, hogy a lecsúszott gomb is látszódjon.
+          await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
+          await page.waitForTimeout(1200);
+
+          const scopes = [page, ...page.frames()];
+          for (const sc of scopes) {
+            const label = await markPayButton(sc);
+            if (!label) continue;
+            const loc = sc.locator('[data-kylo-pay="1"]').first();
+            try {
+              await loc.scrollIntoViewIfNeeded({ timeout: 3000 });
+              await page.waitForTimeout(500); // hagyjuk leülni a layout ugrást
+              await loc.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+              await loc.click({ timeout: 5000 });
+              submitted = true;
+              log("info", `Stripe fizetés gomb megnyomva (görgetés után): „${label}" — ${attempt}. próba.`);
+            } catch (e) {
+              // Tartalék: közvetlen DOM kattintás, ha a valódi egérkattintás nem megy.
+              const forced = await sc
+                .evaluate(() => {
+                  const b = document.querySelector('[data-kylo-pay="1"]');
+                  if (!b) return false;
+                  b.click();
+                  return true;
+                })
+                .catch(() => false);
+              if (forced) {
+                submitted = true;
+                log("info", `Stripe fizetés gomb megnyomva (tartalék kattintás) — ${attempt}. próba.`);
+              } else {
+                log("warn", `Stripe fizetés gomb kattintás hiba (${attempt}.): ${e.message}`);
+              }
             }
+            if (submitted) break;
           }
-          return false;
-        });
+          if (!submitted) await page.waitForTimeout(1500);
+        }
         stripeSubmitted = submitted;
         log("info", `Stripe submit: ${submitted}`);
+        screenshots.push(await shot(page, "6a-stripe-pay-click"));
       }
+
 
       steps.push({ step: "stripe-fill", cardOk, expOk, cvcOk, submitted: stripeSubmitted });
     } catch (e) {
