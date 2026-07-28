@@ -175,7 +175,7 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
 
           if (openRun) {
             skipped.push({
-              proxy_id: p.id,
+              proxy_id: p.proxy_id,
               reason: `already has open warmup run (${openRun.status})`,
             });
             await supabaseAdmin
