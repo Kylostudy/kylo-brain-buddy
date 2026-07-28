@@ -19,6 +19,4 @@ MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = 
 - [Skálázási irány](mem://features/scaling-strategy) — Record & replay + spec-alapú építőkockák. Új workflow-hoz SOHA ne kelljen VPS build.
 - [Warmup fogalmak](mem://features/warmup-terminology) — „Reddit warmup" = a Reddit FIÓK bemelegítése (görgetés, upvote); „országos warmup" = proxy sütigyűjtés. Két külön dolog.
 - [Hibás IPRoyal proxyk](mem://features/broken-iproyal-proxies) — FR és HK proxy folyamatosan rossz geolokáció, cserét kell kérni.
-
-
-
+- [napi-reddit-melegítés](mem://features/daily-reddit-warmup) — Minden aktív Reddit fiók naponta 1× bemelegszik; pg_cron ütemezi, VPS rebuild után is fut
