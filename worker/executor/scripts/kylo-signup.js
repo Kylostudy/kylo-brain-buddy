@@ -580,13 +580,28 @@ async function inspectSubmitReadiness(page) {
       return r.width > 3 && r.height > 3 && st.visibility !== "hidden" && st.display !== "none";
     };
     const roleIds = ["nyelvtanar", "osztalyfonok", "szaktanar", "nyelvtanar20", "nyelvtanulo"];
-    const roleChecked = roleIds.filter((id) => {
-      const el = document.getElementById(id);
-      return el && visible(el) && (el.getAttribute("aria-checked") === "true" || !!el.checked);
-    });
+    const ROLE_RE = /tanár|teacher|tutor|tanuló|student|learner|osztályfőnök|szaktanár|nyelvtanár|nyelvtanuló|class teacher|csatlakoz|join/i;
+    const labelOf = (el) =>
+      norm(
+        el.closest("label")?.innerText ||
+          el.getAttribute("aria-label") ||
+          el.parentElement?.innerText ||
+          el.parentElement?.parentElement?.innerText ||
+          "",
+      );
+    const isRoleControl = (el) => roleIds.includes(el.id || "") || ROLE_RE.test(labelOf(el));
+    const roleChecked = Array.from(
+      document.querySelectorAll('button[role="checkbox"], [role="checkbox"], input[type="checkbox"], [role="radio"], input[type="radio"]'),
+    )
+      .filter((el) => visible(el))
+      .filter((el) => el.getAttribute("aria-checked") === "true" || !!el.checked)
+      .filter(isRoleControl)
+      .map((el) => el.id || labelOf(el).slice(0, 40))
+      .slice(0, 10);
     const legalUnchecked = Array.from(document.querySelectorAll('button[role="checkbox"], [role="checkbox"], input[type="checkbox"]'))
       .filter((el) => visible(el))
-      .filter((el) => !roleIds.includes(el.id || ""))
+      .filter((el) => !isRoleControl(el))
+
       .filter((el) => {
         const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || el.parentElement?.parentElement?.innerText || "");
         const legal = /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
