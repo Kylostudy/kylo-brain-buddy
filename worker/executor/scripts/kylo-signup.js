@@ -1634,10 +1634,34 @@ export async function runKyloSignup({ page, context, spec, log }) {
   // Ha még nem vagyunk a Stripe-on, akkor a számlázási űrlap következik.
   if (!reachedStripe) {
     langChecks.push(await auditLanguage(page, "számlázási űrlap", log, lang));
-    const billingFilled = await fillBillingForm(page, email, log);
+    let billingFilled = await fillBillingForm(page, email, log);
     screenshots.push(await shot(page, "5c-billing-filled"));
-    const payClicked = await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább");
-    steps.push({ step: "billing", filled: billingFilled, pay_clicked: payClicked, url: page.url() });
+    let payClicked = await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább");
+    await page.waitForTimeout(4000);
+
+    // Ha nem indult el a fizetés, megnézzük mi tiltja (üres kötelező mező,
+    // hibaüzenet, letiltott gomb), pótoljuk és újra próbáljuk egyszer.
+    let blockers = null;
+    if (!isStripeUrl(page.url())) {
+      blockers = await collectBillingBlockers(page);
+      if (blockers) {
+        log(
+          "warn",
+          `Számlázás elakadt — üres mezők: ${blockers.empty_fields.join(", ") || "nincs"} · hibák: ${blockers.errors.join(" / ") || "nincs"}`,
+        );
+      }
+      billingFilled = (await fillBillingForm(page, email, log)) || billingFilled;
+      await page.waitForTimeout(1200);
+      payClicked = (await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább (2. próba)")) || payClicked;
+    }
+
+    steps.push({
+      step: "billing",
+      filled: billingFilled,
+      pay_clicked: payClicked,
+      url: page.url(),
+      blockers,
+    });
 
     const stripeDeadline = Date.now() + 60_000;
     while (Date.now() < stripeDeadline) {
@@ -1647,8 +1671,19 @@ export async function runKyloSignup({ page, context, spec, log }) {
     }
     currentUrl = page.url();
     reachedStripe = isStripeUrl(currentUrl);
+    if (!reachedStripe) {
+      const finalBlockers = await collectBillingBlockers(page);
+      if (finalBlockers) {
+        steps.push({ step: "billing-blocked", ...finalBlockers });
+        log(
+          "warn",
+          `Stripe nem nyílt meg — üres mezők: ${finalBlockers.empty_fields.join(", ") || "nincs"} · hibák: ${finalBlockers.errors.join(" / ") || "nincs"}`,
+        );
+      }
+    }
     screenshots.push(await shot(page, "5d-after-pay-click"));
   }
+
   log(reachedStripe ? "info" : "warn", `Stripe elérve: ${reachedStripe ? "IGEN" : "NEM"} — ${currentUrl}`);
 
 
