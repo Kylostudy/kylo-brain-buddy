@@ -117,6 +117,34 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     staleTime: 30_000,
   });
 
+  // Élő munkamenet visszacsatlakozás: a VPS-en futó Live Browse / felvétel
+  // akkor is él, ha itt frissül az oldal. Lekérdezzük és automatikusan
+  // visszalépünk bele, hogy a félbehagyott regisztráció ne vesszen el.
+  const callGetActiveSession = useServerFn(getActiveSession);
+  const { data: liveSession } = useQuery({
+    queryKey: ["live-session", workflowId],
+    queryFn: () => callGetActiveSession({ data: { workflowId } }),
+    refetchInterval: 5000,
+  });
+
+  const autoRejoinedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!liveSession?.id || recordOpen) return;
+    if (autoRejoinedRef.current === liveSession.id) return;
+    autoRejoinedRef.current = liveSession.id;
+    setRecordSessionId(liveSession.id);
+    setRecordMode(liveSession.mode === "record" ? "record" : "browse");
+    setRecordOpen(true);
+  }, [liveSession, recordOpen]);
+
+  function rejoinLiveSession() {
+    if (!liveSession?.id) return;
+    setRecordSessionId(liveSession.id);
+    setRecordMode(liveSession.mode === "record" ? "record" : "browse");
+    setRecordOpen(true);
+  }
+
+
 
 
   useEffect(() => {
