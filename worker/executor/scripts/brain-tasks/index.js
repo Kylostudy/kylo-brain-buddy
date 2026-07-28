@@ -16,6 +16,9 @@ import { runPinterestMetricsSnapshot } from "./pinterest-metrics-snapshot.js";
 import { runPinterestUploadPin } from "./pinterest-upload-pin.js";
 import { runTikTokUploadVideo } from "./tiktok-upload-video.js";
 import { runRecordReplay } from "./record-replay.js";
+import { runRedditWarmup } from "./reddit-warmup.js";
+import { runRedditRegister } from "./reddit-register.js";
+
 
 export function isBrainTask(spec) {
   return !!(spec && spec.brain_task && spec.brain_task.task_type);
@@ -40,6 +43,13 @@ export async function runBrainTask(args) {
 
     case "record_replay_login":
       return await runRecordReplay(args);
+
+    case "reddit_warmup":
+      return await runRedditWarmup(args);
+
+    case "reddit_register":
+      return await runRedditRegister(args);
+
 
     case "metrics_snapshot": {
       const platform = (brainTask.platform || args.spec?.platform || "").toLowerCase();
