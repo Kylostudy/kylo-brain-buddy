@@ -1816,26 +1816,64 @@ export async function runKyloSignup({ page, context, spec, log }) {
         }
       } catch {}
 
-      // Kártyaszám — Stripe iframe-eket használ
-      const frames = page.frames();
-      const fillInFrames = async (selector, value) => {
-        for (const fr of frames) {
-          try {
-            const el = await fr.$(selector);
-            if (el) {
-              await el.click({ timeout: 2000 }).catch(() => {});
-              await el.fill("", { timeout: 2000 }).catch(() => {});
-              await el.type(value, { delay: 40 });
-              return true;
-            }
-          } catch {}
+      // Kártyamezők — a hosted Stripe Checkout ma már a fő dokumentumban
+      // tartja a mezőket (#cardNumber / #cardExpiry / #cardCvc), a régi
+      // Elements viszont iframe-eket használ (name="cardnumber"). Mindkettőt
+      // kezeljük, és a frame-listát MINDIG frissen kérjük le, mert a
+      // korábbi kód a betöltés előtt fagyasztotta be — így sosem talált mezőt.
+      const CARD_SELECTORS = [
+        "#cardNumber",
+        'input[name="cardNumber"]',
+        'input[name="cardnumber"]',
+        'input[autocomplete="cc-number"]',
+        'input[data-elements-stable-field-name="cardNumber"]',
+        'input[placeholder*="1234"]',
+      ].join(", ");
+      const EXP_SELECTORS = [
+        "#cardExpiry",
+        'input[name="cardExpiry"]',
+        'input[name="exp-date"]',
+        'input[autocomplete="cc-exp"]',
+        'input[data-elements-stable-field-name="cardExpiry"]',
+      ].join(", ");
+      const CVC_SELECTORS = [
+        "#cardCvc",
+        'input[name="cardCvc"]',
+        'input[name="cvc"]',
+        'input[autocomplete="cc-csc"]',
+        'input[data-elements-stable-field-name="cardCvc"]',
+      ].join(", ");
+
+      const fillAnywhere = async (selector, value, label) => {
+        const deadline = Date.now() + 25_000;
+        while (Date.now() < deadline) {
+          // fő dokumentum + minden (frissen lekért) iframe
+          const scopes = [page, ...page.frames()];
+          for (const sc of scopes) {
+            try {
+              const el = await sc.$(selector);
+              if (!el) continue;
+              const visible = await el.isVisible().catch(() => false);
+              if (!visible) continue;
+              await el.click({ timeout: 3000 }).catch(() => {});
+              await el.fill("", { timeout: 3000 }).catch(() => {});
+              await el.type(value, { delay: 60 });
+              const got = await el.inputValue().catch(() => "");
+              if (got && got.replace(/\s/g, "").length >= 3) {
+                log("info", `Stripe: ${label} kitöltve`);
+                return true;
+              }
+            } catch {}
+          }
+          await page.waitForTimeout(1000);
         }
+        log("warn", `Stripe: ${label} mező NEM található (25 mp után sem)`);
         return false;
       };
 
-      const cardOk = await fillInFrames('input[name="cardnumber"], input[autocomplete="cc-number"]', "4242 4242 4242 4242");
-      const expOk = await fillInFrames('input[name="exp-date"], input[autocomplete="cc-exp"]', "12 / 34");
-      const cvcOk = await fillInFrames('input[name="cvc"], input[autocomplete="cc-csc"]', "123");
+      const cardOk = await fillAnywhere(CARD_SELECTORS, "4242424242424242", "kártyaszám");
+      const expOk = await fillAnywhere(EXP_SELECTORS, "1234", "lejárat");
+      const cvcOk = await fillAnywhere(CVC_SELECTORS, "123", "CVC");
       log("info", `Stripe kártya kitöltés — card=${cardOk} exp=${expOk} cvc=${cvcOk}`);
 
       // Cardholder név (ha van)
@@ -1851,6 +1889,26 @@ export async function runKyloSignup({ page, context, spec, log }) {
       } catch {}
 
       stripeFilled = cardOk && expOk && cvcOk;
+      if (!stripeFilled) {
+        // Diagnosztika: mit lát egyáltalán az oldalon / a frame-ekben?
+        try {
+          const seen = [];
+          for (const sc of [page, ...page.frames()]) {
+            const inputs = await sc.$$eval("input", (els) =>
+              els.map((e) => ({
+                id: e.id || null,
+                name: e.getAttribute("name"),
+                ac: e.getAttribute("autocomplete"),
+                ph: e.getAttribute("placeholder"),
+              })),
+            ).catch(() => []);
+            if (inputs.length) seen.push(...inputs);
+          }
+          steps.push({ step: "stripe-fields-seen", inputs: seen.slice(0, 40) });
+          log("warn", `Stripe: talált mezők = ${JSON.stringify(seen).slice(0, 800)}`);
+        } catch {}
+      }
+
       screenshots.push(await shot(page, "6-stripe-filled"));
 
       if (stripeFilled) {
