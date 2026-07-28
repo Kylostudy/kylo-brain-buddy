@@ -182,22 +182,53 @@ async function pickRandomInternalLink(page, currentHost, blockedHosts) {
   return links[Math.floor(Math.random() * links.length)];
 }
 
+// Minden fázist időkorlátba zárunk: ha egy Playwright hívás némán beragad
+// (pl. egérmozgás egy soha be nem töltődő oldalon), akkor sem áll meg a run.
+function withTimeout(promiseFactory, ms, label, log) {
+  let timer;
+  return Promise.race([
+    Promise.resolve()
+      .then(promiseFactory)
+      .finally(() => clearTimeout(timer)),
+    new Promise((resolve) => {
+      timer = setTimeout(() => {
+        try {
+          log("warn", `Időkorlát (${Math.round(ms / 1000)}s) — lépés kihagyva: ${label}`);
+        } catch {}
+        resolve(null);
+      }, ms);
+    }),
+  ]).catch((e) => {
+    try {
+      log("warn", `Lépés hiba (${label}): ${e?.message || e}`);
+    } catch {}
+    return null;
+  });
+}
+
 async function browsePage(page, log) {
   // 1-3 kör görgetés + drift + gondolkodó pauza
   const rounds = 1 + Math.floor(Math.random() * 3);
   for (let i = 0; i < rounds; i++) {
-    await humanCasualScroll(page, { rounds: 1 + Math.floor(Math.random() * 2) });
-    if (Math.random() < 0.4) await humanIdleDrift(page);
-    await humanThink(page, 1500 + Math.random() * 2500);
+    await withTimeout(
+      () => humanCasualScroll(page, { rounds: 1 + Math.floor(Math.random() * 2) }),
+      45000,
+      "görgetés",
+      log,
+    );
+    if (Math.random() < 0.4) await withTimeout(() => humanIdleDrift(page), 20000, "kurzor drift", log);
+    await humanThink(page, 1500 + Math.random() * 2500).catch(() => {});
   }
-  await humanBrowseMoment(page);
+  await withTimeout(() => humanBrowseMoment(page), 30000, "böngészési pillanat", log);
 }
 
 async function googleSearchAndClick(page, query, googleDomain, cookieAcceptTexts, blockedHosts, log) {
-  await safeGoto(page, googleDomain, log);
-  await humanWait(page, 800);
-  await tryCloseCookieBanner(page, cookieAcceptTexts, log);
-  await humanWait(page, 400);
+  const ok = await safeGoto(page, googleDomain, log);
+  if (!ok) return null;
+  await humanWait(page, 800).catch(() => {});
+  await withTimeout(() => tryCloseCookieBanner(page, cookieAcceptTexts, log), 20000, "cookie sáv", log);
+  await humanWait(page, 400).catch(() => {});
+
 
   try {
     const input = page.locator('textarea[name="q"], input[name="q"]').first();
