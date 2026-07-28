@@ -550,7 +550,9 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
           setRecordOpen(false);
           setRecordSessionId(null);
           void qc.invalidateQueries({ queryKey: ["workflow", workflowId] });
+          void qc.invalidateQueries({ queryKey: ["live-session", workflowId] });
         }}
+
       />
     </div>
   );
