@@ -217,7 +217,6 @@ export const Route = createFileRoute("/api/public/worker/complete")({
                 .maybeSingle();
 
               const payload = {
-                workflow_id: runFull.workflow_id,
                 tenant_id: runFull.tenant_id,
                 platform: existing?.platform ?? "warmup",
                 username: existing?.username ?? "warmup-jar",
@@ -225,9 +224,16 @@ export const Route = createFileRoute("/api/public/worker/complete")({
                 cookie_nonce: nonce,
                 proxy_id: runFull.proxy_id,
               };
-              await sb
-                .from("workflow_credentials")
-                .upsert(payload as never, { onConflict: "workflow_id" });
+              if (existing?.id) {
+                await sb
+                  .from("workflow_credentials")
+                  .update(payload as never)
+                  .eq("id", existing.id);
+              } else {
+                await sb
+                  .from("workflow_credentials")
+                  .insert({ ...payload, workflow_id: runFull.workflow_id } as never);
+              }
 
               // Cookie jar meta: melyik ország proxyval gyűjtöttük + statisztika.
               let proxyCountry: string | null = null;
@@ -300,18 +306,14 @@ export const Route = createFileRoute("/api/public/worker/complete")({
                   .filter(Boolean);
 
                 if (siblingCreds && siblingCreds.length > 0) {
-                  await sb.from("workflow_credentials").upsert(
-                    siblingCreds.map((row) => ({
-                      workflow_id: row.workflow_id,
-                      tenant_id: runFull.tenant_id,
-                      platform: row.platform ?? "warmup",
-                      username: row.username ?? "warmup-jar",
+                  await sb
+                    .from("workflow_credentials")
+                    .update({
                       proxy_id: runFull.proxy_id,
                       cookie_ciphertext: ciphertext,
                       cookie_nonce: nonce,
-                    })) as never,
-                    { onConflict: "workflow_id" },
-                  );
+                    } as never)
+                    .eq("proxy_id", runFull.proxy_id);
                 }
 
                 if (siblingIds.length > 0) {
