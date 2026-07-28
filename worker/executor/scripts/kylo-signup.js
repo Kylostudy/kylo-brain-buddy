@@ -1783,6 +1783,9 @@ export async function runKyloSignup({ page, context, spec, log }) {
     let billingFilled = await fillBillingForm(page, email, log);
     screenshots.push(await shot(page, "5c-billing-filled"));
     let payClicked = await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább");
+    // A gomb után az oldal navigálhat (Stripe) — előbb hagyjuk leülni,
+    // csak utána nyúlunk megint a DOM-hoz, különben „megszűnt a kontextus" hibát kapunk.
+    await page.waitForLoadState("domcontentloaded", { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(4000);
 
     // Ha nem indult el a fizetés, megnézzük mi tiltja (üres kötelező mező,
@@ -1795,10 +1798,16 @@ export async function runKyloSignup({ page, context, spec, log }) {
           "warn",
           `Számlázás elakadt — üres mezők: ${blockers.empty_fields.join(", ") || "nincs"} · hibák: ${blockers.errors.join(" / ") || "nincs"}`,
         );
+        if (blockers.field_values?.length) {
+          log("info", `Számlázási mezők jelenlegi tartalma: ${blockers.field_values.join(" | ")}`);
+        }
       }
-      billingFilled = (await fillBillingForm(page, email, log)) || billingFilled;
-      await page.waitForTimeout(1200);
-      payClicked = (await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább (2. próba)")) || payClicked;
+      if (!isStripeUrl(page.url())) {
+        billingFilled = (await fillBillingForm(page, email, log)) || billingFilled;
+        await page.waitForTimeout(1200);
+        payClicked = (await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább (2. próba)")) || payClicked;
+        await page.waitForLoadState("domcontentloaded", { timeout: 15000 }).catch(() => {});
+      }
     }
 
     steps.push({
