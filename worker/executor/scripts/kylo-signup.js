@@ -2046,10 +2046,51 @@ export async function runKyloSignup({ page, context, spec, log }) {
         stripeSubmitted = submitted;
         log("info", `Stripe submit: ${submitted}`);
         screenshots.push(await shot(page, "6a-stripe-pay-click"));
+
+        // Ha 30 mp után is a Stripe oldalon vagyunk, olvassuk ki, MIT kifogásol
+        // (hibaüzenetek, üresen maradt kötelező mezők) — eddig ez néma volt.
+        if (submitted) {
+          const waitUntil = Date.now() + 30_000;
+          while (Date.now() < waitUntil && isStripeUrl(page.url())) {
+            await page.waitForTimeout(1500);
+          }
+          if (isStripeUrl(page.url())) {
+            const diag = { errors: [], empty: [] };
+            for (const sc of [page, ...page.frames()]) {
+              const errs = await sc
+                .$$eval(
+                  '[role="alert"], .FieldError, .Error, [class*="error" i], [aria-live="polite"]',
+                  (els) =>
+                    els
+                      .map((e) => (e.innerText || e.textContent || "").trim())
+                      .filter((t) => t && t.length > 1 && t.length < 200),
+                )
+                .catch(() => []);
+              const empties = await sc
+                .$$eval("input", (els) =>
+                  els
+                    .filter((e) => e.type !== "hidden" && !e.value && e.offsetParent !== null)
+                    .map((e) => e.name || e.id || e.getAttribute("autocomplete") || "?"),
+                )
+                .catch(() => []);
+              diag.errors.push(...errs);
+              diag.empty.push(...empties);
+            }
+            diag.errors = [...new Set(diag.errors)].slice(0, 20);
+            diag.empty = [...new Set(diag.empty)].slice(0, 20);
+            steps.push({ step: "stripe-blocked", url: page.url(), ...diag });
+            log(
+              "warn",
+              `Stripe elakadt — hibák: ${JSON.stringify(diag.errors)} · üres mezők: ${JSON.stringify(diag.empty)}`,
+            );
+            screenshots.push(await shot(page, "6a2-stripe-blocked"));
+          }
+        }
       }
 
 
       steps.push({ step: "stripe-fill", cardOk, expOk, cvcOk, submitted: stripeSubmitted });
+
     } catch (e) {
       log("warn", `Stripe kitöltés hiba: ${e.message}`);
       steps.push({ step: "stripe-fill", error: e.message });
