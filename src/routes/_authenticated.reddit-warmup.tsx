@@ -81,11 +81,15 @@ function RedditWarmupPage() {
         mielőtt bármit posztolnánk. A napi aktivitást manuálisan (Live Browse) csináljuk, itt csak naplózzuk. Amint egy fiók „érett", jelöld készre.
       </p>
 
-      <Tabs defaultValue="accounts">
+      <Tabs defaultValue="automation">
         <TabsList>
-          <TabsTrigger value="accounts">Fiókok</TabsTrigger>
+          <TabsTrigger value="automation">Fiókok &amp; automatizálás</TabsTrigger>
+          <TabsTrigger value="accounts">Kézi nyilvántartás</TabsTrigger>
           <TabsTrigger value="stories">Story Bank</TabsTrigger>
         </TabsList>
+        <TabsContent value="automation" className="pt-4">
+          <RedditAccountsPanel />
+        </TabsContent>
         <TabsContent value="accounts" className="pt-4">
           <AccountsPanel />
         </TabsContent>
@@ -93,6 +97,7 @@ function RedditWarmupPage() {
           <StoriesPanel />
         </TabsContent>
       </Tabs>
+
     </div>
   );
 }
