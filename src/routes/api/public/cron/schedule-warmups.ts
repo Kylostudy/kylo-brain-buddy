@@ -1,8 +1,9 @@
 // Warmup ütemező — óránként fut, pg_cron hívja.
 //
 // Minden warmup workflow-hoz tartozó proxy-t megnéz:
-//   - ha warmup_next_scheduled_at <= most ÉS warmup_running_at üres/régi,
-//     létrehoz egy brain_workflow_runs sort (status=queued, proxy_id=X),
+//   - ha warmup_next_scheduled_at <= most VAGY még nincs sikeres süti-csomag,
+//     ÉS warmup_running_at üres/régi, létrehoz egy brain_workflow_runs sort
+//     (status=queued, proxy_id=X),
 //     amit majd a VPS worker felvesz a /worker/claim endpointon,
 //   - beállítja warmup_running_at = most, warmup_next_scheduled_at = null.
 //
@@ -21,6 +22,21 @@ const MAX_ENQUEUE_PER_TICK = 5;
 
 // Ha egy warmup több mint 2 órája „running", elakadtnak tekintjük.
 const RUNNING_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+
+// Reddit szempontból ezek a legfontosabbak: német, portugál, spanyol, arab.
+// Ha több hiányzó warmup vár, ezek kerülnek előre.
+const REDDIT_PRIORITY_LANGUAGES = ["de", "pt", "pt-br", "es", "ar"];
+const REDDIT_PRIORITY_REGIONS = ["CH", "DE", "BR", "PT", "ES", "CO", "MX", "SA", "AE", "EG", "MA"];
+
+function priorityScore(country: string | null, language: string | null): number {
+  const lang = (language || "").toLowerCase();
+  const region = (country || "").toUpperCase();
+  const langIdx = REDDIT_PRIORITY_LANGUAGES.indexOf(lang);
+  if (langIdx >= 0) return langIdx;
+  const regionIdx = REDDIT_PRIORITY_REGIONS.indexOf(region);
+  if (regionIdx >= 0) return REDDIT_PRIORITY_LANGUAGES.length + regionIdx;
+  return 100;
+}
 
 export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
   server: {
@@ -48,15 +64,15 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
           .update({ warmup_running_at: null })
           .lt("warmup_running_at", runningCutoff);
 
-        // Esedékes proxyk — warmup_next <= now, jelenleg nem fut, aktív.
-        const { data: due, error: dueErr } = await supabaseAdmin
+        // Aktív proxyk. Korábban csak a warmup_next_scheduled_at <= now sorokat
+        // vettük fel; ettől egy failed/cancelled warmup könnyen „eltűnt”, ha a
+        // next_scheduled null lett, miközben továbbra sem volt süti-csomag.
+        const { data: proxyRows, error: dueErr } = await supabaseAdmin
           .from("proxies")
-          .select("id, tenant_id, country, warmup_next_scheduled_at")
-          .lte("warmup_next_scheduled_at", nowIso)
-          .is("warmup_running_at", null)
+          .select("id, tenant_id, country, warmup_next_scheduled_at, warmup_running_at")
           .eq("is_active", true)
-          .order("warmup_next_scheduled_at", { ascending: true })
-          .limit(MAX_ENQUEUE_PER_TICK);
+          .order("warmup_next_scheduled_at", { ascending: true, nullsFirst: false })
+          .limit(200);
 
         if (dueErr) {
           return new Response(JSON.stringify({ error: dueErr.message }), {
@@ -73,32 +89,31 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
         }> = [];
         const skipped: Array<{ proxy_id: string; reason: string }> = [];
 
-        for (const p of due ?? []) {
-          const { data: openRun } = await supabaseAdmin
-            .from("brain_workflow_runs")
-            .select("id, status")
-            .eq("proxy_id", p.id)
-            .in("status", ["queued", "scheduled", "running"])
-            .limit(1)
-            .maybeSingle();
+        const candidates: Array<{
+          proxy_id: string;
+          tenant_id: string;
+          country: string;
+          scheduled_at: string | null;
+          workflow_id: string;
+          spec: Record<string, unknown>;
+          language: string | null;
+          missing_cookie: boolean;
+          score: number;
+        }> = [];
 
-          if (openRun) {
-            skipped.push({
-              proxy_id: p.id,
-              reason: `already has open warmup run (${openRun.status})`,
-            });
-            await supabaseAdmin
-              .from("proxies")
-              .update({ warmup_running_at: null, warmup_next_scheduled_at: null })
-              .eq("id", p.id);
-            continue;
-          }
+        for (const p of proxyRows ?? []) {
+          if (p.warmup_running_at) continue;
+
+          const scheduledAt = p.warmup_next_scheduled_at
+            ? new Date(p.warmup_next_scheduled_at).getTime()
+            : null;
+          const scheduledDue = scheduledAt !== null && scheduledAt <= Date.now();
 
           // Warmup workflow lekérése: spec.proxy_id = p.id ÉS spec.is_warmup = true.
           // Postgrest jsonb szűrés:
           const { data: wfs } = await supabaseAdmin
             .from("workflows")
-            .select("id, spec")
+            .select("id, spec, language, cookie_jar_updated_at")
             .eq("tenant_id", p.tenant_id)
             .eq("module", "brain")
             .eq("active", true)
@@ -119,18 +134,67 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
             continue;
           }
 
+          const missingCookie = !wf.cookie_jar_updated_at;
+          if (!scheduledDue && !missingCookie) continue;
+
           const spec = (wf.spec ?? {}) as Record<string, unknown>;
-          const specSnapshot = { ...spec, proxy_id: p.id };
+          const language =
+            typeof spec.language === "string"
+              ? spec.language
+              : typeof wf.language === "string"
+                ? wf.language
+                : null;
+
+          candidates.push({
+            proxy_id: p.id,
+            tenant_id: p.tenant_id,
+            country: (p.country || "").toUpperCase(),
+            scheduled_at: p.warmup_next_scheduled_at,
+            workflow_id: wf.id,
+            spec,
+            language,
+            missing_cookie: missingCookie,
+            score: priorityScore(p.country, language),
+          });
+        }
+
+        candidates.sort((a, b) => {
+          if (a.missing_cookie !== b.missing_cookie) return a.missing_cookie ? -1 : 1;
+          if (a.score !== b.score) return a.score - b.score;
+          return String(a.scheduled_at || "9999").localeCompare(String(b.scheduled_at || "9999"));
+        });
+
+        for (const p of candidates.slice(0, MAX_ENQUEUE_PER_TICK)) {
+          const { data: openRun } = await supabaseAdmin
+            .from("brain_workflow_runs")
+            .select("id, status")
+            .eq("proxy_id", p.proxy_id)
+            .in("status", ["queued", "scheduled", "running"])
+            .limit(1)
+            .maybeSingle();
+
+          if (openRun) {
+            skipped.push({
+              proxy_id: p.id,
+              reason: `already has open warmup run (${openRun.status})`,
+            });
+            await supabaseAdmin
+              .from("proxies")
+              .update({ warmup_running_at: null, warmup_next_scheduled_at: null })
+              .eq("id", p.proxy_id);
+            continue;
+          }
+          const specSnapshot = { ...p.spec, proxy_id: p.proxy_id };
 
           const { data: run, error: rErr } = await supabaseAdmin
             .from("brain_workflow_runs")
             .insert({
-              workflow_id: wf.id,
+              workflow_id: p.workflow_id,
               tenant_id: p.tenant_id,
               runner: "docker",
               status: "queued",
               module: "brain",
-              proxy_id: p.id,
+              proxy_id: p.proxy_id,
               spec_snapshot: specSnapshot as never,
             })
             .select("id")
@@ -138,7 +202,7 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
 
           if (rErr || !run) {
             skipped.push({
-              proxy_id: p.id,
+              proxy_id: p.proxy_id,
               reason: `run insert failed: ${rErr?.message ?? "unknown"}`,
             });
             continue;
@@ -151,19 +215,20 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
               warmup_last_run_at: nowIso,
               warmup_next_scheduled_at: null,
             })
-            .eq("id", p.id);
+            .eq("id", p.proxy_id);
 
           enqueued.push({
-            proxy_id: p.id,
-            country: (p.country || "").toUpperCase(),
-            workflow_id: wf.id,
+            proxy_id: p.proxy_id,
+            country: p.country,
+            workflow_id: p.workflow_id,
             run_id: run.id,
           });
         }
 
         return Response.json({
           ok: true,
-          checked: due?.length ?? 0,
+          checked: proxyRows?.length ?? 0,
+          candidates_count: candidates.length,
           enqueued_count: enqueued.length,
           skipped_count: skipped.length,
           enqueued,

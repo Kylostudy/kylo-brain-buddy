@@ -1,0 +1,36 @@
+// Arab warmup sablon — használható: SA, AE, EG, MA és más arab nyelvű proxyk
+export default {
+  googleDomain: "https://www.google.com.sa/",
+  sites: [
+    "https://www.google.com.sa/",
+    "https://www.aljazeera.net/",
+    "https://www.alarabiya.net/",
+    "https://www.skynewsarabia.com/",
+    "https://www.bbc.com/arabic",
+    "https://arabic.cnn.com/",
+    "https://ar.wikipedia.org/wiki/الصفحة_الرئيسية",
+    "https://www.youm7.com/",
+  ],
+  queries: [
+    "حالة الطقس اليوم",
+    "أخبار اليوم",
+    "نتائج كرة القدم",
+    "وصفة كبسة سهلة",
+    "أفضل أفلام 2025",
+    "رحلات رخيصة",
+    "أسعار السيارات الكهربائية",
+    "مطاعم قريبة مني",
+    "تعلم اللغة الإنجليزية",
+    "أفكار سفر عائلية",
+    "نصائح العناية بالمنزل",
+    "أفضل تطبيقات الإنتاجية",
+  ],
+  cookieAcceptTexts: [
+    /قبول الكل/i,
+    /أوافق/i,
+    /موافق/i,
+    /قبول/i,
+    /^ok$/i,
+    /accept all/i,
+  ],
+};
