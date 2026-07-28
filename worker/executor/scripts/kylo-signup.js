@@ -1977,15 +1977,23 @@ export async function runKyloSignup({ page, context, spec, log }) {
           scope
             .evaluate((src) => {
               const re = new RegExp(src, "i");
-              const btns = Array.from(
-                document.querySelectorAll('button[type="submit"], button.SubmitButton, button, [role="button"]'),
+              document
+                .querySelectorAll('[data-kylo-pay="1"]')
+                .forEach((e) => e.removeAttribute("data-kylo-pay"));
+              // Először a Stripe hivatalos fizetés gombja, csak utána bármi más.
+              const preferred = Array.from(
+                document.querySelectorAll(
+                  '[data-testid="hosted-payment-submit-button"], button.SubmitButton, form button[type="submit"]',
+                ),
               );
-              for (const b of btns) {
+              const rest = Array.from(document.querySelectorAll('button, [role="button"]'));
+              for (const b of [...preferred, ...rest]) {
                 const t = (b.innerText || b.textContent || "").trim();
                 const r = b.getBoundingClientRect();
                 if (r.width < 5 || r.height < 5) continue;
                 if (b.disabled) continue;
-                if (b.type === "submit" || re.test(t)) {
+                const isPreferred = preferred.includes(b);
+                if (isPreferred || re.test(t)) {
                   b.setAttribute("data-kylo-pay", "1");
                   b.scrollIntoView({ block: "center", behavior: "instant" });
                   return t.slice(0, 60) || "submit";
@@ -1994,6 +2002,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
               return null;
             }, PAY_RE.source)
             .catch(() => null);
+
 
         let submitted = false;
         for (let attempt = 1; attempt <= 3 && !submitted; attempt++) {
