@@ -1086,6 +1086,53 @@ async function openGmailConfirmationLink(page, email, log) {
   }
 }
 
+// A megerősítő link után a felhasználó általában NINCS beléptetve — enélkül
+// viszont nem jelenik meg a csomagválasztó, így a Stripe sem érhető el.
+async function signInAfterConfirmation(page, email, password, log) {
+  try {
+    const alreadyIn = await page.evaluate(() => /\/profil|\/dashboard|\/fiok/i.test(location.pathname));
+    if (alreadyIn) {
+      log("info", `Belépés: már be vagyunk lépve (${page.url?.() || "n/a"})`);
+      return { ok: true, reason: "már belépve", url: null };
+    }
+    await page.goto("https://kylo.study/regisztracio", { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.waitForTimeout(2500);
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const state = await inspectAuthForm(page);
+      if (state.currentSignup) {
+        // Regisztráció módban vagyunk — váltsunk vissza belépésre.
+        await clickByText(page, ["sign in", "log in", "login", "belép", "bejelentkez"], log, "Belépés váltó", {});
+        await page.waitForTimeout(1500);
+      }
+      const emailInput = await page.$('input[type="email"], input[name*="mail" i], input[id*="mail" i]');
+      const pwInput = await page.$('input[type="password"]');
+      if (!emailInput || !pwInput) {
+        log("warn", `Belépés ${attempt}/3 — nincs email/jelszó mező (email=${state.emailFields}, pw=${state.passwordFields})`);
+        await page.waitForTimeout(2000);
+        continue;
+      }
+      await emailInput.fill(email, { timeout: 5000 }).catch(() => {});
+      await pwInput.fill(password, { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(600);
+      const clicked = await clickByText(page, ["sign in", "log in", "login", "belép", "bejelentkez"], log, "Belépés", {});
+      await page.waitForTimeout(6000);
+      const url = page.url();
+      const loggedIn = await page.evaluate(() => {
+        const t = (document.body?.innerText || "").toLowerCase();
+        return /\/profil|\/dashboard|\/fiok/i.test(location.pathname) || /log ?out|sign ?out|kijelentkez/.test(t);
+      });
+      log("info", `Belépés ${attempt}/3 — kattintás=${clicked}, url=${url}, belépve=${loggedIn}`);
+      if (loggedIn) return { ok: true, url, attempts: attempt };
+      await page.waitForTimeout(2500);
+    }
+    return { ok: false, reason: "a belépés nem lépett tovább", url: page.url() };
+  } catch (e) {
+    return { ok: false, reason: e.message };
+  }
+}
+
+
 // Számlázási adatok űrlapjának best-effort kitöltése (a Stripe előtti lépés).
 async function fillBillingForm(page, email, log) {
   const targets = [
