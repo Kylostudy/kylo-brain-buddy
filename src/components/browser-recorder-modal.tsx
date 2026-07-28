@@ -130,7 +130,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       const p = payload as Frame;
       setLockedFrameSize((prev) => prev ?? { w: p.w, h: p.h });
       setFrame(p);
+      // Visszacsatlakozáskor a "ready" már rég elment — ha jön kép, él a munkamenet.
+      setStatus((prev) => (prev === "requested" ? "active" : prev));
+      setWorkerTimeout(false);
     });
+
     ch.on("broadcast", { event: "ready" }, ({ payload }) => {
       const p = payload as { w?: number; h?: number };
       setStatus("active");

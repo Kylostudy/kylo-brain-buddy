@@ -154,6 +154,27 @@ export const startLiveBrowse = createServerFn({ method: "POST" })
     );
   });
 
+// Visszacsatlakozás: ha a böngésző oldala frissült / bezárult, a VPS-en futó
+// munkamenet attól még él. Ez adja vissza a nyitva lévő sessiont, hogy a UI
+// automatikusan vissza tudjon lépni bele (pl. félbehagyott regisztráció).
+export const getActiveSession = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ workflowId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: session } = await context.supabase
+      .from("recording_sessions")
+      .select("id, mode, status, start_url, started_at")
+      .eq("workflow_id", data.workflowId)
+      .in("status", ["requested", "active"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return session ?? null;
+  });
+
+
 export const cancelRecording = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>

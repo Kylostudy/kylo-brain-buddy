@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Brain, Play, Pencil, Video, KeyRound, Globe } from "lucide-react";
 import { MicButton } from "@/components/mic-button";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
-import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
+import { startRecording, startLiveBrowse, getActiveSession } from "@/lib/recording.functions";
 
 
 import {
@@ -116,6 +116,34 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
     queryFn: () => listProxiesFn(),
     staleTime: 30_000,
   });
+
+  // Élő munkamenet visszacsatlakozás: a VPS-en futó Live Browse / felvétel
+  // akkor is él, ha itt frissül az oldal. Lekérdezzük és automatikusan
+  // visszalépünk bele, hogy a félbehagyott regisztráció ne vesszen el.
+  const callGetActiveSession = useServerFn(getActiveSession);
+  const { data: liveSession } = useQuery({
+    queryKey: ["live-session", workflowId],
+    queryFn: () => callGetActiveSession({ data: { workflowId } }),
+    refetchInterval: 5000,
+  });
+
+  const autoRejoinedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!liveSession?.id || recordOpen) return;
+    if (autoRejoinedRef.current === liveSession.id) return;
+    autoRejoinedRef.current = liveSession.id;
+    setRecordSessionId(liveSession.id);
+    setRecordMode(liveSession.mode === "record" ? "record" : "browse");
+    setRecordOpen(true);
+  }, [liveSession, recordOpen]);
+
+  function rejoinLiveSession() {
+    if (!liveSession?.id) return;
+    setRecordSessionId(liveSession.id);
+    setRecordMode(liveSession.mode === "record" ? "record" : "browse");
+    setRecordOpen(true);
+  }
+
 
 
 
@@ -311,8 +339,12 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
             <Button
               type="button"
               size="sm"
-              variant="outline"
+              variant={liveSession ? "default" : "outline"}
               onClick={async () => {
+                if (liveSession?.id) {
+                  rejoinLiveSession();
+                  return;
+                }
                 try {
                   const session = await callStartLiveBrowse({
                     data: { workflowId },
@@ -328,11 +360,18 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
                   );
                 }
               }}
-              title="Élő böngésző az accounthoz (kézi belépés, kézi válasz — nem menti a lépéseket, csak sütiket)"
+              title={
+                liveSession
+                  ? "Van egy élő munkamenet ezen a workflow-n — kattints a visszalépéshez"
+                  : "Élő böngésző az accounthoz (kézi belépés, kézi válasz — nem menti a lépéseket, csak sütiket)"
+              }
             >
               <Globe className="size-4" />
-              <span className="ml-1.5 hidden sm:inline">Live Browse</span>
+              <span className="ml-1.5 hidden sm:inline">
+                {liveSession ? "Vissza az élő munkamenetbe" : "Live Browse"}
+              </span>
             </Button>
+
             <Button
               type="button"
               size="sm"
@@ -511,7 +550,9 @@ export function ChatWindow({ workflowId }: { workflowId: string }) {
           setRecordOpen(false);
           setRecordSessionId(null);
           void qc.invalidateQueries({ queryKey: ["workflow", workflowId] });
+          void qc.invalidateQueries({ queryKey: ["live-session", workflowId] });
         }}
+
       />
     </div>
   );
