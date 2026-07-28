@@ -1400,7 +1400,18 @@ export async function runKyloSignup({ page, context, spec, log }) {
     // A megerősítő link megnyitása utáni oldal is a cél nyelven kell legyen.
     if (emailConfirmed) langChecks.push(await auditLanguage(page, "e-mail megerősítés utáni oldal", log, lang));
     steps.push({ step: "email-confirm", ...confirmation, language_ok: emailLangOk });
+
+    // 3b) Belépés a frissen megerősített fiókkal — enélkül nincs csomagválasztó.
+    if (emailConfirmed) {
+      const signedIn = await signInAfterConfirmation(page, email, password, log);
+      screenshots.push(await shot(page, "4c-after-signin"));
+      steps.push({ step: "sign-in", ...signedIn });
+      if (!signedIn.ok) {
+        log("warn", `Belépés nem sikerült a megerősítés után: ${signedIn.reason || "ismeretlen ok"}`);
+      }
+    }
   }
+
 
 
   // 4) skin — ide még nem építünk be UI-t, csak localStorage seed
