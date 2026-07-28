@@ -244,7 +244,10 @@ async function clickByText(page, hints, log, label, options = {}) {
   const lowerHints = hints.map((h) => h.toLowerCase());
   const lowerRejects = (options.rejects || []).map((h) => h.toLowerCase());
   const marker = `kylo-worker-target-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const found = await page.evaluate(({ lowerHints, lowerRejects, marker }) => {
+  // Ha közben navigál az oldal, a page.evaluate „Execution context was destroyed"
+  // hibát dob — ez nem futáshiba, csak újra kell próbálni a betöltés után.
+  await page.waitForLoadState("domcontentloaded", { timeout: 8000 }).catch(() => {});
+  const findTarget = () => page.evaluate(({ lowerHints, lowerRejects, marker }) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
     const nodes = Array.from(
       document.querySelectorAll(
@@ -279,15 +282,28 @@ async function clickByText(page, hints, log, label, options = {}) {
     }
     return null;
   }, { lowerHints, lowerRejects, marker });
+
+  let found = await findTarget().catch(() => "retry");
+  if (found === "retry") {
+    // navigáció közben kaptuk el az oldalt — megvárjuk és újrapróbáljuk
+    await page.waitForLoadState("domcontentloaded", { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(1200);
+    found = await findTarget().catch(() => null);
+  }
   if (!found) {
     log("warn", `Nem találtam ${label} gombot / linket.`);
     return false;
   }
-  const handle = await page.$(`[data-kylo-worker-target="${marker}"]`);
-  if (handle) {
-    await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
-  } else {
-    await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-target="${marker}"]`)?.click(), marker);
+  const handle = await page.$(`[data-kylo-worker-target="${marker}"]`).catch(() => null);
+  try {
+    if (handle) {
+      await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
+    } else {
+      await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-target="${marker}"]`)?.click(), marker);
+    }
+  } catch (e) {
+    if (!/context was destroyed|Target closed|navigation/i.test(e?.message || "")) throw e;
+    log("info", `${label}: az oldal a kattintás közben navigált — folytatjuk.`);
   }
   await page.evaluate((marker) => {
     document.querySelectorAll(`[data-kylo-worker-target="${marker}"]`).forEach((el) => el.removeAttribute("data-kylo-worker-target"));
@@ -1396,15 +1412,36 @@ async function collectBillingBlockers(page) {
         .map((n) => (n.closest(".space-y-2")?.innerText || n.innerText || "?").replace(/\s+/g, " ").trim().slice(0, 40));
       empty.push(...unselected.map((u) => `[legördülő nincs kiválasztva] ${u}`));
 
-      const errors = Array.from(document.querySelectorAll('[role="alert"], .text-destructive, .error, [aria-invalid="true"]'))
-        .map((n) => (n.innerText || "").trim())
-        .filter(Boolean)
-        .slice(0, 8);
+      // A csillag (*) csak a „kötelező mező" jelölés — az nem hibaüzenet.
+      // Ezért csak az érdemi, legalább 3 karakteres, betűt tartalmazó szövegeket tartjuk meg.
+      const meaningful = (t) => t && t.replace(/\s+/g, " ").trim().length >= 3 && /[\p{L}]/u.test(t);
+      const errors = Array.from(
+        document.querySelectorAll('[role="alert"], .text-destructive, .text-red-500, .text-red-600, .error, [data-error], [id$="-error"], [id$="-message"]'),
+      )
+        .map((n) => (n.innerText || "").replace(/\s+/g, " ").trim())
+        .filter(meaningful)
+        .slice(0, 10);
+
+      // Amelyik mezőt a form érvénytelennek jelöli — névvel és a beírt értékkel együtt,
+      // hogy látszódjon, mi nem tetszik neki (pl. rossz formátumú irányítószám).
+      const invalid = Array.from(document.querySelectorAll("input, textarea, select"))
+        .filter((n) => (n.offsetWidth || n.offsetHeight))
+        .filter((n) => n.getAttribute("aria-invalid") === "true" || (n.willValidate && !n.checkValidity()))
+        .map((n) => `${label(n)} = "${String(n.value || "").slice(0, 30)}" (${n.validationMessage || "aria-invalid"})`)
+        .slice(0, 10);
+      errors.push(...invalid);
+
+      // Teljes mezőkép a riporthoz: mi van most ténylegesen beírva.
+      const field_values = Array.from(document.querySelectorAll("input, textarea, select"))
+        .filter((n) => (n.offsetWidth || n.offsetHeight) && n.type !== "checkbox" && n.type !== "radio")
+        .map((n) => `${label(n)}="${String(n.value || "").slice(0, 30)}"`)
+        .slice(0, 25);
+
       const buttons = Array.from(document.querySelectorAll("button")).map((b) => ({
         text: (b.innerText || "").trim().slice(0, 40),
         disabled: b.disabled,
       }));
-      return { url: location.href, empty_fields: empty, errors, buttons };
+      return { url: location.href, empty_fields: empty, errors, field_values, buttons };
     })
     .catch(() => null);
 }
@@ -1746,6 +1783,9 @@ export async function runKyloSignup({ page, context, spec, log }) {
     let billingFilled = await fillBillingForm(page, email, log);
     screenshots.push(await shot(page, "5c-billing-filled"));
     let payClicked = await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább");
+    // A gomb után az oldal navigálhat (Stripe) — előbb hagyjuk leülni,
+    // csak utána nyúlunk megint a DOM-hoz, különben „megszűnt a kontextus" hibát kapunk.
+    await page.waitForLoadState("domcontentloaded", { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(4000);
 
     // Ha nem indult el a fizetés, megnézzük mi tiltja (üres kötelező mező,
@@ -1758,10 +1798,16 @@ export async function runKyloSignup({ page, context, spec, log }) {
           "warn",
           `Számlázás elakadt — üres mezők: ${blockers.empty_fields.join(", ") || "nincs"} · hibák: ${blockers.errors.join(" / ") || "nincs"}`,
         );
+        if (blockers.field_values?.length) {
+          log("info", `Számlázási mezők jelenlegi tartalma: ${blockers.field_values.join(" | ")}`);
+        }
       }
-      billingFilled = (await fillBillingForm(page, email, log)) || billingFilled;
-      await page.waitForTimeout(1200);
-      payClicked = (await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább (2. próba)")) || payClicked;
+      if (!isStripeUrl(page.url())) {
+        billingFilled = (await fillBillingForm(page, email, log)) || billingFilled;
+        await page.waitForTimeout(1200);
+        payClicked = (await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább (2. próba)")) || payClicked;
+        await page.waitForLoadState("domcontentloaded", { timeout: 15000 }).catch(() => {});
+      }
     }
 
     steps.push({
