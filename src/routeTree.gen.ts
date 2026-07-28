@@ -34,6 +34,7 @@ import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
 import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
+import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
@@ -194,6 +195,12 @@ const ApiPublicCronScheduleWarmupsRoute =
     path: '/api/public/cron/schedule-warmups',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronScheduleRedditWarmupsRoute =
+  ApiPublicCronScheduleRedditWarmupsRouteImport.update({
+    id: '/api/public/cron/schedule-reddit-warmups',
+    path: '/api/public/cron/schedule-reddit-warmups',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronEnqueueMonitorsRoute =
   ApiPublicCronEnqueueMonitorsRouteImport.update({
     id: '/api/public/cron/enqueue-monitors',
@@ -332,6 +339,7 @@ export interface FileRoutesByFullPath {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
@@ -378,6 +386,7 @@ export interface FileRoutesByTo {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
@@ -426,6 +435,7 @@ export interface FileRoutesById {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
     | '/api/public/worker/claim'
@@ -520,6 +531,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
     | '/api/public/worker/claim'
@@ -567,6 +579,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
     | '/api/public/worker/claim'
@@ -605,6 +618,7 @@ export interface RootRouteChildren {
   ApiPublicAuthPasswordRoute: typeof ApiPublicAuthPasswordRoute
   ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
+  ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
   ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
   ApiPublicHooksQaSchedulerRoute: typeof ApiPublicHooksQaSchedulerRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
@@ -809,6 +823,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronScheduleWarmupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/schedule-reddit-warmups': {
+      id: '/api/public/cron/schedule-reddit-warmups'
+      path: '/api/public/cron/schedule-reddit-warmups'
+      fullPath: '/api/public/cron/schedule-reddit-warmups'
+      preLoaderRoute: typeof ApiPublicCronScheduleRedditWarmupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/enqueue-monitors': {
       id: '/api/public/cron/enqueue-monitors'
       path: '/api/public/cron/enqueue-monitors'
@@ -1007,6 +1028,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAuthPasswordRoute: ApiPublicAuthPasswordRoute,
   ApiPublicCronDispatchBrainTasksRoute: ApiPublicCronDispatchBrainTasksRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
+  ApiPublicCronScheduleRedditWarmupsRoute:
+    ApiPublicCronScheduleRedditWarmupsRoute,
   ApiPublicCronScheduleWarmupsRoute: ApiPublicCronScheduleWarmupsRoute,
   ApiPublicHooksQaSchedulerRoute: ApiPublicHooksQaSchedulerRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
