@@ -244,7 +244,10 @@ async function clickByText(page, hints, log, label, options = {}) {
   const lowerHints = hints.map((h) => h.toLowerCase());
   const lowerRejects = (options.rejects || []).map((h) => h.toLowerCase());
   const marker = `kylo-worker-target-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const found = await page.evaluate(({ lowerHints, lowerRejects, marker }) => {
+  // Ha közben navigál az oldal, a page.evaluate „Execution context was destroyed"
+  // hibát dob — ez nem futáshiba, csak újra kell próbálni a betöltés után.
+  await page.waitForLoadState("domcontentloaded", { timeout: 8000 }).catch(() => {});
+  const findTarget = () => page.evaluate(({ lowerHints, lowerRejects, marker }) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
     const nodes = Array.from(
       document.querySelectorAll(
