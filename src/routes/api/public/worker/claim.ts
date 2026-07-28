@@ -85,6 +85,13 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         }
 
         const candidate = (candidates ?? []).find((c) => {
+          const spec = (c.spec_snapshot ?? {}) as Record<string, unknown>;
+          const isWarmup =
+            spec.is_warmup === true ||
+            spec.monitor_type === "logged-out-warmup" ||
+            spec.platform === "logged-out-warmup";
+          if (isWarmup) return true;
+
           const wf = (c as unknown as { workflows: Parameters<typeof isQuietNow>[0] }).workflows;
           return !wf || !isQuietNow(wf);
         });

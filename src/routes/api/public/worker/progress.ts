@@ -67,6 +67,7 @@ export const Route = createFileRoute("/api/public/worker/progress")({
           .update({
             logs: trimmed as never,
             status: "running",
+            updated_at: new Date().toISOString(),
           } as never)
           .eq("id", parsed.runId)
           .is("finished_at", null);
