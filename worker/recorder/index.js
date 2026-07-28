@@ -974,14 +974,35 @@ async function runSession(payload) {
   });
 
   channel.on("broadcast", { event: "goto" }, async ({ payload }) => {
+    const raw = String(payload?.url || "");
     try {
-      const url = normalizeUrl(payload?.url);
-      if (!url) return;
-      await page.goto(url, { waitUntil: "domcontentloaded" });
+      const url = normalizeUrl(raw);
+      if (!url) {
+        await channel.send({
+          type: "broadcast",
+          event: "navError",
+          payload: { url: raw, message: "Érvénytelen webcím." },
+        });
+        return;
+      }
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+      await channel.send({
+        type: "broadcast",
+        event: "nav",
+        payload: { url: page.url() },
+      });
     } catch (e) {
       console.error(`[session ${session.id}] goto error`, e.message);
+      await channel
+        .send({
+          type: "broadcast",
+          event: "navError",
+          payload: { url: raw, message: e.message },
+        })
+        .catch(() => {});
     }
   });
+
 
   channel.on("broadcast", { event: "back" }, () => page.goBack().catch(() => {}));
   channel.on("broadcast", { event: "forward" }, () => page.goForward().catch(() => {}));
