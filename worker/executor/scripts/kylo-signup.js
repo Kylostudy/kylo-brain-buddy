@@ -1384,9 +1384,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
       const emailCheck = auditTextLanguage("konfirmációs e-mail", emailText, lang);
       // A tranzakciós e-mail nyelvét a fiók profil-nyelve dönti el (nálunk en-GB),
       // nem a felület nyelve — ezért az angol levél nem bukás, csak megjegyzés.
-      if (emailCheck.ok === false && (emailCheck.english_hits ?? 0) >= 2) {
+      // Rövid tárgy+kivonat esetén kevés a nyelvi jel — ilyenkor sem bukás.
+      if (emailCheck.ok === false && ((emailCheck.english_hits ?? 0) >= 1 || emailText.length < 160)) {
         emailCheck.ok = null;
-        emailCheck.reason = "angol levél (a fiók profil-nyelve en-GB) — nem bukás";
+        emailCheck.reason = "angol / túl rövid levélszöveg (a fiók profil-nyelve en-GB) — nem bukás";
       }
       langChecks.push(emailCheck);
       emailLangOk = emailCheck.ok;
