@@ -1086,6 +1086,53 @@ async function openGmailConfirmationLink(page, email, log) {
   }
 }
 
+// A megerősítő link után a felhasználó általában NINCS beléptetve — enélkül
+// viszont nem jelenik meg a csomagválasztó, így a Stripe sem érhető el.
+async function signInAfterConfirmation(page, email, password, log) {
+  try {
+    const alreadyIn = await page.evaluate(() => /\/profil|\/dashboard|\/fiok/i.test(location.pathname));
+    if (alreadyIn) {
+      log("info", `Belépés: már be vagyunk lépve (${page.url?.() || "n/a"})`);
+      return { ok: true, reason: "már belépve", url: null };
+    }
+    await page.goto("https://kylo.study/regisztracio", { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.waitForTimeout(2500);
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const state = await inspectAuthForm(page);
+      if (state.currentSignup) {
+        // Regisztráció módban vagyunk — váltsunk vissza belépésre.
+        await clickByText(page, ["sign in", "log in", "login", "belép", "bejelentkez"], log, "Belépés váltó", {});
+        await page.waitForTimeout(1500);
+      }
+      const emailInput = await page.$('input[type="email"], input[name*="mail" i], input[id*="mail" i]');
+      const pwInput = await page.$('input[type="password"]');
+      if (!emailInput || !pwInput) {
+        log("warn", `Belépés ${attempt}/3 — nincs email/jelszó mező (email=${state.emailFields}, pw=${state.passwordFields})`);
+        await page.waitForTimeout(2000);
+        continue;
+      }
+      await emailInput.fill(email, { timeout: 5000 }).catch(() => {});
+      await pwInput.fill(password, { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(600);
+      const clicked = await clickByText(page, ["sign in", "log in", "login", "belép", "bejelentkez"], log, "Belépés", {});
+      await page.waitForTimeout(6000);
+      const url = page.url();
+      const loggedIn = await page.evaluate(() => {
+        const t = (document.body?.innerText || "").toLowerCase();
+        return /\/profil|\/dashboard|\/fiok/i.test(location.pathname) || /log ?out|sign ?out|kijelentkez/.test(t);
+      });
+      log("info", `Belépés ${attempt}/3 — kattintás=${clicked}, url=${url}, belépve=${loggedIn}`);
+      if (loggedIn) return { ok: true, url, attempts: attempt };
+      await page.waitForTimeout(2500);
+    }
+    return { ok: false, reason: "a belépés nem lépett tovább", url: page.url() };
+  } catch (e) {
+    return { ok: false, reason: e.message };
+  }
+}
+
+
 // Számlázási adatok űrlapjának best-effort kitöltése (a Stripe előtti lépés).
 async function fillBillingForm(page, email, log) {
   const targets = [
@@ -1379,7 +1426,14 @@ export async function runKyloSignup({ page, context, spec, log }) {
     screenshots.push(await shot(page, "4b-after-email-confirm"));
     emailConfirmed = confirmation.ok === true;
     // A konfirmációs e-mail (tárgy + kivonat) nyelvi ellenőrzése.
-    const emailText = `${confirmation.subject || ""} ${confirmation.snippet || ""}`.trim();
+    // A levelek tele vannak láthatatlan „preheader" karakterekkel (zero-width,
+    // BOM stb.) — ezeket ki kell szűrni, különben a szöveg hosszúnak tűnik,
+    // miközben valódi szó alig van benne, és téves nyelvi bukást okoz.
+    const emailTextRaw = `${confirmation.subject || ""} ${confirmation.snippet || ""}`.trim();
+    const emailText = emailTextRaw
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u00AD]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
     if (emailConfirmed && emailText) {
       const emailCheck = auditTextLanguage("konfirmációs e-mail", emailText, lang);
       // A tranzakciós e-mail nyelvét a fiók profil-nyelve dönti el (nálunk en-GB),
@@ -1389,6 +1443,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
         emailCheck.ok = null;
         emailCheck.reason = "angol / túl rövid levélszöveg (a fiók profil-nyelve en-GB) — nem bukás";
       }
+
       langChecks.push(emailCheck);
       emailLangOk = emailCheck.ok;
       log(
@@ -1400,7 +1455,18 @@ export async function runKyloSignup({ page, context, spec, log }) {
     // A megerősítő link megnyitása utáni oldal is a cél nyelven kell legyen.
     if (emailConfirmed) langChecks.push(await auditLanguage(page, "e-mail megerősítés utáni oldal", log, lang));
     steps.push({ step: "email-confirm", ...confirmation, language_ok: emailLangOk });
+
+    // 3b) Belépés a frissen megerősített fiókkal — enélkül nincs csomagválasztó.
+    if (emailConfirmed) {
+      const signedIn = await signInAfterConfirmation(page, email, password, log);
+      screenshots.push(await shot(page, "4c-after-signin"));
+      steps.push({ step: "sign-in", ...signedIn });
+      if (!signedIn.ok) {
+        log("warn", `Belépés nem sikerült a megerősítés után: ${signedIn.reason || "ismeretlen ok"}`);
+      }
+    }
   }
+
 
 
   // 4) skin — ide még nem építünk be UI-t, csak localStorage seed
