@@ -354,16 +354,17 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   // Folyamat-mérföldkövek: eljutott-e a fizetésig, majd a profil oldalig.
   const PROFILE_RE = /\/(profile|profil|fiok|fiók|account|dashboard|my|settings|beallitasok|generalas|general|funkciok|funkciók|feladatok)\b/i;
   const milestones = { reached_stripe: false, reached_profile: false, profile_url: null };
-  const noteUrl = () => {
-    let u = "";
-    try { u = page.url(); } catch { return; }
+  const noteUrl = (explicitUrl) => {
+    let u = explicitUrl || "";
+    if (!u) { try { u = page.url(); } catch { return; } }
+    if (!u) return;
     if (/stripe\.com|\/fizetes|\/checkout|session_id=cs_/i.test(u)) milestones.reached_stripe = true;
     if (PROFILE_RE.test(u) && !/stripe\.com/i.test(u)) {
       milestones.reached_profile = true;
       milestones.profile_url = u;
     }
   };
-  page.on("framenavigated", (f) => { if (f === page.mainFrame()) noteUrl(); });
+  page.on("framenavigated", (f) => { if (f === page.mainFrame()) noteUrl(f.url()); });
 
   const capture = async (label) => {
     noteUrl();
