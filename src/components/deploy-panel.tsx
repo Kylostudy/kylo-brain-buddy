@@ -27,6 +27,10 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "Megszakítva",
 };
 
+function isAutoDeploy(note: string | null) {
+  return (note ?? "").toLowerCase().includes("automatikus frissítés");
+}
+
 function StatusIcon({ status }: { status: string }) {
   if (status === "succeeded") return <CheckCircle2 className="size-4 text-emerald-500" />;
   if (status === "failed") return <XCircle className="size-4 text-destructive" />;
