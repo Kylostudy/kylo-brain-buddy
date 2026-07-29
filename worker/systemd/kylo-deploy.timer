@@ -1,0 +1,11 @@
+[Unit]
+Description=Percenként megnézi, kért-e valaki frissítést a Brainben
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=15s
+Unit=kylo-deploy.service
+
+[Install]
+WantedBy=timers.target
