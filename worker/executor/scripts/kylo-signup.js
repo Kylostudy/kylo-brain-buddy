@@ -2081,11 +2081,13 @@ export async function runKyloSignup({ page, context, spec, log }) {
             const type = await target.getAttribute("type").catch(() => "");
             const ac = (await target.getAttribute("autocomplete").catch(() => "")) || "";
             let value = "Kylo Test";
-            if (type === "tel" || /tel|phone/i.test(n + ac)) value = "4165550123";
+            // Az e-mail / telefon felismerése megy elöl — különben a "cím"
+            // szót tartalmazó e-mail mezőbe lakcím kerülne.
+            if (type === "email" || /e-?mail/i.test(n + ac)) value = email;
+            else if (type === "tel" || /tel|phone/i.test(n + ac)) value = "4165550123";
             else if (/postal|zip/i.test(n + ac)) value = "M5H 2N2";
             else if (/city|locality/i.test(n + ac)) value = "Toronto";
             else if (/address|street|line1/i.test(n + ac)) value = "100 King Street West";
-            else if (/email/i.test(n + ac)) value = email;
             try {
               await target.fill(value, { timeout: 3000 });
               filled.push(`${n}=${value}`);
