@@ -611,7 +611,7 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
             </Button>
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 text-sm">
+        <div className="space-y-3 break-words text-sm [overflow-wrap:anywhere]">
           <div className={`rounded-md border p-2 ${
             run.status === "succeeded"
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
