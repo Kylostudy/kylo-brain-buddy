@@ -86,10 +86,15 @@ export const Route = createFileRoute("/api/public/worker/claim")({
 
         const candidate = (candidates ?? []).find((c) => {
           const spec = (c.spec_snapshot ?? {}) as Record<string, unknown>;
+          const brainTask =
+            spec.brain_task && typeof spec.brain_task === "object"
+              ? (spec.brain_task as Record<string, unknown>)
+              : {};
           const isWarmup =
             spec.is_warmup === true ||
             spec.monitor_type === "logged-out-warmup" ||
-            spec.platform === "logged-out-warmup";
+            spec.platform === "logged-out-warmup" ||
+            brainTask.task_type === "reddit_warmup";
           if (isWarmup) return true;
 
           const wf = (c as unknown as { workflows: Parameters<typeof isQuietNow>[0] }).workflows;
@@ -112,14 +117,19 @@ export const Route = createFileRoute("/api/public/worker/claim")({
 
         if (updErr || !claimed) return new Response(null, { status: 204 });
 
+        const specWithFlags =
+          claimed.spec_snapshot && typeof claimed.spec_snapshot === "object"
+            ? { ...(claimed.spec_snapshot as Record<string, unknown>) }
+            : {};
+
         // Credential lekérés + visszafejtés szerveroldalon (ne a worker fejtse vissza).
-        const { data: credRow } = await sb
+        const { data: credRows } = await sb
           .from("workflow_credentials")
           .select(
             "platform, username, password_ciphertext, password_nonce, cookie_ciphertext, cookie_nonce, totp_secret_ciphertext, totp_nonce, proxy_ciphertext, proxy_nonce",
           )
           .eq("workflow_id", claimed.workflow_id)
-          .maybeSingle();
+          .order("updated_at", { ascending: false });
 
         const { decryptString } = await import("@/lib/credentials/crypto.server");
         const safeDec = async (
@@ -135,6 +145,29 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         };
 
         let credentials: Record<string, string | null> | null = null;
+        const specPlatform =
+          typeof specWithFlags?.platform === "string"
+            ? specWithFlags.platform.toLowerCase()
+            : null;
+        const taskPlatform =
+          specWithFlags?.brain_task &&
+          typeof specWithFlags.brain_task === "object" &&
+          "platform" in specWithFlags.brain_task &&
+          typeof (specWithFlags.brain_task as { platform?: unknown }).platform === "string"
+            ? (specWithFlags.brain_task as { platform: string }).platform.toLowerCase()
+            : null;
+        const preferredPlatform = taskPlatform || specPlatform;
+        const credentialCandidates = credRows ?? [];
+        const credRow =
+          (preferredPlatform
+            ? credentialCandidates.find(
+                (row) => row.platform?.toLowerCase() === preferredPlatform,
+              )
+            : null) ||
+          credentialCandidates.find(
+            (row) => row.cookie_ciphertext || row.password_ciphertext,
+          ) ||
+          credentialCandidates[0];
         if (credRow) {
           credentials = {
             platform: credRow.platform,
@@ -239,10 +272,6 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           }
         }
 
-        const specWithFlags =
-          claimed.spec_snapshot && typeof claimed.spec_snapshot === "object"
-            ? { ...(claimed.spec_snapshot as Record<string, unknown>) }
-            : {};
         if (runFingerprintAudit) {
           specWithFlags.run_fingerprint_audit = true;
         }

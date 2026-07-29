@@ -117,6 +117,7 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")
 
           const specSnapshot = {
             ...spec,
+            is_warmup: true,
             monitor_type: "reddit-account",
             platform: "reddit",
             start_url: "https://www.reddit.com/",
