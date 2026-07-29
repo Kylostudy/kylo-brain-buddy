@@ -5,6 +5,7 @@ import { Activity, Cpu, HardDrive, Boxes, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeployPanel } from "@/components/deploy-panel";
 
 export const Route = createFileRoute("/_authenticated/worker-health")({
   head: () => ({
@@ -111,6 +112,8 @@ function WorkerHealth() {
           <RefreshCw className={loading ? "size-4 animate-spin" : "size-4"} /> Frissítés
         </Button>
       </header>
+
+      <DeployPanel />
 
       {!latest && !loading && (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">

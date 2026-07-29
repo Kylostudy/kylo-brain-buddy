@@ -1573,6 +1573,48 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_deploy_requests: {
+        Row: {
+          active_color: string | null
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          log: string | null
+          note: string | null
+          requested_by: string | null
+          started_at: string | null
+          status: string
+          worker_id: string | null
+        }
+        Insert: {
+          active_color?: string | null
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          log?: string | null
+          note?: string | null
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          worker_id?: string | null
+        }
+        Update: {
+          active_color?: string | null
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          log?: string | null
+          note?: string | null
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          worker_id?: string | null
+        }
+        Relationships: []
+      }
       worker_heartbeats: {
         Row: {
           containers_running: number | null
