@@ -1290,7 +1290,19 @@ async function fillBillingForm(page, email, log) {
         if (n.disabled || n.readOnly) continue;
         if (n.value && n.value.trim()) continue;
         const key = `${n.name || ""} ${n.id || ""} ${n.getAttribute("placeholder") || ""} ${n.getAttribute("autocomplete") || ""} ${n.getAttribute("aria-label") || ""} ${labelTextFor(n)}`.toLowerCase();
-        const match = targets.find((t) => t.keys.some((k) => key.includes(k)));
+        // FONTOS: a típus / autocomplete erősebb jel, mint a felirat.
+        // A magyar "E-mail cím" felirat tartalmazza a "cím" szót, ezért régen
+        // a lakcím került az e-mail mezőbe. Ezt itt előzzük meg.
+        const isEmailField =
+          n.type === "email" ||
+          /email|e-mail/.test(key) ||
+          /(^|\s)email(\s|$)/.test(n.getAttribute("autocomplete") || "");
+        const isPhoneField = n.type === "tel" || /(^|\W)(phone|tel)(\W|$)/.test(key);
+        const match = isEmailField
+          ? { value: email }
+          : isPhoneField
+            ? { value: billing.phone }
+            : targets.find((t) => t.keys.some((k) => key.includes(k)));
         if (match) {
           setValue(n, match.value);
           filled.push(key.trim().slice(0, 60));
