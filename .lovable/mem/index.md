@@ -5,6 +5,7 @@ Non-technical user, kommunikáció magyarul, közérthetően, zsargon nélkül.
 Brain fő célja: Facebook / TikTok / YouTube fiókokba bejelentkezés süti/session alapján és videófeltöltés — NEM webshop scraping.
 Decathlon tesztfeladat lezárva: Cloudflare Turnstile blokkol, nem fejlesztési kérdés. Ne próbáljuk újra.
 Recorder infrastruktúra (VPS + IPRoyal ISP proxy + Steel) működik; session-alapú login (FB/TikTok) korábban már működött amszterdami VPS-ről.
+FUTÁSI TILALOM: 17:00–23:00 budapesti idő között SEMMILYEN worker futás. Bemelegítés csak helyi idő szerint 09:00–21:00.
 MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = elfelejtett = későbbi probléma.
 
 
@@ -20,3 +21,4 @@ MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = 
 - [Warmup fogalmak](mem://features/warmup-terminology) — „Reddit warmup" = a Reddit FIÓK bemelegítése (görgetés, upvote); „országos warmup" = proxy sütigyűjtés. Két külön dolog.
 - [Hibás IPRoyal proxyk](mem://features/broken-iproyal-proxies) — FR és HK proxy folyamatosan rossz geolokáció, cserét kell kérni.
 - [napi-reddit-melegítés](mem://features/daily-reddit-warmup) — Minden aktív Reddit fiók naponta 1× bemelegszik; pg_cron ütemezi, VPS rebuild után is fut
+- [futási időablakok](mem://features/run-time-windows) — Esti 17-23 budapesti tilalom minden futásra; bemelegítés csak helyi nappal
