@@ -14,17 +14,22 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   isLocalDaytime,
   isOwnerBlackout,
+  isRedditBoostActive,
   resolveTimezone,
 } from "@/lib/scheduling/quiet-windows";
 
 // Egy tickben max ennyi bemelegítés indul (a worker terhelése miatt).
 const MAX_ENQUEUE_PER_TICK = 3;
+// "Teljes gáz" ablakban ennyi indulhat egy tickben.
+const MAX_ENQUEUE_PER_TICK_BOOST = 6;
 // Két bemelegítés között legalább ennyi idő teljen el ugyanazon a fiókon.
 const MIN_GAP_MS = 20 * 60 * 60 * 1000; // 20 óra
+const MIN_GAP_MS_BOOST = 6 * 60 * 60 * 1000; // 6 óra a teljes gáz ablakban
 // Sikertelen futás után ennyivel próbálkozunk újra (pl. VPS újraépítés).
 const RETRY_AFTER_FAIL_MS = 60 * 60 * 1000; // 1 óra
 // Óránkénti indítási esély a jogosult fiókoknál (mintakerülés).
 const HOURLY_CHANCE = 0.35;
+const HOURLY_CHANCE_BOOST = 0.8;
 
 
 export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")({
@@ -44,8 +49,14 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")
           "@/integrations/supabase/client.server"
         );
 
+        const boost = isRedditBoostActive();
+        const maxPerTick = boost ? MAX_ENQUEUE_PER_TICK_BOOST : MAX_ENQUEUE_PER_TICK;
+        const minGapMs = boost ? MIN_GAP_MS_BOOST : MIN_GAP_MS;
+        const hourlyChance = boost ? HOURLY_CHANCE_BOOST : HOURLY_CHANCE;
+
         // Gazdi-ablak: 17:00–23:00 budapesti idő között semmi nem indul.
-        if (isOwnerBlackout()) {
+        // A "teljes gáz" ablak alatt ezt ideiglenesen felülírjuk.
+        if (!boost && isOwnerBlackout()) {
           return Response.json({
             ok: true,
             skipped: "esti gazdi-ablak (17-23 budapesti idő)",
