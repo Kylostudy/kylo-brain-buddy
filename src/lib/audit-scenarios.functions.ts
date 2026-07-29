@@ -282,6 +282,52 @@ export const importRecordedSteps = createServerFn({ method: "POST" })
   });
 
 // ─────────────────────────────────────────────────────────────
+// Teszt fiók kiosztás — minden futás MÁS sikeres regisztrációt kap
+// ─────────────────────────────────────────────────────────────
+
+type PickedAccount = { id: string; email: string; password: string; lang: string | null; country: string | null };
+
+/**
+ * Kivesz egy sikeresen regisztrált teszt fiókot, amelyet legrégebben (vagy
+ * még soha nem) használtunk belépésre, és azonnal megjelöli használtként —
+ * így két párhuzamos futás nem ugyanazt kapja.
+ */
+async function pickTestAccount(
+  supabase: any,
+  tenantId: string,
+  excludeIds: string[],
+): Promise<PickedAccount | null> {
+  let q = supabase
+    .from("audit_test_accounts")
+    .select("id, email, password_ciphertext, password_nonce, lang, country, last_login_at, created_at")
+    .eq("tenant_id", tenantId)
+    .eq("status", "registered")
+    .not("password_ciphertext", "is", null)
+    .order("last_login_at", { ascending: true, nullsFirst: true })
+    .order("created_at", { ascending: true })
+    .limit(20);
+  const { data: rows } = await q;
+  const candidate = (rows ?? []).find((r: any) => !excludeIds.includes(r.id));
+  if (!candidate) return null;
+
+  const { decryptString } = await import("@/lib/credentials/crypto.server");
+  const password = await decryptString(candidate.password_ciphertext, candidate.password_nonce);
+
+  await supabase
+    .from("audit_test_accounts")
+    .update({ last_login_at: new Date().toISOString() })
+    .eq("id", candidate.id);
+
+  return {
+    id: candidate.id,
+    email: candidate.email as string,
+    password,
+    lang: candidate.lang ?? null,
+    country: candidate.country ?? null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
 // Futtatás
 // ─────────────────────────────────────────────────────────────
 
@@ -290,6 +336,7 @@ const StartRun = z.object({
   proxyId: z.string().uuid().nullable().optional(),
   examCodes: z.array(z.string().min(1)).nullable().optional(),
 });
+
 
 export const startScenarioRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
