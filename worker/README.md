@@ -145,3 +145,60 @@ MEM_PER_JOB_MB=1200      # ennyi szabad RAM kell egy új munkához
 LOAD_PER_CPU_LIMIT=1.5   # load/mag arány, felette fékez
 MEM_HARD_LIMIT_PCT=90    # e fölött semmit nem indít
 ```
+
+---
+
+## Zéró leállású frissítés (blue-green)
+
+Két azonos készlet van: **blue** és **green**. Egyszerre csak az egyik dolgozik.
+Frissítéskor a másik épül fel az új kóddal, elindul, és csak ha egészséges,
+akkor kapja meg a régi a "szépen fejezd be" jelet (drain): nem vesz fel új
+munkát, de a futókat végigcsinálja (max. 45 perc). **Semmi nem szakad félbe.**
+
+### Egyszeri beállítás a VPS-en
+
+```bash
+cd ~/kylo-worker && git pull
+cd worker
+chmod +x deploy.sh deploy-poll.sh watchdog.sh
+
+# a régi (egyszínű) konténerek szabályos leállítása — kivárja a futó munkákat
+docker compose stop -t 2700 orchestrator recorder 2>/dev/null || true
+docker compose rm -f orchestrator recorder 2>/dev/null || true
+
+# első indítás blue színnel
+docker compose build executor-image
+docker compose --profile blue build
+docker compose --profile blue up -d
+echo blue > .active-color
+docker compose --profile blue ps
+```
+
+### Az egygombos frissítés bekapcsolása (Brain → VPS)
+
+```bash
+sudo cp ~/kylo-worker/worker/systemd/kylo-deploy.service /etc/systemd/system/
+sudo cp ~/kylo-worker/worker/systemd/kylo-deploy.timer   /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now kylo-deploy.timer
+systemctl list-timers | grep kylo
+```
+
+Ezután a Brainben a **Worker terhelés → Frissítés indítása** gomb elég:
+a VPS egy percen belül észreveszi, lefuttatja a `deploy.sh`-t, és a naplót
+élőben visszaküldi a felületre.
+
+### Kézi frissítés (ha épp terminálban vagy)
+
+```bash
+cd ~/kylo-worker/worker && ./deploy.sh
+```
+
+### Mi történik pontosan
+
+1. `git pull` a legfrissebb kódra
+2. új image-ek építése (a futó készletet ez nem érinti)
+3. az inaktív szín indítása, health-várás (max 5 perc)
+4. ha nem lesz egészséges → visszalépés, a régi fut tovább
+5. ha egészséges → a régi drain + leállítás
+6. `.active-color` frissül; a watchdog innentől az új színt őrzi
