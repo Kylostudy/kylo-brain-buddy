@@ -574,7 +574,6 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     kylo_flow_checked: isScenario || isKyloSignup,
     flow_ok: isScenario || isKyloSignup ? flowOk : null,
   };
-  };
 
 
 }
