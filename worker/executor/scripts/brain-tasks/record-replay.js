@@ -479,6 +479,25 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     }
   }
 
+  // Forgatókönyvnél ellenőrizzük, hogy tényleg bent vagyunk-e: megnyitjuk a
+  // funkciók oldalt, és megnézzük, nem dob-e vissza a belépésre.
+  if (spec?.kylo_scenario && !milestones.reached_profile) {
+    for (const path of ["/funkciok", "/generalas"]) {
+      try {
+        const target = `${String(baseUrl).replace(/\/$/, "")}${path}`;
+        log("info", `Belépés ellenőrzése: ${target}`);
+        await page.goto(target, { waitUntil: "domcontentloaded", timeout: 30000 });
+        await humanWait(page, 1500);
+        const u = page.url();
+        noteUrl(u);
+        log("info", `Ellenőrzés eredménye: ${u}`);
+        if (milestones.reached_profile) break;
+      } catch (e) {
+        log("warn", `Belépés-ellenőrzés hiba (${path}): ${e.message}`);
+      }
+    }
+  }
+
   // Záró bizonyíték: végállapot képe + nyelvi ellenőrzés.
   await humanWait(page, 1500);
   await capture("final-state");
