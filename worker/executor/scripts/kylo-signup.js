@@ -2115,7 +2115,11 @@ export async function runKyloSignup({ page, context, spec, log }) {
       if (stripeFilled) {
         // A Stripe oldal a betöltés után gyakran "lejjebb ugrik" (layout shift),
         // ezért görgetünk, megvárjuk hogy megálljon, és csak utána kattintunk.
-        const PAY_RE = /pay|fizet|subscribe|előfizet|start|begin|jetzt|bezahl|paga|pagar|payer/i;
+        // A gomb felirata próbaidőszaknál NEM „Fizetés", hanem
+        // „Próbaidőszak megkezdése" / „Start trial" — ezt is felismerjük.
+        const PAY_RE =
+          /pay|fizet|subscribe|előfizet|elofizet|próbaidőszak|probaidoszak|megkezd|kezdés|kezdes|trial|start|begin|jetzt|bezahl|paga|pagar|payer|essai|prueba|abonn/i;
+
         const markPayButton = async (scope) =>
           scope
             .evaluate((src) => {
