@@ -86,10 +86,15 @@ export const Route = createFileRoute("/api/public/worker/claim")({
 
         const candidate = (candidates ?? []).find((c) => {
           const spec = (c.spec_snapshot ?? {}) as Record<string, unknown>;
+          const brainTask =
+            spec.brain_task && typeof spec.brain_task === "object"
+              ? (spec.brain_task as Record<string, unknown>)
+              : {};
           const isWarmup =
             spec.is_warmup === true ||
             spec.monitor_type === "logged-out-warmup" ||
-            spec.platform === "logged-out-warmup";
+            spec.platform === "logged-out-warmup" ||
+            brainTask.task_type === "reddit_warmup";
           if (isWarmup) return true;
 
           const wf = (c as unknown as { workflows: Parameters<typeof isQuietNow>[0] }).workflows;
