@@ -83,7 +83,7 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")
         const skipped: Array<{ account_id: string; reason: string }> = [];
 
         for (const acc of accounts ?? []) {
-          if (enqueued.length >= MAX_ENQUEUE_PER_TICK) break;
+          if (enqueued.length >= maxPerTick) break;
           if (!acc.workflow_id) {
             skipped.push({ account_id: acc.id, reason: "nincs workflow" });
             continue;
@@ -117,7 +117,7 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")
               continue;
             }
             const gap = last.status === "succeeded" || last.status === "completed"
-              ? MIN_GAP_MS
+              ? minGapMs
               : RETRY_AFTER_FAIL_MS;
             if (age < gap) {
               skipped.push({ account_id: acc.id, reason: "még nem esedékes" });
@@ -125,7 +125,7 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")
             }
           }
 
-          if (Math.random() > HOURLY_CHANCE) {
+          if (Math.random() > hourlyChance) {
             skipped.push({ account_id: acc.id, reason: "véletlen eltolás erre az órára" });
             continue;
           }
