@@ -30,6 +30,7 @@ import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public
 import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
 import { Route as ApiPublicWorkerHeartbeatRouteImport } from './routes/api/public/worker/heartbeat'
 import { Route as ApiPublicWorkerGmailConfirmationLinkRouteImport } from './routes/api/public/worker/gmail-confirmation-link'
+import { Route as ApiPublicWorkerDeployClaimRouteImport } from './routes/api/public/worker/deploy-claim'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
@@ -171,6 +172,12 @@ const ApiPublicWorkerGmailConfirmationLinkRoute =
   ApiPublicWorkerGmailConfirmationLinkRouteImport.update({
     id: '/api/public/worker/gmail-confirmation-link',
     path: '/api/public/worker/gmail-confirmation-link',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerDeployClaimRoute =
+  ApiPublicWorkerDeployClaimRouteImport.update({
+    id: '/api/public/worker/deploy-claim',
+    path: '/api/public/worker/deploy-claim',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWorkerCompleteRoute = ApiPublicWorkerCompleteRouteImport.update({
@@ -344,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
+  '/api/public/worker/deploy-claim': typeof ApiPublicWorkerDeployClaimRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
   '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
@@ -391,6 +399,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
+  '/api/public/worker/deploy-claim': typeof ApiPublicWorkerDeployClaimRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
   '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
@@ -440,6 +449,7 @@ export interface FileRoutesById {
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
+  '/api/public/worker/deploy-claim': typeof ApiPublicWorkerDeployClaimRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
   '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
@@ -489,6 +499,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/qa-scheduler'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
+    | '/api/public/worker/deploy-claim'
     | '/api/public/worker/gmail-confirmation-link'
     | '/api/public/worker/heartbeat'
     | '/api/public/worker/learned-selectors'
@@ -536,6 +547,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/qa-scheduler'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
+    | '/api/public/worker/deploy-claim'
     | '/api/public/worker/gmail-confirmation-link'
     | '/api/public/worker/heartbeat'
     | '/api/public/worker/learned-selectors'
@@ -584,6 +596,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/qa-scheduler'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
+    | '/api/public/worker/deploy-claim'
     | '/api/public/worker/gmail-confirmation-link'
     | '/api/public/worker/heartbeat'
     | '/api/public/worker/learned-selectors'
@@ -623,6 +636,7 @@ export interface RootRouteChildren {
   ApiPublicHooksQaSchedulerRoute: typeof ApiPublicHooksQaSchedulerRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
+  ApiPublicWorkerDeployClaimRoute: typeof ApiPublicWorkerDeployClaimRoute
   ApiPublicWorkerGmailConfirmationLinkRoute: typeof ApiPublicWorkerGmailConfirmationLinkRoute
   ApiPublicWorkerHeartbeatRoute: typeof ApiPublicWorkerHeartbeatRoute
   ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
@@ -793,6 +807,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/gmail-confirmation-link'
       fullPath: '/api/public/worker/gmail-confirmation-link'
       preLoaderRoute: typeof ApiPublicWorkerGmailConfirmationLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/deploy-claim': {
+      id: '/api/public/worker/deploy-claim'
+      path: '/api/public/worker/deploy-claim'
+      fullPath: '/api/public/worker/deploy-claim'
+      preLoaderRoute: typeof ApiPublicWorkerDeployClaimRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/complete': {
@@ -1034,6 +1055,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksQaSchedulerRoute: ApiPublicHooksQaSchedulerRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
+  ApiPublicWorkerDeployClaimRoute: ApiPublicWorkerDeployClaimRoute,
   ApiPublicWorkerGmailConfirmationLinkRoute:
     ApiPublicWorkerGmailConfirmationLinkRoute,
   ApiPublicWorkerHeartbeatRoute: ApiPublicWorkerHeartbeatRoute,
@@ -1062,13 +1084,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
