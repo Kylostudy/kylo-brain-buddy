@@ -282,6 +282,52 @@ export const importRecordedSteps = createServerFn({ method: "POST" })
   });
 
 // ─────────────────────────────────────────────────────────────
+// Teszt fiók kiosztás — minden futás MÁS sikeres regisztrációt kap
+// ─────────────────────────────────────────────────────────────
+
+type PickedAccount = { id: string; email: string; password: string; lang: string | null; country: string | null };
+
+/**
+ * Kivesz egy sikeresen regisztrált teszt fiókot, amelyet legrégebben (vagy
+ * még soha nem) használtunk belépésre, és azonnal megjelöli használtként —
+ * így két párhuzamos futás nem ugyanazt kapja.
+ */
+async function pickTestAccount(
+  supabase: any,
+  tenantId: string,
+  excludeIds: string[],
+): Promise<PickedAccount | null> {
+  let q = supabase
+    .from("audit_test_accounts")
+    .select("id, email, password_ciphertext, password_nonce, lang, country, last_login_at, created_at")
+    .eq("tenant_id", tenantId)
+    .eq("status", "registered")
+    .not("password_ciphertext", "is", null)
+    .order("last_login_at", { ascending: true, nullsFirst: true })
+    .order("created_at", { ascending: true })
+    .limit(20);
+  const { data: rows } = await q;
+  const candidate = (rows ?? []).find((r: any) => !excludeIds.includes(r.id));
+  if (!candidate) return null;
+
+  const { decryptString } = await import("@/lib/credentials/crypto.server");
+  const password = await decryptString(candidate.password_ciphertext, candidate.password_nonce);
+
+  await supabase
+    .from("audit_test_accounts")
+    .update({ last_login_at: new Date().toISOString() })
+    .eq("id", candidate.id);
+
+  return {
+    id: candidate.id,
+    email: candidate.email as string,
+    password,
+    lang: candidate.lang ?? null,
+    country: candidate.country ?? null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
 // Futtatás
 // ─────────────────────────────────────────────────────────────
 
@@ -290,6 +336,7 @@ const StartRun = z.object({
   proxyId: z.string().uuid().nullable().optional(),
   examCodes: z.array(z.string().min(1)).nullable().optional(),
 });
+
 
 export const startScenarioRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -305,23 +352,39 @@ export const startScenarioRun = createServerFn({ method: "POST" })
       .single();
     if (error || !sc) throw new Error(error?.message || "A forgatókönyv nem található.");
 
+    // Ha egy kockának/forgatókönyvnek még nincs mentett lépése, de a felvételi
+    // workflow-ban ott a rögzített anyag, automatikusan behúzzuk.
+    async function stepsOf(row: any): Promise<unknown[]> {
+      if (Array.isArray(row.steps) && row.steps.length > 0) return row.steps as unknown[];
+      if (!row.workflow_id) return [];
+      const { data: wf } = await supabase
+        .from("workflows")
+        .select("spec")
+        .eq("id", row.workflow_id)
+        .maybeSingle();
+      const rec = (wf?.spec as Record<string, unknown> | null)?.recorded_actions;
+      if (!Array.isArray(rec) || rec.length === 0) return [];
+      await supabase.from("audit_scenarios").update({ steps: rec as never }).eq("id", row.id);
+      return rec as unknown[];
+    }
+
     // Előjáték-kockák lépései a saját lépések elé fűzve.
     const preludeIds = (sc.prelude_block_ids as string[] | null) ?? [];
     let composed: unknown[] = [];
     if (preludeIds.length > 0) {
       const { data: blocks } = await supabase
         .from("audit_scenarios")
-        .select("id, steps")
+        .select("id, steps, workflow_id")
         .in("id", preludeIds);
-      const byId = new Map((blocks ?? []).map((b: any) => [b.id as string, b.steps]));
+      const byId = new Map((blocks ?? []).map((b: any) => [b.id as string, b]));
       for (const bid of preludeIds) {
-        const s = byId.get(bid);
-        if (Array.isArray(s)) composed = composed.concat(s);
+        const b = byId.get(bid);
+        if (b) composed = composed.concat(await stepsOf(b));
       }
     }
-    const ownSteps = Array.isArray(sc.steps) ? (sc.steps as unknown[]) : [];
-    composed = composed.concat(ownSteps);
+    composed = composed.concat(await stepsOf(sc));
     if (composed.length === 0) throw new Error("A forgatókönyvnek nincs egyetlen lépése sem.");
+
 
     // Melyik vizsgákra futtassunk? (csak ha a forgatókönyv így van beállítva)
     let exams: Array<{ code: string; label: string; expected_features: string[] }> = [];
@@ -359,7 +422,17 @@ export const startScenarioRun = createServerFn({ method: "POST" })
     }
 
     const runIds: string[] = [];
+    const usedAccountIds: string[] = [];
     for (const t of targets) {
+      // Minden futás MÁS, sikeresen regisztrált teszt fiókkal lép be.
+      const account = await pickTestAccount(supabase, tenantId, usedAccountIds);
+      if (!account) {
+        throw new Error(
+          "Nincs szabad, sikeresen regisztrált teszt fiók a belépéshez. Futtass előbb Sign Up tesztet.",
+        );
+      }
+      usedAccountIds.push(account.id);
+
       const spec = {
         monitor_type: SCENARIO_MONITOR,
         scenario_id: sc.id,
@@ -367,6 +440,14 @@ export const startScenarioRun = createServerFn({ method: "POST" })
         account_label: t.label ? `${sc.name} · ${t.label}` : sc.name,
         brain_task: { task_type: "record_replay_login", platform: "kylo-study" },
         recorded_actions: composed,
+        // A lejátszó ebből helyettesíti be a felvételkor begépelt e-mailt/jelszót.
+        kylo_signup: {
+          email: account.email,
+          password: account.password,
+          lang: account.lang ?? "en-GB",
+          expected_country: account.country ?? null,
+        },
+        test_account: { id: account.id, email: account.email },
         kylo_scenario: {
           base_url: sc.base_url,
           feature_tag: sc.feature_tag,
@@ -392,7 +473,7 @@ export const startScenarioRun = createServerFn({ method: "POST" })
             {
               ts: new Date().toISOString(),
               level: "info",
-              message: `Forgatókönyv sorba téve: ${sc.name}${t.label ? ` · ${t.label}` : ""} — ${composed.length} lépés`,
+              message: `Forgatókönyv sorba téve: ${sc.name}${t.label ? ` · ${t.label}` : ""} — ${composed.length} lépés · belépés: ${account.email}`,
             },
           ] as never,
         })
@@ -402,5 +483,6 @@ export const startScenarioRun = createServerFn({ method: "POST" })
       runIds.push(run!.id as string);
     }
 
-    return { runIds, count: runIds.length, stepCount: composed.length };
+    return { runIds, count: runIds.length, stepCount: composed.length, accounts: usedAccountIds.length };
   });
+

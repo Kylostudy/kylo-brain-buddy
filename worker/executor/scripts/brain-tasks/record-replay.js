@@ -82,15 +82,18 @@ function looksLikePassword(s) {
 // Egy szakasz addig tart, amíg csak `type` események jönnek egymás után.
 // Bármi más (click/key/navigate/scroll/wait) lezárja a szakaszt.
 function groupTypeSessions(actions) {
-  const groups = []; // { start, end, text }
+  const groups = []; // { start, end, text, selector }
   let cur = null;
   for (let i = 0; i < actions.length; i++) {
     const a = actions[i];
     if (a.type === "type") {
       const v = a.value ?? a.text ?? "";
-      if (!cur) cur = { start: i, end: i, text: v };
+      if (!cur) cur = { start: i, end: i, text: v, selector: a.selector || null };
       else { cur.end = i; cur.text += v; }
     } else if (cur) {
+      // A gépelés közbeni kattintás UGYANARRA a mezőre nem zárja le a szakaszt
+      // (a rögzítő gyakran beszúr egy fókusz-kattintást az első karakter után).
+      if (a.type === "click" && a.selector && cur.selector && a.selector === cur.selector) continue;
       groups.push(cur);
       cur = null;
     }
@@ -98,6 +101,7 @@ function groupTypeSessions(actions) {
   if (cur) groups.push(cur);
   return groups;
 }
+
 
 function planSubstitutions(actions, creds, totpSecret, spec) {
   const groups = groupTypeSessions(actions);
@@ -110,19 +114,21 @@ function planSubstitutions(actions, creds, totpSecret, spec) {
   for (const g of groups) {
     let role = "as_recorded";
     let override = null;
+    const sel = String(g.selector || "");
     if (looksLikeTotp(g.text) && totpSecret) {
       role = "totp";
       override = generateTotp(totpSecret);
-    } else if (looksLikeEmail(g.text) && (signupEmail || creds?.username)) {
+    } else if ((looksLikeEmail(g.text) || /e?mail/i.test(sel)) && (signupEmail || creds?.username)) {
       role = signupEmail ? "signup_email" : "username";
       override = signupEmail || creds.username;
-    } else if (looksLikePassword(g.text) && (signupPassword || creds?.password)) {
+    } else if ((looksLikePassword(g.text) || /pass|jelszo|jelszó/i.test(sel)) && (signupPassword || creds?.password)) {
       role = "password";
       override = signupPassword || creds.password;
     }
-    plan.set(g.start, { role, override, groupEnd: g.end, groupText: g.text });
+    plan.set(g.start, { role, override, groupEnd: g.end, groupText: g.text, selector: g.selector || null });
     rolesUsed.add(role);
   }
+
   return { plan, rolesUsed: [...rolesUsed] };
 }
 
@@ -346,7 +352,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   const maxStoredScreenshots = 4;
 
   // Folyamat-mérföldkövek: eljutott-e a fizetésig, majd a profil oldalig.
-  const PROFILE_RE = /\/(profile|profil|fiok|fiók|account|dashboard|my|settings|beallitasok)\b/i;
+  const PROFILE_RE = /\/(profile|profil|fiok|fiók|account|dashboard|my|settings|beallitasok|generalas|general|funkciok|funkciók|feladatok)\b/i;
   const milestones = { reached_stripe: false, reached_profile: false, profile_url: null };
   const noteUrl = () => {
     let u = "";
@@ -385,6 +391,15 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
           await humanThink(page, 1200);
           continue;
         }
+        // A rögzítő a kattintás KÖVETKEZMÉNYÉT is navigate-ként menti, méghozzá
+        // a kattintás elé. Ha rögtön egy kattintás követi (~2 mp-en belül),
+        // akkor ez nem külön lépés — kihagyjuk, a kattintás úgyis odavisz.
+        const nxt = actions[i + 1];
+        if (nxt && nxt.type === "click" && Math.abs(Number(nxt.t || 0) - Number(a.t || 0)) < 2000) {
+          log("info", `[${i + 1}/${actions.length}] navigate kihagyva — a következő kattintás eredménye (${a.url})`);
+          continue;
+        }
+
         log("info", `[${i + 1}/${actions.length}] navigate → ${a.url}`);
         await page.goto(a.url, { waitUntil: "domcontentloaded", timeout: 90000 });
         await humanThink(page, 900);
@@ -422,14 +437,27 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
       } else if (a.type === "type") {
         const entry = plan.get(i);
         if (entry) {
-          const { role, override, groupEnd, groupText } = entry;
+          const { role, override, groupEnd, groupText, selector } = entry;
           const effective = override ?? groupText;
           log(
             "info",
-            `[${i + 1}/${actions.length}] type szakasz (${role}, ${groupText.length} kar. felvett → ${effective.length} kar. tényleges)`,
+            `[${i + 1}/${actions.length}] type szakasz (${role}, ${groupText.length} kar. felvett → ${effective.length} kar. tényleges)${selector ? ` → ${selector}` : ""}`,
           );
+          // A mezőt előbb megkeressük, rákattintunk és kiürítjük — enélkül a
+          // szöveg oda menne, ahol épp a fókusz van (vagy sehova).
+          if (selector) {
+            const el = await page.waitForSelector(selector, { state: "visible", timeout: 35000 }).catch(() => null);
+            if (el) {
+              const box = await el.boundingBox();
+              if (box) await humanClickAt(page, box.x + box.width / 2, box.y + box.height / 2);
+              await page.fill(selector, "").catch(() => {});
+            } else {
+              log("warn", `A mező nem található: ${selector}`);
+            }
+          }
           await humanType(page, effective, { meanCharMs: role === "password" ? 105 : 85 });
           skipUntil = groupEnd; // a szakasz többi karakterét már beírtuk
+
         } else {
           // Nem lehet ott (a group biztos a szakasz elején van), de fallback:
           const v = a.value ?? a.text ?? "";
