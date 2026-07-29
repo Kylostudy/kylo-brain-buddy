@@ -113,6 +113,8 @@ function WorkerHealth() {
         </Button>
       </header>
 
+      <DeployPanel />
+
       {!latest && !loading && (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Még nem érkezett életjel. Frissítsd a workert a VPS-en, és pár perc múlva
