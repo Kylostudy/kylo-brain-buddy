@@ -1073,3 +1073,109 @@ export const deleteKyloTestAccount = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ─────────────────────────────────────────────────────────────
+// explainKyloSignupRun — emberi nyelvű elemzés a futásról.
+// A run adataiból (státusz, kritériumok, lépések, nyelvi ellenőrzés,
+// hibaüzenet) Gemini készít magyar, közérthető összefoglalót, amit
+// elmentünk a result.ai_explanation mezőbe, hogy ne kelljen újra hívni.
+// ─────────────────────────────────────────────────────────────
+
+export const explainKyloSignupRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ runId: z.string().uuid(), force: z.boolean().optional() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: run, error } = await supabase
+      .from("brain_workflow_runs")
+      .select("id, status, started_at, finished_at, spec_snapshot, result, error")
+      .eq("id", data.runId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!run) throw new Error("A futás nem található.");
+
+    const result = (run.result ?? {}) as Record<string, unknown>;
+    const existing = result.ai_explanation as
+      | { text?: string; generated_at?: string }
+      | undefined;
+    if (!data.force && existing?.text) {
+      return { text: existing.text, generated_at: existing.generated_at ?? null, cached: true };
+    }
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("Hiányzik a LOVABLE_API_KEY.");
+
+    const spec = (run.spec_snapshot ?? {}) as Record<string, unknown>;
+    const trim = (v: unknown, max: number) => {
+      const s = typeof v === "string" ? v : JSON.stringify(v ?? null);
+      return s && s.length > max ? s.slice(0, max) + "…[levágva]" : s;
+    };
+
+    const ctx = {
+      status: run.status,
+      started_at: run.started_at,
+      finished_at: run.finished_at,
+      error: trim(run.error, 1500),
+      country: spec.expected_country ?? null,
+      lang: spec.lang ?? null,
+      currency: spec.currency ?? null,
+      skin: spec.skin ?? null,
+      email: spec.email ?? null,
+      run_index: spec.run_index ?? null,
+      final_url: result.final_url ?? null,
+      reached_stripe: result.reached_stripe ?? null,
+      criteria: result.criteria ?? null,
+      language_ok: result.language_ok ?? null,
+      language_checks: trim(result.language_checks, 3000),
+      steps: trim(result.steps, 9000),
+      submit_blockers: trim(result.submit_blockers, 2000),
+    };
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3.6-flash",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Te egy QA-elemző vagy. Egy automata regisztrációs (Kylo Sign Up) tesztfutás nyers adatait kapod JSON-ban. " +
+              "Írj MAGYARUL, közérthetően, technikai zsargon nélkül egy rövid elemzést egy nem programozó olvasónak. " +
+              "Szerkezet (markdown): 1) egy mondatos verdikt, 2) 'Mi ment jól' felsorolás, 3) 'Hol akadt el' — pontosan melyik lépésnél és miért, " +
+              "4) 'Valószínű ok' 1-2 mondatban, 5) 'Javasolt következő lépés'. Ne találj ki adatot, csak abból dolgozz, ami a JSON-ban van. Max 250 szó.",
+          },
+          { role: "user", content: JSON.stringify(ctx) },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      if (res.status === 429) throw new Error("Az AI szolgáltatás túlterhelt, próbáld pár perc múlva.");
+      if (res.status === 402) throw new Error("Elfogytak az AI kreditek a munkaterületen.");
+      throw new Error(`AI hiba (${res.status}): ${body.slice(0, 200)}`);
+    }
+    const j = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const text = j.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error("Az AI üres választ adott.");
+
+    const generated_at = new Date().toISOString();
+    const { error: upErr } = await supabase
+      .from("brain_workflow_runs")
+      .update({
+        result: { ...result, ai_explanation: { text, generated_at } },
+      } as never)
+      .eq("id", run.id);
+    if (upErr) console.error("ai_explanation mentés hiba:", upErr.message);
+
+    return { text, generated_at, cached: false };
+  });
