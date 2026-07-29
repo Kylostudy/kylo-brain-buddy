@@ -15,6 +15,7 @@ import {
   getKyloSignupSummary,
   getKyloSignupRun,
   cancelPendingSignupRuns,
+  explainKyloSignupRun,
 
 
 } from "@/lib/kylo-signup.functions";
@@ -722,6 +723,69 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
   );
 }
 
+function AiExplanationBlock({
+  runId,
+  initial,
+  enabled,
+}: {
+  runId: string;
+  initial?: { text?: string; generated_at?: string };
+  enabled: boolean;
+}) {
+  const explain = useServerFn(explainKyloSignupRun);
+  const [text, setText] = useState<string | null>(initial?.text ?? null);
+  const [at, setAt] = useState<string | null>(initial?.generated_at ?? null);
+
+  const mut = useMutation({
+    mutationFn: (force: boolean) => explain({ data: { runId, force } }),
+    onSuccess: (d: { text: string; generated_at: string | null }) => {
+      setText(d.text);
+      setAt(d.generated_at);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Megnyitáskor egyszer automatikusan legyártjuk, ha még nincs elemzés.
+  const asked = useRef(false);
+  useEffect(() => {
+    if (enabled && !text && !asked.current) {
+      asked.current = true;
+      mut.mutate(false);
+    }
+  }, [enabled, text, mut]);
+
+  return (
+    <div className="rounded-md border border-sky-500/40 bg-sky-500/10 p-2 text-sky-100">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="text-xs font-semibold uppercase">Elemzés emberi nyelven</div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-xs"
+          disabled={mut.isPending}
+          onClick={() => mut.mutate(true)}
+        >
+          {mut.isPending ? "Készül…" : "Újragenerálás"}
+        </Button>
+      </div>
+      {text ? (
+        <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+          {text.replace(/\*\*/g, "")}
+        </div>
+      ) : (
+        <div className="text-xs text-sky-200/80">
+          {mut.isPending ? "Az elemzés készül, ez pár másodperc…" : "Még nincs elemzés."}
+        </div>
+      )}
+      {at && (
+        <div className="mt-1 text-[10px] text-sky-200/60">
+          Készült: {new Date(at).toLocaleString("hu-HU")}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DeleteRunButton({ runId }: { runId: string }) {
   const qc = useQueryClient();
   const callDelete = useServerFn(deleteKyloSignupRun);
@@ -785,6 +849,7 @@ function downloadRunReport(
     finished_at: run.finished_at,
     error: run.error,
     summary: buildRunSummary(run, spec, res),
+    ai_explanation: res.ai_explanation?.text ?? null,
     spec,
     result: res,
   };
