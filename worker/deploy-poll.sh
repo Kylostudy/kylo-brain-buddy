@@ -98,17 +98,24 @@ report() { # report <status> <logfile> [error]
   local status="$1" file="$2" err="${3:-}"
   local body
   body="$(WORKER_STATUS="$status" WORKER_ERR="$err" REQ_ID="$REQ_ID" LOGFILE="$file" \
-    node -e '
-      const fs=require("fs");
-      const log=fs.existsSync(process.env.LOGFILE)?fs.readFileSync(process.env.LOGFILE,"utf8").slice(-100000):"";
-      process.stdout.write(JSON.stringify({
-        id: process.env.REQ_ID,
-        status: process.env.WORKER_STATUS,
-        log,
-        error: process.env.WORKER_ERR || null,
-        activeColor: fs.existsSync(".active-color") ? fs.readFileSync(".active-color","utf8").trim() : null,
-      }));
-    ')
+    python3 - <<'PY'
+import json, os
+from pathlib import Path
+
+logfile = Path(os.environ["LOGFILE"])
+active_file = Path(".active-color")
+log = logfile.read_text(errors="replace")[-100000:] if logfile.exists() else ""
+active_color = active_file.read_text(errors="replace").strip() if active_file.exists() else None
+
+print(json.dumps({
+    "id": os.environ["REQ_ID"],
+    "status": os.environ["WORKER_STATUS"],
+    "log": log,
+    "error": os.environ.get("WORKER_ERR") or None,
+    "activeColor": active_color,
+}))
+PY
+  )"
   curl -sS -L --post301 --post302 --post303 --max-time 30 -X POST "${BRAIN_URL%/}/api/public/worker/deploy-status" \
     -H "Authorization: Bearer $WORKER_API_TOKEN" \
     -H "Content-Type: application/json" \
@@ -117,6 +124,8 @@ report() { # report <status> <logfile> [error]
 
 LOGFILE="/tmp/kylo-deploy-$REQ_ID.log"
 : > "$LOGFILE"
+
+report running "$LOGFILE"
 
 # Közben félpercenként felküldjük a naplót, hogy élőben látszódjon.
 ( while sleep 30; do report running "$LOGFILE"; done ) &
