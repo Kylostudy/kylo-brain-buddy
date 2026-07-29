@@ -598,7 +598,7 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">Megnyit</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-3">
             <span>Sign Up #{spec.run_index ?? "?"} — {spec.skin ?? "?"}</span>
@@ -611,7 +611,7 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
             </Button>
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 text-sm">
+        <div className="space-y-3 break-words text-sm [overflow-wrap:anywhere]">
           <div className={`rounded-md border p-2 ${
             run.status === "succeeded"
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
@@ -692,7 +692,7 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
           {Array.isArray(res.steps) && res.steps.length > 0 && (
             <div>
               <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Lépések</div>
-              <pre className="max-h-48 overflow-auto rounded-md border bg-background/40 p-2 text-xs">
+              <pre className="max-h-48 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words rounded-md border bg-background/40 p-2 text-xs">
                 {JSON.stringify(res.steps, null, 2)}
               </pre>
             </div>
