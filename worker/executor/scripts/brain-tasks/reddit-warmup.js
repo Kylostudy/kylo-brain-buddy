@@ -46,13 +46,28 @@ function withTimeout(factory, ms, label, log) {
 
 async function isLoggedIn(page) {
   try {
+    await humanWait(page, 2000);
     const url = page.url();
     if (/\/login/i.test(url)) return false;
     // A bejelentkezett felületen ott a felhasználói menü.
     const marker = page
-      .locator('#expand-user-drawer-button, faceplate-tracker[noun="user_drawer"], a[href*="/user/"]')
+      .locator(
+        [
+          '#expand-user-drawer-button',
+          'faceplate-tracker[noun="user_drawer"]',
+          'a[href*="/user/"]',
+          'a[href*="/settings/account"]',
+          'button[aria-label*="Create" i]',
+          'a[aria-label*="Create" i]',
+        ].join(', '),
+      )
       .first();
-    return (await marker.count().catch(() => 0)) > 0;
+    if ((await marker.count().catch(() => 0)) > 0) return true;
+
+    const loginButton = page
+      .locator('a[href*="/login"], button:has-text("Log In"), button:has-text("Log in")')
+      .first();
+    return (await loginButton.count().catch(() => 0)) === 0;
   } catch {
     return false;
   }

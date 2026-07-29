@@ -297,15 +297,19 @@ export const Route = createFileRoute("/api/public/worker/complete")({
               if (runFull.proxy_id) {
                 const { data: siblingCreds } = await sb
                   .from("workflow_credentials")
-                  .select("workflow_id, platform, username")
+                  .select("id, workflow_id, platform, username")
                   .eq("proxy_id", runFull.proxy_id)
-                  .neq("workflow_id", runFull.workflow_id);
+                  .neq("workflow_id", runFull.workflow_id)
+                  .is("cookie_ciphertext", null);
 
                 const siblingIds = (siblingCreds ?? [])
                   .map((row) => row.workflow_id)
                   .filter(Boolean);
+                const siblingCredentialIds = (siblingCreds ?? [])
+                  .map((row) => row.id)
+                  .filter(Boolean);
 
-                if (siblingCreds && siblingCreds.length > 0) {
+                if (siblingCredentialIds.length > 0) {
                   await sb
                     .from("workflow_credentials")
                     .update({
@@ -313,7 +317,7 @@ export const Route = createFileRoute("/api/public/worker/complete")({
                       cookie_ciphertext: ciphertext,
                       cookie_nonce: nonce,
                     } as never)
-                    .eq("proxy_id", runFull.proxy_id);
+                    .in("id", siblingCredentialIds);
                 }
 
                 if (siblingIds.length > 0) {
