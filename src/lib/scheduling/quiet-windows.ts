@@ -25,6 +25,17 @@ export function hourInTimezone(timezone: string, now: Date = new Date()): number
   }
 }
 
+/**
+ * Ideiglenes "teljes gáz" ablak: eddig az időpontig a Reddit bemelegítések
+ * a gazdi-ablak alatt is futhatnak (a gazdi kifejezett kérésére).
+ * Lejárat után magától visszaáll a normál 17:00–23:00 tiltás.
+ */
+export const REDDIT_BOOST_UNTIL = new Date("2026-07-30T14:00:00Z"); // 2026.07.30. 16:00 budapesti idő
+
+export function isRedditBoostActive(now: Date = new Date()): boolean {
+  return now.getTime() < REDDIT_BOOST_UNTIL.getTime();
+}
+
 /** Igaz, ha most a gazdi esti tiltott ablakában vagyunk (17:00–23:00 CET/CEST). */
 export function isOwnerBlackout(now: Date = new Date()): boolean {
   const h = hourInTimezone(OWNER_TIMEZONE, now);
