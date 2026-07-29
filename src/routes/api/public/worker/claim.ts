@@ -112,6 +112,11 @@ export const Route = createFileRoute("/api/public/worker/claim")({
 
         if (updErr || !claimed) return new Response(null, { status: 204 });
 
+        const specWithFlags =
+          claimed.spec_snapshot && typeof claimed.spec_snapshot === "object"
+            ? { ...(claimed.spec_snapshot as Record<string, unknown>) }
+            : {};
+
         // Credential lekérés + visszafejtés szerveroldalon (ne a worker fejtse vissza).
         const { data: credRows } = await sb
           .from("workflow_credentials")
@@ -262,10 +267,6 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           }
         }
 
-        const specWithFlags =
-          claimed.spec_snapshot && typeof claimed.spec_snapshot === "object"
-            ? { ...(claimed.spec_snapshot as Record<string, unknown>) }
-            : {};
         if (runFingerprintAudit) {
           specWithFlags.run_fingerprint_audit = true;
         }
