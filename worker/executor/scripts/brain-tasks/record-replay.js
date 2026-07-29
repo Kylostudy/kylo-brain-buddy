@@ -352,7 +352,7 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   const maxStoredScreenshots = 4;
 
   // Folyamat-mérföldkövek: eljutott-e a fizetésig, majd a profil oldalig.
-  const PROFILE_RE = /\/(profile|profil|fiok|fiók|account|dashboard|my|settings|beallitasok)\b/i;
+  const PROFILE_RE = /\/(profile|profil|fiok|fiók|account|dashboard|my|settings|beallitasok|generalas|general|funkciok|funkciók|feladatok)\b/i;
   const milestones = { reached_stripe: false, reached_profile: false, profile_url: null };
   const noteUrl = () => {
     let u = "";
