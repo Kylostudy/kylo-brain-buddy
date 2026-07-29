@@ -1080,8 +1080,39 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
     }
     if (signupFailed || precheckFailed || authFailure) {
       const bad = signupFailed || precheckFailed || authFailure;
+      // Az e-mail küldési limit (HTTP 429, "over_email_send_rate_limit") nem a
+      // szkript hibája: a kylo.study auth szolgáltatása átmenetileg nem küld
+      // több visszaigazoló levelet. Kivárunk és újrapróbáljuk, legfeljebb 2×.
+      const isRateLimit =
+        bad.status === 429 || /rate limit|over_email_send/i.test(String(bad.preview || ""));
+      if (isRateLimit && rateLimitRetries < 2) {
+        rateLimitRetries += 1;
+        const waitMs = 75_000;
+        log(
+          "warn",
+          `E-mail küldési limit (HTTP 429) — ${Math.round(waitMs / 1000)}s várakozás, majd ${rateLimitRetries}. újrapróba.`,
+        );
+        await page.waitForTimeout(waitMs);
+        windowStart = Date.now();
+        deadline = Date.now() + 55_000;
+        retriesDone.clear();
+        await forceResubmit(page, log, `rate-limit ${rateLimitRetries}`);
+        continue;
+      }
+      if (isRateLimit) {
+        return {
+          ok: false,
+          reason:
+            "a kylo.study e-mail küldési limitje kimerült (HTTP 429) — nem a teszt hibája, kb. 1 óra múlva újrapróbálható",
+          bad,
+          page: lastPageDiag,
+          network,
+          failures,
+        };
+      }
       return { ok: false, reason: `${bad.kind || "auth"} hiba`, bad, page: lastPageDiag, network, failures };
     }
+
     if (lastPageDiag.hasCaptcha && Date.now() > startedAt + 45_000 && !precheckOk) {
       return { ok: false, reason: "captcha látszik / silent captcha blokk", page: lastPageDiag, network, failures };
     }
