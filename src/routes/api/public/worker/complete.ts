@@ -67,6 +67,17 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         );
         const sb = supabaseAdmin as ReturnType<typeof createClient<Database>>;
 
+        const { data: runMeta } = await sb
+          .from("brain_workflow_runs")
+          .select("spec_snapshot")
+          .eq("id", parsed.runId)
+          .maybeSingle();
+        const specSnapshot = (runMeta?.spec_snapshot ?? {}) as Record<string, unknown>;
+        const specIsScenario =
+          specSnapshot.monitor_type === "kylo-scenario" ||
+          (specSnapshot.kylo_scenario !== null &&
+            typeof specSnapshot.kylo_scenario === "object");
+
         // A cookies_export nagy blob (akár több száz KB) — a brain_workflow_runs.result-ba
         // csak a slim változatot mentjük; a valódi süti-tár titkosítva megy a
         // workflow_credentials-be lentebb.
@@ -120,13 +131,35 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         const languageFailed = parsed.status === "succeeded" && langOk === false;
 
         // Kylo signup: csak akkor sikeres, ha a fizetésig ÉS a profil oldalig eljutott.
+        // Kylo forgatókönyv / belépés-kocka: Stripe NEM feltétel. Fontos védőháló:
+        // ha a VPS-en még egy régebbi lejátszó fut, akkor a result.scenario_mode
+        // hiányozhat, de a spec_snapshot-ból és a belső Kylo vég-URL-ből akkor is
+        // felismerjük, hogy ez sikeres belépés-próba volt.
         const flowChecked = res?.kylo_flow_checked === true;
+        const finalUrl = typeof res?.final_url === "string" ? res.final_url : "";
+        const scenarioTargetReached =
+          specIsScenario &&
+          /kylo\.study\/(profile|profil|fiok|fiók|account|dashboard|my|settings|beallitasok|generalas|general|funkciok|funkciók|feladatok|feltoltes|feltöltés|olvasonaplo|olvasónapló|konyvtar|könyvtár|tanulas|tanulás)\b/i.test(
+            finalUrl,
+          );
+        if (res && specIsScenario) {
+          res.scenario_mode = true;
+          if (scenarioTargetReached) {
+            res.reached_profile = true;
+            res.profile_url = finalUrl;
+            res.flow_ok = true;
+            res.criteria_failed = [];
+          }
+        }
+        const isScenarioRun = res?.scenario_mode === true || specIsScenario;
+        const effectiveFlowOk = isScenarioRun
+          ? res?.reached_profile === true || scenarioTargetReached
+          : res?.flow_ok === true;
         const flowFailed =
-          parsed.status === "succeeded" && flowChecked && res?.flow_ok !== true;
+          parsed.status === "succeeded" && flowChecked && !effectiveFlowOk;
         const criteriaFailed = Array.isArray(res?.criteria_failed)
           ? (res?.criteria_failed as string[])
           : [];
-        const isScenarioRun = res?.scenario_mode === true;
         const flowReason = criteriaFailed.length > 0
           ? `Nem teljesült kritériumok: ${criteriaFailed.join(", ")}`
           : !flowChecked
