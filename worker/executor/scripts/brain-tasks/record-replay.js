@@ -82,15 +82,18 @@ function looksLikePassword(s) {
 // Egy szakasz addig tart, amíg csak `type` események jönnek egymás után.
 // Bármi más (click/key/navigate/scroll/wait) lezárja a szakaszt.
 function groupTypeSessions(actions) {
-  const groups = []; // { start, end, text }
+  const groups = []; // { start, end, text, selector }
   let cur = null;
   for (let i = 0; i < actions.length; i++) {
     const a = actions[i];
     if (a.type === "type") {
       const v = a.value ?? a.text ?? "";
-      if (!cur) cur = { start: i, end: i, text: v };
+      if (!cur) cur = { start: i, end: i, text: v, selector: a.selector || null };
       else { cur.end = i; cur.text += v; }
     } else if (cur) {
+      // A gépelés közbeni kattintás UGYANARRA a mezőre nem zárja le a szakaszt
+      // (a rögzítő gyakran beszúr egy fókusz-kattintást az első karakter után).
+      if (a.type === "click" && a.selector && cur.selector && a.selector === cur.selector) continue;
       groups.push(cur);
       cur = null;
     }
@@ -98,6 +101,7 @@ function groupTypeSessions(actions) {
   if (cur) groups.push(cur);
   return groups;
 }
+
 
 function planSubstitutions(actions, creds, totpSecret, spec) {
   const groups = groupTypeSessions(actions);
