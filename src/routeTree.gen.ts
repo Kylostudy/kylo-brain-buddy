@@ -31,6 +31,7 @@ import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/ap
 import { Route as ApiPublicWorkerHeartbeatRouteImport } from './routes/api/public/worker/heartbeat'
 import { Route as ApiPublicWorkerGmailConfirmationLinkRouteImport } from './routes/api/public/worker/gmail-confirmation-link'
 import { Route as ApiPublicWorkerDeployStatusRouteImport } from './routes/api/public/worker/deploy-status'
+import { Route as ApiPublicWorkerDeployRequestRouteImport } from './routes/api/public/worker/deploy-request'
 import { Route as ApiPublicWorkerDeployClaimRouteImport } from './routes/api/public/worker/deploy-claim'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
@@ -179,6 +180,12 @@ const ApiPublicWorkerDeployStatusRoute =
   ApiPublicWorkerDeployStatusRouteImport.update({
     id: '/api/public/worker/deploy-status',
     path: '/api/public/worker/deploy-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerDeployRequestRoute =
+  ApiPublicWorkerDeployRequestRouteImport.update({
+    id: '/api/public/worker/deploy-request',
+    path: '/api/public/worker/deploy-request',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWorkerDeployClaimRoute =
@@ -359,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/deploy-claim': typeof ApiPublicWorkerDeployClaimRoute
+  '/api/public/worker/deploy-request': typeof ApiPublicWorkerDeployRequestRoute
   '/api/public/worker/deploy-status': typeof ApiPublicWorkerDeployStatusRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
   '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
@@ -408,6 +416,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/deploy-claim': typeof ApiPublicWorkerDeployClaimRoute
+  '/api/public/worker/deploy-request': typeof ApiPublicWorkerDeployRequestRoute
   '/api/public/worker/deploy-status': typeof ApiPublicWorkerDeployStatusRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
   '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
@@ -459,6 +468,7 @@ export interface FileRoutesById {
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
   '/api/public/worker/deploy-claim': typeof ApiPublicWorkerDeployClaimRoute
+  '/api/public/worker/deploy-request': typeof ApiPublicWorkerDeployRequestRoute
   '/api/public/worker/deploy-status': typeof ApiPublicWorkerDeployStatusRoute
   '/api/public/worker/gmail-confirmation-link': typeof ApiPublicWorkerGmailConfirmationLinkRoute
   '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
@@ -510,6 +520,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/deploy-claim'
+    | '/api/public/worker/deploy-request'
     | '/api/public/worker/deploy-status'
     | '/api/public/worker/gmail-confirmation-link'
     | '/api/public/worker/heartbeat'
@@ -559,6 +570,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/deploy-claim'
+    | '/api/public/worker/deploy-request'
     | '/api/public/worker/deploy-status'
     | '/api/public/worker/gmail-confirmation-link'
     | '/api/public/worker/heartbeat'
@@ -609,6 +621,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
     | '/api/public/worker/deploy-claim'
+    | '/api/public/worker/deploy-request'
     | '/api/public/worker/deploy-status'
     | '/api/public/worker/gmail-confirmation-link'
     | '/api/public/worker/heartbeat'
@@ -650,6 +663,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
   ApiPublicWorkerDeployClaimRoute: typeof ApiPublicWorkerDeployClaimRoute
+  ApiPublicWorkerDeployRequestRoute: typeof ApiPublicWorkerDeployRequestRoute
   ApiPublicWorkerDeployStatusRoute: typeof ApiPublicWorkerDeployStatusRoute
   ApiPublicWorkerGmailConfirmationLinkRoute: typeof ApiPublicWorkerGmailConfirmationLinkRoute
   ApiPublicWorkerHeartbeatRoute: typeof ApiPublicWorkerHeartbeatRoute
@@ -828,6 +842,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/deploy-status'
       fullPath: '/api/public/worker/deploy-status'
       preLoaderRoute: typeof ApiPublicWorkerDeployStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/deploy-request': {
+      id: '/api/public/worker/deploy-request'
+      path: '/api/public/worker/deploy-request'
+      fullPath: '/api/public/worker/deploy-request'
+      preLoaderRoute: typeof ApiPublicWorkerDeployRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/deploy-claim': {
@@ -1077,6 +1098,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
   ApiPublicWorkerDeployClaimRoute: ApiPublicWorkerDeployClaimRoute,
+  ApiPublicWorkerDeployRequestRoute: ApiPublicWorkerDeployRequestRoute,
   ApiPublicWorkerDeployStatusRoute: ApiPublicWorkerDeployStatusRoute,
   ApiPublicWorkerGmailConfirmationLinkRoute:
     ApiPublicWorkerGmailConfirmationLinkRoute,
@@ -1106,3 +1128,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
