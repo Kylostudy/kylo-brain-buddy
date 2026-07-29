@@ -44,10 +44,15 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")
           "@/integrations/supabase/client.server"
         );
 
-        const hourUtc = new Date().getUTCHours();
-        if (hourUtc < ACTIVE_HOURS_UTC.start || hourUtc >= ACTIVE_HOURS_UTC.end) {
-          return Response.json({ ok: true, skipped: "quiet hours", enqueued: [] });
+        // Gazdi-ablak: 17:00–23:00 budapesti idő között semmi nem indul.
+        if (isOwnerBlackout()) {
+          return Response.json({
+            ok: true,
+            skipped: "esti gazdi-ablak (17-23 budapesti idő)",
+            enqueued: [],
+          });
         }
+
 
         const { data: accounts, error: accErr } = await supabaseAdmin
           .from("reddit_accounts")
