@@ -1,0 +1,9 @@
+[Unit]
+Description=Kylo zéró leállású frissítés — kérés figyelése a Brainből
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/kylo/kylo-worker/worker
+ExecStart=/bin/bash /home/kylo/kylo-worker/worker/deploy-poll.sh
+TimeoutStartSec=0
