@@ -114,19 +114,21 @@ function planSubstitutions(actions, creds, totpSecret, spec) {
   for (const g of groups) {
     let role = "as_recorded";
     let override = null;
+    const sel = String(g.selector || "");
     if (looksLikeTotp(g.text) && totpSecret) {
       role = "totp";
       override = generateTotp(totpSecret);
-    } else if (looksLikeEmail(g.text) && (signupEmail || creds?.username)) {
+    } else if ((looksLikeEmail(g.text) || /e?mail/i.test(sel)) && (signupEmail || creds?.username)) {
       role = signupEmail ? "signup_email" : "username";
       override = signupEmail || creds.username;
-    } else if (looksLikePassword(g.text) && (signupPassword || creds?.password)) {
+    } else if ((looksLikePassword(g.text) || /pass|jelszo|jelszó/i.test(sel)) && (signupPassword || creds?.password)) {
       role = "password";
       override = signupPassword || creds.password;
     }
-    plan.set(g.start, { role, override, groupEnd: g.end, groupText: g.text });
+    plan.set(g.start, { role, override, groupEnd: g.end, groupText: g.text, selector: g.selector || null });
     rolesUsed.add(role);
   }
+
   return { plan, rolesUsed: [...rolesUsed] };
 }
 
