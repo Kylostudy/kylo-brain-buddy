@@ -598,7 +598,7 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">Megnyit</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-3">
             <span>Sign Up #{spec.run_index ?? "?"} — {spec.skin ?? "?"}</span>
