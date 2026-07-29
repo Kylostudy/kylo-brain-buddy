@@ -1896,6 +1896,61 @@ export async function runKyloSignup({ page, context, spec, log }) {
         }
       } catch {}
 
+      // ---- ELSŐ LÉPÉS a Stripe oldalon: a "Kártya" fizetési mód kinyitása ----
+      // A mai Stripe Checkout harmonika (accordion) nézetben indul: a kártya
+      // mezők REJTVE vannak, amíg rá nem kattintunk a „Kártya" sorra. Enélkül a
+      // #cardNumber mező nem is létezik → a régi script némán elakadt.
+      const openCardAccordion = async () => {
+        const CARD_LABEL_RE =
+          /^(kártya|kartya|card|karte|carte|tarjeta|carta|kort|kaart|kartta)\b/i;
+        const deadline = Date.now() + 20_000;
+        while (Date.now() < deadline) {
+          // Ha a kártyaszám mező már látszik, nincs teendő.
+          for (const sc of [page, ...page.frames()]) {
+            const el = await sc
+              .$('#cardNumber, input[name="cardNumber"], input[name="cardnumber"], input[autocomplete="cc-number"]')
+              .catch(() => null);
+            if (el && (await el.isVisible().catch(() => false))) return true;
+          }
+          const clicked = await page
+            .evaluate((src) => {
+              const re = new RegExp(src, "i");
+              const cands = Array.from(
+                document.querySelectorAll(
+                  '[data-testid*="card" i], [data-testid*="accordion" i], [role="radio"], input[type="radio"], button, label, div[class*="AccordionItem" i]',
+                ),
+              );
+              for (const c of cands) {
+                const t = (c.innerText || c.textContent || "").trim();
+                const testid = c.getAttribute("data-testid") || "";
+                const value = c.getAttribute("value") || "";
+                const looksCard =
+                  /card/i.test(testid) || /^card$/i.test(value) || re.test(t);
+                if (!looksCard) continue;
+                const r = c.getBoundingClientRect();
+                if (r.width < 5 || r.height < 5) continue;
+                c.scrollIntoView({ block: "center", behavior: "instant" });
+                (c.closest("label") || c).click();
+                return t.slice(0, 40) || testid || "card";
+              }
+              return null;
+            }, CARD_LABEL_RE.source)
+            .catch(() => null);
+          if (clicked) {
+            log("info", `Stripe: „Kártya" fizetési mód megnyitva (${clicked}).`);
+            await page.waitForTimeout(1500);
+          } else {
+            await page.waitForTimeout(1000);
+          }
+        }
+        log("warn", "Stripe: nem sikerült kinyitni a Kártya fizetési módot.");
+        return false;
+      };
+      const cardOpened = await openCardAccordion();
+      steps.push({ step: "stripe-card-accordion", opened: cardOpened });
+      screenshots.push(await shot(page, "5b-stripe-card-open"));
+
+
       // Kártyamezők — a hosted Stripe Checkout ma már a fő dokumentumban
       // tartja a mezőket (#cardNumber / #cardExpiry / #cardCvc), a régi
       // Elements viszont iframe-eket használ (name="cardnumber"). Mindkettőt
@@ -2060,7 +2115,11 @@ export async function runKyloSignup({ page, context, spec, log }) {
       if (stripeFilled) {
         // A Stripe oldal a betöltés után gyakran "lejjebb ugrik" (layout shift),
         // ezért görgetünk, megvárjuk hogy megálljon, és csak utána kattintunk.
-        const PAY_RE = /pay|fizet|subscribe|előfizet|start|begin|jetzt|bezahl|paga|pagar|payer/i;
+        // A gomb felirata próbaidőszaknál NEM „Fizetés", hanem
+        // „Próbaidőszak megkezdése" / „Start trial" — ezt is felismerjük.
+        const PAY_RE =
+          /pay|fizet|subscribe|előfizet|elofizet|próbaidőszak|probaidoszak|megkezd|kezdés|kezdes|trial|start|begin|jetzt|bezahl|paga|pagar|payer|essai|prueba|abonn/i;
+
         const markPayButton = async (scope) =>
           scope
             .evaluate((src) => {
