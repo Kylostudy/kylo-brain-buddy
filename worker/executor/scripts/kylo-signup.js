@@ -1033,17 +1033,20 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
   // miközben a kézi reprodukcióban a gomb "Registering..." állapotban maradt,
   // majd később indult csak el az auth signup hívás. Ezért itt nem rövid,
   // hanem legfeljebb 55s-es bizonyíték-várakozás kell.
-  const deadline = startedAt + 55_000;
+  let deadline = startedAt + 55_000;
+  let windowStart = startedAt;
   let lastProgressLogAt = 0;
+  let rateLimitRetries = 0;
   const retriesDone = new Set();
   for (let i = 0; Date.now() < deadline; i += 1) {
     await page.waitForTimeout(i === 0 ? 1200 : 2000);
     lastPageDiag = await collectPageDiagnostics(page);
-    const network = diag.network.filter((e) => e.at >= startedAt - 500);
-    const failures = diag.request_failures.filter((e) => e.at >= startedAt - 500);
+    const network = diag.network.filter((e) => e.at >= windowStart - 500);
+    const failures = diag.request_failures.filter((e) => e.at >= windowStart - 500);
     const signupOk = network.find((e) => (e.kind === "auth-signup" || e.kind === "auth-otp") && e.status >= 200 && e.status < 400);
     const signupFailed = network.find((e) => (e.kind === "auth-signup" || e.kind === "auth-otp") && e.status >= 400);
     const precheckOk = network.find((e) => e.kind === "email-precheck" && e.status >= 200 && e.status < 400);
+
     const precheckFailed = network.find((e) => e.kind === "email-precheck" && e.status >= 400);
     const authFailure = failures.find((e) => e.kind === "email-precheck" || e.kind === "auth-signup" || e.kind === "auth-otp");
 
