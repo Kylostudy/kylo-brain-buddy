@@ -1290,7 +1290,19 @@ async function fillBillingForm(page, email, log) {
         if (n.disabled || n.readOnly) continue;
         if (n.value && n.value.trim()) continue;
         const key = `${n.name || ""} ${n.id || ""} ${n.getAttribute("placeholder") || ""} ${n.getAttribute("autocomplete") || ""} ${n.getAttribute("aria-label") || ""} ${labelTextFor(n)}`.toLowerCase();
-        const match = targets.find((t) => t.keys.some((k) => key.includes(k)));
+        // FONTOS: a típus / autocomplete erősebb jel, mint a felirat.
+        // A magyar "E-mail cím" felirat tartalmazza a "cím" szót, ezért régen
+        // a lakcím került az e-mail mezőbe. Ezt itt előzzük meg.
+        const isEmailField =
+          n.type === "email" ||
+          /email|e-mail/.test(key) ||
+          /(^|\s)email(\s|$)/.test(n.getAttribute("autocomplete") || "");
+        const isPhoneField = n.type === "tel" || /(^|\W)(phone|tel)(\W|$)/.test(key);
+        const match = isEmailField
+          ? { value: email }
+          : isPhoneField
+            ? { value: billing.phone }
+            : targets.find((t) => t.keys.some((k) => key.includes(k)));
         if (match) {
           setValue(n, match.value);
           filled.push(key.trim().slice(0, 60));
@@ -2069,11 +2081,13 @@ export async function runKyloSignup({ page, context, spec, log }) {
             const type = await target.getAttribute("type").catch(() => "");
             const ac = (await target.getAttribute("autocomplete").catch(() => "")) || "";
             let value = "Kylo Test";
-            if (type === "tel" || /tel|phone/i.test(n + ac)) value = "4165550123";
+            // Az e-mail / telefon felismerése megy elöl — különben a "cím"
+            // szót tartalmazó e-mail mezőbe lakcím kerülne.
+            if (type === "email" || /e-?mail/i.test(n + ac)) value = email;
+            else if (type === "tel" || /tel|phone/i.test(n + ac)) value = "4165550123";
             else if (/postal|zip/i.test(n + ac)) value = "M5H 2N2";
             else if (/city|locality/i.test(n + ac)) value = "Toronto";
             else if (/address|street|line1/i.test(n + ac)) value = "100 King Street West";
-            else if (/email/i.test(n + ac)) value = email;
             try {
               await target.fill(value, { timeout: 3000 });
               filled.push(`${n}=${value}`);
