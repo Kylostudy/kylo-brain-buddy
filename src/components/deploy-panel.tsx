@@ -139,6 +139,9 @@ export function DeployPanel() {
             </button>
             {openId === it.id && (
               <div className="mt-2 space-y-2">
+                {it.note && (
+                  <p className="text-xs text-muted-foreground">{it.note}</p>
+                )}
                 {it.error && (
                   <p className="rounded bg-destructive/10 p-2 text-xs">{it.error}</p>
                 )}
