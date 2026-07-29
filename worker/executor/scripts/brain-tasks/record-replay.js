@@ -437,14 +437,27 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
       } else if (a.type === "type") {
         const entry = plan.get(i);
         if (entry) {
-          const { role, override, groupEnd, groupText } = entry;
+          const { role, override, groupEnd, groupText, selector } = entry;
           const effective = override ?? groupText;
           log(
             "info",
-            `[${i + 1}/${actions.length}] type szakasz (${role}, ${groupText.length} kar. felvett → ${effective.length} kar. tényleges)`,
+            `[${i + 1}/${actions.length}] type szakasz (${role}, ${groupText.length} kar. felvett → ${effective.length} kar. tényleges)${selector ? ` → ${selector}` : ""}`,
           );
+          // A mezőt előbb megkeressük, rákattintunk és kiürítjük — enélkül a
+          // szöveg oda menne, ahol épp a fókusz van (vagy sehova).
+          if (selector) {
+            const el = await page.waitForSelector(selector, { state: "visible", timeout: 35000 }).catch(() => null);
+            if (el) {
+              const box = await el.boundingBox();
+              if (box) await humanClickAt(page, box.x + box.width / 2, box.y + box.height / 2);
+              await page.fill(selector, "").catch(() => {});
+            } else {
+              log("warn", `A mező nem található: ${selector}`);
+            }
+          }
           await humanType(page, effective, { meanCharMs: role === "password" ? 105 : 85 });
           skipUntil = groupEnd; // a szakasz többi karakterét már beírtuk
+
         } else {
           // Nem lehet ott (a group biztos a szakasz elején van), de fallback:
           const v = a.value ?? a.text ?? "";
