@@ -35,17 +35,25 @@ if ! flock -n 9; then
   exit 0
 fi
 
-CLAIM="$(curl -sS --max-time 30 -X POST "${BRAIN_URL%/}/api/public/worker/deploy-claim" \
+RESP="$(curl -sS --max-time 30 -o /tmp/kylo-deploy-claim.out -w '%{http_code}' \
+  -X POST "${BRAIN_URL%/}/api/public/worker/deploy-claim" \
   -H "Authorization: Bearer $WORKER_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"workerId\":\"$WORKER_ID\"}" || true)"
+  -d "{\"workerId\":\"$WORKER_ID\"}" || echo 000)"
+CLAIM="$(cat /tmp/kylo-deploy-claim.out 2>/dev/null || true)"
 
-if [ -z "$CLAIM" ]; then
-  exit 0   # 204: nincs kért frissítés
-fi
+case "$RESP" in
+  204) exit 0 ;;                        # nincs kért frissítés — ez a normális
+  200) : ;;                             # van munka, megyünk tovább
+  000) log "HIBA: a Brain nem elérhető ($BRAIN_URL)"; exit 0 ;;
+  404) log "HIBA: a /api/public/worker/deploy-claim végpont nem létezik az éles Brainen — publikálni kell a Lovable appot!"; exit 0 ;;
+  401) log "HIBA: érvénytelen WORKER_API_TOKEN (401)"; exit 0 ;;
+  *)   log "HIBA: váratlan válasz a Braintől ($RESP): $(printf '%s' "$CLAIM" | head -c 200)"; exit 0 ;;
+esac
 
 REQ_ID="$(printf '%s' "$CLAIM" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
 if [ -z "$REQ_ID" ]; then
+  log "HIBA: nem találtam kérés-azonosítót a válaszban: $(printf '%s' "$CLAIM" | head -c 200)"
   exit 0
 fi
 
