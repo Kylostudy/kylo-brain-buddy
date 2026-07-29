@@ -55,7 +55,13 @@ export const Route = createFileRoute("/api/public/worker/deploy-status")({
           "@/integrations/supabase/client.server"
         );
 
-        const patch: Record<string, unknown> = { status: p.status };
+        const patch: {
+          status: string;
+          log?: string;
+          error?: string | null;
+          active_color?: string | null;
+          finished_at?: string;
+        } = { status: p.status };
         if (p.log !== undefined) patch.log = p.log;
         if (p.error !== undefined) patch.error = p.error;
         if (p.activeColor !== undefined) patch.active_color = p.activeColor;
