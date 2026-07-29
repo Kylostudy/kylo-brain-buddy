@@ -422,7 +422,17 @@ export const startScenarioRun = createServerFn({ method: "POST" })
     }
 
     const runIds: string[] = [];
+    const usedAccountIds: string[] = [];
     for (const t of targets) {
+      // Minden futás MÁS, sikeresen regisztrált teszt fiókkal lép be.
+      const account = await pickTestAccount(supabase, tenantId, usedAccountIds);
+      if (!account) {
+        throw new Error(
+          "Nincs szabad, sikeresen regisztrált teszt fiók a belépéshez. Futtass előbb Sign Up tesztet.",
+        );
+      }
+      usedAccountIds.push(account.id);
+
       const spec = {
         monitor_type: SCENARIO_MONITOR,
         scenario_id: sc.id,
@@ -430,6 +440,14 @@ export const startScenarioRun = createServerFn({ method: "POST" })
         account_label: t.label ? `${sc.name} · ${t.label}` : sc.name,
         brain_task: { task_type: "record_replay_login", platform: "kylo-study" },
         recorded_actions: composed,
+        // A lejátszó ebből helyettesíti be a felvételkor begépelt e-mailt/jelszót.
+        kylo_signup: {
+          email: account.email,
+          password: account.password,
+          lang: account.lang ?? "en-GB",
+          expected_country: account.country ?? null,
+        },
+        test_account: { id: account.id, email: account.email },
         kylo_scenario: {
           base_url: sc.base_url,
           feature_tag: sc.feature_tag,
@@ -455,7 +473,7 @@ export const startScenarioRun = createServerFn({ method: "POST" })
             {
               ts: new Date().toISOString(),
               level: "info",
-              message: `Forgatókönyv sorba téve: ${sc.name}${t.label ? ` · ${t.label}` : ""} — ${composed.length} lépés`,
+              message: `Forgatókönyv sorba téve: ${sc.name}${t.label ? ` · ${t.label}` : ""} — ${composed.length} lépés · belépés: ${account.email}`,
             },
           ] as never,
         })
@@ -465,5 +483,6 @@ export const startScenarioRun = createServerFn({ method: "POST" })
       runIds.push(run!.id as string);
     }
 
-    return { runIds, count: runIds.length, stepCount: composed.length };
+    return { runIds, count: runIds.length, stepCount: composed.length, accounts: usedAccountIds.length };
   });
+
