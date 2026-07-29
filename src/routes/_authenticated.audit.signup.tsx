@@ -692,7 +692,7 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
           {Array.isArray(res.steps) && res.steps.length > 0 && (
             <div>
               <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Lépések</div>
-              <pre className="max-h-48 overflow-auto rounded-md border bg-background/40 p-2 text-xs">
+              <pre className="max-h-48 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words rounded-md border bg-background/40 p-2 text-xs">
                 {JSON.stringify(res.steps, null, 2)}
               </pre>
             </div>
