@@ -621,6 +621,8 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
             <div className="text-xs font-semibold uppercase">Összegzés</div>
             <div>{buildRunSummary(run, spec, res)}</div>
           </div>
+          <AiExplanationBlock runId={run.id} initial={res.ai_explanation} enabled={open} />
+
           <div><span className="text-muted-foreground">Alias:</span> <span className="font-mono">{spec.email}</span></div>
           <div><span className="text-muted-foreground">Ország / nyelv / valuta:</span> {spec.expected_country ?? "?"} · {spec.lang ?? "?"} · {spec.currency ?? "?"}</div>
           <div><span className="text-muted-foreground">Végállomás:</span> {res.final_url ?? "—"}</div>
