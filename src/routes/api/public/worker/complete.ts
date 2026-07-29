@@ -126,11 +126,14 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         const criteriaFailed = Array.isArray(res?.criteria_failed)
           ? (res?.criteria_failed as string[])
           : [];
+        const isScenarioRun = res?.scenario_mode === true;
         const flowReason = criteriaFailed.length > 0
           ? `Nem teljesült kritériumok: ${criteriaFailed.join(", ")}`
-          : flowChecked
-            ? `A folyamat nem ért célba: fizetés (Stripe) ${res?.reached_stripe ? "IGEN" : "NEM"}, profil oldal ${res?.reached_profile ? "IGEN" : "NEM"}`
-            : "";
+          : !flowChecked
+            ? ""
+            : isScenarioRun
+              ? `A forgatókönyv nem ért célba: belépés utáni cél oldal ${res?.reached_profile ? "IGEN" : "NEM"}`
+              : `A folyamat nem ért célba: fizetés (Stripe) ${res?.reached_stripe ? "IGEN" : "NEM"}, profil oldal ${res?.reached_profile ? "IGEN" : "NEM"}`;
 
         const failedReasons = [
           languageFailed
