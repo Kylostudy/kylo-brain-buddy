@@ -250,14 +250,32 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
 
         if (!candidate) return new Response(null, { status: 204 });
 
-        // Proxy resolve MIELŐTT claim-elnénk — ha nincs proxy, ne foglaljuk le
-        // a session-t, csak jelöljük 'failed'-nek egy értelmes hibaüzenettel.
+        const { data: workflow } = await sb
+          .from("workflows")
+          .select("platform, spec")
+          .eq("id", candidate.workflow_id)
+          .maybeSingle();
+
+        const specPlatform =
+          workflow?.spec && typeof workflow.spec === "object" && "platform" in workflow.spec
+            ? String((workflow.spec as { platform?: unknown }).platform || "")
+            : "";
+        const platform = String(workflow?.platform || specPlatform || "").toLowerCase();
+
+        // Proxy resolve MIELŐTT claim-elnénk.
         const { proxy, locale, timezone, cookies, error: proxyErr } = await loadWorkflowProxy(
           sb,
           candidate.workflow_id,
         );
 
-        if (proxyErr) {
+        // Csak a közösségi platformoknál kötelező a proxy (ott számít, hogy
+        // mindig ugyanarról az IP-ről lépünk be). Az Audit / saját oldal
+        // felvételeknél (pl. kylo.study "Belépés" kocka) nincs rá szükség,
+        // ott proxy nélkül is elindul a felvétel.
+        const PROXY_REQUIRED = ["pinterest", "reddit", "linkedin", "tiktok", "instagram", "x", "twitter"];
+        const proxyRequired = PROXY_REQUIRED.includes(platform);
+
+        if (proxyErr && proxyRequired) {
           await sb
             .from("recording_sessions")
             .update({
@@ -272,17 +290,6 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
           return new Response(null, { status: 204 });
         }
 
-        const { data: workflow } = await sb
-          .from("workflows")
-          .select("platform, spec")
-          .eq("id", candidate.workflow_id)
-          .maybeSingle();
-
-        const specPlatform =
-          workflow?.spec && typeof workflow.spec === "object" && "platform" in workflow.spec
-            ? String((workflow.spec as { platform?: unknown }).platform || "")
-            : "";
-        const platform = String(workflow?.platform || specPlatform || "").toLowerCase();
         const startUrl =
           platform === "pinterest" && !candidate.start_url
             ? PINTEREST_LOGIN_URL
