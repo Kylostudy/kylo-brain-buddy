@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# worker/deploy-poll.sh — "Egygombos" frissítés a Brainből
+# worker/deploy-poll.sh — "Egygombos" frissítés a Brainből + automatikus publish-detektálás
 # =============================================================================
-# Percenként lefut (systemd timer), és megkérdezi a Braintől: kért-e valaki
-# frissítést? Ha igen, lefuttatja a deploy.sh-t, és a naplót visszaküldi,
-# hogy a Brainben élőben látszódjon.
+# Percenként lefut (systemd timer vagy cron), és megkérdezi a Braintől: kért-e
+# valaki frissítést? Emellett megnézi a GitHubot is: érkezett-e újabb commit,
+# mint amit a VPS helyben tartalmaz. Ha igen, automatikusan berak egy kérést.
 #
-# Így soha nem kell kézzel parancsot gépelni a VPS-en: elég a Brain felületén
-# a "Frissítés indítása" gomb.
+# Így a Lovable Publish gombja után a VPS is frissül magától, külön gombnyomás
+# nélkül. A futó munkák nem szakadnak félbe.
 # =============================================================================
 
 set -euo pipefail
@@ -25,6 +25,7 @@ BRAIN_URL="${BRAIN_URL:?BRAIN_URL hiányzik a worker/.env-ből}"
 WORKER_API_TOKEN="${WORKER_API_TOKEN:?WORKER_API_TOKEN hiányzik a worker/.env-ből}"
 WORKER_ID="${WORKER_ID:-worker-1}"
 LOCK="/tmp/kylo-deploy.lock"
+REPO_DIR="${REPO_DIR:-$(cd "$WORKER_DIR/.." && pwd)}"
 
 log() { echo "[deploy-poll $(date -u +%FT%TZ)] $*"; }
 
@@ -35,6 +36,38 @@ if ! flock -n 9; then
   exit 0
 fi
 
+# -----------------------------------------------------------------------------
+# 1. Automatikus publish-detektálás: van-e új commit a GitHubon?
+# -----------------------------------------------------------------------------
+auto_request_id=""
+if [ -d "$REPO_DIR/.git" ]; then
+  git -C "$REPO_DIR" fetch origin main --quiet 2>/dev/null || true
+  LOCAL_HEAD="$(git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null || echo "")"
+  REMOTE_HEAD="$(git -C "$REPO_DIR" rev-parse origin/main 2>/dev/null || echo "")"
+
+  if [ -n "$LOCAL_HEAD" ] && [ -n "$REMOTE_HEAD" ] && [ "$LOCAL_HEAD" != "$REMOTE_HEAD" ]; then
+    log "új commit a GitHubon: helyi=$LOCAL_HEAD távoli=$REMOTE_HEAD"
+    REQ_RESP="$(curl -sS -L --max-time 30 \
+      -X POST "${BRAIN_URL%/}/api/public/worker/deploy-request" \
+      -H "Authorization: Bearer $WORKER_API_TOKEN" \
+      -H "Content-Type: application/json" \
+      --post301 --post302 --post303 \
+      -d "{\"workerId\":\"$WORKER_ID\",\"note\":\"Automatikus frissítés: új commit érkezett a GitHubra ($REMOTE_HEAD)\"}" || echo '{"ok":false}')"
+
+    if printf '%s' "$REQ_RESP" | grep -q '"ok":true'; then
+      auto_request_id="$(printf '%s' "$REQ_RESP" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
+      if [ -n "$auto_request_id" ]; then
+        log "automatikus frissítési kérés létrehozva: $auto_request_id"
+      fi
+    else
+      log "automatikus kérés nem készült el: $(printf '%s' "$REQ_RESP" | head -c 200)"
+    fi
+  fi
+fi
+
+# -----------------------------------------------------------------------------
+# 2. Meglévő kérés lefoglalása (kézi vagy az imént létrehozott automatikus)
+# -----------------------------------------------------------------------------
 RESP="$(curl -sS -L --max-time 30 -o /tmp/kylo-deploy-claim.out -w '%{http_code}' \
   -X POST "${BRAIN_URL%/}/api/public/worker/deploy-claim" \
   -H "Authorization: Bearer $WORKER_API_TOKEN" \
@@ -75,7 +108,7 @@ report() { # report <status> <logfile> [error]
         error: process.env.WORKER_ERR || null,
         activeColor: fs.existsSync(".active-color") ? fs.readFileSync(".active-color","utf8").trim() : null,
       }));
-    ')"
+    ')
   curl -sS -L --post301 --post302 --post303 --max-time 30 -X POST "${BRAIN_URL%/}/api/public/worker/deploy-status" \
     -H "Authorization: Bearer $WORKER_API_TOKEN" \
     -H "Content-Type: application/json" \

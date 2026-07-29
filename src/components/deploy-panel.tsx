@@ -27,6 +27,10 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "Megszakítva",
 };
 
+function isAutoDeploy(note: string | null) {
+  return (note ?? "").toLowerCase().includes("automatikus frissítés");
+}
+
 function StatusIcon({ status }: { status: string }) {
   if (status === "succeeded") return <CheckCircle2 className="size-4 text-emerald-500" />;
   if (status === "failed") return <XCircle className="size-4 text-destructive" />;
@@ -118,6 +122,11 @@ export function DeployPanel() {
               <span className="flex items-center gap-2">
                 <StatusIcon status={it.status} />
                 {STATUS_LABEL[it.status] ?? it.status}
+                {isAutoDeploy(it.note) && (
+                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
+                    automatikus
+                  </span>
+                )}
                 {it.active_color && (
                   <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
                     aktív: {it.active_color}
@@ -130,6 +139,9 @@ export function DeployPanel() {
             </button>
             {openId === it.id && (
               <div className="mt-2 space-y-2">
+                {it.note && (
+                  <p className="text-xs text-muted-foreground">{it.note}</p>
+                )}
                 {it.error && (
                   <p className="rounded bg-destructive/10 p-2 text-xs">{it.error}</p>
                 )}
