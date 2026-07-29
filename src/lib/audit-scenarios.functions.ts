@@ -352,23 +352,39 @@ export const startScenarioRun = createServerFn({ method: "POST" })
       .single();
     if (error || !sc) throw new Error(error?.message || "A forgatókönyv nem található.");
 
+    // Ha egy kockának/forgatókönyvnek még nincs mentett lépése, de a felvételi
+    // workflow-ban ott a rögzített anyag, automatikusan behúzzuk.
+    async function stepsOf(row: any): Promise<unknown[]> {
+      if (Array.isArray(row.steps) && row.steps.length > 0) return row.steps as unknown[];
+      if (!row.workflow_id) return [];
+      const { data: wf } = await supabase
+        .from("workflows")
+        .select("spec")
+        .eq("id", row.workflow_id)
+        .maybeSingle();
+      const rec = (wf?.spec as Record<string, unknown> | null)?.recorded_actions;
+      if (!Array.isArray(rec) || rec.length === 0) return [];
+      await supabase.from("audit_scenarios").update({ steps: rec as never }).eq("id", row.id);
+      return rec as unknown[];
+    }
+
     // Előjáték-kockák lépései a saját lépések elé fűzve.
     const preludeIds = (sc.prelude_block_ids as string[] | null) ?? [];
     let composed: unknown[] = [];
     if (preludeIds.length > 0) {
       const { data: blocks } = await supabase
         .from("audit_scenarios")
-        .select("id, steps")
+        .select("id, steps, workflow_id")
         .in("id", preludeIds);
-      const byId = new Map((blocks ?? []).map((b: any) => [b.id as string, b.steps]));
+      const byId = new Map((blocks ?? []).map((b: any) => [b.id as string, b]));
       for (const bid of preludeIds) {
-        const s = byId.get(bid);
-        if (Array.isArray(s)) composed = composed.concat(s);
+        const b = byId.get(bid);
+        if (b) composed = composed.concat(await stepsOf(b));
       }
     }
-    const ownSteps = Array.isArray(sc.steps) ? (sc.steps as unknown[]) : [];
-    composed = composed.concat(ownSteps);
+    composed = composed.concat(await stepsOf(sc));
     if (composed.length === 0) throw new Error("A forgatókönyvnek nincs egyetlen lépése sem.");
+
 
     // Melyik vizsgákra futtassunk? (csak ha a forgatókönyv így van beállítva)
     let exams: Array<{ code: string; label: string; expected_features: string[] }> = [];
