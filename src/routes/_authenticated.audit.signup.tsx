@@ -96,7 +96,7 @@ function readResult(r: unknown): {
   criteria?: Record<string, boolean>;
   criteria_failed?: string[];
   flow_ok?: boolean;
-
+  ai_explanation?: { text?: string; generated_at?: string };
 } {
   if (!r || typeof r !== "object") return {};
   return r as never;
