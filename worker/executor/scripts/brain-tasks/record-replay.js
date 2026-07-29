@@ -510,10 +510,22 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   try { finalUrl = page.url(); } catch {}
   noteUrl();
 
-  // Kylo signup folyamat: csak akkor sikeres, ha a fizetésig ÉS a profil oldalig eljutott.
-  const isKyloSignup = !!cfg && (!!cfg.email || !!cfg.base_url || !!cfg.lang);
-  const flowOk = milestones.reached_stripe && milestones.reached_profile;
-  if (isKyloSignup) {
+  // Forgatókönyv (pl. belépés-kocka): NEM kell Stripe — az a siker, ha a
+  // belépés után elérjük a funkciók/generálás oldalt.
+  const isScenario = !!spec?.kylo_scenario;
+  const isKyloSignup = !isScenario && !!cfg && (!!cfg.email || !!cfg.base_url || !!cfg.lang);
+  const scenarioOk = milestones.reached_profile;
+  const flowOk = isScenario ? scenarioOk : milestones.reached_stripe && milestones.reached_profile;
+  const criteriaFailed = [];
+  if (isScenario && !milestones.reached_profile) {
+    criteriaFailed.push("nem jutott el a funkciók/generálás oldalra belépés után");
+  }
+  if (isScenario) {
+    log(
+      flowOk ? "info" : "warn",
+      `Forgatókönyv eredmény — belépés utáni cél oldal: ${milestones.reached_profile ? `IGEN (${milestones.profile_url})` : "NEM"} · utolsó URL: ${finalUrl}`,
+    );
+  } else if (isKyloSignup) {
     log(
       flowOk ? "info" : "warn",
       `Folyamat mérföldkövek — fizetés (Stripe): ${milestones.reached_stripe ? "IGEN" : "NEM"}, ` +
@@ -538,8 +550,11 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     reached_stripe: milestones.reached_stripe,
     reached_profile: milestones.reached_profile,
     profile_url: milestones.profile_url,
-    kylo_flow_checked: isKyloSignup,
-    flow_ok: isKyloSignup ? flowOk : null,
+    scenario_mode: isScenario,
+    criteria_failed: criteriaFailed,
+    kylo_flow_checked: isScenario || isKyloSignup,
+    flow_ok: isScenario || isKyloSignup ? flowOk : null,
+  };
   };
 
 
