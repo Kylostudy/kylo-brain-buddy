@@ -354,16 +354,17 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   // Folyamat-mérföldkövek: eljutott-e a fizetésig, majd a profil oldalig.
   const PROFILE_RE = /\/(profile|profil|fiok|fiók|account|dashboard|my|settings|beallitasok|generalas|general|funkciok|funkciók|feladatok)\b/i;
   const milestones = { reached_stripe: false, reached_profile: false, profile_url: null };
-  const noteUrl = () => {
-    let u = "";
-    try { u = page.url(); } catch { return; }
+  const noteUrl = (explicitUrl) => {
+    let u = explicitUrl || "";
+    if (!u) { try { u = page.url(); } catch { return; } }
+    if (!u) return;
     if (/stripe\.com|\/fizetes|\/checkout|session_id=cs_/i.test(u)) milestones.reached_stripe = true;
     if (PROFILE_RE.test(u) && !/stripe\.com/i.test(u)) {
       milestones.reached_profile = true;
       milestones.profile_url = u;
     }
   };
-  page.on("framenavigated", (f) => { if (f === page.mainFrame()) noteUrl(); });
+  page.on("framenavigated", (f) => { if (f === page.mainFrame()) noteUrl(f.url()); });
 
   const capture = async (label) => {
     noteUrl();
@@ -478,6 +479,25 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     }
   }
 
+  // Forgatókönyvnél ellenőrizzük, hogy tényleg bent vagyunk-e: megnyitjuk a
+  // funkciók oldalt, és megnézzük, nem dob-e vissza a belépésre.
+  if (spec?.kylo_scenario && !milestones.reached_profile) {
+    for (const path of ["/funkciok", "/generalas"]) {
+      try {
+        const target = `${String(baseUrl).replace(/\/$/, "")}${path}`;
+        log("info", `Belépés ellenőrzése: ${target}`);
+        await page.goto(target, { waitUntil: "domcontentloaded", timeout: 30000 });
+        await humanWait(page, 1500);
+        const u = page.url();
+        noteUrl(u);
+        log("info", `Ellenőrzés eredménye: ${u}`);
+        if (milestones.reached_profile) break;
+      } catch (e) {
+        log("warn", `Belépés-ellenőrzés hiba (${path}): ${e.message}`);
+      }
+    }
+  }
+
   // Záró bizonyíték: végállapot képe + nyelvi ellenőrzés.
   await humanWait(page, 1500);
   await capture("final-state");
@@ -509,10 +529,22 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
   try { finalUrl = page.url(); } catch {}
   noteUrl();
 
-  // Kylo signup folyamat: csak akkor sikeres, ha a fizetésig ÉS a profil oldalig eljutott.
-  const isKyloSignup = !!cfg && (!!cfg.email || !!cfg.base_url || !!cfg.lang);
-  const flowOk = milestones.reached_stripe && milestones.reached_profile;
-  if (isKyloSignup) {
+  // Forgatókönyv (pl. belépés-kocka): NEM kell Stripe — az a siker, ha a
+  // belépés után elérjük a funkciók/generálás oldalt.
+  const isScenario = !!spec?.kylo_scenario;
+  const isKyloSignup = !isScenario && !!cfg && (!!cfg.email || !!cfg.base_url || !!cfg.lang);
+  const scenarioOk = milestones.reached_profile;
+  const flowOk = isScenario ? scenarioOk : milestones.reached_stripe && milestones.reached_profile;
+  const criteriaFailed = [];
+  if (isScenario && !milestones.reached_profile) {
+    criteriaFailed.push("nem jutott el a funkciók/generálás oldalra belépés után");
+  }
+  if (isScenario) {
+    log(
+      flowOk ? "info" : "warn",
+      `Forgatókönyv eredmény — belépés utáni cél oldal: ${milestones.reached_profile ? `IGEN (${milestones.profile_url})` : "NEM"} · utolsó URL: ${finalUrl}`,
+    );
+  } else if (isKyloSignup) {
     log(
       flowOk ? "info" : "warn",
       `Folyamat mérföldkövek — fizetés (Stripe): ${milestones.reached_stripe ? "IGEN" : "NEM"}, ` +
@@ -537,8 +569,10 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
     reached_stripe: milestones.reached_stripe,
     reached_profile: milestones.reached_profile,
     profile_url: milestones.profile_url,
-    kylo_flow_checked: isKyloSignup,
-    flow_ok: isKyloSignup ? flowOk : null,
+    scenario_mode: isScenario,
+    criteria_failed: criteriaFailed,
+    kylo_flow_checked: isScenario || isKyloSignup,
+    flow_ok: isScenario || isKyloSignup ? flowOk : null,
   };
 
 
