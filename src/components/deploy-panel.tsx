@@ -122,6 +122,11 @@ export function DeployPanel() {
               <span className="flex items-center gap-2">
                 <StatusIcon status={it.status} />
                 {STATUS_LABEL[it.status] ?? it.status}
+                {isAutoDeploy(it.note) && (
+                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
+                    automatikus
+                  </span>
+                )}
                 {it.active_color && (
                   <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
                     aktív: {it.active_color}
