@@ -391,6 +391,15 @@ async function runRecordReplay({ page, context, spec, creds, log }) {
           await humanThink(page, 1200);
           continue;
         }
+        // A rögzítő a kattintás KÖVETKEZMÉNYÉT is navigate-ként menti, méghozzá
+        // a kattintás elé. Ha rögtön egy kattintás követi (~2 mp-en belül),
+        // akkor ez nem külön lépés — kihagyjuk, a kattintás úgyis odavisz.
+        const nxt = actions[i + 1];
+        if (nxt && nxt.type === "click" && Math.abs(Number(nxt.t || 0) - Number(a.t || 0)) < 2000) {
+          log("info", `[${i + 1}/${actions.length}] navigate kihagyva — a következő kattintás eredménye (${a.url})`);
+          continue;
+        }
+
         log("info", `[${i + 1}/${actions.length}] navigate → ${a.url}`);
         await page.goto(a.url, { waitUntil: "domcontentloaded", timeout: 90000 });
         await humanThink(page, 900);
