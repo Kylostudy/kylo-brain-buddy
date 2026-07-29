@@ -46,73 +46,115 @@ services:
       retries: 3
       start_period: 30s
 
-  orchestrator:
-    image: node:20-alpine
-    working_dir: /app
-    volumes:
-      - ./orchestrator:/app
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /tmp/kylo-jobs:/tmp/kylo-jobs
-    environment:
-      - BRAIN_URL=${BRAIN_URL}
-      - WORKER_API_TOKEN=${WORKER_API_TOKEN}
-      - WORKER_ID=${WORKER_ID:-worker-1}
-      - EXECUTOR_IMAGE=kylo-executor:latest
-      - MAX_PARALLEL=${MAX_PARALLEL:-12}
-      - MIN_PARALLEL=${MIN_PARALLEL:-1}
-      - LOAD_PER_CPU_LIMIT=${LOAD_PER_CPU_LIMIT:-1.5}
-      - MEM_PER_JOB_MB=${MEM_PER_JOB_MB:-1200}
-      - MEM_HARD_LIMIT_PCT=${MEM_HARD_LIMIT_PCT:-90}
-      - POLL_INTERVAL_MS=${POLL_INTERVAL_MS:-3000}
-      - HEALTH_PORT=9090
-      - HEALTH_STALL_MS=${HEALTH_STALL_MS:-120000}
-      - DRAIN_TIMEOUT_MS=${DRAIN_TIMEOUT_MS:-2700000}
-      - SHOTS_UPLOAD_URL=${SHOTS_UPLOAD_URL:-http://shots:8080}
-      - SHOTS_PUBLIC_URL=${SHOTS_PUBLIC_URL:-}
-    command: sh -c "apk add --no-cache docker-cli && node index.js"
-    depends_on:
-      - executor-image
-      - shots
-    restart: always
-    # Újraindításkor NEM lőjük ki a futó munkákat: 45 percet kap a szabályos
-    # leállásra (drain), addig befejezi a folyamatban lévő futásokat.
-    stop_grace_period: 2700s
-    labels:
-      - autoheal=true
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
+# =============================================================================
+# BLUE / GREEN — zéró leállású frissítés
+# =============================================================================
+# Két azonos szerepkörű készlet fut felváltva: "blue" és "green".
+# Frissítéskor a deploy.sh felépíti és elindítja az ÉPPEN NEM aktív színt,
+# megvárja, míg egészséges lesz, majd a régit szabályos leállásra (drain)
+# küldi: az nem vesz fel új munkát, de a futókat végigcsinálja.
+# Így egyetlen folyamatban lévő futás sem szakad félbe.
+#
+# Indítás profillal:  docker compose --profile blue up -d
+# =============================================================================
 
-  recorder:
-    build:
-      context: .
-      dockerfile: recorder/Dockerfile
-    image: kylo-recorder:latest
-    shm_size: "1gb"
+x-orchestrator: &orchestrator
+  image: node:20-alpine
+  working_dir: /app
+  volumes:
+    - ./orchestrator:/app
+    - /var/run/docker.sock:/var/run/docker.sock
+    - /tmp/kylo-jobs:/tmp/kylo-jobs
+  command: sh -c "apk add --no-cache docker-cli && node index.js"
+  depends_on:
+    - executor-image
+    - shots
+  restart: always
+  # Újraindításkor NEM lőjük ki a futó munkákat: 45 percet kap a szabályos
+  # leállásra (drain), addig befejezi a folyamatban lévő futásokat.
+  stop_grace_period: 2700s
+  labels:
+    - autoheal=true
+  healthcheck:
+    test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090/health"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 120s
+
+x-orchestrator-env: &orchestrator-env
+  BRAIN_URL: ${BRAIN_URL}
+  WORKER_API_TOKEN: ${WORKER_API_TOKEN}
+  EXECUTOR_IMAGE: kylo-executor:latest
+  MAX_PARALLEL: ${MAX_PARALLEL:-12}
+  MIN_PARALLEL: ${MIN_PARALLEL:-1}
+  LOAD_PER_CPU_LIMIT: ${LOAD_PER_CPU_LIMIT:-1.5}
+  MEM_PER_JOB_MB: ${MEM_PER_JOB_MB:-1200}
+  MEM_HARD_LIMIT_PCT: ${MEM_HARD_LIMIT_PCT:-90}
+  POLL_INTERVAL_MS: ${POLL_INTERVAL_MS:-3000}
+  HEALTH_PORT: 9090
+  HEALTH_STALL_MS: ${HEALTH_STALL_MS:-120000}
+  DRAIN_TIMEOUT_MS: ${DRAIN_TIMEOUT_MS:-2700000}
+  SHOTS_UPLOAD_URL: ${SHOTS_UPLOAD_URL:-http://shots:8080}
+  SHOTS_PUBLIC_URL: ${SHOTS_PUBLIC_URL:-}
+
+x-recorder: &recorder
+  build:
+    context: .
+    dockerfile: recorder/Dockerfile
+  image: kylo-recorder:latest
+  shm_size: "1gb"
+  restart: always
+  stop_grace_period: 1200s
+  labels:
+    - autoheal=true
+  healthcheck:
+    test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:9091/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 120s
+
+x-recorder-env: &recorder-env
+  BRAIN_URL: ${BRAIN_URL}
+  WORKER_API_TOKEN: ${WORKER_API_TOKEN}
+  RECORD_POLL_INTERVAL_MS: ${RECORD_POLL_INTERVAL_MS:-2000}
+  RECORD_MAX_SESSIONS: ${RECORD_MAX_SESSIONS:-2}
+  RECORD_FPS: ${RECORD_FPS:-5}
+  RECORD_VIEWPORT_W: ${RECORD_VIEWPORT_W:-1280}
+  RECORD_VIEWPORT_H: ${RECORD_VIEWPORT_H:-800}
+  HEALTH_PORT: 9091
+  HEALTH_STALL_MS: ${HEALTH_STALL_MS:-120000}
+  RECORDER_DRAIN_TIMEOUT_MS: ${RECORDER_DRAIN_TIMEOUT_MS:-1200000}
+  PROXY_1: ${PROXY_1:-}
+  PROXY_2: ${PROXY_2:-}
+
+  # --------------------------- BLUE készlet ---------------------------------
+  orchestrator-blue:
+    <<: *orchestrator
+    profiles: ["blue"]
     environment:
-      - BRAIN_URL=${BRAIN_URL}
-      - WORKER_API_TOKEN=${WORKER_API_TOKEN}
-      - WORKER_ID=${WORKER_ID:-recorder-1}
-      - RECORD_POLL_INTERVAL_MS=${RECORD_POLL_INTERVAL_MS:-2000}
-      - RECORD_MAX_SESSIONS=${RECORD_MAX_SESSIONS:-2}
-      - RECORD_FPS=${RECORD_FPS:-5}
-      - RECORD_VIEWPORT_W=${RECORD_VIEWPORT_W:-1280}
-      - RECORD_VIEWPORT_H=${RECORD_VIEWPORT_H:-800}
-      - HEALTH_PORT=9091
-      - HEALTH_STALL_MS=${HEALTH_STALL_MS:-120000}
-      - RECORDER_DRAIN_TIMEOUT_MS=${RECORDER_DRAIN_TIMEOUT_MS:-1200000}
-      - PROXY_1=${PROXY_1:-}
-      - PROXY_2=${PROXY_2:-}
-    restart: always
-    stop_grace_period: 1200s
-    labels:
-      - autoheal=true
-    healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:9091/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
+      <<: *orchestrator-env
+      WORKER_ID: ${WORKER_ID:-worker-1}-blue
+
+  recorder-blue:
+    <<: *recorder
+    profiles: ["blue"]
+    environment:
+      <<: *recorder-env
+      WORKER_ID: ${WORKER_ID:-worker-1}-blue-rec
+
+  # --------------------------- GREEN készlet --------------------------------
+  orchestrator-green:
+    <<: *orchestrator
+    profiles: ["green"]
+    environment:
+      <<: *orchestrator-env
+      WORKER_ID: ${WORKER_ID:-worker-1}-green
+
+  recorder-green:
+    <<: *recorder
+    profiles: ["green"]
+    environment:
+      <<: *recorder-env
+      WORKER_ID: ${WORKER_ID:-worker-1}-green-rec
