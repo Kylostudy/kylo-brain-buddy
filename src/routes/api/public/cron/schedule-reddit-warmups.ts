@@ -78,6 +78,18 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")
             continue;
           }
 
+          // Helyi nappal: a fiók saját országa szerint 09:00–21:00 között
+          // melegítünk, hogy ne éjjel görgessen (pl. szingapúri fiók).
+          const accountTz = resolveTimezone(acc.locale, acc.language);
+          if (!isLocalDaytime(accountTz)) {
+            skipped.push({
+              account_id: acc.id,
+              reason: `helyi idő szerint nem nappal (${accountTz})`,
+            });
+            continue;
+          }
+
+
           // Az adott fiók legutóbbi bemelegítő futása.
           const { data: lastRuns } = await supabaseAdmin
             .from("brain_workflow_runs")
