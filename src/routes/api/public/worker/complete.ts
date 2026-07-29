@@ -155,8 +155,11 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         const effectiveFlowOk = isScenarioRun
           ? res?.reached_profile === true || scenarioTargetReached
           : res?.flow_ok === true;
+        const scenarioLegacyFalseFailure =
+          parsed.status === "failed" && scenarioTargetReached;
+        const effectiveStatus = scenarioLegacyFalseFailure ? "succeeded" : parsed.status;
         const flowFailed =
-          parsed.status === "succeeded" && flowChecked && !effectiveFlowOk;
+          effectiveStatus === "succeeded" && flowChecked && !effectiveFlowOk;
         const criteriaFailed = Array.isArray(res?.criteria_failed)
           ? (res?.criteria_failed as string[])
           : [];
@@ -173,12 +176,12 @@ export const Route = createFileRoute("/api/public/worker/complete")({
             ? `Nyelvi ellenőrzés bukott: nem a(z) ${expectedLang ?? "várt"} nyelv jelent meg`
             : null,
           flowFailed ? flowReason : null,
-          parsed.error ?? null,
+          scenarioLegacyFalseFailure ? null : parsed.error ?? null,
         ].filter(Boolean);
 
 
         const update: Record<string, unknown> = {
-          status: languageFailed || flowFailed ? "failed" : parsed.status,
+          status: languageFailed || flowFailed ? "failed" : effectiveStatus,
           logs: trimmedLogs as never,
           result: slimResult as never,
           error: failedReasons.length > 0 ? failedReasons.join(" — ") : null,
@@ -208,7 +211,7 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         // használható; ha bukott, jelöljük hibásnak.
         try {
           if (flowChecked) {
-            const registered = !languageFailed && !flowFailed && parsed.status === "succeeded";
+            const registered = !languageFailed && !flowFailed && effectiveStatus === "succeeded";
             await sb
               .from("audit_test_accounts")
               .update({
