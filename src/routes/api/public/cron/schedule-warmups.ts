@@ -14,6 +14,11 @@
 // minta, mint a többi cron endpointon.
 
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  isLocalDaytime,
+  isOwnerBlackout,
+  resolveTimezone,
+} from "@/lib/scheduling/quiet-windows";
 
 // Max hány warmup indulhat egyszerre. 1 IP = 1 böngésző = 1 workflow.
 // A worker VPS (4 mag / 64 GB) 5 párhuzamos warmup böngészőt elbír, így egy
@@ -48,6 +53,15 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "content-type": "application/json" },
+          });
+        }
+
+        // Gazdi-ablak: 17:00–23:00 budapesti idő között semmi nem indul.
+        if (isOwnerBlackout()) {
+          return Response.json({
+            ok: true,
+            skipped: "esti gazdi-ablak (17-23 budapesti idő)",
+            enqueued: [],
           });
         }
 
@@ -103,6 +117,13 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
 
         for (const p of proxyRows ?? []) {
           if (p.warmup_running_at) continue;
+
+          // Helyi nappal: az adott ország idejében 09:00–21:00 között.
+          const proxyTz = resolveTimezone(p.country);
+          if (!isLocalDaytime(proxyTz)) {
+            skipped.push({ proxy_id: p.id, reason: `helyi idő szerint éjszaka (${proxyTz})` });
+            continue;
+          }
 
           const scheduledAt = p.warmup_next_scheduled_at
             ? new Date(p.warmup_next_scheduled_at).getTime()

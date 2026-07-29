@@ -9,6 +9,7 @@
 // idegenek ne tudják triggerelni.
 
 import { createFileRoute } from "@tanstack/react-router";
+import { isOwnerBlackout } from "@/lib/scheduling/quiet-windows";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -29,6 +30,14 @@ export const Route = createFileRoute("/api/public/cron/enqueue-monitors")({
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "content-type": "application/json" },
+          });
+        }
+
+        // Gazdi-ablak: 17:00–23:00 budapesti idő között semmi nem indul.
+        if (isOwnerBlackout()) {
+          return Response.json({
+            ok: true,
+            skipped: "esti gazdi-ablak (17-23 budapesti idő)",
           });
         }
 
