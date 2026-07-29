@@ -5,6 +5,7 @@ import { Activity, Cpu, HardDrive, Boxes, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeployPanel } from "@/components/deploy-panel";
 
 export const Route = createFileRoute("/_authenticated/worker-health")({
   head: () => ({
