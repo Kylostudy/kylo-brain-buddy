@@ -1978,6 +1978,60 @@ export async function runKyloSignup({ page, context, spec, log }) {
         "Toronto",
         "város",
       ).catch(() => false);
+      // Telefonszám — a Stripe Checkout egyre több országban KÖTELEZŐVÉ teszi.
+      // Ennek hiánya okozta a néma „Required" elakadást (#126).
+      await fillAnywhere(
+        'input[name="phoneNumber"], input#phoneNumber, input[type="tel"], input[autocomplete="tel"], input[autocomplete="tel-national"]',
+        "4165550123",
+        "telefonszám",
+      ).catch(() => false);
+
+      // Bármi más kötelező, üresen maradt szöveges mező (pl. cégnév, adószám)
+      // – ne akadjunk el rajta némán.
+      const fillRemainingEmpties = async (reason) => {
+        const filled = [];
+        for (const sc of [page, ...page.frames()]) {
+          const names = await sc
+            .$$eval("input", (els) =>
+              els
+                .filter(
+                  (e) =>
+                    !["hidden", "checkbox", "radio", "submit", "button"].includes(e.type) &&
+                    !e.disabled &&
+                    !e.readOnly &&
+                    !e.value &&
+                    e.offsetParent !== null,
+                )
+                .map((e) => e.name || e.id || "")
+                .filter(Boolean),
+            )
+            .catch(() => []);
+          for (const n of names) {
+            const sel = `input[name="${n}"], input#${CSS.escape ? n : n}`;
+            const el = await sc.$(`input[name="${n}"]`).catch(() => null);
+            const target = el || (await sc.$(`#${n}`).catch(() => null));
+            if (!target) continue;
+            const type = await target.getAttribute("type").catch(() => "");
+            const ac = (await target.getAttribute("autocomplete").catch(() => "")) || "";
+            let value = "Kylo Test";
+            if (type === "tel" || /tel|phone/i.test(n + ac)) value = "4165550123";
+            else if (/postal|zip/i.test(n + ac)) value = "M5H 2N2";
+            else if (/city|locality/i.test(n + ac)) value = "Toronto";
+            else if (/address|street|line1/i.test(n + ac)) value = "100 King Street West";
+            else if (/email/i.test(n + ac)) value = email;
+            try {
+              await target.fill(value, { timeout: 3000 });
+              filled.push(`${n}=${value}`);
+            } catch {}
+            void sel;
+          }
+        }
+        if (filled.length) {
+          log("info", `Stripe: hiányzó mezők pótolva (${reason}): ${filled.join(" | ")}`);
+        }
+        return filled.length;
+      };
+      await fillRemainingEmpties("első kör");
 
       stripeFilled = cardOk && expOk && cvcOk;
 
@@ -2118,6 +2172,36 @@ export async function runKyloSignup({ page, context, spec, log }) {
               `Stripe elakadt — hibák: ${JSON.stringify(diag.errors)} · üres mezők: ${JSON.stringify(diag.empty)}`,
             );
             screenshots.push(await shot(page, "6a2-stripe-blocked"));
+
+            // Második esély: pótoljuk a hiányzó mezőket (leggyakrabban a
+            // telefonszám) és újra beküldjük.
+            const patched = await fillRemainingEmpties("elakadás után");
+            if (patched > 0) {
+              let retried = false;
+              for (const sc of [page, ...page.frames()]) {
+                const label = await markPayButton(sc);
+                if (!label) continue;
+                const loc = sc.locator('[data-kylo-pay="1"]').first();
+                try {
+                  await loc.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+                  await loc.click({ timeout: 5000 });
+                  retried = true;
+                  log("info", `Stripe: újrabeküldés a pótlás után — „${label}"`);
+                } catch {}
+                if (retried) break;
+              }
+              if (retried) {
+                const retryUntil = Date.now() + 45_000;
+                while (Date.now() < retryUntil && isStripeUrl(page.url())) {
+                  await page.waitForTimeout(1500);
+                }
+                log(
+                  "info",
+                  `Stripe újrabeküldés után: ${isStripeUrl(page.url()) ? "még mindig a Stripe-on" : "továbblépett"} — ${page.url().slice(0, 120)}`,
+                );
+                screenshots.push(await shot(page, "6a3-stripe-retry"));
+              }
+            }
           }
         }
       }
