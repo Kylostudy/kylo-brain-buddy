@@ -11,6 +11,11 @@
 // Auth: apikey header a Supabase publishable kulcsával.
 
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  isLocalDaytime,
+  isOwnerBlackout,
+  resolveTimezone,
+} from "@/lib/scheduling/quiet-windows";
 
 // Egy tickben max ennyi bemelegítés indul (a worker terhelése miatt).
 const MAX_ENQUEUE_PER_TICK = 3;
@@ -18,10 +23,9 @@ const MAX_ENQUEUE_PER_TICK = 3;
 const MIN_GAP_MS = 20 * 60 * 60 * 1000; // 20 óra
 // Sikertelen futás után ennyivel próbálkozunk újra (pl. VPS újraépítés).
 const RETRY_AFTER_FAIL_MS = 60 * 60 * 1000; // 1 óra
-// Aktív órák (UTC) — éjjel nem melegítünk, az feltűnő lenne.
-const ACTIVE_HOURS_UTC = { start: 6, end: 21 };
 // Óránkénti indítási esély a jogosult fiókoknál (mintakerülés).
 const HOURLY_CHANCE = 0.35;
+
 
 export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")({
   server: {
