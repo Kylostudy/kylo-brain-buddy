@@ -35,10 +35,11 @@ if ! flock -n 9; then
   exit 0
 fi
 
-RESP="$(curl -sS --max-time 30 -o /tmp/kylo-deploy-claim.out -w '%{http_code}' \
+RESP="$(curl -sS -L --max-time 30 -o /tmp/kylo-deploy-claim.out -w '%{http_code}' \
   -X POST "${BRAIN_URL%/}/api/public/worker/deploy-claim" \
   -H "Authorization: Bearer $WORKER_API_TOKEN" \
   -H "Content-Type: application/json" \
+  --post301 --post302 --post303 \
   -d "{\"workerId\":\"$WORKER_ID\"}" || echo 000)"
 CLAIM="$(cat /tmp/kylo-deploy-claim.out 2>/dev/null || true)"
 
@@ -48,6 +49,7 @@ case "$RESP" in
   000) log "HIBA: a Brain nem elérhető ($BRAIN_URL)"; exit 0 ;;
   404) log "HIBA: a /api/public/worker/deploy-claim végpont nem létezik az éles Brainen — publikálni kell a Lovable appot!"; exit 0 ;;
   401) log "HIBA: érvénytelen WORKER_API_TOKEN (401)"; exit 0 ;;
+  30[1278]) log "HIBA: a Brain átirányít ($RESP). A worker/.env BRAIN_URL értéke valószínűleg rossz (http:// vagy régi cím). Helyes: BRAIN_URL=https://brain.kylosystems.com"; exit 0 ;;
   *)   log "HIBA: váratlan válasz a Braintől ($RESP): $(printf '%s' "$CLAIM" | head -c 200)"; exit 0 ;;
 esac
 
@@ -74,7 +76,7 @@ report() { # report <status> <logfile> [error]
         activeColor: fs.existsSync(".active-color") ? fs.readFileSync(".active-color","utf8").trim() : null,
       }));
     ')"
-  curl -sS --max-time 30 -X POST "${BRAIN_URL%/}/api/public/worker/deploy-status" \
+  curl -sS -L --post301 --post302 --post303 --max-time 30 -X POST "${BRAIN_URL%/}/api/public/worker/deploy-status" \
     -H "Authorization: Bearer $WORKER_API_TOKEN" \
     -H "Content-Type: application/json" \
     -d "$body" >/dev/null || true
