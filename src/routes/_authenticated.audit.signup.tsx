@@ -278,7 +278,7 @@ function SignupPage() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-3 py-6 sm:px-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Kylo Sign Up</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Minden „Új futás" kattintás váltogatva Puppy Cat és Alaszka skinnel,
