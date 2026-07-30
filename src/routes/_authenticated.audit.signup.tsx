@@ -652,7 +652,7 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
               <div>
                 Elvárt: <span className="font-mono">{res.currency_check.expected_currency ?? "?"}</span> · Észlelt:{" "}
                 <span className="font-mono">
-                  {res.currency_check.detected_currency ??
+                  {res.currency_check.detected_currency ||
                     (res.currency_check.currency_candidates ?? []).join("/") ||
                     "nem felismerhető"}
                 </span>{" "}
