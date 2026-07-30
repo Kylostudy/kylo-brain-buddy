@@ -228,6 +228,7 @@ function dockerCommand(args, options = {}) {
 function runContainer(job) {
   return new Promise(async (resolve) => {
     let containerId = null;
+    let liveState = { active: false, reason: "nem értékelt" };
     const jobDir = join(JOB_MOUNT_DIR, String(job.id));
     const cleanup = async () => {
       if (containerId) {
