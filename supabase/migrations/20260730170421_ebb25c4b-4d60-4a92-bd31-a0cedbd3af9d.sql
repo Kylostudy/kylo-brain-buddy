@@ -1,0 +1,1 @@
+ALTER TABLE public.audit_scenarios ADD COLUMN IF NOT EXISTS record_start_url text;

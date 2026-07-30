@@ -397,7 +397,12 @@ async function main() {
   }
 
   // Session cookie-k injektálása (Dolphin / EditThisCookie JSON export)
-  if (creds?.cookies) {
+  // Audit forgatókönyveknél SOSEM örököljük a belépést: minden futás elején
+  // valóban be kell lépni, hogy a belépési flow is tesztelve legyen.
+  if (spec.no_cookie_reuse) {
+    log("info", "Süti-öröklés kikapcsolva (no_cookie_reuse) — a futás tiszta böngészővel, valódi belépéssel indul.");
+  }
+  if (creds?.cookies && !spec.no_cookie_reuse) {
     try {
       const parsed = JSON.parse(creds.cookies);
       if (Array.isArray(parsed) && parsed.length > 0) {

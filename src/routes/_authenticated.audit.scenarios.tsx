@@ -54,6 +54,7 @@ type Scenario = {
   description: string | null;
   kind: string;
   base_url: string;
+  record_start_url?: string | null;
   steps: unknown;
   prelude_block_ids: string[] | null;
   expectations: Record<string, unknown> | null;
@@ -92,6 +93,7 @@ const emptyDraft = {
   description: "",
   kind: "scenario" as "scenario" | "block",
   baseUrl: "https://kylo.study",
+  recordStartUrl: "",
   preludeBlockIds: [] as string[],
   expectationsText: "",
   runPerExam: false,
@@ -171,6 +173,7 @@ function ScenariosPage() {
           description: d.description || null,
           kind: d.kind,
           baseUrl: d.baseUrl,
+          recordStartUrl: d.recordStartUrl || null,
           steps: (existing ? stepsOf(existing) : []) as Record<string, unknown>[],
           preludeBlockIds: d.preludeBlockIds,
           expectations,
@@ -215,7 +218,7 @@ function ScenariosPage() {
     mutationFn: async (scenario: Scenario) => {
       const wf = await ensureWfFn({ data: { scenarioId: scenario.id } });
       const session = await recordFn({
-        data: { workflowId: wf.workflowId, startUrl: scenario.base_url },
+        data: { workflowId: wf.workflowId, startUrl: scenario.record_start_url || scenario.base_url },
       });
       return session;
     },
@@ -237,9 +240,10 @@ function ScenariosPage() {
   });
 
   const runMut = useMutation({
-    mutationFn: async (id: string) => runFn({ data: { scenarioId: id } }),
+    mutationFn: async (v: { id: string; parallel: number }) =>
+      runFn({ data: { scenarioId: v.id, parallel: v.parallel } }),
     onSuccess: (r: { count: number; stepCount: number }) => {
-      toast.success(`${r.count} futás sorba téve (${r.stepCount} lépés).`);
+      toast.success(`${r.count} futás sorba téve (${r.stepCount} lépés, mindegyik friss belépéssel).`);
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -271,6 +275,7 @@ function ScenariosPage() {
       description: s.description ?? "",
       kind: (s.kind === "block" ? "block" : "scenario") as "scenario" | "block",
       baseUrl: s.base_url,
+      recordStartUrl: s.record_start_url ?? "",
       preludeBlockIds: s.prelude_block_ids ?? [],
       expectationsText: checklist.join("\n"),
       runPerExam: s.run_per_exam,
@@ -327,9 +332,19 @@ function ScenariosPage() {
           >
             Felvett lépések importja
           </Button>
-          <Button size="sm" onClick={() => runMut.mutate(s.id)} disabled={runMut.isPending}>
+          <Button size="sm" onClick={() => runMut.mutate({ id: s.id, parallel: 1 })} disabled={runMut.isPending}>
             <Play className="size-4" /> Futtatás
           </Button>
+          {s.kind !== "block" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => runMut.mutate({ id: s.id, parallel: 10 })}
+              disabled={runMut.isPending}
+            >
+              <Play className="size-4" /> 10 párhuzamos futás
+            </Button>
+          )}
           <Button size="sm" variant="ghost" onClick={() => openEditor(s)}>
             Szerkesztés
           </Button>
@@ -548,6 +563,18 @@ function ScenariosPage() {
                     onChange={(e) => setDraft({ ...draft, baseUrl: e.target.value })}
                   />
                 </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Felvétel indulási oldala</Label>
+                <Input
+                  value={draft.recordStartUrl}
+                  onChange={(e) => setDraft({ ...draft, recordStartUrl: e.target.value })}
+                  placeholder="pl. https://kylo.study/generalas"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Innen indul a böngészős felvétel (a funkciók / generálás oldal). Üresen hagyva az alapcímet
+                  használjuk. A belépést nem kell felvenned: minden futás előtt a belépés kocka lefut.
+                </p>
               </div>
               <div className="space-y-1">
                 <Label>Leírás</Label>
