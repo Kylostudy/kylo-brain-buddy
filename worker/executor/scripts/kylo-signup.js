@@ -1349,7 +1349,7 @@ async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
 
       return { filled, skipped, selects };
     },
-    { billing: BILLING_TEST, email },
+    { billing: billingData, email },
   ).catch((e) => {
     log("warn", `Számlázási űrlap kitöltés hiba: ${e.message}`);
     return { filled: [], skipped: [], selects: [] };
