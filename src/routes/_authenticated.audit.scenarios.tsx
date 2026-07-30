@@ -218,7 +218,13 @@ function ScenariosPage() {
     mutationFn: async (scenario: Scenario) => {
       const wf = await ensureWfFn({ data: { scenarioId: scenario.id } });
       const session = await recordFn({
-        data: { workflowId: wf.workflowId, startUrl: scenario.record_start_url || scenario.base_url },
+        data: {
+          workflowId: wf.workflowId,
+          startUrl: scenario.record_start_url || scenario.base_url,
+          // A felvétel előtt a rendszer lejátssza a belépés-kockát, így már
+          // bejelentkezve kapod meg a böngészőt.
+          scenarioId: scenario.id,
+        },
       });
       return session;
     },
