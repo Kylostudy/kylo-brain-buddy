@@ -192,15 +192,26 @@ function SignupPage() {
 
 
 
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const listBatchesFn = useServerFn(listPendingSignupBatches);
+  const pendingBatchesQ = useQuery({
+    queryKey: ["kylo-signup-pending-batches"],
+    queryFn: () => listBatchesFn(),
+    enabled: cancelOpen,
+  });
+
   const cancelPendingFn = useServerFn(cancelPendingSignupRuns);
   const cancelPendingMut = useMutation({
-    mutationFn: () => cancelPendingFn(),
+    mutationFn: (batchId: string | null) => cancelPendingFn({ data: { batchId } }),
     onSuccess: (r) => {
       toast.success(`${r.canceled} sorban álló futás visszavonva`);
+      setCancelOpen(false);
       qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+      qc.invalidateQueries({ queryKey: ["kylo-signup-pending-batches"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const startAllMut = useMutation({
 
