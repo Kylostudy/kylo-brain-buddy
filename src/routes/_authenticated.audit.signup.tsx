@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Video, Globe } from "lucide-react";
 import { useModule } from "@/lib/module/provider";
+import { INFRA_STATUS, infraLabel } from "@/lib/infra-errors";
 
 export const Route = createFileRoute("/_authenticated/audit/signup")({
   head: () => ({
@@ -538,7 +539,7 @@ function SignupPage() {
                           {r.started_at ? new Date(r.started_at).toLocaleString("hu-HU") : "—"}
                         </td>
                         <td className="py-2 pr-3">
-                          <Badge variant="outline" className={statusColor(r.status)}>{r.status}</Badge>
+                          <Badge variant="outline" className={statusColor(r.status)}>{statusLabel(r.status)}</Badge>
                         </td>
                         <td className="py-2 pr-3">{spec.skin ?? "—"}</td>
                         <td className="py-2 pr-3">
@@ -626,8 +627,10 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
           <div className={`rounded-md border p-2 ${
             run.status === "succeeded"
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-              : run.status === "failed"
-                ? "border-red-500/40 bg-red-500/10 text-red-300"
+              : run.status === INFRA_STATUS
+                ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                : run.status === "failed"
+                  ? "border-red-500/40 bg-red-500/10 text-red-300"
                 : "border-muted bg-muted/20 text-muted-foreground"
           }`}>
             <div className="text-xs font-semibold uppercase">Összegzés</div>
@@ -867,6 +870,11 @@ function buildRunSummary(
       return `${who} — A worker "sikeres"-nek jelölte, de nem futott le a sign-up script (nincsenek lépések vagy képek). Valószínűleg ismeretlen monitor_type miatt demo ágra esett. Frissítsd a worker imaget és indíts új futást.`;
     }
     return `${who} — Futás lefutott (${stepCount} lépés, ${shots} képernyőkép), de nem érte el a Stripe oldalt. Nézd meg a képeket és a lépéseket, hol akadt el.`;
+  }
+  if (run.status === INFRA_STATUS) {
+    return `${who} — Nem a Kylo hibája: hálózati / proxy probléma (${infraLabel(
+      (res as { infra_code?: string }).infra_code,
+    )}). A rendszer automatikusan újrapróbálja másik proxyval.`;
   }
   if (run.status === "failed") {
     return `${who} — Hibára futott: ${run.error ?? "ismeretlen hiba"}.`;
