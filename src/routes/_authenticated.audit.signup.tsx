@@ -335,11 +335,8 @@ function SignupPage() {
               type="button"
               variant="secondary"
               size="lg"
-              onClick={() => {
-                if (window.confirm("Ez azonnal több angol futást indít. Biztos most indítsuk?")) {
-                  startBulk({ scope: "english" }, "english");
-                }
-              }}
+              onClick={() => startBulk({ scope: "english" }, "english")}
+
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Egyszerre indít egy futást minden angol nyelvterületi proxyra" : "Először kösd be a Gmail postafiókot"}
             >
