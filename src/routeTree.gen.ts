@@ -45,6 +45,7 @@ import { Route as ApiPublicAdminImportIproyalRouteImport } from './routes/api/pu
 import { Route as ApiPublicAdminImportBrightdataKylogicRouteImport } from './routes/api/public/admin/import-brightdata-kylogic'
 import { Route as ApiPublicAdminCreateWarmupWorkflowsRouteImport } from './routes/api/public/admin/create-warmup-workflows'
 import { Route as ApiPublicWorkerScenarioJudgeRouteImport } from './routes/api/public/worker/scenario/judge'
+import { Route as ApiPublicWorkerReadingLogJudgeRouteImport } from './routes/api/public/worker/reading-log/judge'
 import { Route as ApiPublicWorkerQaUploadScreenshotRouteImport } from './routes/api/public/worker/qa/upload-screenshot'
 import { Route as ApiPublicWorkerQaReportIssueRouteImport } from './routes/api/public/worker/qa/report-issue'
 import { Route as ApiPublicWorkerQaReportCoverageRouteImport } from './routes/api/public/worker/qa/report-coverage'
@@ -263,6 +264,12 @@ const ApiPublicWorkerScenarioJudgeRoute =
     path: '/api/public/worker/scenario/judge',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerReadingLogJudgeRoute =
+  ApiPublicWorkerReadingLogJudgeRouteImport.update({
+    id: '/api/public/worker/reading-log/judge',
+    path: '/api/public/worker/reading-log/judge',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerQaUploadScreenshotRoute =
   ApiPublicWorkerQaUploadScreenshotRouteImport.update({
     id: '/api/public/worker/qa/upload-screenshot',
@@ -388,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
   '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
   '/api/public/worker/qa/upload-screenshot': typeof ApiPublicWorkerQaUploadScreenshotRoute
+  '/api/public/worker/reading-log/judge': typeof ApiPublicWorkerReadingLogJudgeRoute
   '/api/public/worker/scenario/judge': typeof ApiPublicWorkerScenarioJudgeRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -438,6 +446,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
   '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
   '/api/public/worker/qa/upload-screenshot': typeof ApiPublicWorkerQaUploadScreenshotRoute
+  '/api/public/worker/reading-log/judge': typeof ApiPublicWorkerReadingLogJudgeRoute
   '/api/public/worker/scenario/judge': typeof ApiPublicWorkerScenarioJudgeRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -490,6 +499,7 @@ export interface FileRoutesById {
   '/api/public/worker/qa/report-coverage': typeof ApiPublicWorkerQaReportCoverageRoute
   '/api/public/worker/qa/report-issue': typeof ApiPublicWorkerQaReportIssueRoute
   '/api/public/worker/qa/upload-screenshot': typeof ApiPublicWorkerQaUploadScreenshotRoute
+  '/api/public/worker/reading-log/judge': typeof ApiPublicWorkerReadingLogJudgeRoute
   '/api/public/worker/scenario/judge': typeof ApiPublicWorkerScenarioJudgeRoute
   '/api/public/cross/kit/task/$task_id/log': typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -542,6 +552,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/qa/report-coverage'
     | '/api/public/worker/qa/report-issue'
     | '/api/public/worker/qa/upload-screenshot'
+    | '/api/public/worker/reading-log/judge'
     | '/api/public/worker/scenario/judge'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesByTo: FileRoutesByTo
@@ -592,6 +603,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/qa/report-coverage'
     | '/api/public/worker/qa/report-issue'
     | '/api/public/worker/qa/upload-screenshot'
+    | '/api/public/worker/reading-log/judge'
     | '/api/public/worker/scenario/judge'
     | '/api/public/cross/kit/task/$task_id/log'
   id:
@@ -643,6 +655,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/qa/report-coverage'
     | '/api/public/worker/qa/report-issue'
     | '/api/public/worker/qa/upload-screenshot'
+    | '/api/public/worker/reading-log/judge'
     | '/api/public/worker/scenario/judge'
     | '/api/public/cross/kit/task/$task_id/log'
   fileRoutesById: FileRoutesById
@@ -685,6 +698,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerQaReportCoverageRoute: typeof ApiPublicWorkerQaReportCoverageRoute
   ApiPublicWorkerQaReportIssueRoute: typeof ApiPublicWorkerQaReportIssueRoute
   ApiPublicWorkerQaUploadScreenshotRoute: typeof ApiPublicWorkerQaUploadScreenshotRoute
+  ApiPublicWorkerReadingLogJudgeRoute: typeof ApiPublicWorkerReadingLogJudgeRoute
   ApiPublicWorkerScenarioJudgeRoute: typeof ApiPublicWorkerScenarioJudgeRoute
 }
 
@@ -942,6 +956,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerScenarioJudgeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/reading-log/judge': {
+      id: '/api/public/worker/reading-log/judge'
+      path: '/api/public/worker/reading-log/judge'
+      fullPath: '/api/public/worker/reading-log/judge'
+      preLoaderRoute: typeof ApiPublicWorkerReadingLogJudgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/qa/upload-screenshot': {
       id: '/api/public/worker/qa/upload-screenshot'
       path: '/api/public/worker/qa/upload-screenshot'
@@ -1123,6 +1144,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerQaReportIssueRoute: ApiPublicWorkerQaReportIssueRoute,
   ApiPublicWorkerQaUploadScreenshotRoute:
     ApiPublicWorkerQaUploadScreenshotRoute,
+  ApiPublicWorkerReadingLogJudgeRoute: ApiPublicWorkerReadingLogJudgeRoute,
   ApiPublicWorkerScenarioJudgeRoute: ApiPublicWorkerScenarioJudgeRoute,
 }
 export const routeTree = rootRouteImport
