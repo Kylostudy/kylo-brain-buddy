@@ -1609,14 +1609,35 @@ async function collectBillingBlockers(page) {
 export async function runKyloSignup({ page, context, spec, log }) {
   const cfg = spec.kylo_signup || {};
   const baseUrl = cfg.base_url || "https://kylo.study";
-  const lang = cfg.lang || "en-GB";
   const skin = cfg.skin || "puppy-cat";
   const email = cfg.email;
   const password = cfg.password;
-  const currency = cfg.currency || "USD";
+
+  // ---- Az elvárt nyelv a VALÓDI kimeneti IP országából jön ----
+  // A preflight (whoer + geo API) által mért ország a mérvadó, nem a proxy
+  // címkéje: ha egy „francia" proxy valójában máshonnan jön ki, akkor is annak
+  // az országnak a nyelvén kell megjelennie az oldalnak, és mi is azt
+  // ellenőrizzük. Így nyelvenként más-más elvárással fut minden IP.
+  const detectedCC = String(spec.detected_geo?.country_code || "").toUpperCase() || null;
+  const labelCC = String(cfg.expected_country || cfg.country || "").toUpperCase() || null;
+  const geoCountry = detectedCC || labelCC;
+  const specLang = cfg.lang || "en-GB";
+  const lang = geoCountry ? langForCountry(geoCountry, specLang) : specLang;
+  const currency = geoCountry ? currencyForCountry(geoCountry, cfg.currency || "USD") : (cfg.currency || "USD");
+  if (detectedCC && labelCC && detectedCC !== labelCC) {
+    log(
+      "warn",
+      `A proxy címkéje ${labelCC}, de a valódi IP ${detectedCC} — az elvárt nyelv ehhez igazodik: ${lang}.`,
+    );
+  }
+  log(
+    "info",
+    `Nyelvi elvárás az IP alapján: ${geoCountry ?? "?"} → oldalnyelv „${lang}", pénznem ${currency}.`,
+  );
   // Ország-konzisztens számlázási tesztadatok: az IP/nyelv szerinti országhoz
   // illő irányítószám és telefonszám, különben a Stripe „incomplete" hibát dob.
-  const billing = billingProfile(lang, cfg.expected_country || cfg.country);
+  const billing = billingProfile(lang, geoCountry);
+
 
   // A mentett workflow felvétele: ebből tudjuk, milyen mezők vannak a regisztrációs
   // űrlapon és milyen sorrendben — nem találgatunk.
