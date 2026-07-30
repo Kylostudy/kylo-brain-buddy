@@ -2084,7 +2084,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
     // A pénznemet a futás VALÓDI országa dönti el (proxy/IP szerinti ország),
     // nem a számlázási minta-profil országa. (#247: SG proxy + en-GB nyelv →
     // a profil GB-re esett vissza, ezért tévesen EUR-t vártunk USD helyett.)
-    const currencyCountry = String(cfg.expected_country || cfg.country || billing.country || "").toUpperCase() || billing.country;
+    const currencyCountry = geoCountry || billing.country;
     currencyCheck = await checkStripeCurrency(page, currencyCountry, log);
 
 
