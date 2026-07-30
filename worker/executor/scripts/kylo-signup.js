@@ -1546,6 +1546,19 @@ export async function runKyloSignup({ page, context, spec, log }) {
     throw new Error("Hiányzó email / jelszó a signup spec-ből.");
   }
 
+  // Egy Gmail-fiókba érkező párhuzamos futások levelei ne torlódjanak össze:
+  // futásonként legalább 20 s eltolás (futás-sorszám alapján, max ~100 s).
+  const runIndex = Number(cfg.run_index);
+  if (Number.isFinite(runIndex) && runIndex > 0) {
+    const offsetMs = (runIndex % 6) * 20000;
+    if (offsetMs > 0) {
+      log("info", `Levéltorlódás elkerülése: ${offsetMs / 1000} s eltolás a #${runIndex} futásnak.`);
+      await page.waitForTimeout(offsetMs);
+    }
+  }
+
+
+
   const steps = [];
   const screenshots = [];
   const langChecks = [];
