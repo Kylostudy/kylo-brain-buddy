@@ -429,6 +429,29 @@ function recipientMatches(headers: { name: string; value: string }[] | undefined
   return normalizeGmailAddress(haystack).includes(expected);
 }
 
+/**
+ * Szigorú címzett-egyezés: a +alias IS számít. Egy Gmail-fiókba egyszerre több
+ * futás levele érkezik (kylo171, kylo173, …), ezért az alias nélküli egyezés
+ * kevés — abból lett a #171-es futás téves levélválasztása.
+ */
+function recipientMatchesStrict(
+  headers: { name: string; value: string }[] | undefined,
+  recipient: string,
+): boolean {
+  const expected = normalizeEmail(recipient).replace(/^.*<|>.*$/g, "");
+  if (!expected.includes("@")) return false;
+  const haystack = [
+    getHeader(headers, "To"),
+    getHeader(headers, "Delivered-To"),
+    getHeader(headers, "X-Original-To"),
+    getHeader(headers, "Cc"),
+    getHeader(headers, "Bcc"),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(expected);
+}
+
 function messageMillis(message: GmailMessage): number | null {
   const millis = Number(message.internalDate);
   return Number.isFinite(millis) ? millis : null;
