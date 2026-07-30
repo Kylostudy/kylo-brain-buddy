@@ -122,3 +122,26 @@ export async function getGmailConfirmationLink({ runId, workflowId, recipient })
     freshWithinSec: 6 * 60 * 60,
   });
 }
+
+/** Olvasónapló pedagógiai bírálat (Gemini Flash Lite a Brain oldalán). */
+export async function judgeReadingLog({
+  runId,
+  text,
+  bookTitle,
+  bookAuthor,
+  language,
+  country,
+  pdfDownloaded = false,
+  clipboardOk = false,
+}) {
+  return brainPost("/api/public/worker/reading-log/judge", {
+    run_id: runId ?? null,
+    text,
+    book_title: bookTitle,
+    book_author: bookAuthor,
+    language,
+    country,
+    pdf_downloaded: pdfDownloaded,
+    clipboard_ok: clipboardOk,
+  });
+}
