@@ -54,6 +54,7 @@ type Scenario = {
   description: string | null;
   kind: string;
   base_url: string;
+  record_start_url?: string | null;
   steps: unknown;
   prelude_block_ids: string[] | null;
   expectations: Record<string, unknown> | null;
