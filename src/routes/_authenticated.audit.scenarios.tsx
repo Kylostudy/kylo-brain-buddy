@@ -218,7 +218,7 @@ function ScenariosPage() {
     mutationFn: async (scenario: Scenario) => {
       const wf = await ensureWfFn({ data: { scenarioId: scenario.id } });
       const session = await recordFn({
-        data: { workflowId: wf.workflowId, startUrl: scenario.base_url },
+        data: { workflowId: wf.workflowId, startUrl: scenario.record_start_url || scenario.base_url },
       });
       return session;
     },
