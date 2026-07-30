@@ -369,15 +369,29 @@ async function main() {
 
 
   // ---- 1. LÉPÉS: whoer.net preflight (mindig, még proxy nélkül is informatív). ----
+  // A preflight betöltési ideje egyben proxysebesség-mérés is: ebből állítjuk
+  // be az összes későbbi türelmi időt (adaptív timeout).
   log("info", "Preflight indul: whoer.net IP-ellenőrzés…");
+  const preflightStartedAt = Date.now();
   const preflight = await whoerPreflight(context, expectedCountry);
+  const preflightMs = Date.now() - preflightStartedAt;
+  const speed = setProxyLatency(preflightMs);
+  preflight.latency_ms = preflightMs;
+  preflight.speed_tier = speed.tier;
   emitPreflight(preflight);
+  log(
+    "info",
+    `Proxysebesség: ${speed.label} (${preflightMs} ms) — türelmi idők szorzója: ${speed.multiplier}×`,
+  );
   if (!preflight.ok) {
+    const cls = classifyInfra(preflight.error || "");
+    const infraCode = cls.infra ? cls.code : "proxy_connection";
     log("error", preflight.error || "Preflight sikertelen.");
+    log("warn", `Infrastruktúra-hiba (proxy): ${INFRA_LABELS[infraCode]}`);
     await browser.close().catch(() => {});
     return finish(
       "failed",
-      null,
+      infraResult(null, infraCode, preflight.error),
       preflight.error ||
         "Preflight sikertelen — a cél oldal biztonsági okból nem lett megnyitva.",
     );
@@ -387,6 +401,16 @@ async function main() {
     "info",
     `Preflight OK — IP ${preflight.ip ?? "?"} · ${preflight.country_code ?? "?"} · ${preflight.city ?? ""}`,
   );
+
+  // Adaptív alap-időkorlátok: minden későbbi művelet a mért proxysebességhez
+  // igazodik, így lassú proxyn sem bukunk el fölöslegesen.
+  try {
+    context.setDefaultTimeout(scaleMs(30000));
+    context.setDefaultNavigationTimeout(scaleMs(45000));
+  } catch (e) {
+    log("warn", `Adaptív időkorlát beállítás hiba: ${e.message}`);
+  }
+
 
 
   // ---- 2. LÉPÉS: Fingerprint audit (első run + heti) ---------------------
