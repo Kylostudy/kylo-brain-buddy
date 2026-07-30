@@ -242,7 +242,7 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
 
         const { data: candidate } = await sb
           .from("recording_sessions")
-          .select("id, workflow_id, start_url")
+          .select("id, workflow_id, start_url, prelude_scenario_id")
           .eq("status", "requested")
           .order("created_at", { ascending: true })
           .limit(1)
