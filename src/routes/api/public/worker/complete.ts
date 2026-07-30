@@ -8,6 +8,81 @@ import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  INFRA_STATUS,
+  classifyInfraError,
+  infraLabel,
+} from "@/lib/infra-errors";
+
+// Infra-hiba után egyszer újrapróbáljuk a futást egy másik proxyval.
+// Ugyanazt a spec-et visszatesszük a sorba, csak más proxyval és egy
+// „infra_attempt" számlálóval, hogy ne pörögjön végtelenre.
+async function requeueWithAnotherProxy(
+  sb: ReturnType<typeof createClient<Database>>,
+  input: {
+    runId: string;
+    tenantId: string | null;
+    workflowId: string | null;
+    proxyId: string | null;
+    spec: Record<string, unknown>;
+    infraCode: string | null;
+  },
+): Promise<void> {
+  const { tenantId, workflowId, spec } = input;
+  if (!tenantId || !workflowId) return;
+
+  const attempt = Number((spec as { infra_attempt?: unknown }).infra_attempt ?? 0);
+  if (attempt >= 1) return; // legfeljebb egy automatikus újrapróbálás
+
+  const signup = (spec as { kylo_signup?: { expected_country?: string | null } }).kylo_signup;
+  const wantedCountry = (signup?.expected_country ?? "").toUpperCase() || null;
+  const nowIso = new Date().toISOString();
+
+  const { data: proxies } = await sb
+    .from("proxies")
+    .select("id, country, label, health_paused_until")
+    .eq("tenant_id", tenantId)
+    .eq("is_active", true);
+  const pool = (proxies ?? []).filter((p) => {
+    const paused = (p as { health_paused_until?: string | null }).health_paused_until;
+    if (paused && paused > nowIso) return false;
+    return p.id !== input.proxyId;
+  });
+  if (pool.length === 0) return;
+  const sameCountry = wantedCountry
+    ? pool.filter((p) => ((p.country as string | null) ?? "").toUpperCase() === wantedCountry)
+    : [];
+  const chosen = (sameCountry.length > 0 ? sameCountry : pool)[
+    Math.floor(Math.random() * (sameCountry.length > 0 ? sameCountry.length : pool.length))
+  ];
+
+  const retrySpec = {
+    ...spec,
+    infra_attempt: attempt + 1,
+    infra_retry_of: input.runId,
+  };
+
+  await sb.from("brain_workflow_runs").insert({
+    workflow_id: workflowId,
+    tenant_id: tenantId,
+    module: "audit",
+    runner: "docker",
+    status: "queued",
+    proxy_id: chosen.id,
+    spec_snapshot: retrySpec as never,
+    started_at: new Date().toISOString(),
+    logs: [
+      {
+        ts: new Date().toISOString(),
+        level: "warn",
+        message: `Proxy hiba (${infraLabel(input.infraCode)}) — automatikus újrapróbálás másik proxyval: ${
+          (chosen as { label?: string | null }).label ?? chosen.country ?? chosen.id
+        }`,
+      },
+    ] as never,
+  } as never);
+}
+
 
 function checkAuth(request: Request): string | null {
   const token = process.env.WORKER_API_TOKEN?.trim();
@@ -171,6 +246,22 @@ export const Route = createFileRoute("/api/public/worker/complete")({
               ? `A forgatókönyv nem ért célba: belépés utáni cél oldal ${res?.reached_profile ? "IGEN" : "NEM"}`
               : `A folyamat nem ért célba: fizetés (Stripe) ${res?.reached_stripe ? "IGEN" : "NEM"}, profil oldal ${res?.reached_profile ? "IGEN" : "NEM"}`;
 
+        // ---- Infrastruktúra- (proxy-) hiba felismerés ----
+        // Ha a bukás oka a hálózat/proxy volt (kapcsolat nem épült fel, lassú
+        // proxy, geo-eltérés), akkor NEM a terméket buktatjuk el: külön
+        // „infra_error" státuszt kap, ami a felületen sárga „Proxy hiba".
+        const workerInfraCode =
+          res && res.infra_error === true
+            ? typeof res.infra_code === "string"
+              ? res.infra_code
+              : "proxy_connection"
+            : null;
+        const infraCode =
+          effectiveStatus === "succeeded"
+            ? null
+            : workerInfraCode ?? classifyInfraError(parsed.error);
+        const isInfra = Boolean(infraCode) && effectiveStatus !== "succeeded";
+
         const failedReasons = [
           languageFailed
             ? `Nyelvi ellenőrzés bukott: nem a(z) ${expectedLang ?? "várt"} nyelv jelent meg`
@@ -179,12 +270,29 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           scenarioLegacyFalseFailure ? null : parsed.error ?? null,
         ].filter(Boolean);
 
+        if (isInfra && res) {
+          res.infra_error = true;
+          res.infra_code = infraCode;
+          res.infra_reason = infraLabel(infraCode);
+        }
+
+        const finalStatus = isInfra
+          ? INFRA_STATUS
+          : languageFailed || flowFailed
+            ? "failed"
+            : effectiveStatus;
 
         const update: Record<string, unknown> = {
-          status: languageFailed || flowFailed ? "failed" : effectiveStatus,
+          status: finalStatus,
           logs: trimmedLogs as never,
           result: slimResult as never,
-          error: failedReasons.length > 0 ? failedReasons.join(" — ") : null,
+          error: isInfra
+            ? `Infrastruktúra (proxy) hiba — ${infraLabel(infraCode)}${
+                parsed.error ? `: ${parsed.error}` : ""
+              }`
+            : failedReasons.length > 0
+              ? failedReasons.join(" — ")
+              : null,
           finished_at: new Date().toISOString(),
         };
 
@@ -196,7 +304,7 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           .from("brain_workflow_runs")
           .update(update as never)
           .eq("id", parsed.runId)
-          .select("id, brain_task_id, tenant_id")
+          .select("id, brain_task_id, tenant_id, workflow_id, proxy_id")
           .maybeSingle();
 
 
@@ -206,11 +314,83 @@ export const Route = createFileRoute("/api/public/worker/complete")({
             headers: { "content-type": "application/json" },
           });
 
+        // ---- Proxy-egészség könyvelése ----
+        // Minden futás után frissítjük a proxy statisztikáját: hány hálózati
+        // hibát okozott, milyen lassú. Aki sokat hibázik, pihenőre kerül és a
+        // kiosztásból egy időre kimarad.
+        try {
+          const proxyId = (runRow as { proxy_id?: string | null } | null)?.proxy_id ?? null;
+          if (proxyId) {
+            const pf = (parsed.preflight ?? {}) as { latency_ms?: unknown };
+            const latency =
+              typeof pf.latency_ms === "number" && Number.isFinite(pf.latency_ms)
+                ? Math.round(pf.latency_ms)
+                : null;
+            const { data: proxyRow } = await sb
+              .from("proxies")
+              .select("health_infra_failures, health_success_count, health_avg_latency_ms")
+              .eq("id", proxyId)
+              .maybeSingle();
+            const prev = (proxyRow ?? {}) as {
+              health_infra_failures?: number | null;
+              health_success_count?: number | null;
+              health_avg_latency_ms?: number | null;
+            };
+            const failures = isInfra ? (prev.health_infra_failures ?? 0) + 1 : 0;
+            const avg =
+              latency === null
+                ? (prev.health_avg_latency_ms ?? null)
+                : prev.health_avg_latency_ms
+                  ? Math.round(prev.health_avg_latency_ms * 0.7 + latency * 0.3)
+                  : latency;
+            const patch: Record<string, unknown> = {
+              health_infra_failures: failures,
+              health_avg_latency_ms: avg,
+            };
+            if (isInfra) {
+              patch.health_last_infra_at = new Date().toISOString();
+              patch.health_last_infra_code = infraCode;
+              // 3 egymást követő hálózati hiba után 2 óra pihenő.
+              if (failures >= 3) {
+                patch.health_paused_until = new Date(
+                  Date.now() + 2 * 60 * 60 * 1000,
+                ).toISOString();
+              }
+            } else {
+              patch.health_success_count = (prev.health_success_count ?? 0) + 1;
+              patch.health_paused_until = null;
+            }
+            await sb.from("proxies").update(patch as never).eq("id", proxyId);
+          }
+        } catch (e) {
+          console.error("[complete] proxy-egészség frissítése sikertelen:", e);
+        }
+
+        // ---- Automatikus újrapróbálás másik proxyval ----
+        // Infra-hiba esetén egyszer újrapróbáljuk a futást egy másik, azonos
+        // országú (ha nincs, bármely aktív) proxyval. Csak ha az is elbukik,
+        // marad hibás a kör.
+        if (isInfra) {
+          try {
+            await requeueWithAnotherProxy(sb, {
+              runId: parsed.runId,
+              tenantId: (runRow as { tenant_id?: string | null } | null)?.tenant_id ?? null,
+              workflowId: (runRow as { workflow_id?: string | null } | null)?.workflow_id ?? null,
+              proxyId: (runRow as { proxy_id?: string | null } | null)?.proxy_id ?? null,
+              spec: specSnapshot,
+              infraCode,
+            });
+          } catch (e) {
+            console.error("[complete] infra újrapróbálás sikertelen:", e);
+          }
+        }
+
         // Teszt fiók állapota: ha a Sign Up futás végigment, a hozzá tartozó
         // alias e-mail + jelszó pár „regisztrált" lesz, így később belépésre
-        // használható; ha bukott, jelöljük hibásnak.
+        // használható; ha bukott, jelöljük hibásnak. Infra- (proxy-) hibánál
+        // nem bélyegezzük hibásnak a fiókot, mert nem rajta múlt.
         try {
-          if (flowChecked) {
+          if (flowChecked && !isInfra) {
             const registered = !languageFailed && !flowFailed && effectiveStatus === "succeeded";
             await sb
               .from("audit_test_accounts")
@@ -223,6 +403,7 @@ export const Route = createFileRoute("/api/public/worker/complete")({
         } catch (e) {
           console.error("[complete] teszt fiók állapot frissítése sikertelen:", e);
         }
+
 
         // Warmup cookie-jar persist — ha a worker `cookies_export`-tal tért vissza,
         // titkosítva beírjuk a workflow_credentials.cookie_ciphertext mezőbe.

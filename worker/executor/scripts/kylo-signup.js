@@ -20,6 +20,7 @@ import { humanClick, humanType } from "./humanize.js";
 import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
 import { billingProfile } from "./billing-locales.js";
 import { checkStripeCurrency, expectedCurrency } from "./currency-rules.js";
+import { scaleMs } from "./proxy-health.js";
 
 // Számlázási űrlap tesztadatai — ország-konzisztensen (lásd billing-locales.js).
 // Ha nem tudjuk az országot, US-t használunk.
@@ -223,7 +224,7 @@ async function acceptCookies(page, log) {
     try {
       const btn = await page.$(sel);
       if (btn) {
-        await btn.click({ timeout: 1500 });
+        await btn.click({ timeout: scaleMs(1500) });
         log("info", `Cookie banner elfogadva: ${sel}`);
         await page.waitForTimeout(600);
         return true;
@@ -242,7 +243,7 @@ async function clickByText(page, hints, log, label, options = {}) {
   const marker = `kylo-worker-target-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   // Ha közben navigál az oldal, a page.evaluate „Execution context was destroyed"
   // hibát dob — ez nem futáshiba, csak újra kell próbálni a betöltés után.
-  await page.waitForLoadState("domcontentloaded", { timeout: 8000 }).catch(() => {});
+  await page.waitForLoadState("domcontentloaded", { timeout: scaleMs(8000) }).catch(() => {});
   const findTarget = () => page.evaluate(({ lowerHints, lowerRejects, marker }) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
     const nodes = Array.from(
@@ -282,7 +283,7 @@ async function clickByText(page, hints, log, label, options = {}) {
   let found = await findTarget().catch(() => "retry");
   if (found === "retry") {
     // navigáció közben kaptuk el az oldalt — megvárjuk és újrapróbáljuk
-    await page.waitForLoadState("domcontentloaded", { timeout: 10000 }).catch(() => {});
+    await page.waitForLoadState("domcontentloaded", { timeout: scaleMs(10000) }).catch(() => {});
     await page.waitForTimeout(1200);
     found = await findTarget().catch(() => null);
   }
@@ -293,7 +294,7 @@ async function clickByText(page, hints, log, label, options = {}) {
   const handle = await page.$(`[data-kylo-worker-target="${marker}"]`).catch(() => null);
   try {
     if (handle) {
-      await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
+      await humanClick(page, handle, { noMisclick: true, timeout: scaleMs(4000) });
     } else {
       await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-target="${marker}"]`)?.click(), marker);
     }
@@ -392,7 +393,7 @@ async function clickAuthSignupToggle(page, log) {
     return false;
   }
   const handle = await page.$(`[data-kylo-signup-toggle="${marker}"]`);
-  if (handle) await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
+  if (handle) await humanClick(page, handle, { noMisclick: true, timeout: scaleMs(4000) });
   else await page.evaluate((marker) => document.querySelector(`[data-kylo-signup-toggle="${marker}"]`)?.click(), marker);
   await page.evaluate((marker) => {
     document.querySelectorAll(`[data-kylo-signup-toggle="${marker}"]`).forEach((el) => el.removeAttribute("data-kylo-signup-toggle"));
@@ -488,7 +489,7 @@ async function tickRequiredCheckboxes(page, log) {
     const handle = await page.$(`[data-kylo-worker-checkbox="${item.marker}"]`);
     if (!handle) continue;
     try {
-      await humanClick(page, handle, { noMisclick: true, timeout: 3000 });
+      await humanClick(page, handle, { noMisclick: true, timeout: scaleMs(3000) });
       log("info", `Checkbox bepipálva: ${item.label || item.marker}`);
     } catch (e) {
       log("warn", `Checkbox kattintás hiba: ${e.message}`);
@@ -573,7 +574,7 @@ async function clearOptionalRoleCheckboxes(page, log) {
       const handle = await page.$(`[data-kylo-role-clear="${item.marker}"]`);
       if (!handle) continue;
       try {
-        await humanClick(page, handle, { noMisclick: true, timeout: 3000 });
+        await humanClick(page, handle, { noMisclick: true, timeout: scaleMs(3000) });
         log("info", `Szerepkör kikapcsolva (Pro csomaghoz nem kell): ${item.id}`);
         await page.waitForTimeout(500);
         await closeJoinModalIfOpen(page, log);
@@ -669,7 +670,7 @@ async function selectComboboxOption(page, log, config) {
   });
   if (!found) return false;
   const handle = await page.$(`[data-kylo-combo="${marker}"]`);
-  if (handle) await humanClick(page, handle, { noMisclick: true, timeout: 3000 });
+  if (handle) await humanClick(page, handle, { noMisclick: true, timeout: scaleMs(3000) });
   await page.waitForTimeout(800);
   const optionMarker = `${marker}-option`;
   const option = await page.evaluate(({ optionMarker, optionTexts }) => {
@@ -699,7 +700,7 @@ async function selectComboboxOption(page, log, config) {
     return false;
   }
   const optionHandle = await page.$(`[data-kylo-combo-option="${optionMarker}"]`);
-  if (optionHandle) await humanClick(page, optionHandle, { noMisclick: true, timeout: 3000 });
+  if (optionHandle) await humanClick(page, optionHandle, { noMisclick: true, timeout: scaleMs(3000) });
   else await page.evaluate((optionMarker) => document.querySelector(`[data-kylo-combo-option="${optionMarker}"]`)?.click(), optionMarker);
   log("info", `${config.label} kiválasztva: ${option.text}`);
   await page.waitForTimeout(700);
@@ -745,14 +746,14 @@ async function fillSignupForm(page, email, password, log, recordedPlan = []) {
   let filledEmail = 0;
   let filledPw = 0;
   if (emailField) {
-    await emailField.click({ timeout: 3000 }).catch(() => {});
-    await emailField.fill("", { timeout: 3000 }).catch(() => {});
+    await emailField.click({ timeout: scaleMs(3000) }).catch(() => {});
+    await emailField.fill("", { timeout: scaleMs(3000) }).catch(() => {});
     await humanType(page, email, { typoRate: 0, meanCharMs: 55 });
     filledEmail = 1;
   }
   for (const el of pwFields.slice(0, 2)) {
-    await el.click({ timeout: 3000 }).catch(() => {});
-    await el.fill("", { timeout: 3000 }).catch(() => {});
+    await el.click({ timeout: scaleMs(3000) }).catch(() => {});
+    await el.fill("", { timeout: scaleMs(3000) }).catch(() => {});
     await humanType(page, password, { typoRate: 0, meanCharMs: 45 });
     filledPw++;
   }
@@ -794,8 +795,8 @@ async function fillSignupForm(page, email, password, log, recordedPlan = []) {
     const el = await page.$(`#${id}`);
     if (!el) return false;
     try {
-      await el.click({ timeout: 2000 }).catch(() => {});
-      await el.fill(String(value), { timeout: 3000 });
+      await el.click({ timeout: scaleMs(2000) }).catch(() => {});
+      await el.fill(String(value), { timeout: scaleMs(3000) });
       extraFilled[id] = value;
       return true;
     } catch (e) {
@@ -825,8 +826,8 @@ async function fillSignupForm(page, email, password, log, recordedPlan = []) {
     const el = await page.$(`input[placeholder="${spec.placeholder}"]`);
     if (!el) continue;
     try {
-      await el.click({ timeout: 2000 }).catch(() => {});
-      await el.fill(spec.value, { timeout: 3000 });
+      await el.click({ timeout: scaleMs(2000) }).catch(() => {});
+      await el.fill(spec.value, { timeout: scaleMs(3000) });
       extraFilled[`date_${spec.placeholder}`] = spec.value;
     } catch (e) {
       log("warn", `Dátum mező (${spec.placeholder}) kitöltési hiba: ${e.message}`);
@@ -907,7 +908,7 @@ async function submitForm(page, log) {
   }, marker);
   if (found) {
     const handle = await page.$(`[data-kylo-worker-submit="${marker}"]`);
-    if (handle) await humanClick(page, handle, { noMisclick: true, timeout: 4000 });
+    if (handle) await humanClick(page, handle, { noMisclick: true, timeout: scaleMs(4000) });
     else await page.evaluate((marker) => document.querySelector(`[data-kylo-worker-submit="${marker}"]`)?.click(), marker);
     log("info", `Regisztráció submit megnyomva: „${found.text || "submit"}".`);
     // Diagnosztika: mi takarja a gombot, és mely kötelező mezők üresek/érvénytelenek?
@@ -1144,7 +1145,7 @@ async function requestConfirmationResend(page, log) {
     const el = handle.asElement();
     if (!el) return false;
     await el.scrollIntoViewIfNeeded().catch(() => {});
-    await el.click({ timeout: 5000 });
+    await el.click({ timeout: scaleMs(5000) });
     log("info", "Megerősítő e-mail újraküldése kérve.");
     await page.waitForTimeout(2500);
     return true;
@@ -1172,7 +1173,7 @@ async function openGmailConfirmationLink(page, email, log) {
         });
         if (res?.link) {
           log("info", `Gmail ${attempt}/${MAX_ATTEMPTS} — TALÁLAT: feladó=${res.from || "?"}, tárgy="${res.subject || "?"}", link=${res.link.slice(0, 80)}…`);
-          await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: 45000 });
+          await page.goto(res.link, { waitUntil: "domcontentloaded", timeout: scaleMs(45000) });
           await page.waitForTimeout(2500);
           return { ok: true, subject: res.subject || null, from: res.from || null, snippet: res.snippet || null, url: page.url() };
         }
@@ -1225,7 +1226,7 @@ async function signInAfterConfirmation(page, email, password, log) {
       return { ok: true, reason: `már belépve (${alreadyIn})`, url: page.url() };
     }
 
-    await page.goto("https://kylo.study/regisztracio", { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.goto("https://kylo.study/regisztracio", { waitUntil: "domcontentloaded", timeout: scaleMs(45000) });
     await page.waitForTimeout(2500);
 
     for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -1242,8 +1243,8 @@ async function signInAfterConfirmation(page, email, password, log) {
         await page.waitForTimeout(2000);
         continue;
       }
-      await emailInput.fill(email, { timeout: 5000 }).catch(() => {});
-      await pwInput.fill(password, { timeout: 5000 }).catch(() => {});
+      await emailInput.fill(email, { timeout: scaleMs(5000) }).catch(() => {});
+      await pwInput.fill(password, { timeout: scaleMs(5000) }).catch(() => {});
       await page.waitForTimeout(600);
       const clicked = await clickByText(page, ["sign in", "log in", "login", "belép", "bejelentkez"], log, "Belépés", {});
       await page.waitForTimeout(6000);
@@ -1437,7 +1438,7 @@ async function pickFirstEmptyCombobox(page, log) {
   if (!found) return false;
   const handle = await page.$(`[data-kylo-empty-combo="${marker}"]`);
   if (!handle) return false;
-  await humanClick(page, handle, { noMisclick: true, timeout: 3000 }).catch(() => {});
+  await humanClick(page, handle, { noMisclick: true, timeout: scaleMs(3000) }).catch(() => {});
   await page.waitForTimeout(600);
   const ok = await page
     .evaluate(() => {
@@ -1633,7 +1634,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   }
 
   // 1) főoldal
-  await page.goto(startUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
+  await page.goto(startUrl, { waitUntil: "domcontentloaded", timeout: scaleMs(45000) });
 
   await page.waitForTimeout(1500);
   screenshots.push(await shot(page, "1-home"));
@@ -1721,7 +1722,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
     }, CLICK_HINTS_SIGNUP.map((h) => h.toLowerCase()));
     if (href && !/waitlist|priority|dismiss/i.test(href)) {
       log("info", `Sign Up link href: ${href} — közvetlen navigáció`);
-      await page.goto(href, { waitUntil: "domcontentloaded", timeout: 20000 }).catch((e) => log("warn", `goto hiba: ${e.message}`));
+      await page.goto(href, { waitUntil: "domcontentloaded", timeout: scaleMs(20000) }).catch((e) => log("warn", `goto hiba: ${e.message}`));
       await page.waitForTimeout(1500);
       signupNavigated = page.url() !== beforeSignupUrl;
     }
@@ -1852,7 +1853,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   try {
     if (!/\/elofizetes|\/subscription|\/plans/i.test(page.url()) && !isStripeUrl(page.url())) {
       log("info", `Nem a csomagválasztón állunk (${page.url()}) — átnavigálok az előfizetési oldalra.`);
-      await page.goto("https://kylo.study/elofizetesek?role=pro&first=true", { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.goto("https://kylo.study/elofizetesek?role=pro&first=true", { waitUntil: "domcontentloaded", timeout: scaleMs(45000) });
       await page.waitForTimeout(3000);
     }
   } catch (e) {
@@ -1877,7 +1878,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
     let payClicked = await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább");
     // A gomb után az oldal navigálhat (Stripe) — előbb hagyjuk leülni,
     // csak utána nyúlunk megint a DOM-hoz, különben „megszűnt a kontextus" hibát kapunk.
-    await page.waitForLoadState("domcontentloaded", { timeout: 15000 }).catch(() => {});
+    await page.waitForLoadState("domcontentloaded", { timeout: scaleMs(15000) }).catch(() => {});
     await page.waitForTimeout(4000);
 
     // Ha nem indult el a fizetés, megnézzük mi tiltja (üres kötelező mező,
@@ -1898,7 +1899,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
         billingFilled = (await fillBillingForm(page, email, log, billing)) || billingFilled;
         await page.waitForTimeout(1200);
         payClicked = (await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább (2. próba)")) || payClicked;
-        await page.waitForLoadState("domcontentloaded", { timeout: 15000 }).catch(() => {});
+        await page.waitForLoadState("domcontentloaded", { timeout: scaleMs(15000) }).catch(() => {});
       }
     }
 
@@ -1956,7 +1957,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
       if (!reloaded && Date.now() > renderDeadline - 35_000) {
         reloaded = true;
         log("warn", "Stripe oldal üresen maradt — újratöltés.");
-        await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 }).catch(() => {});
+        await page.reload({ waitUntil: "domcontentloaded", timeout: scaleMs(45000) }).catch(() => {});
       }
       await page.waitForTimeout(2000);
     }
@@ -1991,7 +1992,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   let stripeSubmitted = false;
   if (reachedStripe) {
     try {
-      await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
+      await page.waitForLoadState("networkidle", { timeout: scaleMs(20000) }).catch(() => {});
       await page.waitForTimeout(1500);
 
       // Email (ha nincs előre kitöltve)
@@ -2000,7 +2001,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
         if (emailInput) {
           const val = await emailInput.inputValue().catch(() => "");
           if (!val) {
-            await emailInput.fill(email, { timeout: 3000 });
+            await emailInput.fill(email, { timeout: scaleMs(3000) });
             log("info", "Stripe: email kitöltve");
           }
         }
@@ -2100,8 +2101,8 @@ export async function runKyloSignup({ page, context, spec, log }) {
               if (!el) continue;
               const visible = await el.isVisible().catch(() => false);
               if (!visible) continue;
-              await el.click({ timeout: 3000 }).catch(() => {});
-              await el.fill("", { timeout: 3000 }).catch(() => {});
+              await el.click({ timeout: scaleMs(3000) }).catch(() => {});
+              await el.fill("", { timeout: scaleMs(3000) }).catch(() => {});
               await el.type(value, { delay: 60 });
               const got = await el.inputValue().catch(() => "");
               if (got && got.replace(/\s/g, "").length >= 3) {
@@ -2187,7 +2188,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
             else if (/city|locality/i.test(n + ac)) value = billing.city;
             else if (/address|street|line1/i.test(n + ac)) value = billing.line1;
             try {
-              await target.fill(value, { timeout: 3000 });
+              await target.fill(value, { timeout: scaleMs(3000) });
               filled.push(`${n}=${value}`);
             } catch {}
             void sel;
@@ -2275,10 +2276,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
             if (!label) continue;
             const loc = sc.locator('[data-kylo-pay="1"]').first();
             try {
-              await loc.scrollIntoViewIfNeeded({ timeout: 3000 });
+              await loc.scrollIntoViewIfNeeded({ timeout: scaleMs(3000) });
               await page.waitForTimeout(500); // hagyjuk leülni a layout ugrást
-              await loc.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
-              await loc.click({ timeout: 5000 });
+              await loc.scrollIntoViewIfNeeded({ timeout: scaleMs(3000) }).catch(() => {});
+              await loc.click({ timeout: scaleMs(5000) });
               submitted = true;
               log("info", `Stripe fizetés gomb megnyomva (görgetés után): „${label}" — ${attempt}. próba.`);
             } catch (e) {
@@ -2354,8 +2355,8 @@ export async function runKyloSignup({ page, context, spec, log }) {
                 if (!label) continue;
                 const loc = sc.locator('[data-kylo-pay="1"]').first();
                 try {
-                  await loc.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
-                  await loc.click({ timeout: 5000 });
+                  await loc.scrollIntoViewIfNeeded({ timeout: scaleMs(3000) }).catch(() => {});
+                  await loc.click({ timeout: scaleMs(5000) });
                   retried = true;
                   log("info", `Stripe: újrabeküldés a pótlás után — „${label}"`);
                 } catch {}

@@ -5,6 +5,7 @@ import { ClipboardCopy, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { INFRA_STATUS, infraLabel } from "@/lib/infra-errors";
 
 export type BatchRun = {
   id: string;
@@ -43,6 +44,10 @@ type SignupResult = {
     reason?: string | null;
   }>;
   ai_explanation?: { text?: string };
+  infra_error?: boolean;
+  infra_code?: string;
+  infra_reason?: string;
+  proxy_profile?: { tier?: string; latency_ms?: number };
 };
 
 function readSpec(spec: unknown): SignupSpec {
@@ -62,7 +67,26 @@ const SCOPE_LABEL: Record<string, string> = {
 };
 
 function isFailed(status: string) {
+  // Proxy/hálózati hiba NEM termékhiba — külön kategória.
+  if (status === INFRA_STATUS) return false;
   return status === "failed" || status === "timed_out" || status === "cancelled";
+}
+
+function isInfra(status: string) {
+  return status === INFRA_STATUS;
+}
+
+function infraBlock(run: BatchRun): string {
+  const spec = readSpec(run.spec_snapshot);
+  const res = readRes(run.result);
+  const speed = res.proxy_profile?.tier
+    ? ` · proxysebesség: ${res.proxy_profile.tier}${
+        res.proxy_profile.latency_ms ? ` (${res.proxy_profile.latency_ms} ms)` : ""
+      }`
+    : "";
+  return `  - Futás #${spec.run_index ?? "?"} (${spec.expected_country ?? "?"}): ${
+    res.infra_reason ?? infraLabel(res.infra_code)
+  }${speed}`;
 }
 
 function runBlock(run: BatchRun): string {
@@ -118,17 +142,25 @@ function runBlock(run: BatchRun): string {
 export function buildBatchReport(batchId: string, runs: BatchRun[]): string {
   const first = readSpec(runs[0]?.spec_snapshot);
   const failed = runs.filter((r) => isFailed(r.status));
+  const infra = runs.filter((r) => isInfra(r.status));
   const ok = runs.filter((r) => r.status === "succeeded").length;
   const header = [
     "KYLO SIGN UP — HIBÁS FUTÁSOK ÖSSZESÍTETT NAPLÓJA",
     `Batch: ${SCOPE_LABEL[first.batch_scope ?? ""] ?? first.batch_scope ?? "?"} (batch_id: ${batchId})`,
     `Batch indítva: ${first.batch_started_at ? new Date(first.batch_started_at).toLocaleString("hu-HU") : "?"}`,
-    `Futások: ${runs.length} · sikeres: ${ok} · hibás: ${failed.length}`,
+    `Futások: ${runs.length} · sikeres: ${ok} · hibás: ${failed.length} · proxy hiba (nem Kylo): ${infra.length}`,
     `Hibás futások sorszámai: ${failed.map((r) => `#${readSpec(r.spec_snapshot).run_index ?? "?"}`).join(", ") || "—"}`,
     "",
   ].join("\n");
-  if (failed.length === 0) return `${header}Ebben a körben nem volt hibás futás.`;
-  return header + failed.map(runBlock).join("\n\n");
+  const infraSection =
+    infra.length > 0
+      ? `\nPROXY / HÁLÓZATI HIBÁK (nem Kylo hibája, a rendszer újrapróbálta):\n${infra
+          .map(infraBlock)
+          .join("\n")}\n`
+      : "";
+  if (failed.length === 0)
+    return `${header}Ebben a körben nem volt Kylo-oldali hibás futás.\n${infraSection}`;
+  return header + failed.map(runBlock).join("\n\n") + "\n" + infraSection;
 }
 
 export function BatchErrorReports({ runs }: { runs: BatchRun[] }) {
@@ -185,8 +217,9 @@ function BatchRow({
 }) {
   const [open, setOpen] = useState(false);
   const failed = runs.filter((r) => isFailed(r.status));
+  const infra = runs.filter((r) => isInfra(r.status));
   const ok = runs.filter((r) => r.status === "succeeded").length;
-  const pending = runs.length - failed.length - ok;
+  const pending = runs.length - failed.length - ok - infra.length;
   const report = buildBatchReport(batchId, runs);
 
   return (
@@ -213,22 +246,29 @@ function BatchRow({
         <Badge variant="outline" className="border-red-500/40 bg-red-500/15 text-red-400">
           hibás: {failed.length}
         </Badge>
+        {infra.length > 0 && (
+          <Badge variant="outline" className="border-amber-500/40 bg-amber-500/15 text-amber-400">
+            proxy hiba: {infra.length}
+          </Badge>
+        )}
         {pending > 0 && <Badge variant="outline">folyamatban: {pending}</Badge>}
         <Button
           size="sm"
           variant="outline"
           className="ml-auto"
-          disabled={failed.length === 0}
+          disabled={failed.length === 0 && infra.length === 0}
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(report);
-              toast.success(`${failed.length} hibás futás naplója a vágólapon.`);
+              toast.success(
+                `${failed.length} hibás futás naplója a vágólapon${infra.length > 0 ? ` (+ ${infra.length} proxy hiba külön jelölve)` : ""}.`,
+              );
             } catch {
               toast.error("A böngésző nem engedte a vágólapra másolást.");
             }
           }}
           title={
-            failed.length === 0
+            failed.length === 0 && infra.length === 0
               ? "Ebben a körben nincs hibás futás"
               : "Az összes hibás futás naplója egyben"
           }

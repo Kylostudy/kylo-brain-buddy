@@ -34,6 +34,16 @@ import { runKyloSignup } from "./scripts/kylo-signup.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 import { buildFingerprintInitScript } from "./scripts/fingerprint-patch.js";
 import {
+  classifyInfra,
+  setProxyLatency,
+  getProxyProfile,
+  scaleMs,
+  isProxyCriticallySlow,
+  infraResult,
+  INFRA_LABELS,
+} from "./scripts/proxy-health.js";
+
+import {
   isBrainTask,
   needsBrowser,
   runBrainTask,
@@ -369,15 +379,29 @@ async function main() {
 
 
   // ---- 1. LÉPÉS: whoer.net preflight (mindig, még proxy nélkül is informatív). ----
+  // A preflight betöltési ideje egyben proxysebesség-mérés is: ebből állítjuk
+  // be az összes későbbi türelmi időt (adaptív timeout).
   log("info", "Preflight indul: whoer.net IP-ellenőrzés…");
+  const preflightStartedAt = Date.now();
   const preflight = await whoerPreflight(context, expectedCountry);
+  const preflightMs = Date.now() - preflightStartedAt;
+  const speed = setProxyLatency(preflightMs);
+  preflight.latency_ms = preflightMs;
+  preflight.speed_tier = speed.tier;
   emitPreflight(preflight);
+  log(
+    "info",
+    `Proxysebesség: ${speed.label} (${preflightMs} ms) — türelmi idők szorzója: ${speed.multiplier}×`,
+  );
   if (!preflight.ok) {
+    const cls = classifyInfra(preflight.error || "");
+    const infraCode = cls.infra ? cls.code : "proxy_connection";
     log("error", preflight.error || "Preflight sikertelen.");
+    log("warn", `Infrastruktúra-hiba (proxy): ${INFRA_LABELS[infraCode]}`);
     await browser.close().catch(() => {});
     return finish(
       "failed",
-      null,
+      infraResult(null, infraCode, preflight.error),
       preflight.error ||
         "Preflight sikertelen — a cél oldal biztonsági okból nem lett megnyitva.",
     );
@@ -387,6 +411,16 @@ async function main() {
     "info",
     `Preflight OK — IP ${preflight.ip ?? "?"} · ${preflight.country_code ?? "?"} · ${preflight.city ?? ""}`,
   );
+
+  // Adaptív alap-időkorlátok: minden későbbi művelet a mért proxysebességhez
+  // igazodik, így lassú proxyn sem bukunk el fölöslegesen.
+  try {
+    context.setDefaultTimeout(scaleMs(30000));
+    context.setDefaultNavigationTimeout(scaleMs(45000));
+  } catch (e) {
+    log("warn", `Adaptív időkorlát beállítás hiba: ${e.message}`);
+  }
+
 
 
   // ---- 2. LÉPÉS: Fingerprint audit (első run + heti) ---------------------
@@ -503,6 +537,7 @@ async function main() {
     if (fingerprintAudit) {
       result = { ...(result || {}), fingerprint_audit: fingerprintAudit };
     }
+    result = { ...(result || {}), proxy_profile: getProxyProfile() };
 
     await browser.close();
     finish("succeeded", result);
@@ -511,8 +546,22 @@ async function main() {
     await browser.close().catch(() => {});
     // Ha a script részeredményt (screenshotok, nyelvi ellenőrzések) csatolt a
     // hibához, azt megtartjuk, hogy a riportban látszódjon, meddig jutott.
-    finish("failed", e.partialResult ?? null, e.message);
+    const partial = { ...(e.partialResult ?? {}), proxy_profile: getProxyProfile() };
+    // Infrastruktúra-hiba? Akkor nem a terméket buktatjuk el, hanem külön
+    // „proxy hiba" jelölést kap a futás — a szerver ebből csinál sárga státuszt.
+    const cls = classifyInfra(e.message);
+    const infraCode = cls.infra
+      ? cls.code
+      : isProxyCriticallySlow() && /timeout|időtúllépés/i.test(String(e.message))
+        ? "slow_proxy"
+        : null;
+    if (infraCode) {
+      log("warn", `Infrastruktúra-hiba (proxy): ${INFRA_LABELS[infraCode]} — a futás nem termékhiba.`);
+      return finish("failed", infraResult(partial, infraCode, e.message), e.message);
+    }
+    finish("failed", partial, e.message);
   }
+
 
 }
 
