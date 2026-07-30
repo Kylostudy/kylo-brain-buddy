@@ -95,6 +95,22 @@ const COOKIE_BUTTONS = [
   'button:has-text("Accept")',
   'button:has-text("Accept all")',
   'button:has-text("I agree")',
+  'button:has-text("Godkänn")',
+  'button:has-text("Hyväksy")',
+  'button:has-text("Accepteren")',
+  'button:has-text("Akzeptieren")',
+  'button:has-text("Zustimmen")',
+  'button:has-text("Accepter")',
+  'button:has-text("Aceptar")',
+  'button:has-text("Aceitar")',
+  'button:has-text("Accetta")',
+  'button:has-text("Akceptuj")',
+  'button:has-text("Kabul")',
+  'button:has-text("同意")',
+  'button:has-text("同意する")',
+  'button:has-text("접수")',
+  'button:has-text("Godta")',
+  'button:has-text("Accepter alle")',
 ];
 
 const AUTH_DIAG_MAX = 60;
@@ -330,8 +346,8 @@ async function inspectAuthForm(page) {
       .filter((b) => b.text);
     const submitButtons = buttons.filter((b) => b.type === "submit");
     const allText = buttons.map((b) => b.text.toLowerCase()).join(" | ");
-    const signupRe = /sign\s*up|signup|create account|register|registration|regisztr|fiók létrehoz|nincs fiókod|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
-    const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
+    const signupRe = /sign\s*up|signup|create account|regist|regisztr|rejestr|zarejestr|rekister|kaydol|kay[ıi]t ol|üye ol|cadastr|criar conta|crear cuenta|cr[ée]er un compte|s'inscrire|inscri|iscriviti|konto erstellen|nieuw account|fiók létrehoz|nincs fiókod|don'?t have an account|no account|登録|新規登録|注册|註冊|회원가입|가입/i;
+    const signinRe = /sign\s*in|signin|log\s*in|login|logga in|kirjaudu|inloggen|zaloguj|giri[şs] yap|entrar|belép|bejelentkez|ログイン|登录|登入|로그인|iniciar sesi[óo]n|accedi|anmelden|connexion|se connecter/i;
     const emailFields = Array.from(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]')).filter(visible).length;
     const passwordFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(visible).length;
     const signupExtraFields = Array.from(document.querySelectorAll('#username, #keresztnev, #vezeteknev, #iranyitoszam, #utcaNev, #hazszam, input[placeholder="YYYY"], input[placeholder="ÉÉÉÉ"]')).filter(visible).length;
@@ -359,8 +375,8 @@ async function clickAuthSignupToggle(page, log) {
   const marker = `kylo-signup-toggle-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const found = await page.evaluate(({ marker }) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
-    const signupRe = /sign\s*up|signup|create account|register!?|registration|regisztr|fiók létrehoz|nincs fiókod|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
-    const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
+    const signupRe = /sign\s*up|signup|create account|regist|regisztr|rejestr|zarejestr|rekister|kaydol|kay[ıi]t ol|üye ol|cadastr|criar conta|crear cuenta|cr[ée]er un compte|s'inscrire|inscri|iscriviti|konto erstellen|nieuw account|fiók létrehoz|nincs fiókod|don'?t have an account|no account|登録|新規登録|注册|註冊|회원가입|가입/i;
+    const signinRe = /sign\s*in|signin|log\s*in|login|logga in|kirjaudu|inloggen|zaloguj|giri[şs] yap|entrar|belép|bejelentkez|ログイン|登录|登入|로그인|iniciar sesi[óo]n|accedi|anmelden|connexion|se connecter/i;
     const visible = (el) => {
       const r = el.getBoundingClientRect();
       const st = window.getComputedStyle(el);
@@ -886,8 +902,8 @@ async function submitForm(page, log) {
   const marker = `kylo-submit-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const found = await page.evaluate((marker) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
-    const signupRe = /sign\s*up|signup|create account|register|registration|regisztr|fiók létrehoz|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
-    const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
+    const signupRe = /sign\s*up|signup|create account|regist|regisztr|rejestr|zarejestr|rekister|kaydol|kay[ıi]t ol|üye ol|cadastr|criar conta|crear cuenta|cr[ée]er un compte|s'inscrire|inscri|iscriviti|konto erstellen|nieuw account|fiók létrehoz|nincs fiókod|don'?t have an account|no account|登録|新規登録|注册|註冊|회원가입|가입/i;
+    const signinRe = /sign\s*in|signin|log\s*in|login|logga in|kirjaudu|inloggen|zaloguj|giri[şs] yap|entrar|belép|bejelentkez|ログイン|登录|登入|로그인|iniciar sesi[óo]n|accedi|anmelden|connexion|se connecter/i;
     const btns = Array.from(document.querySelectorAll(
       'button[type="submit"], input[type="submit"], form button',
     ));
