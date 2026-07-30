@@ -374,8 +374,28 @@ export const startScenarioRun = createServerFn({ method: "POST" })
       return rec as unknown[];
     }
 
+    // A belépés SOHA nem öröklődik sütiből: minden futás elején tényleg
+    // belépünk, így a belépési flow is tesztelve van. Ezért a belépés-kockát
+    // automatikusan az előjátékok elejére fűzzük, ha nincs kézzel kiválasztva.
+    const preludeIds = [...((sc.prelude_block_ids as string[] | null) ?? [])];
+    let loginBlockId: string | null = null;
+    if (sc.kind !== "block") {
+      const { data: loginBlocks } = await supabase
+        .from("audit_scenarios")
+        .select("id, name, feature_tag, steps, workflow_id")
+        .eq("tenant_id", tenantId)
+        .eq("kind", "block")
+        .eq("is_active", true);
+      const match = (loginBlocks ?? []).find((b: any) =>
+        /login|belep|belép|sign\s*in/i.test(`${b.feature_tag ?? ""} ${b.name ?? ""}`),
+      );
+      if (match) {
+        loginBlockId = match.id as string;
+        if (!preludeIds.includes(loginBlockId)) preludeIds.unshift(loginBlockId);
+      }
+    }
+
     // Előjáték-kockák lépései a saját lépések elé fűzve.
-    const preludeIds = (sc.prelude_block_ids as string[] | null) ?? [];
     let composed: unknown[] = [];
     if (preludeIds.length > 0) {
       const { data: blocks } = await supabase
@@ -390,6 +410,12 @@ export const startScenarioRun = createServerFn({ method: "POST" })
     }
     composed = composed.concat(await stepsOf(sc));
     if (composed.length === 0) throw new Error("A forgatókönyvnek nincs egyetlen lépése sem.");
+    if (sc.kind !== "block" && !loginBlockId) {
+      throw new Error(
+        "Nincs aktív belépés építőkocka. Vegyél fel egyet (feature tag: login), mert minden futás valódi belépéssel indul.",
+      );
+    }
+
 
 
     // Melyik vizsgákra futtassunk? (csak ha a forgatókönyv így van beállítva)
