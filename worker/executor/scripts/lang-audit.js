@@ -9,6 +9,8 @@
 //    a proxy geolokációja szerinti nyelven kell megjelennie,
 //  - a Stripe checkout kivétel: azt nem mi fordítjuk, nem ellenőrizzük.
 
+import { visionExtract } from "./brain-tasks/brain-api.js";
+
 export const LANG_MARKERS = {
   en: ["the", "and", "your", "with", "sign in", "password", "account", "free", "price", "start"],
   hu: ["és", "hogy", "jelszó", "bejelentkezés", "fiók", "ingyenes", "árak", "beállítások", "előfizetés"],
