@@ -1026,6 +1026,12 @@ export type Database = {
           fingerprint_user_agent: string | null
           fingerprint_viewport_h: number | null
           fingerprint_viewport_w: number | null
+          health_avg_latency_ms: number | null
+          health_infra_failures: number
+          health_last_infra_at: string | null
+          health_last_infra_code: string | null
+          health_paused_until: string | null
+          health_success_count: number
           host: string
           id: string
           is_active: boolean
@@ -1057,6 +1063,12 @@ export type Database = {
           fingerprint_user_agent?: string | null
           fingerprint_viewport_h?: number | null
           fingerprint_viewport_w?: number | null
+          health_avg_latency_ms?: number | null
+          health_infra_failures?: number
+          health_last_infra_at?: string | null
+          health_last_infra_code?: string | null
+          health_paused_until?: string | null
+          health_success_count?: number
           host: string
           id?: string
           is_active?: boolean
@@ -1088,6 +1100,12 @@ export type Database = {
           fingerprint_user_agent?: string | null
           fingerprint_viewport_h?: number | null
           fingerprint_viewport_w?: number | null
+          health_avg_latency_ms?: number | null
+          health_infra_failures?: number
+          health_last_infra_at?: string | null
+          health_last_infra_code?: string | null
+          health_paused_until?: string | null
+          health_success_count?: number
           host?: string
           id?: string
           is_active?: boolean
