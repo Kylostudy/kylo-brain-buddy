@@ -2632,6 +2632,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
     lang,
     currency,
     expected_lang: lang,
+    geo_country: geoCountry,
+    detected_country: detectedCC,
+    proxy_label_country: labelCC,
+
     reached_stripe: reachedStripe,
     currency_check: currencyCheck,
     expected_currency: currencyCheck.expected_currency,
