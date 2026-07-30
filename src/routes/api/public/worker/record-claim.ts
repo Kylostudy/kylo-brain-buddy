@@ -97,7 +97,21 @@ async function loadWorkflowProxy(
     .select("proxy_id, cookie_ciphertext, cookie_nonce")
     .eq("workflow_id", workflowId);
 
-  const proxyId = creds?.find((c) => c.proxy_id)?.proxy_id || null;
+  let proxyId = creds?.find((c) => c.proxy_id)?.proxy_id || null;
+
+  // Audit felvétel proxy nélkül: magyar IP-t választunk, hogy a kylo.study
+  // magyarul jöjjön be, ne egy véletlen külföldi kimenő IP nyelvén.
+  if (!proxyId && isAudit) {
+    const { data: huProxy } = await sb
+      .from("proxies")
+      .select("id")
+      .eq("country", "HU")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    if (huProxy?.id) proxyId = huProxy.id;
+  }
+
 
   const { decryptString } = await import("@/lib/credentials/crypto.server");
   const safeDec = async (
