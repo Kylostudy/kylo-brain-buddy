@@ -216,8 +216,8 @@ function SignupPage() {
 
   const startAllMut = useMutation({
 
-    mutationFn: (vars: { scope: "english" | "non-english"; notBefore?: string | null }) =>
-      startAllFn({ data: { scope: vars.scope, notBefore: vars.notBefore ?? null } }),
+    mutationFn: (vars: { scope: "english" | "non-english"; notBefore?: string | null; limit?: number | null }) =>
+      startAllFn({ data: { scope: vars.scope, notBefore: vars.notBefore ?? null, limit: vars.limit ?? null } }),
     onSuccess: (r, vars) => {
       toast.success(
         vars.notBefore
@@ -234,14 +234,15 @@ function SignupPage() {
   });
 
   function startBulk(
-    vars: { scope: "english" | "non-english"; notBefore?: string | null },
-    action: "english" | "non-english" | "scheduled-non-english",
+    vars: { scope: "english" | "non-english"; notBefore?: string | null; limit?: number | null },
+    action: "english" | "non-english" | "non-english-5" | "scheduled-non-english",
   ) {
     if (startAllMut.isPending || bulkLockRef.current) return;
     bulkLockRef.current = true;
     setBulkAction(action);
     startAllMut.mutate(vars);
   }
+
 
   const runs = (data?.runs as SignupRun[] | undefined) ?? [];
 
