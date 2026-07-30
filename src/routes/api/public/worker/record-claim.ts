@@ -215,6 +215,70 @@ async function loadWorkflowProxy(
   };
 }
 
+/**
+ * Belépés-előjáték a felvételhez: a belépés-építőkocka lépései + egy szabad,
+ * sikeresen regisztrált teszt fiók e-mail/jelszó párosa. A recorder ezt
+ * lejátssza, mielőtt átadja a böngészőt a felhasználónak.
+ */
+async function loadRecordingPrelude(
+  sb: ReturnType<typeof createClient<Database>>,
+  preludeScenarioId: string | null,
+): Promise<{
+  actions: unknown[];
+  account: { email: string; password: string } | null;
+} | null> {
+  if (!preludeScenarioId) return null;
+
+  const { data: block } = await sb
+    .from("audit_scenarios")
+    .select("id, tenant_id, steps, workflow_id")
+    .eq("id", preludeScenarioId)
+    .maybeSingle();
+  if (!block) return null;
+
+  let actions: unknown[] = Array.isArray(block.steps) ? (block.steps as unknown[]) : [];
+  if (actions.length === 0 && block.workflow_id) {
+    const { data: wf } = await sb
+      .from("workflows")
+      .select("spec")
+      .eq("id", block.workflow_id)
+      .maybeSingle();
+    const rec = (wf?.spec as Record<string, unknown> | null)?.recorded_actions;
+    if (Array.isArray(rec)) actions = rec as unknown[];
+  }
+  if (actions.length === 0) return null;
+
+  const { data: rows } = await sb
+    .from("audit_test_accounts")
+    .select("id, email, password_ciphertext, password_nonce")
+    .eq("tenant_id", block.tenant_id)
+    .eq("status", "registered")
+    .not("password_ciphertext", "is", null)
+    .order("last_login_at", { ascending: true, nullsFirst: true })
+    .limit(1);
+
+  const row = rows?.[0];
+  let account: { email: string; password: string } | null = null;
+  if (row?.password_ciphertext && row.password_nonce) {
+    try {
+      const { decryptString } = await import("@/lib/credentials/crypto.server");
+      account = {
+        email: row.email as string,
+        password: await decryptString(row.password_ciphertext, row.password_nonce),
+      };
+      await sb
+        .from("audit_test_accounts")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("id", row.id);
+    } catch {
+      account = null;
+    }
+  }
+
+  return { actions, account };
+}
+
+
 
 export const Route = createFileRoute("/api/public/worker/record-claim")({
   server: {
