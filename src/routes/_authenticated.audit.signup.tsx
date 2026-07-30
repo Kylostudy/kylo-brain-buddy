@@ -1145,8 +1145,13 @@ function SummaryCard() {
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline" className={statusColor("succeeded")}>Sikeres: {ok}</Badge>
           <Badge variant="outline" className={statusColor("failed")}>Hibás: {bad}</Badge>
+          {(s.byStatus[INFRA_STATUS] ?? 0) > 0 && (
+            <Badge variant="outline" className={statusColor(INFRA_STATUS)}>
+              Proxy hiba (nem Kylo): {s.byStatus[INFRA_STATUS]}
+            </Badge>
+          )}
           {Object.entries(s.byStatus)
-            .filter(([k]) => k !== "succeeded" && k !== "failed")
+            .filter(([k]) => k !== "succeeded" && k !== "failed" && k !== INFRA_STATUS)
             .map(([k, v]) => (
               <Badge key={k} variant="outline" className={statusColor(k)}>{k}: {v}</Badge>
             ))}
