@@ -327,9 +327,19 @@ function ScenariosPage() {
           >
             Felvett lépések importja
           </Button>
-          <Button size="sm" onClick={() => runMut.mutate(s.id)} disabled={runMut.isPending}>
+          <Button size="sm" onClick={() => runMut.mutate({ id: s.id, parallel: 1 })} disabled={runMut.isPending}>
             <Play className="size-4" /> Futtatás
           </Button>
+          {s.kind !== "block" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => runMut.mutate({ id: s.id, parallel: 10 })}
+              disabled={runMut.isPending}
+            >
+              <Play className="size-4" /> 10 párhuzamos futás
+            </Button>
+          )}
           <Button size="sm" variant="ghost" onClick={() => openEditor(s)}>
             Szerkesztés
           </Button>
