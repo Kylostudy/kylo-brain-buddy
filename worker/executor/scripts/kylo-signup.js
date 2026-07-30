@@ -19,6 +19,7 @@ import { getGmailConfirmationLink } from "./brain-tasks/brain-api.js";
 import { humanClick, humanType } from "./humanize.js";
 import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
 import { billingProfile } from "./billing-locales.js";
+import { checkStripeCurrency, expectedCurrency } from "./currency-rules.js";
 
 // Számlázási űrlap tesztadatai — ország-konzisztensen (lásd billing-locales.js).
 // Ha nem tudjuk az országot, US-t használunk.
@@ -1890,6 +1891,26 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   log(reachedStripe ? "info" : "warn", `Stripe elérve: ${reachedStripe ? "IGEN" : "NEM"} — ${currentUrl}`);
 
+  // 5e) Fizetési pénznem ellenőrzése: HU=HUF, EU+CH+UK=EUR, minden más=USD.
+  let currencyCheck = {
+    expected_currency: expectedCurrency(billing.country),
+    detected_currency: null,
+    currency_candidates: [],
+    ok: null,
+    undetected: true,
+  };
+  if (reachedStripe) {
+    await page.waitForTimeout(1200);
+    currencyCheck = await checkStripeCurrency(page, billing.country, log);
+    steps.push({ step: "stripe-currency", ...currencyCheck });
+    langChecks.push({
+      label: "fizetési pénznem",
+      ok: currencyCheck.ok,
+      expected: currencyCheck.expected_currency,
+      found: currencyCheck.detected_currency || currencyCheck.currency_candidates.join("/") || null,
+    });
+  }
+
 
   // 6) Stripe Checkout kitöltése tesztkártyával (4242 4242 4242 4242)
   let stripeFilled = false;
@@ -2379,6 +2400,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
     plan_page_language: langChecks.find((c) => c.label === "csomagválasztó")?.ok !== false,
     billing_form_language: langChecks.find((c) => c.label === "számlázási űrlap")?.ok !== false,
     reached_stripe: reachedStripe,
+    stripe_currency_ok: reachedStripe ? currencyCheck.ok === true : true,
     stripe_paid: stripeSubmitted,
     payment_success_page_language: langChecks.find((c) => c.label === "sikeres fizetés oldal")?.ok !== false,
     reached_profile: reachedProfile,
@@ -2395,6 +2417,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
     plan_page_language: "Csomagválasztó a cél nyelven",
     billing_form_language: "Számlázási űrlap a cél nyelven",
     reached_stripe: "Stripe fizetés elérve",
+    stripe_currency_ok: "Fizetési pénznem megfelelő (HU=HUF, EU/CH/UK=EUR, egyéb=USD)",
     stripe_paid: "Stripe fizetés elküldve",
     payment_success_page_language: "Sikeres fizetés oldal a cél nyelven",
     reached_profile: "Profil oldal elérve a callback után",
@@ -2422,6 +2445,9 @@ export async function runKyloSignup({ page, context, spec, log }) {
     currency,
     expected_lang: lang,
     reached_stripe: reachedStripe,
+    currency_check: currencyCheck,
+    expected_currency: currencyCheck.expected_currency,
+    detected_currency: currencyCheck.detected_currency,
     stripe_filled: stripeFilled,
     stripe_submitted: stripeSubmitted,
     reached_profile: reachedProfile,
