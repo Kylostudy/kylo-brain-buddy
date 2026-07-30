@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 function statusLabel(s: string) {
   if (s === "registered") return "regisztrált";
@@ -46,12 +47,29 @@ export function TestAccountsPanel() {
   });
 
   const accounts = data?.accounts ?? [];
+  const [open, setOpen] = useState(false);
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Teszt fiókok (alias e-mail + jelszó)</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+        <CardTitle>
+          Teszt fiókok (alias e-mail + jelszó){accounts.length > 0 ? ` — ${accounts.length}` : ""}
+        </CardTitle>
+        <Button size="sm" variant="outline" onClick={() => setOpen((v) => !v)}>
+          {open ? (
+            <>
+              <ChevronDown className="size-4" />
+              <span className="ml-1.5">Bezárás</span>
+            </>
+          ) : (
+            <>
+              <ChevronRight className="size-4" />
+              <span className="ml-1.5">Lenyitás</span>
+            </>
+          )}
+        </Button>
       </CardHeader>
+      {open && (
       <CardContent className="space-y-2 text-sm">
         <p className="text-muted-foreground">
           Minden Sign Up futáshoz elmentjük az alias e-mailt és a jelszót. Ha a
@@ -64,6 +82,7 @@ export function TestAccountsPanel() {
           <div className="text-muted-foreground">Még nincs mentett teszt fiók.</div>
         ) : (
           <div className="space-y-2">
+
             {accounts.map((a) => (
               <div
                 key={a.id}
@@ -125,6 +144,7 @@ export function TestAccountsPanel() {
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }

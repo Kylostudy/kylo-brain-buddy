@@ -463,6 +463,11 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
 
     const baseNotBeforeMs = data.notBefore ? Date.parse(data.notBefore) : null;
 
+    // Egy tömeges indítás = egy „batch". Ez alapján tudjuk a felületen
+    // csoportosítva összesíteni a hibás futásokat.
+    const batchId = crypto.randomUUID();
+    const batchStartedAt = new Date().toISOString();
+
     for (const [index, p] of english.entries()) {
       counter += 1;
       const skin = SKIN_ORDER[counter % SKIN_ORDER.length];
@@ -488,6 +493,10 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
           expected_country: expectedCountry,
           email,
           password,
+          batch_id: batchId,
+          batch_scope: data.scope,
+          batch_started_at: batchStartedAt,
+          batch_size: english.length,
         },
       };
 

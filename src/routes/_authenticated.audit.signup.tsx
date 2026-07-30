@@ -24,6 +24,7 @@ import { startRecording, startLiveBrowse } from "@/lib/recording.functions";
 import { listProxies } from "@/lib/proxies.functions";
 import { BrowserRecorderModal } from "@/components/browser-recorder-modal";
 import { TestAccountsPanel } from "@/components/audit-qa/test-accounts-panel";
+import { BatchErrorReports } from "@/components/audit-qa/batch-error-report";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -437,7 +438,10 @@ function SignupPage() {
 
       <SummaryCard />
 
+      <BatchErrorReports runs={runs} />
+
       <TestAccountsPanel />
+
 
 
       <Card>
