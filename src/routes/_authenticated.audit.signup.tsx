@@ -59,10 +59,17 @@ type SignupRun = {
 
 function statusColor(s: string) {
   if (s === "succeeded" || s === "completed") return "bg-emerald-500/15 text-emerald-400 border-emerald-500/40";
+  // Proxy/hálózati hiba: nem termékhiba → borostyán, nem piros.
+  if (s === INFRA_STATUS) return "bg-amber-500/15 text-amber-400 border-amber-500/40";
   if (s === "failed" || s === "timed_out") return "bg-red-500/15 text-red-400 border-red-500/40";
   if (s === "running") return "bg-blue-500/15 text-blue-400 border-blue-500/40";
   return "bg-yellow-500/15 text-yellow-500 border-yellow-500/40";
 }
+
+function statusLabel(s: string) {
+  return s === INFRA_STATUS ? "proxy hiba" : s;
+}
+
 
 function readSignupSpec(spec: unknown): {
   skin?: string;
