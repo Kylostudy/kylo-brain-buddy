@@ -576,7 +576,7 @@ export async function findVerificationLinkServer(params: {
   }
 
   const debug = {
-    query: keywordQuery,
+    query: queries[0],
     total: ids.size,
     latestSubject: latestMeta?.subject ?? null,
     latestFrom: latestMeta?.from ?? null,
