@@ -74,6 +74,7 @@ const UpsertScenario = z.object({
   description: z.string().max(4000).nullable().optional(),
   kind: z.enum(["block", "scenario"]).default("scenario"),
   baseUrl: z.string().url().default("https://kylo.study"),
+  recordStartUrl: z.string().max(2048).nullable().optional(),
   steps: z.array(z.record(z.string(), z.unknown())).default([]),
   preludeBlockIds: z.array(z.string().uuid()).default([]),
   expectations: z.record(z.string(), z.unknown()).default({}),
