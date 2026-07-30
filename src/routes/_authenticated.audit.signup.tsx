@@ -15,6 +15,7 @@ import {
   getKyloSignupSummary,
   getKyloSignupRun,
   cancelPendingSignupRuns,
+  listPendingSignupBatches,
   explainKyloSignupRun,
 
 
