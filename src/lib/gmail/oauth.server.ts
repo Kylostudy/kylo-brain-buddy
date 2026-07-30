@@ -550,6 +550,11 @@ export async function findVerificationLinkServer(params: {
       rejects.push({ subject, from, ageSec, reason: "too_old" });
       continue;
     }
+    // Csak a saját aliaszunkra érkezett levelet fogadjuk el (+kyloNNN is számít).
+    if (recipient && !recipientMatchesStrict(headers, recipient)) {
+      rejects.push({ subject, from, ageSec, reason: "wrong_recipient" });
+      continue;
+    }
     const haystack = `${from}\n${subject}\n${msg.snippet ?? ""}\n${collectMessageText(msg.payload)}`;
     const link = pickConfirmationLink(extractCandidateLinks(haystack));
     if (!link) {
