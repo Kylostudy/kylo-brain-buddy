@@ -18,17 +18,12 @@
 import { getGmailConfirmationLink } from "./brain-tasks/brain-api.js";
 import { humanClick, humanType } from "./humanize.js";
 import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
+import { billingProfile } from "./billing-locales.js";
 
-// Számlázási űrlap kitöltéséhez használt tesztadatok.
-const BILLING_TEST = {
-  name: "Kylo Test",
-  line1: "1 Test Street",
-  houseNumber: "12",
-  city: "Testville",
-  postal: "10001",
-  phone: "+15555550123",
-  fallback: "Test",
-};
+// Számlázási űrlap tesztadatai — ország-konzisztensen (lásd billing-locales.js).
+// Ha nem tudjuk az országot, US-t használunk.
+const BILLING_TEST = billingProfile("en-US", "US");
+
 
 
 const CLICK_HINTS_PAY = [
@@ -1242,7 +1237,7 @@ async function signInAfterConfirmation(page, email, password, log) {
 // Számlázási adatok űrlapjának kitöltése (a Stripe előtti lépés).
 // Nem csak name/id/placeholder alapján keresünk, hanem a látható CÍMKE szövegét is
 // nézzük — a /fizetes oldalon a mezőknek gyakran csak label-je van (pl. "House number").
-async function fillBillingForm(page, email, log) {
+async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
   const result = await page.evaluate(
     ({ billing, email }) => {
       const targets = [
@@ -1354,7 +1349,7 @@ async function fillBillingForm(page, email, log) {
 
       return { filled, skipped, selects };
     },
-    { billing: BILLING_TEST, email },
+    { billing: billingData, email },
   ).catch((e) => {
     log("warn", `Számlázási űrlap kitöltés hiba: ${e.message}`);
     return { filled: [], skipped: [], selects: [] };
@@ -1503,6 +1498,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
   const email = cfg.email;
   const password = cfg.password;
   const currency = cfg.currency || "USD";
+  // Ország-konzisztens számlázási tesztadatok: az IP/nyelv szerinti országhoz
+  // illő irányítószám és telefonszám, különben a Stripe „incomplete" hibát dob.
+  const billing = billingProfile(lang, cfg.expected_country || cfg.country);
+
   // A mentett workflow felvétele: ebből tudjuk, milyen mezők vannak a regisztrációs
   // űrlapon és milyen sorrendben — nem találgatunk.
   const recordedPlan = planFromRecording(spec.recorded_actions);
@@ -1551,6 +1550,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
   const diag = installSignupDiagnostics(page, email, password, log);
 
   log("info", `Sign Up indul — ${startUrl} · skin=${skin} · alias=${email} · currency=${currency}`);
+  log(
+    "info",
+    `Számlázási teszt-adatok: ${billing.countryName} (${billing.country}) · ${billing.city} ${billing.postal} · tel ${billing.phone}`,
+  );
 
   // Teszt-bypass fejléc: csak a Kylo saját domainjére tesszük rá.
   // Fontos: a context.setExtraHTTPHeaders MINDEN kérésre rátenné, így a külső
@@ -1826,7 +1829,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   // Ha még nem vagyunk a Stripe-on, akkor a számlázási űrlap következik.
   if (!reachedStripe) {
     langChecks.push(await auditLanguage(page, "számlázási űrlap", log, lang));
-    let billingFilled = await fillBillingForm(page, email, log);
+    let billingFilled = await fillBillingForm(page, email, log, billing);
     screenshots.push(await shot(page, "5c-billing-filled"));
     let payClicked = await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább");
     // A gomb után az oldal navigálhat (Stripe) — előbb hagyjuk leülni,
@@ -1849,7 +1852,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
         }
       }
       if (!isStripeUrl(page.url())) {
-        billingFilled = (await fillBillingForm(page, email, log)) || billingFilled;
+        billingFilled = (await fillBillingForm(page, email, log, billing)) || billingFilled;
         await page.waitForTimeout(1200);
         payClicked = (await clickByText(page, CLICK_HINTS_PAY, log, "Fizetés / Tovább (2. próba)")) || payClicked;
         await page.waitForLoadState("domcontentloaded", { timeout: 15000 }).catch(() => {});
@@ -2027,29 +2030,29 @@ export async function runKyloSignup({ page, context, spec, log }) {
       // ezért ugyanazzal a "bárhol keres" segédfüggvénnyel töltjük ki.
       await fillAnywhere(
         'input[name="billingName"], input#billingName, input[autocomplete="cc-name"], input[name="cardholderName"]',
-        "Kylo Test",
+        billing.name,
         "kártyabirtokos név",
       ).catch(() => false);
       await fillAnywhere(
         'input[name="billingPostalCode"], input#billingPostalCode, input[autocomplete="postal-code"], input[name="postalCode"]',
-        "M5H 2N2",
+        billing.postal,
         "irányítószám",
       ).catch(() => false);
       await fillAnywhere(
         'input[name="billingAddressLine1"], input#billingAddressLine1, input[autocomplete="address-line1"]',
-        "100 King Street West",
+        billing.line1,
         "cím",
       ).catch(() => false);
       await fillAnywhere(
         'input[name="billingLocality"], input#billingLocality, input[autocomplete="address-level2"]',
-        "Toronto",
+        billing.city,
         "város",
       ).catch(() => false);
       // Telefonszám — a Stripe Checkout egyre több országban KÖTELEZŐVÉ teszi.
       // Ennek hiánya okozta a néma „Required" elakadást (#126).
       await fillAnywhere(
         'input[name="phoneNumber"], input#phoneNumber, input[type="tel"], input[autocomplete="tel"], input[autocomplete="tel-national"]',
-        "4165550123",
+        billing.phone,
         "telefonszám",
       ).catch(() => false);
 
@@ -2080,14 +2083,14 @@ export async function runKyloSignup({ page, context, spec, log }) {
             if (!target) continue;
             const type = await target.getAttribute("type").catch(() => "");
             const ac = (await target.getAttribute("autocomplete").catch(() => "")) || "";
-            let value = "Kylo Test";
+            let value = billing.name;
             // Az e-mail / telefon felismerése megy elöl — különben a "cím"
             // szót tartalmazó e-mail mezőbe lakcím kerülne.
             if (type === "email" || /e-?mail/i.test(n + ac)) value = email;
-            else if (type === "tel" || /tel|phone/i.test(n + ac)) value = "4165550123";
-            else if (/postal|zip/i.test(n + ac)) value = "M5H 2N2";
-            else if (/city|locality/i.test(n + ac)) value = "Toronto";
-            else if (/address|street|line1/i.test(n + ac)) value = "100 King Street West";
+            else if (type === "tel" || /tel|phone/i.test(n + ac)) value = billing.phone;
+            else if (/postal|zip/i.test(n + ac)) value = billing.postal;
+            else if (/city|locality/i.test(n + ac)) value = billing.city;
+            else if (/address|street|line1/i.test(n + ac)) value = billing.line1;
             try {
               await target.fill(value, { timeout: 3000 });
               filled.push(`${n}=${value}`);
