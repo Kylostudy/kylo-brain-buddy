@@ -189,14 +189,8 @@ function SignupPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Következő hajnali 1 óra (helyi idő) ISO-ban.
-  const nextOneAm = () => {
-    const d = new Date();
-    const t = new Date(d);
-    t.setHours(1, 0, 0, 0);
-    if (t.getTime() <= d.getTime()) t.setDate(t.getDate() + 1);
-    return t;
-  };
+
+
 
   const cancelPendingFn = useServerFn(cancelPendingSignupRuns);
   const cancelPendingMut = useMutation({
