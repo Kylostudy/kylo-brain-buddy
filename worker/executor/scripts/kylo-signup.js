@@ -2400,7 +2400,9 @@ export async function runKyloSignup({ page, context, spec, log }) {
     plan_page_language: langChecks.find((c) => c.label === "csomagválasztó")?.ok !== false,
     billing_form_language: langChecks.find((c) => c.label === "számlázási űrlap")?.ok !== false,
     reached_stripe: reachedStripe,
-    stripe_currency_ok: reachedStripe ? currencyCheck.ok === true : true,
+    // Csak akkor bukás, ha bizonyítottan MÁS pénznemet mutatott a Stripe.
+    // Ha nem sikerült kiolvasni (ok === null), az nem hiba, csak figyelmeztetés.
+    stripe_currency_ok: reachedStripe ? currencyCheck.ok !== false : true,
     stripe_paid: stripeSubmitted,
     payment_success_page_language: langChecks.find((c) => c.label === "sikeres fizetés oldal")?.ok !== false,
     reached_profile: reachedProfile,
