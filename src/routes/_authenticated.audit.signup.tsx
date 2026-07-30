@@ -372,6 +372,17 @@ function SignupPage() {
             </Button>
             <Button
               type="button"
+              variant="secondary"
+              size="lg"
+              onClick={() => startBulk({ scope: "non-english", limit: 5 }, "non-english-5")}
+              disabled={startAllMut.isPending || !canStart}
+              title={canStart ? "Kis kör: 5 véletlenszerű, különböző országú nem-angol proxy — gyors ellenőrzéshez" : "Először kösd be a Gmail postafiókot"}
+            >
+              {bulkAction === "non-english-5" && startAllMut.isPending ? "Indítás…" : "5-ös nem-angol kör"}
+            </Button>
+
+            <Button
+              type="button"
               variant="destructive"
               size="lg"
               onClick={() => setCancelOpen(true)}
