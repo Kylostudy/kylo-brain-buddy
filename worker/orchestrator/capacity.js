@@ -6,12 +6,12 @@
 
 import os from "node:os";
 
-const MAX_PARALLEL = Number(process.env.MAX_PARALLEL || 12);
+const MAX_PARALLEL = Number(process.env.MAX_PARALLEL || 24);
 const MIN_PARALLEL = Number(process.env.MIN_PARALLEL || 1);
 // Terhelés/mag arány, ami felett nem indítunk újat.
-const LOAD_PER_CPU_LIMIT = Number(process.env.LOAD_PER_CPU_LIMIT || 1.5);
+const LOAD_PER_CPU_LIMIT = Number(process.env.LOAD_PER_CPU_LIMIT || 2);
 // Ennyi szabad RAM (MB) kell legalább egy új böngészős munkához.
-const MEM_PER_JOB_MB = Number(process.env.MEM_PER_JOB_MB || 1200);
+const MEM_PER_JOB_MB = Number(process.env.MEM_PER_JOB_MB || 800);
 // Ennyi százalék RAM felett egyáltalán nem indítunk újat.
 const MEM_HARD_LIMIT_PCT = Number(process.env.MEM_HARD_LIMIT_PCT || 90);
 
