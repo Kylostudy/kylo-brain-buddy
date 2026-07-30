@@ -97,6 +97,14 @@ function currencyForCountry(cc: string | null): "EUR" | "USD" | "CNY" | "RUB" {
 }
 
 
+// Pihenőre tett (sorozatos hálózati hibát okozó) proxykat kihagyjuk. Ha ettől
+// egy sem maradna, inkább mindet visszaadjuk, hogy a teszt el tudjon indulni.
+function healthyProxies<T extends { health_paused_until?: string | null }>(list: T[]): T[] {
+  const now = new Date().toISOString();
+  const healthy = list.filter((p) => !p.health_paused_until || p.health_paused_until <= now);
+  return healthy.length > 0 ? healthy : list;
+}
+
 function langForCountry(cc: string | null): string {
   if (!cc) return "en-GB";
   return COUNTRY_TO_LANG[cc.toUpperCase()] || "en-GB";
@@ -254,11 +262,12 @@ export const startKyloSignupRun = createServerFn({ method: "POST" })
     if (!proxyId) {
       const { data: activeProxies } = await supabase
         .from("proxies")
-        .select("id, country, label")
+        .select("id, country, label, health_paused_until")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .order("label", { ascending: true });
-      const list = activeProxies ?? [];
+      // A hálózati hibák miatt pihenőre tett proxykat kihagyjuk a kiosztásból.
+      const list = healthyProxies(activeProxies ?? []);
       if (list.length === 0) throw new Error("Nincs aktív proxy — vegyél fel legalább egyet a Proxies oldalon.");
       const languageSafeList = list.filter((p) =>
         ENGLISH_SIGNUP_COUNTRIES.has(((p.country as string | null) || "").toUpperCase()),
@@ -421,11 +430,11 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
 
     const { data: activeProxies } = await supabase
       .from("proxies")
-      .select("id, country, label")
+      .select("id, country, label, health_paused_until")
       .eq("tenant_id", tenantId)
       .eq("is_active", true)
       .order("label", { ascending: true });
-    const english = (activeProxies ?? []).filter((p) => {
+    const english = healthyProxies(activeProxies ?? []).filter((p) => {
       const cc = ((p.country as string | null) || "").toUpperCase();
       const isEnglish = ENGLISH_SIGNUP_COUNTRIES.has(cc);
       if (data.scope === "english") return isEnglish;
