@@ -323,6 +323,14 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
           proxy?.country ?? null,
         );
 
+        // Belépés-előjáték: ha a felvétel forgatókönyvhöz indult, a recorder
+        // ELŐBB lejátssza a belépés-kockát egy valódi teszt fiókkal, és csak
+        // utána adja át neked a böngészőt a kért kezdőoldalon.
+        const prelude = await loadRecordingPrelude(
+          sb,
+          candidate.prelude_scenario_id as string | null,
+        );
+
         return new Response(
           JSON.stringify({
             session: {
@@ -337,6 +345,7 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
             timezone: timezone || fingerprint.timezoneId,
             fingerprint,
             cookies,
+            prelude,
             // A worker ezekkel csatlakozik a Realtime broadcast csatornára.
             supabaseUrl: process.env.SUPABASE_URL,
             supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
