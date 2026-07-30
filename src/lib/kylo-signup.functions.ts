@@ -847,7 +847,7 @@ export const deleteKyloSignupRun = createServerFn({ method: "POST" })
 // ha véletlenül túl sok futás került egyszerre a sorba.
 // ─────────────────────────────────────────────────────────────
 
-export const cancelPendingSignupRuns = createServerFn({ method: "POST" })
+export const listPendingSignupBatches = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
@@ -860,17 +860,68 @@ export const cancelPendingSignupRuns = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await supabase
       .from("brain_workflow_runs")
+      .select("id, status, created_at, spec_snapshot")
+      .eq("tenant_id", prof.tenant_id)
+      .in("status", ["queued", "scheduled"])
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+
+    const groups = new Map<
+      string,
+      { batchId: string | null; scope: string | null; startedAt: string | null; count: number; runIndexes: number[] }
+    >();
+    for (const r of rows ?? []) {
+      const ks = (r.spec_snapshot as { kylo_signup?: Record<string, unknown> } | null)?.kylo_signup;
+      const batchId = (ks?.batch_id as string | undefined) ?? null;
+      const key = batchId ?? "__single__";
+      const g = groups.get(key) ?? {
+        batchId,
+        scope: (ks?.batch_scope as string | undefined) ?? null,
+        startedAt: (ks?.batch_started_at as string | undefined) ?? r.created_at,
+        count: 0,
+        runIndexes: [] as number[],
+      };
+      g.count += 1;
+      const idx = ks?.run_index as number | undefined;
+      if (typeof idx === "number") g.runIndexes.push(idx);
+      groups.set(key, g);
+    }
+    return { batches: Array.from(groups.values()) };
+  });
+
+export const cancelPendingSignupRuns = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ batchId: z.string().uuid().nullable().optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .single();
+    if (!prof?.tenant_id) throw new Error("Nincs tenant.");
+
+    let q = supabase
+      .from("brain_workflow_runs")
       .update({
         status: "failed" as never,
         finished_at: new Date().toISOString(),
         error: "kézi leállítás: sorban álló futás visszavonva (túlterhelés elkerülése)",
       } as never)
       .eq("tenant_id", prof.tenant_id)
-      .in("status", ["queued", "scheduled"])
-      .select("id");
+      .in("status", ["queued", "scheduled"]);
+
+    if (data?.batchId) {
+      q = q.eq("spec_snapshot->kylo_signup->>batch_id", data.batchId);
+    }
+
+    const { data: rows, error } = await q.select("id");
     if (error) throw new Error(error.message);
     return { ok: true, canceled: rows?.length ?? 0 };
   });
+
 
 
 // ─────────────────────────────────────────────────────────────

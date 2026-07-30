@@ -15,6 +15,7 @@ import {
   getKyloSignupSummary,
   getKyloSignupRun,
   cancelPendingSignupRuns,
+  listPendingSignupBatches,
   explainKyloSignupRun,
 
 
@@ -192,15 +193,26 @@ function SignupPage() {
 
 
 
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const listBatchesFn = useServerFn(listPendingSignupBatches);
+  const pendingBatchesQ = useQuery({
+    queryKey: ["kylo-signup-pending-batches"],
+    queryFn: () => listBatchesFn(),
+    enabled: cancelOpen,
+  });
+
   const cancelPendingFn = useServerFn(cancelPendingSignupRuns);
   const cancelPendingMut = useMutation({
-    mutationFn: () => cancelPendingFn(),
+    mutationFn: (batchId: string | null) => cancelPendingFn({ data: { batchId } }),
     onSuccess: (r) => {
       toast.success(`${r.canceled} sorban álló futás visszavonva`);
+      setCancelOpen(false);
       qc.invalidateQueries({ queryKey: ["kylo-signup-runs"] });
+      qc.invalidateQueries({ queryKey: ["kylo-signup-pending-batches"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const startAllMut = useMutation({
 
@@ -279,13 +291,15 @@ function SignupPage() {
             új proxyval és új plusz-alias e-maillel (sunyika.kripto+kylo&lt;N&gt;@gmail.com)
             próbál végigmenni a Kylo.study regisztráción a Stripe fizetésig.
           </p>
-          <p className="mt-2 text-xs text-yellow-500">
-            ⚠️ Előbb kösd be a Gmail postafiókot (jobbra), különben a rendszer nem
-            tudja kiolvasni az alias címekre érkező megerősítő linkeket.
-            A jelenlegi automata script „felderítő" módban fut — a „succeeded" csak
-            azt jelenti, hogy nem crashelt, nem azt, hogy sikerült regisztrálni.
-            A rendes lépések a record & replay felvételből fognak jönni.
-          </p>
+          {!gmail && (
+            <p className="mt-2 text-xs text-yellow-500">
+              ⚠️ Előbb kösd be a Gmail postafiókot (jobbra), különben a rendszer nem
+              tudja kiolvasni az alias címekre érkező megerősítő linkeket.
+              A jelenlegi automata script „felderítő" módban fut — a „succeeded" csak
+              azt jelenti, hogy nem crashelt, nem azt, hogy sikerült regisztrálni.
+              A rendes lépések a record & replay felvételből fognak jönni.
+            </p>
+          )}
         </div>
         <div className="flex w-full min-w-0 flex-col gap-2 lg:w-auto lg:items-end">
           <div className="flex w-full flex-wrap items-center gap-2 lg:justify-end">
@@ -359,16 +373,13 @@ function SignupPage() {
               type="button"
               variant="destructive"
               size="lg"
-              onClick={() => {
-                if (window.confirm("Minden sorban álló (még el nem indult) futás visszavonása. Mehet?")) {
-                  cancelPendingMut.mutate();
-                }
-              }}
+              onClick={() => setCancelOpen(true)}
               disabled={cancelPendingMut.isPending}
-              title="Vészfék: visszavonja az összes még el nem indult futást"
+              title="Vészfék: kiválaszthatod, melyik sorban álló batchet vond vissza"
             >
               {cancelPendingMut.isPending ? "Visszavonás…" : "Sorban állók visszavonása"}
             </Button>
+
 
             <Button
               type="button"
@@ -385,6 +396,64 @@ function SignupPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Melyik batchet vonjuk vissza?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            {pendingBatchesQ.isLoading ? (
+              <div className="text-muted-foreground">Betöltés…</div>
+            ) : (pendingBatchesQ.data?.batches ?? []).length === 0 ? (
+              <div className="text-muted-foreground">Nincs sorban álló futás.</div>
+            ) : (
+              <>
+                {(pendingBatchesQ.data?.batches ?? []).map((b, i) => {
+                  const idxs = [...b.runIndexes].sort((a, c) => a - c);
+                  return (
+                    <div
+                      key={b.batchId ?? `single-${i}`}
+                      className="flex items-center justify-between gap-3 rounded-md border p-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium">
+                          {b.batchId
+                            ? `${b.scope === "non-english" ? "Nem-angol" : b.scope === "english" ? "Angol" : "Batch"} · ${b.count} futás`
+                            : `Egyedi futások · ${b.count} db`}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {b.startedAt ? new Date(b.startedAt).toLocaleString("hu-HU") : ""}
+                          {idxs.length > 0 ? ` · #${idxs[0]}–#${idxs[idxs.length - 1]}` : ""}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        disabled={cancelPendingMut.isPending}
+                        onClick={() => cancelPendingMut.mutate(b.batchId)}
+                      >
+                        Visszavonás
+                      </Button>
+                    </div>
+                  );
+                })}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={cancelPendingMut.isPending}
+                  onClick={() => cancelPendingMut.mutate(null)}
+                >
+                  Mindet visszavonom
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       <Card>
         <CardHeader>
