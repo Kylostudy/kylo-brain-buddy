@@ -98,6 +98,13 @@ function readResult(r: unknown): {
   criteria?: Record<string, boolean>;
   criteria_failed?: string[];
   flow_ok?: boolean;
+  currency_check?: {
+    expected_currency?: string;
+    detected_currency?: string | null;
+    currency_candidates?: string[];
+    ok?: boolean;
+    undetected?: boolean;
+  };
   ai_explanation?: { text?: string; generated_at?: string };
 } {
   if (!r || typeof r !== "object") return {};
