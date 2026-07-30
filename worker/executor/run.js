@@ -34,6 +34,16 @@ import { runKyloSignup } from "./scripts/kylo-signup.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 import { buildFingerprintInitScript } from "./scripts/fingerprint-patch.js";
 import {
+  classifyInfra,
+  setProxyLatency,
+  getProxyProfile,
+  scaleMs,
+  isProxyCriticallySlow,
+  infraResult,
+  INFRA_LABELS,
+} from "./scripts/proxy-health.js";
+
+import {
   isBrainTask,
   needsBrowser,
   runBrainTask,
