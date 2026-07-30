@@ -292,7 +292,15 @@ function runContainer(job) {
 
     const proc = spawn("docker", ["start", "-a", containerId], { stdio: ["ignore", "pipe", "pipe"] });
 
-    const logs = [];
+    const logs = [
+      {
+        ts: new Date().toISOString(),
+        level: liveState.active ? "warn" : "info",
+        message: liveState.active
+          ? `Kódforrás: ÉLŐ szkriptek a VPS fájlrendszeréről (${liveState.reason}) — build nélküli gyors teszt.`
+          : `Kódforrás: a beépített (image) szkriptek — ${liveState.reason}.`,
+      },
+    ];
     let finalEntry = null;
     let preflight = null;
     let dirty = false;
