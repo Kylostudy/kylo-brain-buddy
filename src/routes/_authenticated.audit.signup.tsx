@@ -357,11 +357,10 @@ function SignupPage() {
               type="button"
               variant="secondary"
               size="lg"
-              onClick={() => {
-                if (window.confirm("Ez a nem-angol kört hajnali 1 utánra teszi sorba (angol futás NEM indul). Mehet?")) {
-                  startBulk({ scope: "non-english", notBefore: nextOneAm().toISOString() }, "scheduled-non-english");
-                }
-              }}
+              onClick={() =>
+                startBulk({ scope: "non-english", notBefore: nextOneAm().toISOString() }, "scheduled-non-english")
+              }
+
               disabled={startAllMut.isPending || !canStart}
               title={canStart ? "Sorba teszi a nem-angol nyelvi kört, de a worker csak hajnali 1 után kezdi el" : "Először kösd be a Gmail postafiókot"}
             >
