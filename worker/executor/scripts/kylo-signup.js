@@ -20,7 +20,7 @@ import { humanClick, humanType } from "./humanize.js";
 import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
 import { billingProfile } from "./billing-locales.js";
 import { checkStripeCurrency, expectedCurrency } from "./currency-rules.js";
-import { scaleMs, classifyInfra, INFRA_LABELS } from "./proxy-health.js";
+import { scaleMs } from "./proxy-health.js";
 
 // Számlázási űrlap tesztadatai — ország-konzisztensen (lásd billing-locales.js).
 // Ha nem tudjuk az országot, US-t használunk.
