@@ -97,6 +97,7 @@ export const upsertScenario = createServerFn({ method: "POST" })
       description: data.description ?? null,
       kind: data.kind,
       base_url: data.baseUrl,
+      record_start_url: data.recordStartUrl?.trim() || null,
       steps: data.steps as never,
       prelude_block_ids: data.preludeBlockIds,
       expectations: data.expectations as never,
