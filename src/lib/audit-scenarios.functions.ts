@@ -239,6 +239,11 @@ export const ensureScenarioWorkflow = createServerFn({ method: "POST" })
         tenant_id: tenantId,
         module: "audit",
         name: `${sc.name} — felvételi háttér`,
+        // Az Audit a kylo.study magyar felületét teszteli → magyar környezet.
+        language: "hu",
+        region: "HU",
+        timezone: "Europe/Budapest",
+
         spec: {
           monitor_type: SCENARIO_MONITOR,
           scenario_id: sc.id,

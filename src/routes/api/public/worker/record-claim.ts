@@ -70,16 +70,21 @@ async function loadWorkflowProxy(
   // Workflow → language/region/timezone (a Playwright locale-hez)
   const { data: wf } = await sb
     .from("workflows")
-    .select("language, region, timezone")
+    .select("language, region, timezone, module, tenant_id")
     .eq("id", workflowId)
     .maybeSingle();
 
-  const language = wf?.language || null;
-  const region = wf?.region || null;
-  const timezone = wf?.timezone || null;
+  // Az Audit modul a kylo.study magyar felületét teszteli, ezért ha a
+  // háttér-workflow-nál nincs kifejezett nyelv, magyarra esünk vissza
+  // (és lentebb magyar proxyra is), nem valami véletlen külföldi IP-re.
+  const isAudit = String(wf?.module || "") === "audit";
+  const language = wf?.language || (isAudit ? "hu" : null);
+  const region = wf?.region || (isAudit ? "HU" : null);
+  const timezone = wf?.timezone || (isAudit ? "Europe/Budapest" : null);
   const locale =
     language && region
       ? `${language}-${region.toUpperCase()}`
+
       : language
         ? language
         : null;
@@ -92,7 +97,21 @@ async function loadWorkflowProxy(
     .select("proxy_id, cookie_ciphertext, cookie_nonce")
     .eq("workflow_id", workflowId);
 
-  const proxyId = creds?.find((c) => c.proxy_id)?.proxy_id || null;
+  let proxyId = creds?.find((c) => c.proxy_id)?.proxy_id || null;
+
+  // Audit felvétel proxy nélkül: magyar IP-t választunk, hogy a kylo.study
+  // magyarul jöjjön be, ne egy véletlen külföldi kimenő IP nyelvén.
+  if (!proxyId && isAudit) {
+    const { data: huProxy } = await sb
+      .from("proxies")
+      .select("id")
+      .eq("country", "HU")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    if (huProxy?.id) proxyId = huProxy.id;
+  }
+
 
   const { decryptString } = await import("@/lib/credentials/crypto.server");
   const safeDec = async (
