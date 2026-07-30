@@ -425,7 +425,12 @@ async function ensureSignupMode(page, log) {
   // vagy csak azután jelenik meg, hogy beírtuk az emailt és rákattintottunk
   // egy "Tovább / Continue" gombra (2-step form). Ezért többször pollozunk,
   // közben megpróbáljuk a signup togglet és a next-step gombot is.
-  for (let attempt = 1; attempt <= 6; attempt += 1) {
+  //
+  // 2026-07-30: a kylo.study főoldala „coming soon / waitlist" lett, ott nincs
+  // auth űrlap. Ha az auth mezők hiányoznak, egyszer közvetlenül a
+  // /regisztracio oldalra navigálunk (nyelvi paraméterrel együtt).
+  let directNavTried = false;
+  for (let attempt = 1; attempt <= 7; attempt += 1) {
     // Rövid poll: várunk max ~4s-ig, hátha a pw mező csak lassan renderelődik.
     let state = await inspectAuthForm(page);
     for (let i = 0; i < 8 && (state.emailFields === 0 || state.passwordFields === 0); i += 1) {
@@ -433,14 +438,18 @@ async function ensureSignupMode(page, log) {
       state = await inspectAuthForm(page);
     }
     const buttonSummary = state.buttons.map((b) => `${b.disabled ? "disabled " : ""}${b.text}`).slice(0, 10).join(" | ");
-    log("info", `Auth űrlap állapot ${attempt}/6 — email=${state.emailFields}, pw=${state.passwordFields}, extra=${state.signupExtraFields}, signup=${state.currentSignup}, signin=${state.currentSignin}, url=${state.url}, gombok: ${buttonSummary || "n/a"}`);
+    log("info", `Auth űrlap állapot ${attempt}/7 — email=${state.emailFields}, pw=${state.passwordFields}, extra=${state.signupExtraFields}, signup=${state.currentSignup}, signin=${state.currentSignin}, url=${state.url}, gombok: ${buttonSummary || "n/a"}`);
 
     if (state.emailFields > 0 && state.passwordFields > 0) {
       if (state.currentSignup) return { ok: true, state };
       if (state.signupToggle || state.currentSignin) {
-        await clickAuthSignupToggle(page, log);
+        const clicked = await clickAuthSignupToggle(page, log);
         await page.waitForTimeout(1200);
-        continue;
+        if (clicked) continue;
+      }
+      if (!directNavTried) {
+        directNavTried = true;
+        if (await gotoSignupPage(page, log)) continue;
       }
       return { ok: false, reason: "belépési űrlap látszik, de nincs regisztrációs váltó", state };
     }
@@ -452,7 +461,7 @@ async function ensureSignupMode(page, log) {
     }
 
     // 2-step űrlap: van email mező, próbáljunk Tovább / Continue gombot nyomni.
-    if (state.emailFields > 0) {
+    if (state.emailFields > 0 && state.passwordFields === 0 && /password|jelszó|lösenord|salasana|hasło|şifre|wachtwoord|senha|contraseña|passwort|mot de passe/i.test(buttonSummary)) {
       const nextClicked = await clickByText(
         page,
         ["tovább", "continue", "next", "weiter", "suivant", "続ける", "下一步", "siguiente", "avanti", "kontynuuj"],
@@ -463,8 +472,16 @@ async function ensureSignupMode(page, log) {
       if (nextClicked) { await page.waitForTimeout(1800); continue; }
     }
 
+    // Nincs auth űrlap az oldalon (pl. a főoldal waitlist-landing) → menjünk
+    // egyenesen a regisztrációs oldalra.
+    if (!directNavTried) {
+      directNavTried = true;
+      if (await gotoSignupPage(page, log)) continue;
+    }
+
     return { ok: false, reason: "nincs email+jelszó űrlap", state };
   }
+
   const state = await inspectAuthForm(page);
   return { ok: !!(state.emailFields && state.passwordFields && state.currentSignup), reason: "nem sikerült stabil regisztráció módra váltani", state };
 }
