@@ -1550,6 +1550,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
   const diag = installSignupDiagnostics(page, email, password, log);
 
   log("info", `Sign Up indul — ${startUrl} · skin=${skin} · alias=${email} · currency=${currency}`);
+  log(
+    "info",
+    `Számlázási teszt-adatok: ${billing.countryName} (${billing.country}) · ${billing.city} ${billing.postal} · tel ${billing.phone}`,
+  );
 
   // Teszt-bypass fejléc: csak a Kylo saját domainjére tesszük rá.
   // Fontos: a context.setExtraHTTPHeaders MINDEN kérésre rátenné, így a külső
