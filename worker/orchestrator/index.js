@@ -248,6 +248,12 @@ function runContainer(job) {
         writeFileSync(join(jobDir, "proxy.json"), JSON.stringify(job.proxy));
       }
 
+      // Esti fejlesztői mód: ha aktív és a szkriptek szintaktikailag rendben
+      // vannak, a friss forrást csatoljuk be az image-be sütött helyett.
+      liveState = liveMounts();
+      const liveLine = liveStatusForLog(liveState);
+      if (liveLine) console.log(liveLine);
+
       const createArgs = [
       "create",
       "--network", "bridge",
@@ -256,7 +262,9 @@ function runContainer(job) {
       "-e", `WORKFLOW_ID=${job.workflowId}`,
       "-e", `BRAIN_URL=${BRAIN_URL}`,
       "-e", `WORKER_API_TOKEN=${WORKER_API_TOKEN}`,
+      "-e", `LIVE_SCRIPTS=${liveState.active ? "1" : "0"}`,
       ];
+      if (liveState.active) createArgs.push(...liveState.mounts);
       if (process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN) {
         createArgs.push("-e", `BRAIN_KYLO_TEST_BYPASS_TOKEN=${process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN}`);
       }
