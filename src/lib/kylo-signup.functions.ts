@@ -437,7 +437,7 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
       .eq("tenant_id", tenantId)
       .eq("is_active", true)
       .order("label", { ascending: true });
-    const english = healthyProxies(activeProxies ?? []).filter((p) => {
+    let english = healthyProxies(activeProxies ?? []).filter((p) => {
       const cc = ((p.country as string | null) || "").toUpperCase();
       const isEnglish = ENGLISH_SIGNUP_COUNTRIES.has(cc);
       if (data.scope === "english") return isEnglish;
@@ -451,6 +451,27 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
           : "Nincs aktív angol nyelvterületi proxy (US/GB/CA/AU/NZ/IE).",
       );
     }
+
+    // Kisebb kör: véletlenszerű, de országonként változatos mintát veszünk,
+    // hogy ne mindig ugyanaz az 5 ország fusson le.
+    if (data.limit && english.length > data.limit) {
+      const shuffled = [...english].sort(() => Math.random() - 0.5);
+      const picked: typeof english = [];
+      const seen = new Set<string>();
+      for (const p of shuffled) {
+        const cc = ((p.country as string | null) || "").toUpperCase();
+        if (seen.has(cc)) continue;
+        seen.add(cc);
+        picked.push(p);
+        if (picked.length >= data.limit) break;
+      }
+      for (const p of shuffled) {
+        if (picked.length >= data.limit) break;
+        if (!picked.includes(p)) picked.push(p);
+      }
+      english = picked;
+    }
+
 
     // Nincs blokkolás, ha már fut egy kör: minden új futás egyszerűen sorba
     // kerül. A worker párhuzamossági féke (MAX_PARALLEL) gondoskodik arról,
