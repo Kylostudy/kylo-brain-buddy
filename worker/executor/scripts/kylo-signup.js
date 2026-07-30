@@ -1498,6 +1498,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
   const email = cfg.email;
   const password = cfg.password;
   const currency = cfg.currency || "USD";
+  // Ország-konzisztens számlázási tesztadatok: az IP/nyelv szerinti országhoz
+  // illő irányítószám és telefonszám, különben a Stripe „incomplete" hibát dob.
+  const billing = billingProfile(lang, cfg.expected_country || cfg.country);
+
   // A mentett workflow felvétele: ebből tudjuk, milyen mezők vannak a regisztrációs
   // űrlapon és milyen sorrendben — nem találgatunk.
   const recordedPlan = planFromRecording(spec.recorded_actions);
