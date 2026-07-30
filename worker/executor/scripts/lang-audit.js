@@ -153,8 +153,78 @@ export async function auditLanguage(page, label, log, expectedLang) {
           ? `Nyelvi ellenőrzés (${label}): kihagyva (${reason})`
           : `Nyelvi ellenőrzés (${label}): rendben, ${expected} nyelvű tartalom`,
     );
-    return { label, ...r, ok, reason: reason || null, landing_page: landing };
+    // Vizuális (screenshot-alapú) ellenőrzés: azt nézzük, amit a felhasználó LÁT.
+    const visual = await auditVisualLanguage(page, label, log, expected);
+    let finalOk = ok;
+    let finalReason = reason || null;
+    if (visual?.ok === false) {
+      finalOk = false;
+      finalReason = `képernyőkép szerint ${visual.detected_lang || "más"} nyelvű (elvárt ${expected})`;
+    } else if (ok === null && visual?.ok === true) {
+      finalOk = true;
+      finalReason = null;
+    }
+
+    return {
+      label,
+      ...r,
+      ok: finalOk,
+      reason: finalReason,
+      landing_page: landing,
+      visual_check: visual || null,
+    };
   } catch (e) {
     return { label, ok: null, expected_lang: expected, error: e.message };
+  }
+}
+
+// Képernyőkép-alapú nyelvi ellenőrzés Gemini vision-nel: a láthatóan megjelenő
+// szöveg nyelvét állapítja meg, függetlenül a DOM-tól és a html lang attribútumtól.
+export async function auditVisualLanguage(page, label, log, expectedLang) {
+  const expected = String(expectedLang || "en-GB");
+  const prefix = expected.toLowerCase().split("-")[0];
+  try {
+    const buf = await page.screenshot({ type: "jpeg", quality: 60, fullPage: false });
+    const res = await visionExtract({
+      screenshotB64: buf.toString("base64"),
+      prompt:
+        "Look at this web page screenshot. Identify the language of the VISIBLE user interface text " +
+        "(buttons, labels, headings, form fields). Ignore brand names, e-mail addresses, URLs and prices. " +
+        "Answer with the ISO 639-1 two-letter code of the dominant language, a confidence 0-1, " +
+        "and a short list of visible words you based it on.",
+      schema: {
+        type: "object",
+        properties: {
+          language: { type: "string" },
+          confidence: { type: "number" },
+          sample_words: { type: "array", items: { type: "string" } },
+        },
+        required: ["language", "confidence"],
+      },
+    });
+    const data = res?.data || res || {};
+    const detected = String(data.language || "").toLowerCase().split("-")[0];
+    const confidence = Number(data.confidence ?? 0);
+    if (!detected || confidence < 0.5) {
+      log?.("info", `Vizuális nyelvi ellenőrzés (${label}): bizonytalan (${detected || "?"} / ${confidence})`);
+      return { ok: null, detected_lang: detected || null, confidence, reason: "bizonytalan felismerés" };
+    }
+    const ok = detected === prefix;
+    log?.(
+      ok ? "info" : "warn",
+      ok
+        ? `Vizuális nyelvi ellenőrzés (${label}): rendben — a képernyőn ${detected} nyelvű szöveg látszik`
+        : `Vizuális nyelvi ellenőrzés (${label}): HIBA — a képernyőn ${detected} nyelvű szöveg látszik, elvárt ${prefix} (${(data.sample_words || []).slice(0, 6).join(", ")})`,
+    );
+    return {
+      ok,
+      detected_lang: detected,
+      expected_lang: expected,
+      confidence,
+      sample_words: data.sample_words || [],
+    };
+  } catch (e) {
+    log?.("info", `Vizuális nyelvi ellenőrzés (${label}): kihagyva — ${e.message}`);
+    return { ok: null, error: e.message };
   }
 }
