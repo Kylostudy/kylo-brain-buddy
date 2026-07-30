@@ -237,9 +237,10 @@ function ScenariosPage() {
   });
 
   const runMut = useMutation({
-    mutationFn: async (id: string) => runFn({ data: { scenarioId: id } }),
+    mutationFn: async (v: { id: string; parallel: number }) =>
+      runFn({ data: { scenarioId: v.id, parallel: v.parallel } }),
     onSuccess: (r: { count: number; stepCount: number }) => {
-      toast.success(`${r.count} futás sorba téve (${r.stepCount} lépés).`);
+      toast.success(`${r.count} futás sorba téve (${r.stepCount} lépés, mindegyik friss belépéssel).`);
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
