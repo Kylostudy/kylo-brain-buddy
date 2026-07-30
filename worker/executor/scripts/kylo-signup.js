@@ -1131,11 +1131,36 @@ async function waitForRegistrationEvidence(page, diag, email, password, log) {
 
 }
 
-async function openGmailConfirmationLink(page, email, log) {
-  const MAX_ATTEMPTS = 12;
-  const WAIT_MS = 5000;
+// A regisztrációs oldalon lévő „megerősítő e-mail újraküldése" gomb megnyomása.
+async function requestConfirmationResend(page, log) {
+  const RESEND_RE =
+    /resend|send again|újraküld|újra küld|küldd újra|nem kaptam|didn'?t receive|renvoyer|reenviar|erneut senden/i;
   try {
-    log("info", `Gmail visszaigazoló e-mail keresése — címzett=${email}, próbálkozások=${MAX_ATTEMPTS}, várakozás=${WAIT_MS}ms`);
+    const handle = await page.evaluateHandle((src) => {
+      const re = new RegExp(src, "i");
+      const nodes = Array.from(document.querySelectorAll("button, a, [role='button']"));
+      return nodes.find((n) => re.test(n.innerText || n.textContent || "")) || null;
+    }, RESEND_RE.source);
+    const el = handle.asElement();
+    if (!el) return false;
+    await el.scrollIntoViewIfNeeded().catch(() => {});
+    await el.click({ timeout: 5000 });
+    log("info", "Megerősítő e-mail újraküldése kérve.");
+    await page.waitForTimeout(2500);
+    return true;
+  } catch (e) {
+    log("warn", `Újraküldés nem sikerült: ${e.message}`);
+    return false;
+  }
+}
+
+async function openGmailConfirmationLink(page, email, log) {
+  const MAX_ATTEMPTS = 30; // 30 × 5 s ≈ 150 s türelem
+  const WAIT_MS = 5000;
+  const RESEND_AFTER_ATTEMPT = 18; // ~90 s után kérünk újraküldést
+  let resendTried = false;
+  try {
+    log("info", `Gmail visszaigazoló e-mail keresése — címzett=${email}, próbálkozások=${MAX_ATTEMPTS}, várakozás=${WAIT_MS}ms (min. 90 s türelem, utána újraküldés kérése)`);
     let lastError = null;
     let lastMeta = null;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
@@ -1167,9 +1192,13 @@ async function openGmailConfirmationLink(page, email, log) {
         lastError = e.message;
         log("warn", `Gmail ${attempt}/${MAX_ATTEMPTS} — hiba: ${e.message}`);
       }
+      if (!resendTried && attempt >= RESEND_AFTER_ATTEMPT) {
+        resendTried = true;
+        await requestConfirmationResend(page, log);
+      }
       await page.waitForTimeout(WAIT_MS);
     }
-    return { ok: false, error: lastError || "nem érkezett friss megerősítő e-mail", lastMeta };
+    return { ok: false, error: lastError || "nem érkezett friss megerősítő e-mail (150 s + újraküldés után sem)", lastMeta, resend_requested: resendTried };
   } catch (e) {
     return { ok: false, error: e.message };
   }
@@ -1516,6 +1545,19 @@ export async function runKyloSignup({ page, context, spec, log }) {
   if (!email || !password) {
     throw new Error("Hiányzó email / jelszó a signup spec-ből.");
   }
+
+  // Egy Gmail-fiókba érkező párhuzamos futások levelei ne torlódjanak össze:
+  // futásonként legalább 20 s eltolás (futás-sorszám alapján, max ~100 s).
+  const runIndex = Number(cfg.run_index);
+  if (Number.isFinite(runIndex) && runIndex > 0) {
+    const offsetMs = (runIndex % 6) * 20000;
+    if (offsetMs > 0) {
+      log("info", `Levéltorlódás elkerülése: ${offsetMs / 1000} s eltolás a #${runIndex} futásnak.`);
+      await page.waitForTimeout(offsetMs);
+    }
+  }
+
+
 
   const steps = [];
   const screenshots = [];

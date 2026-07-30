@@ -429,6 +429,29 @@ function recipientMatches(headers: { name: string; value: string }[] | undefined
   return normalizeGmailAddress(haystack).includes(expected);
 }
 
+/**
+ * Szigorú címzett-egyezés: a +alias IS számít. Egy Gmail-fiókba egyszerre több
+ * futás levele érkezik (kylo171, kylo173, …), ezért az alias nélküli egyezés
+ * kevés — abból lett a #171-es futás téves levélválasztása.
+ */
+function recipientMatchesStrict(
+  headers: { name: string; value: string }[] | undefined,
+  recipient: string,
+): boolean {
+  const expected = normalizeEmail(recipient).replace(/^.*<|>.*$/g, "");
+  if (!expected.includes("@")) return false;
+  const haystack = [
+    getHeader(headers, "To"),
+    getHeader(headers, "Delivered-To"),
+    getHeader(headers, "X-Original-To"),
+    getHeader(headers, "Cc"),
+    getHeader(headers, "Bcc"),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(expected);
+}
+
 function messageMillis(message: GmailMessage): number | null {
   const millis = Number(message.internalDate);
   return Number.isFinite(millis) ? millis : null;
@@ -481,11 +504,16 @@ export async function findVerificationLinkServer(params: {
   const recipient = params.recipient?.trim();
   const platform = params.platform?.trim();
 
+  // Ha ismerjük a pontos aliaszt, KIZÁRÓLAG arra a címre szűrünk. Egy Gmail-fiókba
+  // több párhuzamos futás levele érkezik, ezért a tárgy alapú keresés téves levelet
+  // választhat.
+  const recipientQuery = recipient ? `newer_than:2d to:${recipient}` : null;
   const keywordQuery = `newer_than:2d (${platform ? `${platform} OR ` : ""}kylo OR confirm OR confirmation OR verify OR verification OR activate OR activation OR megerősítés OR visszaigazolás)`;
   const fallbackQuery = "newer_than:2d";
+  const queries = recipientQuery ? [recipientQuery] : [keywordQuery, fallbackQuery];
   const ids = new Map<string, true>();
 
-  for (const q of [keywordQuery, fallbackQuery]) {
+  for (const q of queries) {
     try {
       const list = await gmailJson<{ messages?: { id: string }[] }>(
         `${GMAIL_API}/users/me/messages?maxResults=30&includeSpamTrash=true&q=${encodeURIComponent(q)}`,
@@ -495,7 +523,7 @@ export async function findVerificationLinkServer(params: {
         if (message.id) ids.set(message.id, true);
       }
     } catch (error) {
-      if (q === fallbackQuery) throw error;
+      if (q === queries[queries.length - 1]) throw error;
     }
   }
 
@@ -522,6 +550,11 @@ export async function findVerificationLinkServer(params: {
       rejects.push({ subject, from, ageSec, reason: "too_old" });
       continue;
     }
+    // Csak a saját aliaszunkra érkezett levelet fogadjuk el (+kyloNNN is számít).
+    if (recipient && !recipientMatchesStrict(headers, recipient)) {
+      rejects.push({ subject, from, ageSec, reason: "wrong_recipient" });
+      continue;
+    }
     const haystack = `${from}\n${subject}\n${msg.snippet ?? ""}\n${collectMessageText(msg.payload)}`;
     const link = pickConfirmationLink(extractCandidateLinks(haystack));
     if (!link) {
@@ -543,7 +576,7 @@ export async function findVerificationLinkServer(params: {
   }
 
   const debug = {
-    query: keywordQuery,
+    query: queries[0],
     total: ids.size,
     latestSubject: latestMeta?.subject ?? null,
     latestFrom: latestMeta?.from ?? null,
