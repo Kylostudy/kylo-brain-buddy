@@ -638,6 +638,32 @@ function RunDetailsDialog({ run }: { run: SignupRun }) {
           <div><span className="text-muted-foreground">Alias:</span> <span className="font-mono">{spec.email}</span></div>
           <div><span className="text-muted-foreground">Ország / nyelv / valuta:</span> {spec.expected_country ?? "?"} · {spec.lang ?? "?"} · {spec.currency ?? "?"}</div>
           <div><span className="text-muted-foreground">Végállomás:</span> {res.final_url ?? "—"}</div>
+          <div
+            className={`rounded-md border p-2 ${
+              !res.currency_check
+                ? "border-muted bg-muted/20 text-muted-foreground"
+                : res.currency_check.ok
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                  : "border-red-500/40 bg-red-500/10 text-red-300"
+            }`}
+          >
+            <div className="text-xs font-semibold uppercase">Fizetési pénznem ellenőrzés</div>
+            {res.currency_check ? (
+              <div>
+                Elvárt: <span className="font-mono">{res.currency_check.expected_currency ?? "?"}</span> · Észlelt:{" "}
+                <span className="font-mono">
+                  {res.currency_check.detected_currency ??
+                    (res.currency_check.currency_candidates ?? []).join("/") ||
+                    "nem felismerhető"}
+                </span>{" "}
+                → {res.currency_check.ok ? "OK" : "ELTÉRÉS"}
+              </div>
+            ) : (
+              <div>
+                Ez a futás még nem tartalmaz pénznem-ellenőrzést (a worker régebbi tesztszkripttel futott).
+              </div>
+            )}
+          </div>
           {run.error && (
             <div className="rounded-md border border-red-500/40 bg-red-500/10 p-2 text-red-300">
               <div className="text-xs font-semibold uppercase">Hiba</div>
