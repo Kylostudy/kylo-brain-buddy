@@ -1119,6 +1119,7 @@ export type Database = {
           error: string | null
           id: string
           mode: string
+          prelude_scenario_id: string | null
           start_url: string | null
           started_at: string | null
           status: string
@@ -1134,6 +1135,7 @@ export type Database = {
           error?: string | null
           id?: string
           mode?: string
+          prelude_scenario_id?: string | null
           start_url?: string | null
           started_at?: string | null
           status?: string
@@ -1149,6 +1151,7 @@ export type Database = {
           error?: string | null
           id?: string
           mode?: string
+          prelude_scenario_id?: string | null
           start_url?: string | null
           started_at?: string | null
           status?: string
@@ -1158,6 +1161,13 @@ export type Database = {
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "recording_sessions_prelude_scenario_id_fkey"
+            columns: ["prelude_scenario_id"]
+            isOneToOne: false
+            referencedRelation: "audit_scenarios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recording_sessions_workflow_id_fkey"
             columns: ["workflow_id"]
