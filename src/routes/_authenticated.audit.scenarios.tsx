@@ -275,6 +275,7 @@ function ScenariosPage() {
       description: s.description ?? "",
       kind: (s.kind === "block" ? "block" : "scenario") as "scenario" | "block",
       baseUrl: s.base_url,
+      recordStartUrl: s.record_start_url ?? "",
       preludeBlockIds: s.prelude_block_ids ?? [],
       expectationsText: checklist.join("\n"),
       runPerExam: s.run_per_exam,
