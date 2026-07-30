@@ -93,6 +93,7 @@ const emptyDraft = {
   description: "",
   kind: "scenario" as "scenario" | "block",
   baseUrl: "https://kylo.study",
+  recordStartUrl: "",
   preludeBlockIds: [] as string[],
   expectationsText: "",
   runPerExam: false,
