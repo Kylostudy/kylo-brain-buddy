@@ -21,6 +21,8 @@ import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
 import { billingProfile } from "./billing-locales.js";
 import { checkStripeCurrency, expectedCurrency } from "./currency-rules.js";
 import { scaleMs } from "./proxy-health.js";
+import { langForCountry, currencyForCountry } from "./country-lang.js";
+
 
 // Számlázási űrlap tesztadatai — ország-konzisztensen (lásd billing-locales.js).
 // Ha nem tudjuk az országot, US-t használunk.
@@ -1607,14 +1609,35 @@ async function collectBillingBlockers(page) {
 export async function runKyloSignup({ page, context, spec, log }) {
   const cfg = spec.kylo_signup || {};
   const baseUrl = cfg.base_url || "https://kylo.study";
-  const lang = cfg.lang || "en-GB";
   const skin = cfg.skin || "puppy-cat";
   const email = cfg.email;
   const password = cfg.password;
-  const currency = cfg.currency || "USD";
+
+  // ---- Az elvárt nyelv a VALÓDI kimeneti IP országából jön ----
+  // A preflight (whoer + geo API) által mért ország a mérvadó, nem a proxy
+  // címkéje: ha egy „francia" proxy valójában máshonnan jön ki, akkor is annak
+  // az országnak a nyelvén kell megjelennie az oldalnak, és mi is azt
+  // ellenőrizzük. Így nyelvenként más-más elvárással fut minden IP.
+  const detectedCC = String(spec.detected_geo?.country_code || "").toUpperCase() || null;
+  const labelCC = String(cfg.expected_country || cfg.country || "").toUpperCase() || null;
+  const geoCountry = detectedCC || labelCC;
+  const specLang = cfg.lang || "en-GB";
+  const lang = geoCountry ? langForCountry(geoCountry, specLang) : specLang;
+  const currency = geoCountry ? currencyForCountry(geoCountry, cfg.currency || "USD") : (cfg.currency || "USD");
+  if (detectedCC && labelCC && detectedCC !== labelCC) {
+    log(
+      "warn",
+      `A proxy címkéje ${labelCC}, de a valódi IP ${detectedCC} — az elvárt nyelv ehhez igazodik: ${lang}.`,
+    );
+  }
+  log(
+    "info",
+    `Nyelvi elvárás az IP alapján: ${geoCountry ?? "?"} → oldalnyelv „${lang}", pénznem ${currency}.`,
+  );
   // Ország-konzisztens számlázási tesztadatok: az IP/nyelv szerinti országhoz
   // illő irányítószám és telefonszám, különben a Stripe „incomplete" hibát dob.
-  const billing = billingProfile(lang, cfg.expected_country || cfg.country);
+  const billing = billingProfile(lang, geoCountry);
+
 
   // A mentett workflow felvétele: ebből tudjuk, milyen mezők vannak a regisztrációs
   // űrlapon és milyen sorrendben — nem találgatunk.
@@ -2061,7 +2084,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
     // A pénznemet a futás VALÓDI országa dönti el (proxy/IP szerinti ország),
     // nem a számlázási minta-profil országa. (#247: SG proxy + en-GB nyelv →
     // a profil GB-re esett vissza, ezért tévesen EUR-t vártunk USD helyett.)
-    const currencyCountry = String(cfg.expected_country || cfg.country || billing.country || "").toUpperCase() || billing.country;
+    const currencyCountry = geoCountry || billing.country;
     currencyCheck = await checkStripeCurrency(page, currencyCountry, log);
 
 
@@ -2609,6 +2632,10 @@ export async function runKyloSignup({ page, context, spec, log }) {
     lang,
     currency,
     expected_lang: lang,
+    geo_country: geoCountry,
+    detected_country: detectedCC,
+    proxy_label_country: labelCC,
+
     reached_stripe: reachedStripe,
     currency_check: currencyCheck,
     expected_currency: currencyCheck.expected_currency,

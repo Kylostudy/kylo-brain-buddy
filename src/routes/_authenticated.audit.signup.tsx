@@ -151,7 +151,7 @@ function SignupPage() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordMode, setRecordMode] = useState<"record" | "browse">("record");
-  const [bulkAction, setBulkAction] = useState<"english" | "non-english" | "scheduled-non-english" | null>(null);
+  const [bulkAction, setBulkAction] = useState<"english" | "non-english" | "non-english-5" | "scheduled-non-english" | null>(null);
   const bulkLockRef = useRef(false);
 
   useEffect(() => {
@@ -216,8 +216,8 @@ function SignupPage() {
 
   const startAllMut = useMutation({
 
-    mutationFn: (vars: { scope: "english" | "non-english"; notBefore?: string | null }) =>
-      startAllFn({ data: { scope: vars.scope, notBefore: vars.notBefore ?? null } }),
+    mutationFn: (vars: { scope: "english" | "non-english"; notBefore?: string | null; limit?: number | null }) =>
+      startAllFn({ data: { scope: vars.scope, notBefore: vars.notBefore ?? null, limit: vars.limit ?? null } }),
     onSuccess: (r, vars) => {
       toast.success(
         vars.notBefore
@@ -234,14 +234,15 @@ function SignupPage() {
   });
 
   function startBulk(
-    vars: { scope: "english" | "non-english"; notBefore?: string | null },
-    action: "english" | "non-english" | "scheduled-non-english",
+    vars: { scope: "english" | "non-english"; notBefore?: string | null; limit?: number | null },
+    action: "english" | "non-english" | "non-english-5" | "scheduled-non-english",
   ) {
     if (startAllMut.isPending || bulkLockRef.current) return;
     bulkLockRef.current = true;
     setBulkAction(action);
     startAllMut.mutate(vars);
   }
+
 
   const runs = (data?.runs as SignupRun[] | undefined) ?? [];
 
@@ -369,6 +370,17 @@ function SignupPage() {
             >
               {bulkAction === "non-english" && startAllMut.isPending ? "Indítás…" : "Összes nem-angol (nyelvi kör)"}
             </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              onClick={() => startBulk({ scope: "non-english", limit: 5 }, "non-english-5")}
+              disabled={startAllMut.isPending || !canStart}
+              title={canStart ? "Kis kör: 5 véletlenszerű, különböző országú nem-angol proxy — gyors ellenőrzéshez" : "Először kösd be a Gmail postafiókot"}
+            >
+              {bulkAction === "non-english-5" && startAllMut.isPending ? "Indítás…" : "5-ös nem-angol kör"}
+            </Button>
+
             <Button
               type="button"
               variant="destructive"
