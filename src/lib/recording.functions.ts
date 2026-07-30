@@ -58,6 +58,38 @@ async function assertNoActiveBrowseOrRecord(
   }
 }
 
+/**
+ * Megkeresi az aktív "belépés" építőkockát, amelyet a felvétel megkezdése
+ * előtt le kell játszani. Így a rögzítés már bejelentkezett állapotból indul,
+ * nem a kijelentkezett főoldalról.
+ */
+async function findLoginBlockId(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  scenarioId: string,
+): Promise<string | null> {
+  const { data: sc } = await supabase
+    .from("audit_scenarios")
+    .select("id, kind, tenant_id, prelude_block_ids")
+    .eq("id", scenarioId)
+    .maybeSingle();
+  if (!sc || sc.kind === "block") return null;
+
+  const { data: blocks } = await supabase
+    .from("audit_scenarios")
+    .select("id, name, feature_tag")
+    .eq("tenant_id", sc.tenant_id)
+    .eq("kind", "block")
+    .eq("is_active", true);
+  const explicit = (sc.prelude_block_ids as string[] | null) ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const match = (blocks ?? []).find((b: any) =>
+    explicit.includes(b.id) ||
+    /login|belep|belép|sign\s*in/i.test(`${b.feature_tag ?? ""} ${b.name ?? ""}`),
+  );
+  return match?.id ?? null;
+}
+
 async function createSession(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -65,6 +97,7 @@ async function createSession(
   workflowId: string,
   mode: "record" | "browse",
   requestedStartUrl: string | undefined,
+  preludeScenarioId: string | null = null,
 ) {
   // Workflow tulajdonjogának ellenőrzése (RLS úgyis védi, de korai hibázás barátságosabb)
   const { data: wf, error: wfErr } = await (supabase as any)
@@ -98,8 +131,9 @@ async function createSession(
       status: "requested",
       start_url: startUrl ?? null,
       mode,
+      prelude_scenario_id: preludeScenarioId,
     })
-    .select("id, status, start_url, created_at, mode")
+    .select("id, status, start_url, created_at, mode, prelude_scenario_id")
     .single();
   if (error) throw new Error(error.message);
 
@@ -117,16 +151,23 @@ export const startRecording = createServerFn({ method: "POST" })
           .max(2048)
           .optional()
           .or(z.literal("").transform(() => undefined)),
+        // Ha forgatókönyvhöz veszünk fel, ennek alapján játsszuk le a
+        // belépés-kockát még a felvétel megkezdése előtt.
+        scenarioId: z.string().uuid().nullable().optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const preludeScenarioId = data.scenarioId
+      ? await findLoginBlockId(context.supabase as never, data.scenarioId)
+      : null;
     return createSession(
       context.supabase as never,
       context.userId,
       data.workflowId,
       "record",
       data.startUrl,
+      preludeScenarioId,
     );
   });
 
