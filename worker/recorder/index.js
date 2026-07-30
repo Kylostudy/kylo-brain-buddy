@@ -1198,6 +1198,24 @@ async function runSession(payload) {
     payload: { w: viewportW, h: viewportH },
   });
 
+  // ---- Belépés-előjáték (prelude) ----
+  // Ha a Brain küldött belépés-kockát, azt ELŐBB automatikusan lejátsszuk egy
+  // valódi teszt fiókkal, és csak utána navigálunk a felvétel kezdőoldalára.
+  // Így a felhasználó már bejelentkezve kezdi a rögzítést.
+  if (!stopped && payload.prelude && Array.isArray(payload.prelude.actions) && payload.prelude.actions.length) {
+    try {
+      await channel.send({
+        type: "broadcast",
+        event: "status",
+        payload: { status: "running", note: "Automatikus belépés folyamatban…" },
+      }).catch(() => {});
+      await playPrelude(page, payload.prelude, session.id);
+      console.log(`[session ${session.id}] prelude done → ${page.url()}`);
+    } catch (e) {
+      console.error(`[session ${session.id}] prelude hiba:`, e?.message ?? e);
+    }
+  }
+
   if (effectiveStartUrl) {
     try {
       await page.goto(effectiveStartUrl, { waitUntil: "domcontentloaded" });
