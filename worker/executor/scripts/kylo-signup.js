@@ -21,6 +21,8 @@ import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
 import { billingProfile } from "./billing-locales.js";
 import { checkStripeCurrency, expectedCurrency } from "./currency-rules.js";
 import { scaleMs } from "./proxy-health.js";
+import { langForCountry, currencyForCountry } from "./country-lang.js";
+
 
 // Számlázási űrlap tesztadatai — ország-konzisztensen (lásd billing-locales.js).
 // Ha nem tudjuk az országot, US-t használunk.
