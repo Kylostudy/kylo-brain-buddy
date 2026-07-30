@@ -445,6 +445,15 @@ async function loop() {
   console.log(
     `[${WORKER_ID}] workflow poll aktív: ${POLL_INTERVAL_MS}ms-onként nézem a /api/public/worker/claim végpontot`,
   );
+  console.log(
+    `[live] mód=${liveConfig.MODE} ablak=${liveConfig.WINDOW} (${liveConfig.TZ}) forrás=${liveConfig.HOST_DIR || "nincs beállítva"}`,
+  );
+  {
+    const s = liveMounts();
+    console.log(
+      `[live] induláskori állapot: ${s.active ? "BE" : "KI"} — ${s.reason}`,
+    );
+  }
 
   installCrashGuards();
 
@@ -454,6 +463,10 @@ async function loop() {
     label: `orchestrator ${WORKER_ID}`,
     getInflight: () => inflight.size,
     getLimit: () => effectiveLimit,
+    getExtra: () => {
+      const s = liveMounts();
+      return { liveMode: { active: s.active, reason: s.reason, window: liveConfig.WINDOW } };
+    },
   });
 
   installGracefulShutdown({
@@ -466,6 +479,14 @@ async function loop() {
     workerId: WORKER_ID,
     getInflight: () => inflight.size,
     intervalMs: Number(process.env.HEARTBEAT_INTERVAL_MS || 60000),
+    getExtraDetail: () => {
+      const s = liveMounts();
+      return {
+        liveMode: s.active,
+        liveModeReason: s.reason,
+        liveWindow: liveConfig.WINDOW,
+      };
+    },
   });
 
   let lastThrottleLogAt = 0;
