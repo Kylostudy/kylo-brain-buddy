@@ -189,14 +189,8 @@ function SignupPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Következő hajnali 1 óra (helyi idő) ISO-ban.
-  const nextOneAm = () => {
-    const d = new Date();
-    const t = new Date(d);
-    t.setHours(1, 0, 0, 0);
-    if (t.getTime() <= d.getTime()) t.setDate(t.getDate() + 1);
-    return t;
-  };
+
+
 
   const cancelPendingFn = useServerFn(cancelPendingSignupRuns);
   const cancelPendingMut = useMutation({
@@ -276,9 +270,9 @@ function SignupPage() {
   const canStart = !!gmail;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-3 py-6 sm:px-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Kylo Sign Up</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Minden „Új futás" kattintás váltogatva Puppy Cat és Alaszka skinnel,
@@ -293,8 +287,8 @@ function SignupPage() {
             A rendes lépések a record & replay felvételből fognak jönni.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex w-full min-w-0 flex-col gap-2 lg:w-auto lg:items-end">
+          <div className="flex w-full flex-wrap items-center gap-2 lg:justify-end">
             <Button
               type="button"
               variant="outline"
@@ -360,19 +354,6 @@ function SignupPage() {
               title={canStart ? "Egyszerre indít egy futást minden nem-angol proxyra, a proxy országának megfelelő nyelvvel" : "Először kösd be a Gmail postafiókot"}
             >
               {bulkAction === "non-english" && startAllMut.isPending ? "Indítás…" : "Összes nem-angol (nyelvi kör)"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              onClick={() =>
-                startBulk({ scope: "non-english", notBefore: nextOneAm().toISOString() }, "scheduled-non-english")
-              }
-
-              disabled={startAllMut.isPending || !canStart}
-              title={canStart ? "Sorba teszi a nem-angol nyelvi kört, de a worker csak hajnali 1 után kezdi el" : "Először kösd be a Gmail postafiókot"}
-            >
-              {bulkAction === "scheduled-non-english" && startAllMut.isPending ? "Ütemezés…" : "Nem-angol · hajnali 1 után"}
             </Button>
             <Button
               type="button"
