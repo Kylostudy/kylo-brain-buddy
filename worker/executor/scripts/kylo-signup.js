@@ -420,7 +420,32 @@ async function clickAuthSignupToggle(page, log) {
   return true;
 }
 
+// A regisztrációs oldal közvetlen megnyitása (a főoldal waitlist-landing lett).
+async function gotoSignupPage(page, log) {
+  let target;
+  try {
+    const cur = new URL(page.url());
+    if (/^\/(regisztracio|register|signup)\/?$/i.test(cur.pathname)) return false;
+    const next = new URL("/regisztracio", cur.origin);
+    const lang = cur.searchParams.get("lang");
+    if (lang) next.searchParams.set("lang", lang);
+    target = next.toString();
+  } catch {
+    target = "https://kylo.study/regisztracio";
+  }
+  log("info", `Nincs auth űrlap ezen az oldalon — közvetlen navigáció: ${target}`);
+  try {
+    await page.goto(target, { waitUntil: "domcontentloaded", timeout: scaleMs(30000) });
+    await page.waitForTimeout(2000);
+    return true;
+  } catch (e) {
+    log("warn", `Regisztrációs oldal megnyitása nem sikerült: ${e.message}`);
+    return false;
+  }
+}
+
 async function ensureSignupMode(page, log) {
+
   // A password mező néha csak késve renderelődik (client-side hydration),
   // vagy csak azután jelenik meg, hogy beírtuk az emailt és rákattintottunk
   // egy "Tovább / Continue" gombra (2-step form). Ezért többször pollozunk,
