@@ -30,6 +30,13 @@ log() { echo "[deploy $(date -u +%FT%TZ)] $*"; }
 # Erre azért van szükség, mert az orchestrator a HOST fájlrendszeréről csatolja
 # be a szkripteket az executor konténerbe.
 ENV_FILE="$WORKER_DIR/.env"
+# A LIVE_* beállítások a worker/.env-ből jönnek (kézi futtatásnál is).
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
 if [ -f "$ENV_FILE" ] && ! grep -q '^LIVE_EXECUTOR_HOST_DIR=' "$ENV_FILE"; then
   printf '\n# Élő szkript mód: az executor forrásának valódi útvonala a VPS-en\nLIVE_EXECUTOR_HOST_DIR=%s\n' \
     "$WORKER_DIR/executor" >> "$ENV_FILE"
