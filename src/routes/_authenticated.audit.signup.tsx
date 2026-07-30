@@ -293,8 +293,8 @@ function SignupPage() {
             A rendes lépések a record & replay felvételből fognak jönni.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex w-full min-w-0 flex-col gap-2 lg:w-auto lg:items-end">
+          <div className="flex w-full flex-wrap items-center gap-2 lg:justify-end">
             <Button
               type="button"
               variant="outline"
