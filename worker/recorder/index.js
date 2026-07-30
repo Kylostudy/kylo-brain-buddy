@@ -209,6 +209,80 @@ async function humanClick(page, from, to) {
   await humanPause(220, 520);
 }
 
+// ---- Belépés-előjáték lejátszása felvétel előtt ----
+// A rögzített belépés-kocka lépéseit játssza le emberi ütemezéssel, a gépelt
+// szövegeknél a felvételkori e-mail/jelszó helyére a kiosztott teszt fiók
+// adatait helyettesíti be.
+function groupPreludeTyping(actions) {
+  const groups = [];
+  let cur = null;
+  for (let i = 0; i < actions.length; i++) {
+    const a = actions[i] || {};
+    if (a.type === "type") {
+      const v = a.value ?? a.text ?? "";
+      if (!cur) cur = { start: i, end: i, text: v, selector: a.selector || null };
+      else { cur.end = i; cur.text += v; }
+    } else if (cur) {
+      if (a.type === "click" && a.selector && cur.selector && a.selector === cur.selector) continue;
+      groups.push(cur);
+      cur = null;
+    }
+  }
+  if (cur) groups.push(cur);
+  return groups;
+}
+
+async function playPrelude(page, prelude, sessionId) {
+  const actions = prelude.actions || [];
+  const account = prelude.account || null;
+  const plan = new Map();
+  for (const g of groupPreludeTyping(actions)) {
+    const sel = String(g.selector || "");
+    let override = null;
+    if (account) {
+      if (/@/.test(g.text) || /e?mail/i.test(sel)) override = account.email;
+      else if (/pass|jelszo|jelszó/i.test(sel)) override = account.password;
+    }
+    plan.set(g.start, { end: g.end, text: override ?? g.text });
+  }
+
+  let cursor = { x: 640, y: 400 };
+  for (let i = 0; i < actions.length; i++) {
+    const a = actions[i] || {};
+    const typed = plan.get(i);
+    if (a.type === "type") {
+      if (!typed) continue; // csoport belseje — a csoport elején már beírtuk
+      await page.keyboard.type(String(typed.text), { delay: randomBetween(45, 130) });
+      i = typed.end;
+      continue;
+    }
+    try {
+      if (a.type === "navigate" && a.url) {
+        await page.goto(normalizeUrl(a.url) || a.url, { waitUntil: "domcontentloaded" });
+      } else if (a.type === "click") {
+        if (typeof a.x === "number" && typeof a.y === "number") {
+          await humanClick(page, cursor, { x: a.x, y: a.y });
+          cursor = { x: a.x, y: a.y };
+        } else if (a.selector) {
+          await page.click(a.selector, { timeout: 10000 });
+        }
+      } else if (a.type === "key" && a.key) {
+        await page.keyboard.press(a.key);
+      } else if (a.type === "scroll") {
+        await page.mouse.wheel(a.dx || 0, a.dy || 0);
+      } else if (a.type === "wait") {
+        await page.waitForTimeout(Math.min(Number(a.ms) || 500, 5000));
+      }
+    } catch (e) {
+      console.warn(`[session ${sessionId}] prelude lépés kihagyva (${a.type}): ${e?.message ?? e}`);
+    }
+    await humanPause(180, 520);
+  }
+  await page.waitForLoadState("domcontentloaded").catch(() => {});
+  await page.waitForTimeout(1200);
+}
+
+
 function normalizeUrl(rawUrl) {
   const raw = String(rawUrl || "").trim();
   if (!raw) return null;
