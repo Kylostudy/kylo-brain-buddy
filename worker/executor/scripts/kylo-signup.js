@@ -1237,7 +1237,7 @@ async function signInAfterConfirmation(page, email, password, log) {
 // Számlázási adatok űrlapjának kitöltése (a Stripe előtti lépés).
 // Nem csak name/id/placeholder alapján keresünk, hanem a látható CÍMKE szövegét is
 // nézzük — a /fizetes oldalon a mezőknek gyakran csak label-je van (pl. "House number").
-async function fillBillingForm(page, email, log) {
+async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
   const result = await page.evaluate(
     ({ billing, email }) => {
       const targets = [
