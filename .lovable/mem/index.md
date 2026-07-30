@@ -22,3 +22,4 @@ MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = 
 - [Hibás IPRoyal proxyk](mem://features/broken-iproyal-proxies) — FR és HK proxy folyamatosan rossz geolokáció, cserét kell kérni.
 - [napi-reddit-melegítés](mem://features/daily-reddit-warmup) — Minden aktív Reddit fiók naponta 1× bemelegszik; pg_cron ütemezi, VPS rebuild után is fut
 - [futási időablakok](mem://features/run-time-windows) — Esti 17-23 budapesti tilalom minden futásra; bemelegítés csak helyi nappal
+- [esti-fejlesztoi-mod](mem://features/live-dev-mode) — Élő szkript-becsatolás build nélkül a workeren (17:00–08:00), live.sh kapcsoló, biztonsági fékek
