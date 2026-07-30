@@ -504,11 +504,16 @@ export async function findVerificationLinkServer(params: {
   const recipient = params.recipient?.trim();
   const platform = params.platform?.trim();
 
+  // Ha ismerjük a pontos aliaszt, KIZÁRÓLAG arra a címre szűrünk. Egy Gmail-fiókba
+  // több párhuzamos futás levele érkezik, ezért a tárgy alapú keresés téves levelet
+  // választhat.
+  const recipientQuery = recipient ? `newer_than:2d to:${recipient}` : null;
   const keywordQuery = `newer_than:2d (${platform ? `${platform} OR ` : ""}kylo OR confirm OR confirmation OR verify OR verification OR activate OR activation OR megerősítés OR visszaigazolás)`;
   const fallbackQuery = "newer_than:2d";
+  const queries = recipientQuery ? [recipientQuery] : [keywordQuery, fallbackQuery];
   const ids = new Map<string, true>();
 
-  for (const q of [keywordQuery, fallbackQuery]) {
+  for (const q of queries) {
     try {
       const list = await gmailJson<{ messages?: { id: string }[] }>(
         `${GMAIL_API}/users/me/messages?maxResults=30&includeSpamTrash=true&q=${encodeURIComponent(q)}`,
@@ -518,7 +523,7 @@ export async function findVerificationLinkServer(params: {
         if (message.id) ids.set(message.id, true);
       }
     } catch (error) {
-      if (q === fallbackQuery) throw error;
+      if (q === queries[queries.length - 1]) throw error;
     }
   }
 
