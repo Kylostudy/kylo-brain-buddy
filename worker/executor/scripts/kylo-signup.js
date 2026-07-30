@@ -530,10 +530,14 @@ async function tickRequiredCheckboxes(page, log) {
     };
     const out = [];
     const roleIds = new Set(["nyelvtanar", "osztalyfonok", "szaktanar", "nyelvtanar20", "nyelvtanulo"]);
-    const roleCheckboxes = Array.from(document.querySelectorAll('button[role="checkbox"], [role="checkbox"]'));
-    const checkboxControls = roleCheckboxes.length > 0
-      ? roleCheckboxes
-      : Array.from(document.querySelectorAll('input[type="checkbox"]'));
+    // A jogi szövegek minden proxy nyelvén mások, ezért nem a felirat nyelvére
+    // támaszkodunk. A regisztrációs formot a két jelszómező azonosítja, azon
+    // belül pedig a csillaggal jelölt / required / jogi linket tartalmazó,
+    // nem szerepkör jelölőnégyzeteket kapcsoljuk be.
+    const forms = Array.from(document.querySelectorAll("form"));
+    const signupForm = forms.find((form) => form.querySelectorAll('input[type="password"]').length >= 2) || null;
+    const scope = signupForm || document;
+    const checkboxControls = Array.from(scope.querySelectorAll('button[role="checkbox"], [role="checkbox"], input[type="checkbox"]'));
     const seenLabels = new Set();
     checkboxControls.forEach((el, idx) => {
       const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || el.parentElement?.parentElement?.innerText || "");
@@ -541,7 +545,9 @@ async function tickRequiredCheckboxes(page, log) {
       if (roleIds.has(el.id || "") || /tanár|teacher|tanuló|student|osztályfőnök|szaktanár|nyelvtanár|nyelvtanulo|class teacher|join/i.test(label)) return;
       const isChecked = el.getAttribute("aria-checked") === "true" || !!el.checked;
       if (isChecked) return;
-      const legalConsent = /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
+      const hasLegalLink = !!el.closest("label")?.querySelector('a[href*="terms" i], a[href*="privacy" i], a[href*="aszf" i], a[href*="adat" i]');
+      const visiblyRequired = /(^|\s)\*(\s|$)/.test(label);
+      const legalConsent = hasLegalLink || visiblyRequired || /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
       const optionalRole = /tanár|teacher|tanuló|student|osztályfőnök|szaktanár|nyelvtanár|class teacher|join/i.test(label);
       if (!el.required && (!legalConsent || optionalRole)) return;
       const labelKey = label.toLowerCase();
@@ -682,13 +688,18 @@ async function inspectSubmitReadiness(page) {
       .filter(isRoleControl)
       .map((el) => el.id || labelOf(el).slice(0, 40))
       .slice(0, 10);
-    const legalUnchecked = Array.from(document.querySelectorAll('button[role="checkbox"], [role="checkbox"], input[type="checkbox"]'))
+    const forms = Array.from(document.querySelectorAll("form"));
+    const signupForm = forms.find((form) => form.querySelectorAll('input[type="password"]').length >= 2) || null;
+    const scope = signupForm || document;
+    const legalUnchecked = Array.from(scope.querySelectorAll('button[role="checkbox"], [role="checkbox"], input[type="checkbox"]'))
       .filter((el) => visible(el))
       .filter((el) => !isRoleControl(el))
 
       .filter((el) => {
         const label = norm(el.closest("label")?.innerText || el.parentElement?.innerText || el.parentElement?.parentElement?.innerText || "");
-        const legal = /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
+        const hasLegalLink = !!el.closest("label")?.querySelector('a[href*="terms" i], a[href*="privacy" i], a[href*="aszf" i], a[href*="adat" i]');
+        const visiblyRequired = /(^|\s)\*(\s|$)/.test(label);
+        const legal = hasLegalLink || visiblyRequired || /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
         const checked = el.getAttribute("aria-checked") === "true" || !!el.checked;
         return legal && !checked;
       })
@@ -699,7 +710,8 @@ async function inspectSubmitReadiness(page) {
         text: norm(el.innerText || el.value || ""),
         disabled: !!el.disabled || el.getAttribute("aria-disabled") === "true",
       }));
-    const registerButton = submitButtons.find((b) => /register|sign up|regisztr/i.test(b.text)) || null;
+    const registerButton = submitButtons.find((b) => /register|sign up|regist|regisztr|rejestr|rekister|kaydol|cadastr|inscri|iscrivi|登録|注册|註冊|가입/i.test(b.text))
+      || (signupForm ? submitButtons[0] || null : null);
     const openJoinModal = Array.from(document.querySelectorAll('[role="dialog"], [data-state="open"]'))
       .some((el) => visible(el) && /kihez csatlakozol|who are you joining|join/i.test(norm(el.innerText || el.textContent || "")));
     return { roleChecked, legalUnchecked, registerButton, openJoinModal };
@@ -967,6 +979,9 @@ async function submitForm(page, log) {
       const text = norm(b.innerText || b.value || b.getAttribute("aria-label") || "");
       let score = b.type === "submit" ? 2 : 0;
       if (signupRe.test(text)) score += 10;
+      // Nyelvfüggetlen biztosíték: a két jelszómezőt tartalmazó form
+      // beküldőgombja a regisztráció gombja akkor is, ha új fordítás érkezik.
+      if (b.closest("form")?.querySelectorAll('input[type="password"]').length >= 2) score += 12;
       if (signinRe.test(text)) score -= 20;
       if (!best || score > best.score) best = { el: b, score, text };
     }
