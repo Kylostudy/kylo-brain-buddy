@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { startHeartbeat } from "./metrics.js";
 import { createHealth, installGracefulShutdown, installCrashGuards } from "./health.js";
 import { currentLimit, HARD_MAX } from "./capacity.js";
+import { liveMounts, liveStatusForLog, liveConfig } from "./live-mode.js";
 
 // A payloadokat (spec, credentials, proxy) fájlon keresztül adjuk át a
 // konténernek. Régebben env változóként (SPEC_JSON=...) argv-be raktuk, de
@@ -227,6 +228,7 @@ function dockerCommand(args, options = {}) {
 function runContainer(job) {
   return new Promise(async (resolve) => {
     let containerId = null;
+    let liveState = { active: false, reason: "nem értékelt" };
     const jobDir = join(JOB_MOUNT_DIR, String(job.id));
     const cleanup = async () => {
       if (containerId) {
@@ -247,6 +249,12 @@ function runContainer(job) {
         writeFileSync(join(jobDir, "proxy.json"), JSON.stringify(job.proxy));
       }
 
+      // Esti fejlesztői mód: ha aktív és a szkriptek szintaktikailag rendben
+      // vannak, a friss forrást csatoljuk be az image-be sütött helyett.
+      liveState = liveMounts();
+      const liveLine = liveStatusForLog(liveState);
+      if (liveLine) console.log(liveLine);
+
       const createArgs = [
       "create",
       "--network", "bridge",
@@ -255,7 +263,9 @@ function runContainer(job) {
       "-e", `WORKFLOW_ID=${job.workflowId}`,
       "-e", `BRAIN_URL=${BRAIN_URL}`,
       "-e", `WORKER_API_TOKEN=${WORKER_API_TOKEN}`,
+      "-e", `LIVE_SCRIPTS=${liveState.active ? "1" : "0"}`,
       ];
+      if (liveState.active) createArgs.push(...liveState.mounts);
       if (process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN) {
         createArgs.push("-e", `BRAIN_KYLO_TEST_BYPASS_TOKEN=${process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN}`);
       }
@@ -282,7 +292,15 @@ function runContainer(job) {
 
     const proc = spawn("docker", ["start", "-a", containerId], { stdio: ["ignore", "pipe", "pipe"] });
 
-    const logs = [];
+    const logs = [
+      {
+        ts: new Date().toISOString(),
+        level: liveState.active ? "warn" : "info",
+        message: liveState.active
+          ? `Kódforrás: ÉLŐ szkriptek a VPS fájlrendszeréről (${liveState.reason}) — build nélküli gyors teszt.`
+          : `Kódforrás: a beépített (image) szkriptek — ${liveState.reason}.`,
+      },
+    ];
     let finalEntry = null;
     let preflight = null;
     let dirty = false;
@@ -427,6 +445,15 @@ async function loop() {
   console.log(
     `[${WORKER_ID}] workflow poll aktív: ${POLL_INTERVAL_MS}ms-onként nézem a /api/public/worker/claim végpontot`,
   );
+  console.log(
+    `[live] mód=${liveConfig.MODE} ablak=${liveConfig.WINDOW} (${liveConfig.TZ}) forrás=${liveConfig.HOST_DIR || "nincs beállítva"}`,
+  );
+  {
+    const s = liveMounts();
+    console.log(
+      `[live] induláskori állapot: ${s.active ? "BE" : "KI"} — ${s.reason}`,
+    );
+  }
 
   installCrashGuards();
 
@@ -436,6 +463,10 @@ async function loop() {
     label: `orchestrator ${WORKER_ID}`,
     getInflight: () => inflight.size,
     getLimit: () => effectiveLimit,
+    getExtra: () => {
+      const s = liveMounts();
+      return { liveMode: { active: s.active, reason: s.reason, window: liveConfig.WINDOW } };
+    },
   });
 
   installGracefulShutdown({
@@ -448,6 +479,14 @@ async function loop() {
     workerId: WORKER_ID,
     getInflight: () => inflight.size,
     intervalMs: Number(process.env.HEARTBEAT_INTERVAL_MS || 60000),
+    getExtraDetail: () => {
+      const s = liveMounts();
+      return {
+        liveMode: s.active,
+        liveModeReason: s.reason,
+        liveWindow: liveConfig.WINDOW,
+      };
+    },
   });
 
   let lastThrottleLogAt = 0;

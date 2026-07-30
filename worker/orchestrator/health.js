@@ -13,7 +13,7 @@ import { createServer } from "node:http";
 
 const STALL_MS = Number(process.env.HEALTH_STALL_MS || 120000);
 
-export function createHealth({ port = 9090, getInflight, getLimit, label = "worker" }) {
+export function createHealth({ port = 9090, getInflight, getLimit, getExtra, label = "worker" }) {
   const state = {
     lastTickAt: Date.now(),
     startedAt: Date.now(),
@@ -35,6 +35,7 @@ export function createHealth({ port = 9090, getInflight, getLimit, label = "work
       uptimeSeconds: Math.round((Date.now() - state.startedAt) / 1000),
       inflight: getInflight?.() ?? null,
       limit: getLimit?.() ?? null,
+      ...(getExtra?.() ?? {}),
     };
     res.writeHead(healthy ? 200 : 503, { "content-type": "application/json" });
     res.end(JSON.stringify(body));

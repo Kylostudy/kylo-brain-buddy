@@ -55,7 +55,7 @@ function dockerPs() {
   });
 }
 
-export function startHeartbeat({ brainFetch, workerId, getInflight, intervalMs = 60000 }) {
+export function startHeartbeat({ brainFetch, workerId, getInflight, intervalMs = 60000, getExtraDetail }) {
   const send = async () => {
     try {
       const names = await dockerPs();
@@ -80,6 +80,7 @@ export function startHeartbeat({ brainFetch, workerId, getInflight, intervalMs =
           cpus: os.cpus().length,
           executors: names.filter((n) => !/orchestrator|recorder|shots/.test(n)).length,
           containers: names.slice(0, 40),
+          ...(getExtraDetail?.() ?? {}),
         },
       }, { timeoutMs: 15000 });
       console.log(

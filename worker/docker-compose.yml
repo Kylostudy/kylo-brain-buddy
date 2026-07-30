@@ -18,6 +18,9 @@ x-orchestrator: &orchestrator
     - ./orchestrator:/app
     - /var/run/docker.sock:/var/run/docker.sock
     - /tmp/kylo-jobs:/tmp/kylo-jobs
+    # Az executor forrása read-only tükörben: ebből ellenőrzi az orchestrator
+    # (szintaxis-ellenőrzés), hogy szabad-e "élő" szkriptekkel indítani a futást.
+    - ./executor:/live-executor:ro
   command: sh -c "apk add --no-cache docker-cli && node index.js"
   depends_on:
     - executor-image
@@ -50,6 +53,12 @@ x-orchestrator-env: &orchestrator-env
   DRAIN_TIMEOUT_MS: ${DRAIN_TIMEOUT_MS:-2700000}
   SHOTS_UPLOAD_URL: ${SHOTS_UPLOAD_URL:-http://shots:8080}
   SHOTS_PUBLIC_URL: ${SHOTS_PUBLIC_URL:-}
+  # --- Esti fejlesztői mód (élő szkriptek build nélkül) ---
+  LIVE_MODE: ${LIVE_MODE:-auto}
+  LIVE_EXECUTOR_HOST_DIR: ${LIVE_EXECUTOR_HOST_DIR:-}
+  LIVE_EXECUTOR_MIRROR: /live-executor
+  LIVE_WINDOW: ${LIVE_WINDOW:-17:00-08:00}
+  LIVE_TZ: ${LIVE_TZ:-Europe/Budapest}
 
 x-recorder: &recorder
   build:
