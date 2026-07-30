@@ -80,6 +80,7 @@ export function startHeartbeat({ brainFetch, workerId, getInflight, intervalMs =
           cpus: os.cpus().length,
           executors: names.filter((n) => !/orchestrator|recorder|shots/.test(n)).length,
           containers: names.slice(0, 40),
+          ...(getExtraDetail?.() ?? {}),
         },
       }, { timeoutMs: 15000 });
       console.log(
