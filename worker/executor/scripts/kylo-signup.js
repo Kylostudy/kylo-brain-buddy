@@ -1933,6 +1933,37 @@ export async function runKyloSignup({ page, context, spec, log }) {
 
   log(reachedStripe ? "info" : "warn", `Stripe elérve: ${reachedStripe ? "IGEN" : "NEM"} — ${currentUrl}`);
 
+  // 5d/2) A Stripe Checkout oldal TÉNYLEGES megjelenésére várunk. Lassú proxyn
+  // (pl. NZ) a hosted checkout üresen marad: nincs input, nincs ár — így a
+  // pénznem sem olvasható és a kártyamezők sem léteznek (#182). Max ~60 s,
+  // közben egyszer újratöltjük az oldalt.
+  if (reachedStripe) {
+    const renderDeadline = Date.now() + 60_000;
+    let reloaded = false;
+    let rendered = false;
+    while (Date.now() < renderDeadline) {
+      const state = await page
+        .evaluate(() => {
+          const inputs = document.querySelectorAll("input, iframe").length;
+          const text = (document.body?.innerText || "").trim().length;
+          return { inputs, text };
+        })
+        .catch(() => ({ inputs: 0, text: 0 }));
+      if (state.inputs > 0 && state.text > 120) {
+        rendered = true;
+        break;
+      }
+      if (!reloaded && Date.now() > renderDeadline - 35_000) {
+        reloaded = true;
+        log("warn", "Stripe oldal üresen maradt — újratöltés.");
+        await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 }).catch(() => {});
+      }
+      await page.waitForTimeout(2000);
+    }
+    steps.push({ step: "stripe-render", rendered, reloaded });
+    log(rendered ? "info" : "warn", `Stripe oldal megjelenése: ${rendered ? "OK" : "ÜRES maradt"}`);
+  }
+
   // 5e) Fizetési pénznem ellenőrzése: HU=HUF, EU+CH+UK=EUR, minden más=USD.
   let currencyCheck = {
     expected_currency: expectedCurrency(billing.country),
@@ -1944,6 +1975,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   if (reachedStripe) {
     await page.waitForTimeout(1200);
     currencyCheck = await checkStripeCurrency(page, billing.country, log);
+
     steps.push({ step: "stripe-currency", ...currencyCheck });
     langChecks.push({
       label: "fizetési pénznem",
