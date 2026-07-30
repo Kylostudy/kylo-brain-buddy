@@ -8,6 +8,81 @@ import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  INFRA_STATUS,
+  classifyInfraError,
+  infraLabel,
+} from "@/lib/infra-errors";
+
+// Infra-hiba után egyszer újrapróbáljuk a futást egy másik proxyval.
+// Ugyanazt a spec-et visszatesszük a sorba, csak más proxyval és egy
+// „infra_attempt" számlálóval, hogy ne pörögjön végtelenre.
+async function requeueWithAnotherProxy(
+  sb: ReturnType<typeof createClient<Database>>,
+  input: {
+    runId: string;
+    tenantId: string | null;
+    workflowId: string | null;
+    proxyId: string | null;
+    spec: Record<string, unknown>;
+    infraCode: string | null;
+  },
+): Promise<void> {
+  const { tenantId, workflowId, spec } = input;
+  if (!tenantId || !workflowId) return;
+
+  const attempt = Number((spec as { infra_attempt?: unknown }).infra_attempt ?? 0);
+  if (attempt >= 1) return; // legfeljebb egy automatikus újrapróbálás
+
+  const signup = (spec as { kylo_signup?: { expected_country?: string | null } }).kylo_signup;
+  const wantedCountry = (signup?.expected_country ?? "").toUpperCase() || null;
+  const nowIso = new Date().toISOString();
+
+  const { data: proxies } = await sb
+    .from("proxies")
+    .select("id, country, label, health_paused_until")
+    .eq("tenant_id", tenantId)
+    .eq("is_active", true);
+  const pool = (proxies ?? []).filter((p) => {
+    const paused = (p as { health_paused_until?: string | null }).health_paused_until;
+    if (paused && paused > nowIso) return false;
+    return p.id !== input.proxyId;
+  });
+  if (pool.length === 0) return;
+  const sameCountry = wantedCountry
+    ? pool.filter((p) => ((p.country as string | null) ?? "").toUpperCase() === wantedCountry)
+    : [];
+  const chosen = (sameCountry.length > 0 ? sameCountry : pool)[
+    Math.floor(Math.random() * (sameCountry.length > 0 ? sameCountry.length : pool.length))
+  ];
+
+  const retrySpec = {
+    ...spec,
+    infra_attempt: attempt + 1,
+    infra_retry_of: input.runId,
+  };
+
+  await sb.from("brain_workflow_runs").insert({
+    workflow_id: workflowId,
+    tenant_id: tenantId,
+    module: "audit",
+    runner: "docker",
+    status: "queued",
+    proxy_id: chosen.id,
+    spec_snapshot: retrySpec as never,
+    started_at: new Date().toISOString(),
+    logs: [
+      {
+        ts: new Date().toISOString(),
+        level: "warn",
+        message: `Proxy hiba (${infraLabel(input.infraCode)}) — automatikus újrapróbálás másik proxyval: ${
+          (chosen as { label?: string | null }).label ?? chosen.country ?? chosen.id
+        }`,
+      },
+    ] as never,
+  } as never);
+}
+
 
 function checkAuth(request: Request): string | null {
   const token = process.env.WORKER_API_TOKEN?.trim();
