@@ -131,8 +131,9 @@ async function createSession(
       status: "requested",
       start_url: startUrl ?? null,
       mode,
+      prelude_scenario_id: preludeScenarioId,
     })
-    .select("id, status, start_url, created_at, mode")
+    .select("id, status, start_url, created_at, mode, prelude_scenario_id")
     .single();
   if (error) throw new Error(error.message);
 
@@ -150,16 +151,23 @@ export const startRecording = createServerFn({ method: "POST" })
           .max(2048)
           .optional()
           .or(z.literal("").transform(() => undefined)),
+        // Ha forgatókönyvhöz veszünk fel, ennek alapján játsszuk le a
+        // belépés-kockát még a felvétel megkezdése előtt.
+        scenarioId: z.string().uuid().nullable().optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const preludeScenarioId = data.scenarioId
+      ? await findLoginBlockId(context.supabase as never, data.scenarioId)
+      : null;
     return createSession(
       context.supabase as never,
       context.userId,
       data.workflowId,
       "record",
       data.startUrl,
+      preludeScenarioId,
     );
   });
 
