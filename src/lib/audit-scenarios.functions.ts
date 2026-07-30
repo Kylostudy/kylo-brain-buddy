@@ -225,14 +225,20 @@ export const ensureScenarioWorkflow = createServerFn({ method: "POST" })
       .eq("id", data.scenarioId)
       .single();
     if (error || !sc) throw new Error(error?.message || "A forgatókönyv nem található.");
-    if (sc.workflow_id) return { workflowId: sc.workflow_id as string };
+    if (sc.workflow_id) {
+      await supabase
+        .from("workflows")
+        .update({ name: `${sc.name} — felvételi háttér` })
+        .eq("id", sc.workflow_id);
+      return { workflowId: sc.workflow_id as string };
+    }
 
     const { data: created, error: wfErr } = await supabase
       .from("workflows")
       .insert({
         tenant_id: tenantId,
         module: "audit",
-        name: `Forgatókönyv felvétel — ${sc.name}`,
+        name: `${sc.name} — felvételi háttér`,
         spec: {
           monitor_type: SCENARIO_MONITOR,
           scenario_id: sc.id,
@@ -244,10 +250,29 @@ export const ensureScenarioWorkflow = createServerFn({ method: "POST" })
       .single();
     if (wfErr) throw new Error(wfErr.message);
 
-    await supabase
+    // Feltételes összekapcsolás: ha két gyors kérés egyszerre jutott idáig,
+    // csak az első nyerhet. A második által létrehozott árva háttér-workflow-t
+    // azonnal töröljük, így nem lesznek duplikátumok a rendszerben.
+    const { data: linked, error: linkErr } = await supabase
       .from("audit_scenarios")
       .update({ workflow_id: created!.id })
-      .eq("id", sc.id);
+      .eq("id", sc.id)
+      .is("workflow_id", null)
+      .select("workflow_id")
+      .maybeSingle();
+    if (linkErr) throw new Error(linkErr.message);
+    if (!linked?.workflow_id) {
+      await supabase.from("workflows").delete().eq("id", created!.id);
+      const { data: winner, error: winnerErr } = await supabase
+        .from("audit_scenarios")
+        .select("workflow_id")
+        .eq("id", sc.id)
+        .single();
+      if (winnerErr || !winner?.workflow_id) {
+        throw new Error(winnerErr?.message || "A felvételi háttérfolyamat összekapcsolása sikertelen.");
+      }
+      return { workflowId: winner.workflow_id as string };
+    }
 
     return { workflowId: created!.id as string };
   });

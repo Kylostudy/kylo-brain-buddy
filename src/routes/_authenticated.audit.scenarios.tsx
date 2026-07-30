@@ -578,8 +578,9 @@ function ScenariosPage() {
                   placeholder="pl. https://kylo.study/generalas"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Innen indul a böngészős felvétel (a funkciók / generálás oldal). Üresen hagyva az alapcímet
-                  használjuk. A belépést nem kell felvenned: minden futás előtt a belépés kocka lefut.
+                  Innen indul a böngészős felvétel a belépés után. Használhatsz teljes címet vagy rövid útvonalat,
+                  például <code>/generalas</code>. Üresen hagyva az alapcímet használjuk. A belépést nem kell
+                  felvenned: minden futás előtt a belépés kocka lefut.
                 </p>
               </div>
               <div className="space-y-1">

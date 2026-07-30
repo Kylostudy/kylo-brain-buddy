@@ -17,7 +17,13 @@ export function normalizeRecordingStartUrl(
     return undefined;
   }
 
-  const compact = raw.replace(/\s+/g, "");
+  let compact = raw.replace(/\s+/g, "");
+  // Gyakori kézi elírás: `https:pelda.hu/oldal` (a két perjel hiányzik).
+  // Ezt javítsuk, ne dobjuk el csendben a kezdőcímet, mert abból üres
+  // böngészőablak lenne.
+  compact = compact
+    .replace(/^https:(?!\/\/)/i, "https://")
+    .replace(/^http:(?!\/\/)/i, "http://");
   const pinterestish = /pinterest/i.test(compact) || isPinterestWorkflow;
 
   // Tipikus elrontott címmező / autocomplete eredmény:

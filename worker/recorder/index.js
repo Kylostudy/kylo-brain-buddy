@@ -344,12 +344,13 @@ async function getBrowser() {
   const chromium = await getChromium();
   await ensureVirtualDisplay();
   console.log(`[recorder] Playwright böngésző indítása DISPLAY=${process.env.DISPLAY}...`);
-  // 'per-context' proxy placeholder — a tényleges proxy a newContext({ proxy })-ban dől el.
+  // A tényleges proxy sessionönként, a newContext({ proxy }) hívásban dől el.
+  // Nem szabad globális helykitöltő proxyt megadni: a proxy nélküli Audit
+  // felvételek azt örökölnék, és üres/fehér oldalon ragadnának.
   browser = await chromium.launch({
     // Headed mód kell a Live Browse-hoz és a bot-védelem miatt, ezért indulás
     // előtt külön ellenőrizzük / elindítjuk az Xvfb virtuális kijelzőt.
     headless: false,
-    proxy: { server: "http://per-context" },
     args: [
       "--no-sandbox",
       "--disable-dev-shm-usage",

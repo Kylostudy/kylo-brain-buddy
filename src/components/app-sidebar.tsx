@@ -82,7 +82,10 @@ async function fetchWorkflows(module: AppModule): Promise<Workflow[]> {
     .eq("module", module)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  // A teszt-forgatókönyvek mögött technikai felvételi workflow is készül.
+  // Ezeket kizárólag a Teszt-forgatókönyvek oldalon kezeljük; a normál
+  // Workflow-k listájában csak összezavarnák a felhasználót.
+  return (data ?? []).filter((workflow) => getMonitorType(workflow.spec) !== "kylo-scenario");
 }
 
 async function fetchFolders(module: AppModule): Promise<WorkflowFolder[]> {
