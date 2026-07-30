@@ -54,6 +54,11 @@ const CLICK_HINTS_SIGNUP = [
   "регистрация", "зарегистрироваться", "начать",
   "kaydol", "üye ol", "başla",
   "zarejestruj", "rejestracja", "utwórz konto", "zacznij",
+  // SV / FI / NL / KR / PT-BR / ES ékezetes
+  "registrera", "registrera dig", "skapa konto",
+  "rekisteröidy", "rekisteröinti", "luo tili",
+  "registreren", "account aanmaken",
+  "cadastre-se", "regístrate", "회원가입", "가입하기", "kayıt ol",
 ];
 
 const CLICK_HINTS_SIGNUP_MODE = [
@@ -64,6 +69,10 @@ const CLICK_HINTS_SIGNUP_MODE = [
   "登録", "新規登録", "会員登録", "サインアップ",
   "注册", "註冊", "crear cuenta", "registrarse", "registrati",
   "konto erstellen", "registrieren", "créer un compte", "s'inscrire",
+  "registrera", "registrera dig", "rekisteröidy", "registreren",
+  "cadastre-se", "regístrate", "kayıt ol", "회원가입",
+  "har du inget konto", "ei tiliä", "geen account", "nie masz konta",
+  "não tem conta", "no tienes cuenta", "kein konto", "pas de compte",
 ];
 
 const CLICK_REJECTS_SIGNIN = [
