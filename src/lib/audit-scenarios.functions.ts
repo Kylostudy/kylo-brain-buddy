@@ -439,31 +439,41 @@ export const startScenarioRun = createServerFn({ method: "POST" })
         ? exams.map((e) => ({ code: e.code, label: e.label, features: e.expected_features ?? [] }))
         : [{ code: null, label: null, features: [] }];
 
-    // Proxy: ha nem kaptunk, az első aktívat használjuk.
-    let proxyId = data.proxyId ?? null;
-    if (!proxyId) {
-      const { data: p } = await supabase
+    // Proxyk: ha nem kaptunk konkrétat, az aktívakat körbe-körbe osztjuk ki,
+    // hogy a párhuzamos futások különböző IP-ken menjenek.
+    let proxyPool: string[] = [];
+    if (data.proxyId) {
+      proxyPool = [data.proxyId];
+    } else {
+      const { data: ps } = await supabase
         .from("proxies")
         .select("id")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
-        .order("label", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      proxyId = p?.id ?? null;
+        .order("label", { ascending: true });
+      proxyPool = (ps ?? []).map((p: any) => p.id as string);
     }
+
+    // Hány futás induljon? Vizsgánként egy, illetve a kért párhuzamosság.
+    const plan: Array<{ code: string | null; label: string | null; features: string[] }> = [];
+    const repeat = Math.max(1, Math.min(data.parallel, MAX_PARALLEL_RUNS));
+    for (let r = 0; r < repeat; r++) plan.push(...targets);
+    const jobs = plan.slice(0, MAX_PARALLEL_RUNS);
 
     const runIds: string[] = [];
     const usedAccountIds: string[] = [];
-    for (const t of targets) {
+    for (let idx = 0; idx < jobs.length; idx++) {
+      const t = jobs[idx];
       // Minden futás MÁS, sikeresen regisztrált teszt fiókkal lép be.
       const account = await pickTestAccount(supabase, tenantId, usedAccountIds);
       if (!account) {
+        if (runIds.length > 0) break; // amennyi fiók volt, annyi futás indul
         throw new Error(
           "Nincs szabad, sikeresen regisztrált teszt fiók a belépéshez. Futtass előbb Sign Up tesztet.",
         );
       }
       usedAccountIds.push(account.id);
+      const proxyId = proxyPool.length > 0 ? proxyPool[idx % proxyPool.length] : null;
 
       const spec = {
         monitor_type: SCENARIO_MONITOR,
@@ -472,6 +482,10 @@ export const startScenarioRun = createServerFn({ method: "POST" })
         account_label: t.label ? `${sc.name} · ${t.label}` : sc.name,
         brain_task: { task_type: "record_replay_login", platform: "kylo-study" },
         recorded_actions: composed,
+        // Belépés soha nem öröklődik: tiszta böngésző, valódi belépés.
+        no_cookie_reuse: true,
+        fresh_login: true,
+        login_block_id: loginBlockId,
         // A lejátszó ebből helyettesíti be a felvételkor begépelt e-mailt/jelszót.
         kylo_signup: {
           email: account.email,
@@ -505,7 +519,7 @@ export const startScenarioRun = createServerFn({ method: "POST" })
             {
               ts: new Date().toISOString(),
               level: "info",
-              message: `Forgatókönyv sorba téve: ${sc.name}${t.label ? ` · ${t.label}` : ""} — ${composed.length} lépés · belépés: ${account.email}`,
+              message: `Forgatókönyv sorba téve: ${sc.name}${t.label ? ` · ${t.label}` : ""} — ${composed.length} lépés · belépés: ${account.email} (friss belépés, süti-öröklés nélkül)`,
             },
           ] as never,
         })
