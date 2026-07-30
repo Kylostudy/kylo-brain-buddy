@@ -397,6 +397,64 @@ function SignupPage() {
         </div>
       </div>
 
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Melyik batchet vonjuk vissza?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            {pendingBatchesQ.isLoading ? (
+              <div className="text-muted-foreground">Betöltés…</div>
+            ) : (pendingBatchesQ.data?.batches ?? []).length === 0 ? (
+              <div className="text-muted-foreground">Nincs sorban álló futás.</div>
+            ) : (
+              <>
+                {(pendingBatchesQ.data?.batches ?? []).map((b, i) => {
+                  const idxs = [...b.runIndexes].sort((a, c) => a - c);
+                  return (
+                    <div
+                      key={b.batchId ?? `single-${i}`}
+                      className="flex items-center justify-between gap-3 rounded-md border p-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium">
+                          {b.batchId
+                            ? `${b.scope === "non-english" ? "Nem-angol" : b.scope === "english" ? "Angol" : "Batch"} · ${b.count} futás`
+                            : `Egyedi futások · ${b.count} db`}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {b.startedAt ? new Date(b.startedAt).toLocaleString("hu-HU") : ""}
+                          {idxs.length > 0 ? ` · #${idxs[0]}–#${idxs[idxs.length - 1]}` : ""}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        disabled={cancelPendingMut.isPending}
+                        onClick={() => cancelPendingMut.mutate(b.batchId)}
+                      >
+                        Visszavonás
+                      </Button>
+                    </div>
+                  );
+                })}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={cancelPendingMut.isPending}
+                  onClick={() => cancelPendingMut.mutate(null)}
+                >
+                  Mindet visszavonom
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
       <Card>
         <CardHeader>
           <CardTitle>Gmail postafiók</CardTitle>
