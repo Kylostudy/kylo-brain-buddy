@@ -163,26 +163,41 @@ async function whoerPreflight(context, expectedCountry) {
 
     // Fallback: ha a whoer.net UI-ból nem tudtuk kiolvasni az országot
     // (a HTML struktúrája időnként változik), lekérjük ugyanazon a proxyn
-    // keresztül egy megbízható JSON API-ból. Ugyanez az IP, ugyanaz a proxy.
+    // keresztül több független JSON API-ból. Több szolgáltató kell, mert
+    // párhuzamos futásoknál az ipapi.co percenkénti limitre fut (429), és
+    // emiatt ártatlan futások buktak el (#184).
     if (!out.country_code || !out.ip) {
-      try {
-        const json = await page.evaluate(async () => {
-          try {
-            const r = await fetch("https://ipapi.co/json/", { cache: "no-store" });
-            if (!r.ok) return null;
-            return await r.json();
-          } catch {
-            return null;
+      const GEO_APIS = [
+        "https://ipapi.co/json/",
+        "https://ipwho.is/",
+        "https://api.country.is/",
+        "https://ipinfo.io/json",
+        "https://get.geojs.io/v1/ip/geo.json",
+      ];
+      for (const api of GEO_APIS) {
+        if (out.country_code && out.ip) break;
+        try {
+          const json = await page.evaluate(async (url) => {
+            try {
+              const r = await fetch(url, { cache: "no-store" });
+              if (!r.ok) return null;
+              return await r.json();
+            } catch {
+              return null;
+            }
+          }, api);
+          if (!json) continue;
+          const j = Array.isArray(json) ? json[0] : json;
+          const cc =
+            j.country_code || j.country_code2 || j.countryCode || j.country || null;
+          out.ip = out.ip || j.ip || j.query || null;
+          if (!out.country_code && typeof cc === "string" && cc.length === 2) {
+            out.country_code = cc.toUpperCase();
           }
-        });
-        if (json) {
-          out.ip = out.ip || json.ip || null;
-          out.country_code =
-            out.country_code || (json.country_code ? String(json.country_code).toUpperCase() : null);
-          out.country = out.country || json.country_name || json.country || null;
-          out.city = out.city || json.city || null;
-        }
-      } catch {}
+          out.country = out.country || j.country_name || j.countryName || null;
+          out.city = out.city || j.city || null;
+        } catch {}
+      }
     }
 
     // Egyeztetés
@@ -190,7 +205,11 @@ async function whoerPreflight(context, expectedCountry) {
       const seen = (out.country_code || "").toUpperCase();
       const exp = expectedCountry.toUpperCase();
       if (!seen) {
-        out.error = `Nem sikerült kiolvasni az országot (elvárt: ${exp}). IP: ${out.ip ?? "?"}`;
+        // Nem olvasható ország: ez NEM proxy-hiba, csak mérési hiba
+        // (whoer UI változás vagy geo-API limit). Nem buktatjuk el a futást,
+        // csak figyelmeztetünk.
+        out.ok = true;
+        out.warning = `Nem sikerült kiolvasni az országot (elvárt: ${exp}). IP: ${out.ip ?? "?"} — a futás folytatódik.`;
       } else if (seen !== exp) {
         out.error = `IP ország eltérés — elvárt: ${exp}, kapott: ${seen}${out.city ? " (" + out.city + ")" : ""}. Rossz proxy / szivárog a valódi IP.`;
       } else {
@@ -200,6 +219,7 @@ async function whoerPreflight(context, expectedCountry) {
       // Nincs elvárt ország — csak informatív, elfogadjuk.
       out.ok = true;
     }
+
   } catch (e) {
     out.error = `whoer.net preflight hiba: ${e.message}`;
   } finally {
@@ -362,10 +382,12 @@ async function main() {
         "Preflight sikertelen — a cél oldal biztonsági okból nem lett megnyitva.",
     );
   }
+  if (preflight.warning) log("warn", preflight.warning);
   log(
     "info",
     `Preflight OK — IP ${preflight.ip ?? "?"} · ${preflight.country_code ?? "?"} · ${preflight.city ?? ""}`,
   );
+
 
   // ---- 2. LÉPÉS: Fingerprint audit (első run + heti) ---------------------
   // A claim endpoint dönt róla és a spec.run_fingerprint_audit flag-en át
