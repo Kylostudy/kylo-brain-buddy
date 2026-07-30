@@ -392,11 +392,12 @@ async function clickAuthSignupToggle(page, log) {
       const inHeader = !!el.closest("header, nav") || r.top < 70;
       const nearAuthForm = !!el.closest("form") || !!el.closest("[class*='max-w-md'], [class*='space-y-6']") || !!el.parentElement?.innerText?.match(/email|password|jelszó|account/i);
       let score = 0;
-      if (/^register!?$/i.test(text) || /^sign\s*up!?$/i.test(text) || /^regisztr/i.test(text)) score += 40;
+      if (/^register!?$/i.test(text) || /^sign\s*up!?$/i.test(text) || /^regisztr/i.test(text) || /^regist/i.test(text) || /^rekister/i.test(text) || /^zarejestruj/i.test(text) || /^cadastr/i.test(text) || /^kay[ıi]t ol/i.test(text) || /^üye ol/i.test(text)) score += 40;
       if (nearAuthForm) score += 30;
-      if (/don't have|dont have|nincs/i.test(el.parentElement?.innerText || "")) score += 20;
+      if (/don'?t have|dont have|nincs|inget konto|ei tili|geen account|nie masz konta|hesab[ıi]n[ıi]z? yok|n[ãa]o tem conta|no tienes|non hai un account|kein konto|pas de compte|沒有帳號|没有账号|アカウントをお持ち|계정이 없/i.test(el.parentElement?.innerText || "")) score += 20;
       if (inHeader) score -= 35;
       if (r.width < 180 && r.height < 60) score += 8;
+
       if (!best || score > best.score) best = { el, score, text, tag: el.tagName.toLowerCase() };
     }
     if (!best) return null;
