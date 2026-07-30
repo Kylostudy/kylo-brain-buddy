@@ -411,6 +411,7 @@ export type Database = {
           kind: string
           name: string
           prelude_block_ids: string[]
+          record_start_url: string | null
           run_per_exam: boolean
           sort_order: number
           steps: Json
@@ -429,6 +430,7 @@ export type Database = {
           kind?: string
           name: string
           prelude_block_ids?: string[]
+          record_start_url?: string | null
           run_per_exam?: boolean
           sort_order?: number
           steps?: Json
@@ -447,6 +449,7 @@ export type Database = {
           kind?: string
           name?: string
           prelude_block_ids?: string[]
+          record_start_url?: string | null
           run_per_exam?: boolean
           sort_order?: number
           steps?: Json
