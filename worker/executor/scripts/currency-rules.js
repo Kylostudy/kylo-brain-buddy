@@ -24,15 +24,22 @@ export function expectedCurrency(country) {
 export function detectCurrencyFromText(text) {
   const t = String(text || "");
   const hits = new Set();
-  if (/\bHUF\b/i.test(t) || /\bFt\b/.test(t) || /forint/i.test(t)) hits.add("HUF");
-  if (/\bEUR\b/i.test(t) || /€/.test(t) || /euró|euro\b/i.test(t)) hits.add("EUR");
-  if (/\bUSD\b/i.test(t) || /US\$/.test(t) || /(^|[\s(])\$\s?\d/.test(t)) hits.add("USD");
-  if (/\bGBP\b/i.test(t) || /£/.test(t)) hits.add("GBP");
-  if (/\bCHF\b/i.test(t)) hits.add("CHF");
+  const codes = new Set();
+  if (/\bHUF\b/i.test(t) || /\d\s?Ft\b/.test(t) || /forint/i.test(t)) { hits.add("HUF"); if (/\bHUF\b/i.test(t)) codes.add("HUF"); }
+  if (/\bEUR\b/i.test(t) || /€/.test(t) || /euró|euro\b/i.test(t)) { hits.add("EUR"); if (/\bEUR\b/i.test(t)) codes.add("EUR"); }
+  if (/\bUSD\b/i.test(t) || /US\$/.test(t) || /(^|[\s(])\$\s?\d/m.test(t)) { hits.add("USD"); if (/\bUSD\b/i.test(t) || /US\$/.test(t)) codes.add("USD"); }
+  if (/\bGBP\b/i.test(t) || /£/.test(t)) { hits.add("GBP"); if (/\bGBP\b/i.test(t)) codes.add("GBP"); }
+  if (/\bCHF\b/i.test(t)) { hits.add("CHF"); codes.add("CHF"); }
+  if (/\bAUD\b/i.test(t) || /A\$\s?\d/.test(t)) { hits.add("AUD"); if (/\bAUD\b/i.test(t)) codes.add("AUD"); }
+  if (/\bNZD\b/i.test(t) || /NZ\$\s?\d/.test(t)) { hits.add("NZD"); if (/\bNZD\b/i.test(t)) codes.add("NZD"); }
+  if (/\bCAD\b/i.test(t) || /CA\$\s?\d/.test(t) || /C\$\s?\d/.test(t)) { hits.add("CAD"); if (/\bCAD\b/i.test(t)) codes.add("CAD"); }
   const list = Array.from(hits);
-  // Ha több is szerepel, a "legerősebb" jelet (kód > szimbólum) nem tudjuk
-  // biztosan eldönteni, ezért mindet visszaadjuk.
-  return { detected: list.length === 1 ? list[0] : null, candidates: list };
+  // Ha több jelölt is van, a kiírt pénznem-KÓD (pl. "USD") erősebb jel,
+  // mint a puszta szimbólum ("$"), ezért azt fogadjuk el.
+  const codeList = Array.from(codes);
+  const detected =
+    list.length === 1 ? list[0] : codeList.length === 1 ? codeList[0] : null;
+  return { detected, candidates: list };
 }
 
 // A Stripe összeg gyakran beágyazott iframe-ben (Payment Element / Checkout)
