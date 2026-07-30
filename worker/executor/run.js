@@ -537,6 +537,7 @@ async function main() {
     if (fingerprintAudit) {
       result = { ...(result || {}), fingerprint_audit: fingerprintAudit };
     }
+    result = { ...(result || {}), proxy_profile: getProxyProfile() };
 
     await browser.close();
     finish("succeeded", result);
@@ -545,8 +546,22 @@ async function main() {
     await browser.close().catch(() => {});
     // Ha a script részeredményt (screenshotok, nyelvi ellenőrzések) csatolt a
     // hibához, azt megtartjuk, hogy a riportban látszódjon, meddig jutott.
-    finish("failed", e.partialResult ?? null, e.message);
+    const partial = { ...(e.partialResult ?? {}), proxy_profile: getProxyProfile() };
+    // Infrastruktúra-hiba? Akkor nem a terméket buktatjuk el, hanem külön
+    // „proxy hiba" jelölést kap a futás — a szerver ebből csinál sárga státuszt.
+    const cls = classifyInfra(e.message);
+    const infraCode = cls.infra
+      ? cls.code
+      : isProxyCriticallySlow() && /timeout|időtúllépés/i.test(String(e.message))
+        ? "slow_proxy"
+        : null;
+    if (infraCode) {
+      log("warn", `Infrastruktúra-hiba (proxy): ${INFRA_LABELS[infraCode]} — a futás nem termékhiba.`);
+      return finish("failed", infraResult(partial, infraCode, e.message), e.message);
+    }
+    finish("failed", partial, e.message);
   }
+
 
 }
 
