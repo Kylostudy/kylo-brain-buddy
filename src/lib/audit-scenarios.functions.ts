@@ -333,10 +333,14 @@ async function pickTestAccount(
 // Futtatás
 // ─────────────────────────────────────────────────────────────
 
+// Egyszerre indítható futások felső határa a jelenlegi vason.
+const MAX_PARALLEL_RUNS = 10;
+
 const StartRun = z.object({
   scenarioId: z.string().uuid(),
   proxyId: z.string().uuid().nullable().optional(),
   examCodes: z.array(z.string().min(1)).nullable().optional(),
+  parallel: z.number().int().min(1).max(MAX_PARALLEL_RUNS).default(1),
 });
 
 
