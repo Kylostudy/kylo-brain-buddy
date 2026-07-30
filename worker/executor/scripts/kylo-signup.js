@@ -54,6 +54,11 @@ const CLICK_HINTS_SIGNUP = [
   "регистрация", "зарегистрироваться", "начать",
   "kaydol", "üye ol", "başla",
   "zarejestruj", "rejestracja", "utwórz konto", "zacznij",
+  // SV / FI / NL / KR / PT-BR / ES ékezetes
+  "registrera", "registrera dig", "skapa konto",
+  "rekisteröidy", "rekisteröinti", "luo tili",
+  "registreren", "account aanmaken",
+  "cadastre-se", "regístrate", "회원가입", "가입하기", "kayıt ol",
 ];
 
 const CLICK_HINTS_SIGNUP_MODE = [
@@ -64,6 +69,10 @@ const CLICK_HINTS_SIGNUP_MODE = [
   "登録", "新規登録", "会員登録", "サインアップ",
   "注册", "註冊", "crear cuenta", "registrarse", "registrati",
   "konto erstellen", "registrieren", "créer un compte", "s'inscrire",
+  "registrera", "registrera dig", "rekisteröidy", "registreren",
+  "cadastre-se", "regístrate", "kayıt ol", "회원가입",
+  "har du inget konto", "ei tiliä", "geen account", "nie masz konta",
+  "não tem conta", "no tienes cuenta", "kein konto", "pas de compte",
 ];
 
 const CLICK_REJECTS_SIGNIN = [
@@ -95,6 +104,22 @@ const COOKIE_BUTTONS = [
   'button:has-text("Accept")',
   'button:has-text("Accept all")',
   'button:has-text("I agree")',
+  'button:has-text("Godkänn")',
+  'button:has-text("Hyväksy")',
+  'button:has-text("Accepteren")',
+  'button:has-text("Akzeptieren")',
+  'button:has-text("Zustimmen")',
+  'button:has-text("Accepter")',
+  'button:has-text("Aceptar")',
+  'button:has-text("Aceitar")',
+  'button:has-text("Accetta")',
+  'button:has-text("Akceptuj")',
+  'button:has-text("Kabul")',
+  'button:has-text("同意")',
+  'button:has-text("同意する")',
+  'button:has-text("접수")',
+  'button:has-text("Godta")',
+  'button:has-text("Accepter alle")',
 ];
 
 const AUTH_DIAG_MAX = 60;
@@ -330,8 +355,8 @@ async function inspectAuthForm(page) {
       .filter((b) => b.text);
     const submitButtons = buttons.filter((b) => b.type === "submit");
     const allText = buttons.map((b) => b.text.toLowerCase()).join(" | ");
-    const signupRe = /sign\s*up|signup|create account|register|registration|regisztr|fiók létrehoz|nincs fiókod|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
-    const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
+    const signupRe = /sign\s*up|signup|create account|regist|regisztr|rejestr|zarejestr|rekister|kaydol|kay[ıi]t ol|üye ol|cadastr|criar conta|crear cuenta|cr[ée]er un compte|s'inscrire|inscri|iscriviti|konto erstellen|nieuw account|fiók létrehoz|nincs fiókod|don'?t have an account|no account|登録|新規登録|注册|註冊|회원가입|가입/i;
+    const signinRe = /sign\s*in|signin|log\s*in|login|logga in|kirjaudu|inloggen|zaloguj|giri[şs] yap|entrar|belép|bejelentkez|ログイン|登录|登入|로그인|iniciar sesi[óo]n|accedi|anmelden|connexion|se connecter/i;
     const emailFields = Array.from(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]')).filter(visible).length;
     const passwordFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(visible).length;
     const signupExtraFields = Array.from(document.querySelectorAll('#username, #keresztnev, #vezeteknev, #iranyitoszam, #utcaNev, #hazszam, input[placeholder="YYYY"], input[placeholder="ÉÉÉÉ"]')).filter(visible).length;
@@ -359,8 +384,8 @@ async function clickAuthSignupToggle(page, log) {
   const marker = `kylo-signup-toggle-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const found = await page.evaluate(({ marker }) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
-    const signupRe = /sign\s*up|signup|create account|register!?|registration|regisztr|fiók létrehoz|nincs fiókod|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
-    const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
+    const signupRe = /sign\s*up|signup|create account|regist|regisztr|rejestr|zarejestr|rekister|kaydol|kay[ıi]t ol|üye ol|cadastr|criar conta|crear cuenta|cr[ée]er un compte|s'inscrire|inscri|iscriviti|konto erstellen|nieuw account|fiók létrehoz|nincs fiókod|don'?t have an account|no account|登録|新規登録|注册|註冊|회원가입|가입/i;
+    const signinRe = /sign\s*in|signin|log\s*in|login|logga in|kirjaudu|inloggen|zaloguj|giri[şs] yap|entrar|belép|bejelentkez|ログイン|登录|登入|로그인|iniciar sesi[óo]n|accedi|anmelden|connexion|se connecter/i;
     const visible = (el) => {
       const r = el.getBoundingClientRect();
       const st = window.getComputedStyle(el);
@@ -376,11 +401,12 @@ async function clickAuthSignupToggle(page, log) {
       const inHeader = !!el.closest("header, nav") || r.top < 70;
       const nearAuthForm = !!el.closest("form") || !!el.closest("[class*='max-w-md'], [class*='space-y-6']") || !!el.parentElement?.innerText?.match(/email|password|jelszó|account/i);
       let score = 0;
-      if (/^register!?$/i.test(text) || /^sign\s*up!?$/i.test(text) || /^regisztr/i.test(text)) score += 40;
+      if (/^register!?$/i.test(text) || /^sign\s*up!?$/i.test(text) || /^regisztr/i.test(text) || /^regist/i.test(text) || /^rekister/i.test(text) || /^zarejestruj/i.test(text) || /^cadastr/i.test(text) || /^kay[ıi]t ol/i.test(text) || /^üye ol/i.test(text)) score += 40;
       if (nearAuthForm) score += 30;
-      if (/don't have|dont have|nincs/i.test(el.parentElement?.innerText || "")) score += 20;
+      if (/don'?t have|dont have|nincs|inget konto|ei tili|geen account|nie masz konta|hesab[ıi]n[ıi]z? yok|n[ãa]o tem conta|no tienes|non hai un account|kein konto|pas de compte|沒有帳號|没有账号|アカウントをお持ち|계정이 없/i.test(el.parentElement?.innerText || "")) score += 20;
       if (inHeader) score -= 35;
       if (r.width < 180 && r.height < 60) score += 8;
+
       if (!best || score > best.score) best = { el, score, text, tag: el.tagName.toLowerCase() };
     }
     if (!best) return null;
@@ -403,12 +429,42 @@ async function clickAuthSignupToggle(page, log) {
   return true;
 }
 
+// A regisztrációs oldal közvetlen megnyitása (a főoldal waitlist-landing lett).
+async function gotoSignupPage(page, log) {
+  let target;
+  try {
+    const cur = new URL(page.url());
+    if (/^\/(regisztracio|register|signup)\/?$/i.test(cur.pathname)) return false;
+    const next = new URL("/regisztracio", cur.origin);
+    const lang = cur.searchParams.get("lang");
+    if (lang) next.searchParams.set("lang", lang);
+    target = next.toString();
+  } catch {
+    target = "https://kylo.study/regisztracio";
+  }
+  log("info", `Nincs auth űrlap ezen az oldalon — közvetlen navigáció: ${target}`);
+  try {
+    await page.goto(target, { waitUntil: "domcontentloaded", timeout: scaleMs(30000) });
+    await page.waitForTimeout(2000);
+    return true;
+  } catch (e) {
+    log("warn", `Regisztrációs oldal megnyitása nem sikerült: ${e.message}`);
+    return false;
+  }
+}
+
 async function ensureSignupMode(page, log) {
+
   // A password mező néha csak késve renderelődik (client-side hydration),
   // vagy csak azután jelenik meg, hogy beírtuk az emailt és rákattintottunk
   // egy "Tovább / Continue" gombra (2-step form). Ezért többször pollozunk,
   // közben megpróbáljuk a signup togglet és a next-step gombot is.
-  for (let attempt = 1; attempt <= 6; attempt += 1) {
+  //
+  // 2026-07-30: a kylo.study főoldala „coming soon / waitlist" lett, ott nincs
+  // auth űrlap. Ha az auth mezők hiányoznak, egyszer közvetlenül a
+  // /regisztracio oldalra navigálunk (nyelvi paraméterrel együtt).
+  let directNavTried = false;
+  for (let attempt = 1; attempt <= 7; attempt += 1) {
     // Rövid poll: várunk max ~4s-ig, hátha a pw mező csak lassan renderelődik.
     let state = await inspectAuthForm(page);
     for (let i = 0; i < 8 && (state.emailFields === 0 || state.passwordFields === 0); i += 1) {
@@ -416,14 +472,18 @@ async function ensureSignupMode(page, log) {
       state = await inspectAuthForm(page);
     }
     const buttonSummary = state.buttons.map((b) => `${b.disabled ? "disabled " : ""}${b.text}`).slice(0, 10).join(" | ");
-    log("info", `Auth űrlap állapot ${attempt}/6 — email=${state.emailFields}, pw=${state.passwordFields}, extra=${state.signupExtraFields}, signup=${state.currentSignup}, signin=${state.currentSignin}, url=${state.url}, gombok: ${buttonSummary || "n/a"}`);
+    log("info", `Auth űrlap állapot ${attempt}/7 — email=${state.emailFields}, pw=${state.passwordFields}, extra=${state.signupExtraFields}, signup=${state.currentSignup}, signin=${state.currentSignin}, url=${state.url}, gombok: ${buttonSummary || "n/a"}`);
 
     if (state.emailFields > 0 && state.passwordFields > 0) {
       if (state.currentSignup) return { ok: true, state };
       if (state.signupToggle || state.currentSignin) {
-        await clickAuthSignupToggle(page, log);
+        const clicked = await clickAuthSignupToggle(page, log);
         await page.waitForTimeout(1200);
-        continue;
+        if (clicked) continue;
+      }
+      if (!directNavTried) {
+        directNavTried = true;
+        if (await gotoSignupPage(page, log)) continue;
       }
       return { ok: false, reason: "belépési űrlap látszik, de nincs regisztrációs váltó", state };
     }
@@ -435,7 +495,7 @@ async function ensureSignupMode(page, log) {
     }
 
     // 2-step űrlap: van email mező, próbáljunk Tovább / Continue gombot nyomni.
-    if (state.emailFields > 0) {
+    if (state.emailFields > 0 && state.passwordFields === 0 && /password|jelszó|lösenord|salasana|hasło|şifre|wachtwoord|senha|contraseña|passwort|mot de passe/i.test(buttonSummary)) {
       const nextClicked = await clickByText(
         page,
         ["tovább", "continue", "next", "weiter", "suivant", "続ける", "下一步", "siguiente", "avanti", "kontynuuj"],
@@ -446,8 +506,16 @@ async function ensureSignupMode(page, log) {
       if (nextClicked) { await page.waitForTimeout(1800); continue; }
     }
 
+    // Nincs auth űrlap az oldalon (pl. a főoldal waitlist-landing) → menjünk
+    // egyenesen a regisztrációs oldalra.
+    if (!directNavTried) {
+      directNavTried = true;
+      if (await gotoSignupPage(page, log)) continue;
+    }
+
     return { ok: false, reason: "nincs email+jelszó űrlap", state };
   }
+
   const state = await inspectAuthForm(page);
   return { ok: !!(state.emailFields && state.passwordFields && state.currentSignup), reason: "nem sikerült stabil regisztráció módra váltani", state };
 }
@@ -886,8 +954,8 @@ async function submitForm(page, log) {
   const marker = `kylo-submit-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const found = await page.evaluate((marker) => {
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
-    const signupRe = /sign\s*up|signup|create account|register|registration|regisztr|fiók létrehoz|登録|注册|註冊|crear cuenta|registrarse|registrati|konto erstellen|registrieren|créer un compte|s'inscrire/i;
-    const signinRe = /sign\s*in|signin|log\s*in|login|belép|bejelentkez|ログイン|登录|登入|iniciar sesión|accedi|anmelden|connexion/i;
+    const signupRe = /sign\s*up|signup|create account|regist|regisztr|rejestr|zarejestr|rekister|kaydol|kay[ıi]t ol|üye ol|cadastr|criar conta|crear cuenta|cr[ée]er un compte|s'inscrire|inscri|iscriviti|konto erstellen|nieuw account|fiók létrehoz|nincs fiókod|don'?t have an account|no account|登録|新規登録|注册|註冊|회원가입|가입/i;
+    const signinRe = /sign\s*in|signin|log\s*in|login|logga in|kirjaudu|inloggen|zaloguj|giri[şs] yap|entrar|belép|bejelentkez|ログイン|登录|登入|로그인|iniciar sesi[óo]n|accedi|anmelden|connexion|se connecter/i;
     const btns = Array.from(document.querySelectorAll(
       'button[type="submit"], input[type="submit"], form button',
     ));
@@ -1975,7 +2043,12 @@ export async function runKyloSignup({ page, context, spec, log }) {
   };
   if (reachedStripe) {
     await page.waitForTimeout(1200);
-    currencyCheck = await checkStripeCurrency(page, billing.country, log);
+    // A pénznemet a futás VALÓDI országa dönti el (proxy/IP szerinti ország),
+    // nem a számlázási minta-profil országa. (#247: SG proxy + en-GB nyelv →
+    // a profil GB-re esett vissza, ezért tévesen EUR-t vártunk USD helyett.)
+    const currencyCountry = String(cfg.expected_country || cfg.country || billing.country || "").toUpperCase() || billing.country;
+    currencyCheck = await checkStripeCurrency(page, currencyCountry, log);
+
 
     steps.push({ step: "stripe-currency", ...currencyCheck });
     langChecks.push({
