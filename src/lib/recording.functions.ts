@@ -114,14 +114,25 @@ async function createSession(
 
   // Start URL a spec-ből, ha nem adtunk meg explicit-et.
   const spec = (wf.spec as WorkflowSpec | null) ?? {};
-  const startUrl = normalizeRecordingStartUrl(
+  const rawStartUrl =
     requestedStartUrl?.trim() ||
     spec.start_url ||
     (spec.media_source && /^https?:\/\//i.test(spec.media_source)
       ? spec.media_source
-      : undefined),
+      : undefined);
+  const resolvedStartUrl =
+    rawStartUrl?.startsWith("/") && spec.start_url
+      ? new URL(rawStartUrl, spec.start_url).toString()
+      : rawStartUrl;
+  const startUrl = normalizeRecordingStartUrl(
+    resolvedStartUrl,
     wf.platform || spec.platform,
   );
+  if (rawStartUrl && !startUrl) {
+    throw new Error(
+      "A felvétel indulási címe hibás. Adj meg teljes címet (például https://kylo.study/generalas) vagy / jellel kezdődő útvonalat.",
+    );
+  }
 
   const { data: session, error } = await (supabase as any)
     .from("recording_sessions")
