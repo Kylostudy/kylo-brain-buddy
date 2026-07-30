@@ -151,7 +151,7 @@ function SignupPage() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordMode, setRecordMode] = useState<"record" | "browse">("record");
-  const [bulkAction, setBulkAction] = useState<"english" | "non-english" | "scheduled-non-english" | null>(null);
+  const [bulkAction, setBulkAction] = useState<"english" | "non-english" | "non-english-5" | "scheduled-non-english" | null>(null);
   const bulkLockRef = useRef(false);
 
   useEffect(() => {
