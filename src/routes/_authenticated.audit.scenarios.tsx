@@ -173,6 +173,7 @@ function ScenariosPage() {
           description: d.description || null,
           kind: d.kind,
           baseUrl: d.baseUrl,
+          recordStartUrl: d.recordStartUrl || null,
           steps: (existing ? stepsOf(existing) : []) as Record<string, unknown>[],
           preludeBlockIds: d.preludeBlockIds,
           expectations,
