@@ -35,6 +35,7 @@ export function createHealth({ port = 9090, getInflight, getLimit, getExtra, lab
       uptimeSeconds: Math.round((Date.now() - state.startedAt) / 1000),
       inflight: getInflight?.() ?? null,
       limit: getLimit?.() ?? null,
+      ...(getExtra?.() ?? {}),
     };
     res.writeHead(healthy ? 200 : 503, { "content-type": "application/json" });
     res.end(JSON.stringify(body));
