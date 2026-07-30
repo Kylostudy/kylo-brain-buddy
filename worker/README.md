@@ -202,3 +202,74 @@ cd ~/kylo-worker/worker && ./deploy.sh
 4. ha nem lesz egészséges → visszalépés, a régi fut tovább
 5. ha egészséges → a régi drain + leállítás
 6. `.active-color` frissül; a watchdog innentől az új színt őrzi
+
+---
+
+## Esti fejlesztői mód — gyors tesztelés build nélkül
+
+Cél: éjjel/este ne kelljen minden apró szkript-módosítás után percekig várni a
+Docker buildre. Ilyenkor az executor konténer a VPS fájlrendszeréről olvassa a
+friss szkripteket (read-only becsatolás), tehát egy `git pull` után **azonnal**
+az új kód fut.
+
+### Mit csatolunk be
+
+Csak ezt a kettőt:
+
+- `worker/executor/run.js`
+- `worker/executor/scripts/`
+
+A `node_modules` és a Playwright böngészők maradnak az image-ből — csomag- vagy
+Dockerfile-változáshoz továbbra is teljes (blue-green) frissítés kell. A rendszer
+ezt magától felismeri.
+
+### Mikor aktív
+
+| Beállítás | Jelentés |
+|---|---|
+| `LIVE_MODE=auto` (alap) | csak a `LIVE_WINDOW` idősávban (alap: 17:00–08:00, Európa/Budapest) |
+| `LIVE_MODE=on` | mindig |
+| `LIVE_MODE=off` | soha (tisztán image-ből) |
+
+Kézi kapcsolás azonnal, újraindítás nélkül:
+
+```bash
+cd ~/kylo-worker/worker
+./live.sh on       # most azonnal élő szkriptek
+./live.sh off      # vissza a beépítettre
+./live.sh auto     # idősávos automatika
+./live.sh status   # mi van most érvényben
+```
+
+### Biztonsági fékek
+
+1. Minden becsatolás **read-only** — a futás nem tudja elrontani a forrást.
+2. Indítás előtt `node --check` fut az összes érintett fájlon. Egyetlen hibás
+   fájl esetén a live mód kikapcsol, és a futás a bevált image-ből megy.
+3. A gyors frissítés (`sync-scripts.sh`) hiba esetén automatikusan visszaáll az
+   előző commitra.
+4. Minden futás naplójának első sora kiírja, melyik forrásból ment
+   (élő szkript vagy image) — utólag is visszakereshető.
+5. Nappal alapból image-ből fut minden, tehát az éles tesztek kiszámíthatók.
+
+### Frissítési útvonalak
+
+- **Csak szkript változott + élő mód aktív** → `sync-scripts.sh`: git pull +
+  szintaxis-ellenőrzés, néhány másodperc, nincs újraindítás.
+- **Bármi más (csomag, orchestrator, recorder, Dockerfile) vagy élő mód ki** →
+  a megszokott zéró leállású blue-green `deploy.sh`.
+
+A döntést a `deploy.sh` hozza meg magától; a Brainben lévő „Frissítés" gomb és a
+percenkénti automatika ugyanezt használja. Teljes frissítés kikényszerítése:
+
+```bash
+DEPLOY_FORCE_FULL=1 ./deploy.sh
+```
+
+### Egyszeri teendő a VPS-en
+
+```bash
+cd ~/kylo-worker && git pull
+cd worker && chmod +x sync-scripts.sh live.sh
+./deploy.sh          # ez beírja a .env-be a LIVE_EXECUTOR_HOST_DIR értéket
+```
