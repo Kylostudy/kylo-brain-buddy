@@ -440,17 +440,11 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
       );
     }
 
-    const { count: activeCount, error: activeErr } = await supabase
-      .from("brain_workflow_runs")
-      .select("id", { count: "exact", head: true })
-      .eq("workflow_id", wfId)
-      .in("status", ["queued", "scheduled", "running"]);
-    if (activeErr) throw new Error(activeErr.message);
-    if ((activeCount ?? 0) > 0) {
-      throw new Error(
-        "Már van futó vagy időzített Kylo Sign Up kör. Előbb várjuk meg, amíg kifut, különben túlterheljük a rendszert.",
-      );
-    }
+    // Nincs blokkolás, ha már fut egy kör: minden új futás egyszerűen sorba
+    // kerül. A worker párhuzamossági féke (MAX_PARALLEL) gondoskodik arról,
+    // hogy egyszerre csak a megengedett számú futás induljon el, a többi
+    // automatikusan utánuk fut le.
+
 
     const state = readState(currentSpec);
     const recordedActions = Array.isArray(currentSpec.recorded_actions)
