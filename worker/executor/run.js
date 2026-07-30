@@ -412,6 +412,17 @@ async function main() {
     `Preflight OK — IP ${preflight.ip ?? "?"} · ${preflight.country_code ?? "?"} · ${preflight.city ?? ""}`,
   );
 
+  // A ténylegesen mért IP-ország továbbadása a scripteknek: az elvárt
+  // oldalnyelvet és pénznemet ebből számoljuk, nem a proxy címkéjéből.
+  spec.detected_geo = {
+    ip: preflight.ip ?? null,
+    country_code: (preflight.country_code || "").toUpperCase() || null,
+    country: preflight.country ?? null,
+    city: preflight.city ?? null,
+  };
+
+
+
   // Adaptív alap-időkorlátok: minden későbbi művelet a mért proxysebességhez
   // igazodik, így lassú proxyn sem bukunk el fölöslegesen.
   try {
