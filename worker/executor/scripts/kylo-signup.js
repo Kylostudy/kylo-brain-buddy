@@ -18,17 +18,12 @@
 import { getGmailConfirmationLink } from "./brain-tasks/brain-api.js";
 import { humanClick, humanType } from "./humanize.js";
 import { auditLanguage, auditTextLanguage, isStripeUrl } from "./lang-audit.js";
+import { billingProfile } from "./billing-locales.js";
 
-// Számlázási űrlap kitöltéséhez használt tesztadatok.
-const BILLING_TEST = {
-  name: "Kylo Test",
-  line1: "1 Test Street",
-  houseNumber: "12",
-  city: "Testville",
-  postal: "10001",
-  phone: "+15555550123",
-  fallback: "Test",
-};
+// Számlázási űrlap tesztadatai — ország-konzisztensen (lásd billing-locales.js).
+// Ha nem tudjuk az országot, US-t használunk.
+const BILLING_TEST = billingProfile("en-US", "US");
+
 
 
 const CLICK_HINTS_PAY = [
