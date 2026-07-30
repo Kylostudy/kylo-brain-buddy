@@ -382,10 +382,12 @@ async function main() {
         "Preflight sikertelen — a cél oldal biztonsági okból nem lett megnyitva.",
     );
   }
+  if (preflight.warning) log("warn", preflight.warning);
   log(
     "info",
     `Preflight OK — IP ${preflight.ip ?? "?"} · ${preflight.country_code ?? "?"} · ${preflight.city ?? ""}`,
   );
+
 
   // ---- 2. LÉPÉS: Fingerprint audit (első run + heti) ---------------------
   // A claim endpoint dönt róla és a spec.run_fingerprint_audit flag-en át
