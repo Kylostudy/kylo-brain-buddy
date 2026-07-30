@@ -279,13 +279,15 @@ function SignupPage() {
             új proxyval és új plusz-alias e-maillel (sunyika.kripto+kylo&lt;N&gt;@gmail.com)
             próbál végigmenni a Kylo.study regisztráción a Stripe fizetésig.
           </p>
-          <p className="mt-2 text-xs text-yellow-500">
-            ⚠️ Előbb kösd be a Gmail postafiókot (jobbra), különben a rendszer nem
-            tudja kiolvasni az alias címekre érkező megerősítő linkeket.
-            A jelenlegi automata script „felderítő" módban fut — a „succeeded" csak
-            azt jelenti, hogy nem crashelt, nem azt, hogy sikerült regisztrálni.
-            A rendes lépések a record & replay felvételből fognak jönni.
-          </p>
+          {!gmail && (
+            <p className="mt-2 text-xs text-yellow-500">
+              ⚠️ Előbb kösd be a Gmail postafiókot (jobbra), különben a rendszer nem
+              tudja kiolvasni az alias címekre érkező megerősítő linkeket.
+              A jelenlegi automata script „felderítő" módban fut — a „succeeded" csak
+              azt jelenti, hogy nem crashelt, nem azt, hogy sikerült regisztrálni.
+              A rendes lépések a record & replay felvételből fognak jönni.
+            </p>
+          )}
         </div>
         <div className="flex w-full min-w-0 flex-col gap-2 lg:w-auto lg:items-end">
           <div className="flex w-full flex-wrap items-center gap-2 lg:justify-end">
