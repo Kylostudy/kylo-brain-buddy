@@ -361,16 +361,13 @@ function SignupPage() {
               type="button"
               variant="destructive"
               size="lg"
-              onClick={() => {
-                if (window.confirm("Minden sorban álló (még el nem indult) futás visszavonása. Mehet?")) {
-                  cancelPendingMut.mutate();
-                }
-              }}
+              onClick={() => setCancelOpen(true)}
               disabled={cancelPendingMut.isPending}
-              title="Vészfék: visszavonja az összes még el nem indult futást"
+              title="Vészfék: kiválaszthatod, melyik sorban álló batchet vond vissza"
             >
               {cancelPendingMut.isPending ? "Visszavonás…" : "Sorban állók visszavonása"}
             </Button>
+
 
             <Button
               type="button"
