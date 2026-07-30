@@ -363,19 +363,6 @@ function SignupPage() {
             </Button>
             <Button
               type="button"
-              variant="secondary"
-              size="lg"
-              onClick={() =>
-                startBulk({ scope: "non-english", notBefore: nextOneAm().toISOString() }, "scheduled-non-english")
-              }
-
-              disabled={startAllMut.isPending || !canStart}
-              title={canStart ? "Sorba teszi a nem-angol nyelvi kört, de a worker csak hajnali 1 után kezdi el" : "Először kösd be a Gmail postafiókot"}
-            >
-              {bulkAction === "scheduled-non-english" && startAllMut.isPending ? "Ütemezés…" : "Nem-angol · hajnali 1 után"}
-            </Button>
-            <Button
-              type="button"
               variant="destructive"
               size="lg"
               onClick={() => {
