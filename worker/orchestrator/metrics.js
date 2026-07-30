@@ -55,7 +55,7 @@ function dockerPs() {
   });
 }
 
-export function startHeartbeat({ brainFetch, workerId, getInflight, intervalMs = 60000 }) {
+export function startHeartbeat({ brainFetch, workerId, getInflight, intervalMs = 60000, getExtraDetail }) {
   const send = async () => {
     try {
       const names = await dockerPs();
