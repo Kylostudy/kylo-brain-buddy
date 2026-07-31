@@ -97,6 +97,9 @@ const CLICK_REJECTS_SIGNUP = [
 // ismerjük az IP szerinti nyelvet, hozzáfűzzük őket a keresési fogódzókhoz,
 // így nem a szerkezeti heurisztikán múlik minden.
 export let LEGAL_LABEL_HINTS = [];
+// Nyelvspecifikus MEZŐCÍMKÉK (email, jelszó, város, irányítószám ...) —
+// a számlázási / regisztrációs űrlap kitöltéséhez.
+export let LANG_FIELD_HINTS = null;
 
 function applyLanguageLabels(lang, log) {
   let L;
