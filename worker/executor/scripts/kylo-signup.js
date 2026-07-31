@@ -585,7 +585,12 @@ async function tickRequiredCheckboxes(page, log) {
       if (isChecked) return;
       const hasLegalLink = !!el.closest("label")?.querySelector('a[href*="terms" i], a[href*="privacy" i], a[href*="aszf" i], a[href*="adat" i]');
       const visiblyRequired = /(^|\s)\*(\s|$)/.test(label);
-      const legalConsent = hasLegalLink || visiblyRequired || /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
+      // A Kylo saját fordításából ismert jogi címkék (pl. „Ich akzeptiere die",
+      // „Nutzungsbedingungen") — nyelvspecifikus, de nem találgatás.
+      const lowerLabel = label.toLowerCase();
+      const dictLegal = (legalHints || []).some((h) => h && lowerLabel.includes(h));
+      const legalConsent = hasLegalLink || visiblyRequired || dictLegal || /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
+
       const optionalRole = /tanár|teacher|tanuló|student|osztályfőnök|szaktanár|nyelvtanár|class teacher|join/i.test(label);
       if (!el.required && (!legalConsent || optionalRole)) return;
       const labelKey = label.toLowerCase();
