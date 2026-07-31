@@ -1,0 +1,29 @@
+{
+  "lang": "ja",
+  "register": {
+    "title": "新規登録 / ログイン",
+    "submitButton": "新規登録",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "passwordConfirm": "パスワード（確認）",
+    "firstName": "名",
+    "lastName": "姓",
+    "country": "国",
+    "postalCode": "郵便番号",
+    "address": "市区町村",
+    "streetName": "住所",
+    "houseNumber": "建物名・部屋番号",
+    "birthDate": "生年月日",
+    "acceptTerms": "以下に同意します：",
+    "termsLink": "利用規約",
+    "acceptPrivacy": "以下に同意します：",
+    "privacyLink": "プライバシーポリシー"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "お支払いに進む",
+    "continueSocial": "お支払いに進む（28日間無料）"
+  },
+  "emailConfirmation": {}
+}

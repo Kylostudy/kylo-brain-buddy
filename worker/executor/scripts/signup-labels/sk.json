@@ -1,0 +1,29 @@
+{
+  "lang": "sk",
+  "register": {
+    "title": "Registrácia / Prihlásenie",
+    "submitButton": "Zaregistrovať sa",
+    "email": "E-mailová adresa",
+    "password": "Heslo",
+    "passwordConfirm": "Potvrď heslo",
+    "firstName": "Meno",
+    "lastName": "Priezvisko",
+    "country": "Krajina",
+    "postalCode": "PSČ",
+    "address": "Mesto/Obec",
+    "streetName": "Adresa",
+    "houseNumber": "Číslo domu",
+    "birthDate": "Dátum narodenia",
+    "acceptTerms": "Súhlasím s",
+    "termsLink": "Podmienkami používania",
+    "acceptPrivacy": "Súhlasím zo",
+    "privacyLink": "Zásadami ochrany osobných údajov"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "Prejsť k platbe",
+    "continueSocial": "Prejsť k platbe (28 dní zadarmo)"
+  },
+  "emailConfirmation": {}
+}

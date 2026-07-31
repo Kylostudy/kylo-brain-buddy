@@ -1,0 +1,29 @@
+{
+  "lang": "tr",
+  "register": {
+    "title": "Kayıt Ol / Giriş Yap",
+    "submitButton": "Kayıt Ol",
+    "email": "E-posta adresi",
+    "password": "Şifre",
+    "passwordConfirm": "Şifreyi onayla",
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "country": "Ülke",
+    "postalCode": "Posta kodu",
+    "address": "Şehir/İlçe",
+    "streetName": "Adres",
+    "houseNumber": "Bina/Kapı no",
+    "birthDate": "Doğum tarihi",
+    "acceptTerms": "Kabul ediyorum:",
+    "termsLink": "Hizmet Şartları",
+    "acceptPrivacy": "Kabul ediyorum:",
+    "privacyLink": "Gizlilik Politikası"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "Ödemeye devam et",
+    "continueSocial": "Ödemeye devam et (28 gün ücretsiz)"
+  },
+  "emailConfirmation": {}
+}

@@ -22,6 +22,8 @@ import { billingProfile } from "./billing-locales.js";
 import { checkStripeCurrency, expectedCurrency } from "./currency-rules.js";
 import { scaleMs } from "./proxy-health.js";
 import { langForCountry, currencyForCountry } from "./country-lang.js";
+import { hintsFor } from "./signup-labels/index.js";
+
 
 
 // Számlázási űrlap tesztadatai — ország-konzisztensen (lásd billing-locales.js).
@@ -87,6 +89,43 @@ const CLICK_REJECTS_SIGNUP = [
   "waitlist", "waiting list", "priority list", "join waitlist", "join the priority list",
   "várólista", "varolista", "lista de espera", "liste d'attente",
 ];
+
+// ---------------------------------------------------------------------------
+// Nyelvi feliratszótár (a Kylo.study SAJÁT fordításaiból kinyerve)
+// ---------------------------------------------------------------------------
+// Nem AI-fordítás: pontosan azok a szövegek, amiket a termék kiír. Amint
+// ismerjük az IP szerinti nyelvet, hozzáfűzzük őket a keresési fogódzókhoz,
+// így nem a szerkezeti heurisztikán múlik minden.
+export let LEGAL_LABEL_HINTS = [];
+// Nyelvspecifikus MEZŐCÍMKÉK (email, jelszó, város, irányítószám ...) —
+// a számlázási / regisztrációs űrlap kitöltéséhez.
+export let LANG_FIELD_HINTS = null;
+
+function applyLanguageLabels(lang, log) {
+  let L;
+  try {
+    L = hintsFor(lang);
+  } catch (e) {
+    log?.("warn", `Feliratszótár betöltése sikertelen (${lang}): ${e.message}`);
+    return null;
+  }
+  const merge = (target, extra) => {
+    for (const v of extra) if (v && !target.includes(v)) target.unshift(v);
+  };
+  // A nyelvspecifikus feliratok ELŐRE kerülnek, hogy elsőbbséget élvezzenek.
+  merge(CLICK_HINTS_SIGNUP, L.signupCta);
+  merge(CLICK_HINTS_SIGNUP_MODE, L.signupMode);
+  merge(CLICK_HINTS_PAY, L.pay);
+  merge(CLICK_REJECTS_SIGNIN, L.signinReject);
+  LEGAL_LABEL_HINTS = L.legal;
+  LANG_FIELD_HINTS = L.fields;
+  log?.(
+    "info",
+    `Feliratszótár betöltve (${L.lang}): regisztráció „${L.signupCta[0] ?? "?"}", fizetés „${L.pay[0] ?? "?"}", jogi címkék: ${L.legal.length} db.`,
+  );
+  return L;
+}
+
 
 const CLICK_HINTS_SUBSCRIBE = [
   "előfizetés", "elofizetes", "előfizetek", "elofizetek", "vásárlás", "vasarlas",
@@ -523,7 +562,8 @@ async function ensureSignupMode(page, log) {
 }
 
 async function tickRequiredCheckboxes(page, log) {
-  const markers = await page.evaluate(() => {
+  const markers = await page.evaluate((legalHints) => {
+
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
     const visible = (el) => {
       const r = el.getBoundingClientRect();
@@ -549,7 +589,12 @@ async function tickRequiredCheckboxes(page, log) {
       if (isChecked) return;
       const hasLegalLink = !!el.closest("label")?.querySelector('a[href*="terms" i], a[href*="privacy" i], a[href*="aszf" i], a[href*="adat" i]');
       const visiblyRequired = /(^|\s)\*(\s|$)/.test(label);
-      const legalConsent = hasLegalLink || visiblyRequired || /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
+      // A Kylo saját fordításából ismert jogi címkék (pl. „Ich akzeptiere die",
+      // „Nutzungsbedingungen") — nyelvspecifikus, de nem találgatás.
+      const lowerLabel = label.toLowerCase();
+      const dictLegal = (legalHints || []).some((h) => h && lowerLabel.includes(h));
+      const legalConsent = hasLegalLink || visiblyRequired || dictLegal || /terms|service|privacy|policy|withdrawal|right of withdrawal|feltétel|aszf|adatvéd|lemond|elállási|szolgáltatás/i.test(label);
+
       const optionalRole = /tanár|teacher|tanuló|student|osztályfőnök|szaktanár|nyelvtanár|class teacher|join/i.test(label);
       if (!el.required && (!legalConsent || optionalRole)) return;
       const labelKey = label.toLowerCase();
@@ -560,7 +605,8 @@ async function tickRequiredCheckboxes(page, log) {
       out.push({ marker, label: label.slice(0, 80) });
     });
     return out;
-  });
+  }, LEGAL_LABEL_HINTS);
+
   for (const item of markers.slice(0, 10)) {
     const handle = await page.$(`[data-kylo-worker-checkbox="${item.marker}"]`);
     if (!handle) continue;
@@ -1355,15 +1401,16 @@ async function signInAfterConfirmation(page, email, password, log) {
 // nézzük — a /fizetes oldalon a mezőknek gyakran csak label-je van (pl. "House number").
 async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
   const result = await page.evaluate(
-    ({ billing, email }) => {
+    ({ billing, email, langFields, legalHints }) => {
+      const lf = langFields || {};
       const targets = [
-        { keys: ["housenumber", "house number", "hazszam", "házszám", "house_no", "houseno"], value: billing.houseNumber },
-        { keys: ["zip", "postal", "postcode", "post code", "iranyitoszam", "irányítószám"], value: billing.postal },
-        { keys: ["city", "town", "varos", "város"], value: billing.city },
-        { keys: ["address", "line1", "street", "utca", "cim", "cím"], value: billing.line1 },
-        { keys: ["email", "e-mail"], value: email },
+        { keys: ["housenumber", "house number", "hazszam", "házszám", "house_no", "houseno", ...(lf.houseNumber || [])], value: billing.houseNumber },
+        { keys: ["zip", "postal", "postcode", "post code", "iranyitoszam", "irányítószám", ...(lf.postalCode || [])], value: billing.postal },
+        { keys: ["city", "town", "varos", "város", ...(lf.city || [])], value: billing.city },
+        { keys: ["address", "line1", "street", "utca", "cim", "cím", ...(lf.street || [])], value: billing.line1 },
+        { keys: ["email", "e-mail", ...(lf.email || [])], value: email },
         { keys: ["phone", "tel"], value: billing.phone },
-        { keys: ["name", "nev", "név", "fullname", "cardholder", "billingname"], value: billing.name },
+        { keys: ["name", "nev", "név", "fullname", "cardholder", "billingname", ...(lf.billingName || []), ...(lf.firstName || []), ...(lf.lastName || [])], value: billing.name },
       ];
 
       const labelTextFor = (n) => {
@@ -1432,7 +1479,8 @@ async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
       // Kötelező jelölőnégyzetek (ÁSZF stb.)
       for (const b of Array.from(document.querySelectorAll('input[type="checkbox"]'))) {
         const ctx = `${b.name || ""} ${b.id || ""} ${labelTextFor(b)}`.toLowerCase();
-        if ((b.required || /terms|aszf|ászf|accept|elfogad|agree|privacy|adatkezel/.test(ctx)) && !b.checked) {
+        const langLegal = (legalHints || []).some((h) => h && ctx.includes(h));
+        if ((b.required || langLegal || /terms|aszf|ászf|accept|elfogad|agree|privacy|adatkezel/.test(ctx)) && !b.checked) {
           b.click();
         }
       }
@@ -1465,7 +1513,7 @@ async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
 
       return { filled, skipped, selects };
     },
-    { billing: billingData, email },
+    { billing: billingData, email, langFields: LANG_FIELD_HINTS, legalHints: LEGAL_LABEL_HINTS },
   ).catch((e) => {
     log("warn", `Számlázási űrlap kitöltés hiba: ${e.message}`);
     return { filled: [], skipped: [], selects: [] };
@@ -1634,6 +1682,9 @@ export async function runKyloSignup({ page, context, spec, log }) {
     "info",
     `Nyelvi elvárás az IP alapján: ${geoCountry ?? "?"} → oldalnyelv „${lang}", pénznem ${currency}.`,
   );
+  // A Kylo saját fordításaiból kinyert feliratok betöltése erre a nyelvre.
+  applyLanguageLabels(lang, log);
+
   // Ország-konzisztens számlázási tesztadatok: az IP/nyelv szerinti országhoz
   // illő irányítószám és telefonszám, különben a Stripe „incomplete" hibát dob.
   const billing = billingProfile(lang, geoCountry);

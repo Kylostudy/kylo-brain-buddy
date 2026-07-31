@@ -1,0 +1,37 @@
+{
+  "lang": "de",
+  "register": {
+    "title": "Registrieren / Anmelden",
+    "submitButton": "Registrieren",
+    "email": "E-Mail-Adresse",
+    "password": "Passwort",
+    "passwordConfirm": "Passwort bestätigen",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "country": "Land",
+    "postalCode": "PLZ",
+    "address": "Stadt/Ort",
+    "streetName": "Adresse",
+    "houseNumber": "Hausnummer",
+    "birthDate": "Geburtsdatum",
+    "acceptTerms": "Ich akzeptiere die",
+    "termsLink": "Nutzungsbedingungen",
+    "acceptPrivacy": "Ich akzeptiere die",
+    "privacyLink": "Datenschutzerklärung"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "billingName": "Rechnungsempfänger",
+    "fullName": "Vollständiger Name",
+    "country": "Land",
+    "postalCode": "Postleitzahl",
+    "city": "Stadt",
+    "street": "Straße",
+    "houseNumber": "Hausnummer",
+    "processing": "Wird verarbeitet...",
+    "continueSocial": "Weiter zur Zahlung (28 Tage kostenlos)",
+    "continuePay": "Weiter zur Zahlung"
+  },
+  "emailConfirmation": {}
+}

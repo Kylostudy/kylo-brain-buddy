@@ -1,0 +1,29 @@
+{
+  "lang": "ar",
+  "register": {
+    "title": "التسجيل / تسجيل الدخول",
+    "submitButton": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "passwordConfirm": "تأكيد كلمة المرور",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "country": "الدولة",
+    "postalCode": "الرمز البريدي",
+    "address": "المدينة/البلدة",
+    "streetName": "العنوان",
+    "houseNumber": "رقم المنزل",
+    "birthDate": "تاريخ الميلاد",
+    "acceptTerms": "أوافق على",
+    "termsLink": "شروط الخدمة",
+    "acceptPrivacy": "أوافق على",
+    "privacyLink": "سياسة الخصوصية"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "المتابعة إلى الدفع",
+    "continueSocial": "المتابعة إلى الدفع (28 يومًا مجانًا)"
+  },
+  "emailConfirmation": {}
+}

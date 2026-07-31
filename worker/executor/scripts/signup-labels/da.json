@@ -1,0 +1,29 @@
+{
+  "lang": "da",
+  "register": {
+    "title": "Opret profil / Log ind",
+    "submitButton": "Opret profil",
+    "email": "E-mailadresse",
+    "password": "Adgangskode",
+    "passwordConfirm": "Bekræft adgangskode",
+    "firstName": "Fornavn",
+    "lastName": "Efternavn",
+    "country": "Land",
+    "postalCode": "Postnummer",
+    "address": "By",
+    "streetName": "Adresse",
+    "houseNumber": "Husnummer",
+    "birthDate": "Fødselsdato",
+    "acceptTerms": "Jeg accepterer",
+    "termsLink": "Servicevilkår",
+    "acceptPrivacy": "Jeg accepterer",
+    "privacyLink": "Privatlivspolitik"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "Fortsæt til betaling",
+    "continueSocial": "Fortsæt til betaling (28 dage gratis)"
+  },
+  "emailConfirmation": {}
+}

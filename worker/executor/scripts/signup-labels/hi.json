@@ -1,0 +1,29 @@
+{
+  "lang": "hi",
+  "register": {
+    "title": "रजिस्टर करें / साइन इन करें",
+    "submitButton": "रजिस्टर करें",
+    "email": "ईमेल पता",
+    "password": "पासवर्ड",
+    "passwordConfirm": "पासवर्ड की पुष्टि करें",
+    "firstName": "पहला नाम",
+    "lastName": "अंतिम नाम",
+    "country": "देश",
+    "postalCode": "पिन कोड",
+    "address": "शहर/कस्बा",
+    "streetName": "पता",
+    "houseNumber": "मकान नंबर",
+    "birthDate": "जन्म तिथि",
+    "acceptTerms": "मैं स्वीकार करता/करती हूँ",
+    "termsLink": "सेवा की शर्तें",
+    "acceptPrivacy": "मैं स्वीकार करता/करती हूँ",
+    "privacyLink": "गोपनीयता नीति"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "भुगतान पर आगे बढ़ें",
+    "continueSocial": "भुगतान पर आगे बढ़ें (28 दिन मुफ़्त)"
+  },
+  "emailConfirmation": {}
+}

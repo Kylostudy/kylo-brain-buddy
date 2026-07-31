@@ -1,0 +1,29 @@
+{
+  "lang": "ro",
+  "register": {
+    "title": "Înregistrare / Autentificare",
+    "submitButton": "Înregistrează-te",
+    "email": "Adresă de e-mail",
+    "password": "Parolă",
+    "passwordConfirm": "Confirmă parola",
+    "firstName": "Prenume",
+    "lastName": "Nume de familie",
+    "country": "Țară",
+    "postalCode": "Cod poștal",
+    "address": "Oraș / Localitate",
+    "streetName": "Adresă",
+    "houseNumber": "Număr",
+    "birthDate": "Data nașterii",
+    "acceptTerms": "Accept",
+    "termsLink": "Termenii și condițiile",
+    "acceptPrivacy": "Accept",
+    "privacyLink": "Politica de confidențialitate"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "Continuă spre plată",
+    "continueSocial": "Continuă spre plată (28 de zile gratuit)"
+  },
+  "emailConfirmation": {}
+}

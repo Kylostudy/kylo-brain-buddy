@@ -1,0 +1,29 @@
+{
+  "lang": "sr",
+  "register": {
+    "title": "Registruj se / Prijavi se",
+    "submitButton": "Registruj se",
+    "email": "Imejl adresa",
+    "password": "Lozinka",
+    "passwordConfirm": "Potvrdi lozinku",
+    "firstName": "Ime",
+    "lastName": "Prezime",
+    "country": "Država",
+    "postalCode": "Poštanski broj",
+    "address": "Grad / Mesto",
+    "streetName": "Adresa",
+    "houseNumber": "Kućni broj",
+    "birthDate": "Datum rođenja",
+    "acceptTerms": "Prihvatam",
+    "termsLink": "Uslove korišćenja",
+    "acceptPrivacy": "Prihvatam",
+    "privacyLink": "Politiku privatnosti"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "Nastavi na plaćanje",
+    "continueSocial": "Nastavi na plaćanje (28 dana besplatno)"
+  },
+  "emailConfirmation": {}
+}

@@ -1,0 +1,29 @@
+{
+  "lang": "it",
+  "register": {
+    "title": "Registrati / Accedi",
+    "submitButton": "Registrati",
+    "email": "Indirizzo email",
+    "password": "Password",
+    "passwordConfirm": "Conferma password",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "country": "Paese",
+    "postalCode": "CAP",
+    "address": "Città",
+    "streetName": "Indirizzo",
+    "houseNumber": "Numero civico",
+    "birthDate": "Data di nascita",
+    "acceptTerms": "Accetto i",
+    "termsLink": "Termini di servizio",
+    "acceptPrivacy": "Accetto l'",
+    "privacyLink": "Informativa sulla privacy"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "Continua al pagamento",
+    "continueSocial": "Continua al pagamento (28 giorni gratis)"
+  },
+  "emailConfirmation": {}
+}

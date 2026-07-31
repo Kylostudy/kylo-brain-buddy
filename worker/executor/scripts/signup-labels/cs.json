@@ -1,0 +1,29 @@
+{
+  "lang": "cs",
+  "register": {
+    "title": "Registrace / Přihlášení",
+    "submitButton": "Zaregistrovat se",
+    "email": "E-mailová adresa",
+    "password": "Heslo",
+    "passwordConfirm": "Potvrzení hesla",
+    "firstName": "Jméno",
+    "lastName": "Příjmení",
+    "country": "Země",
+    "postalCode": "PSČ",
+    "address": "Město",
+    "streetName": "Adresa",
+    "houseNumber": "Číslo domu",
+    "birthDate": "Datum narození",
+    "acceptTerms": "Souhlasím s",
+    "termsLink": "obchodními podmínkami",
+    "acceptPrivacy": "Souhlasím se",
+    "privacyLink": "zásadami ochrany soukromí"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "continuePay": "Pokračovat k platbě",
+    "continueSocial": "Pokračovat k platbě (28 dní zdarma)"
+  },
+  "emailConfirmation": {}
+}
