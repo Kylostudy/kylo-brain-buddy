@@ -723,3 +723,214 @@ export const exportAuditQaRun = createServerFn({ method: "POST" })
       coverage: coverageRows,
     };
   });
+
+// ─────────────────────────────────────────────────────────────
+// Sign Up-stílusú riportolás: tömeges törlés, összesítés, AI-elemzés
+// ─────────────────────────────────────────────────────────────
+
+const BulkDeleteInput = z.object({ runIds: z.array(z.string().uuid()).min(1).max(200) });
+
+/** Több QA riport törlése egyszerre (kijelöléses tömeges törlés a listában). */
+export const deleteAuditQaRuns = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => BulkDeleteInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: runs, error: runsErr } = await supabase
+      .from("audit_qa_runs")
+      .select("id, status, started_at, updated_at")
+      .in("id", data.runIds);
+    if (runsErr) throw new Error(runsErr.message);
+
+    const deletable: string[] = [];
+    let skippedActive = 0;
+    for (const run of runs ?? []) {
+      if (run.status === "running" || run.status === "queued") {
+        const ts = (run.updated_at ?? run.started_at) as string | null;
+        const last = ts ? new Date(ts).getTime() : 0;
+        if (last && Date.now() - last < 10 * 60 * 1000) {
+          skippedActive += 1;
+          continue;
+        }
+      }
+      deletable.push(run.id);
+    }
+    if (deletable.length === 0) return { deleted: 0, skippedActive };
+
+    const { data: issueRows } = await supabase
+      .from("audit_qa_issues")
+      .select("screenshot_path")
+      .in("run_id", deletable);
+    const paths = (issueRows ?? []).map((r) => r.screenshot_path).filter((p): p is string => !!p);
+    for (let i = 0; i < paths.length; i += 100) {
+      await supabase.storage.from("audit-qa-screenshots").remove(paths.slice(i, i + 100));
+    }
+
+    const { error: delErr } = await supabase.from("audit_qa_runs").delete().in("id", deletable);
+    if (delErr) throw new Error(delErr.message);
+    return { deleted: deletable.length, skippedActive, deletedScreenshots: paths.length };
+  });
+
+/**
+ * Összesítés az összes QA futásról: státusz-bontás, súlyosság szerinti
+ * hibaszám, nyelvenkénti bontás és a leggyakoribb hibák.
+ */
+export const getAuditQaSummary = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const { data: runs, error } = await supabase
+      .from("audit_qa_runs")
+      .select("id, status, config, total_pages_visited, total_issues_found, total_cost_usd, started_at")
+      .order("started_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+
+    const list = runs ?? [];
+    const byStatus: Record<string, number> = {};
+    let pages = 0;
+    let cost = 0;
+    for (const r of list) {
+      byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+      pages += Number(r.total_pages_visited ?? 0);
+      cost += Number(r.total_cost_usd ?? 0);
+    }
+
+    const runIds = list.map((r) => r.id);
+    const bySeverity: Record<string, number> = {};
+    const byCategory: Record<string, number> = {};
+    const byLang: Record<string, { total: number; critical: number }> = {};
+    let openIssues = 0;
+    if (runIds.length > 0) {
+      const { data: issues, error: issErr } = await supabase
+        .from("audit_qa_issues")
+        .select("severity, category, language, status")
+        .in("run_id", runIds)
+        .limit(5000);
+      if (issErr) throw new Error(issErr.message);
+      for (const i of issues ?? []) {
+        bySeverity[i.severity] = (bySeverity[i.severity] ?? 0) + 1;
+        byCategory[i.category] = (byCategory[i.category] ?? 0) + 1;
+        const lang = i.language ?? "?";
+        byLang[lang] = byLang[lang] ?? { total: 0, critical: 0 };
+        byLang[lang].total += 1;
+        if (i.severity === "critical") byLang[lang].critical += 1;
+        if (i.status === "open") openIssues += 1;
+      }
+    }
+
+    return {
+      total: list.length,
+      byStatus,
+      bySeverity,
+      byCategory,
+      byLang,
+      openIssues,
+      totalPages: pages,
+      totalCostUsd: Number(cost.toFixed(2)),
+    };
+  });
+
+/**
+ * Emberi nyelvű (magyar) elemzés egy QA futásról — ugyanaz a logika, mint a
+ * Kylo Sign Up riportnál. Az eredményt eltároljuk, hogy ne kelljen újra hívni.
+ */
+export const explainAuditQaRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ runId: z.string().uuid(), force: z.boolean().optional() }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: run, error } = await supabase
+      .from("audit_qa_runs")
+      .select(
+        "id, status, base_url, config, total_pages_visited, total_issues_found, total_cost_usd, started_at, finished_at, ai_explanation, workflow_id",
+      )
+      .eq("id", data.runId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!run) throw new Error("A futás nem található.");
+
+    const existing = (run.ai_explanation ?? null) as { text?: string; generated_at?: string } | null;
+    if (!data.force && existing?.text) {
+      return { text: existing.text, generated_at: existing.generated_at ?? null, cached: true };
+    }
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("Hiányzik a LOVABLE_API_KEY.");
+
+    const { data: issues } = await supabase
+      .from("audit_qa_issues")
+      .select("severity, category, language, skin, page_url, problematic_text, ai_diagnosis, ai_suggested_fix")
+      .eq("run_id", data.runId)
+      .order("severity", { ascending: true })
+      .limit(60);
+
+    let workerError: string | null = null;
+    if (run.workflow_id) {
+      const { data: wfRun } = await supabase
+        .from("brain_workflow_runs")
+        .select("error, status")
+        .eq("workflow_id", run.workflow_id)
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      workerError = (wfRun?.error as string | null) ?? null;
+    }
+
+    const trim = (v: unknown, max: number) => {
+      const s = typeof v === "string" ? v : JSON.stringify(v ?? null);
+      return s && s.length > max ? s.slice(0, max) + "…[levágva]" : s;
+    };
+
+    const ctx = {
+      status: run.status,
+      base_url: run.base_url,
+      started_at: run.started_at,
+      finished_at: run.finished_at,
+      config: trim(run.config, 1500),
+      pages_visited: run.total_pages_visited,
+      issues_found: run.total_issues_found,
+      cost_usd: run.total_cost_usd,
+      worker_error: trim(workerError, 1500),
+      issues: trim(issues ?? [], 9000),
+    };
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-3.6-flash",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Te egy QA-elemző vagy. Egy automata weboldal-ellenőrző (Kylo.study QA) futás nyers adatait kapod JSON-ban: " +
+              "nyelvek, skinek, bejárt oldalak és a talált fordítási/vizuális hibák. " +
+              "Írj MAGYARUL, közérthetően, technikai zsargon nélkül egy rövid elemzést egy nem programozó olvasónak. " +
+              "Szerkezet (markdown): 1) egy mondatos verdikt, 2) 'Mi ment jól', 3) 'Legfontosabb hibák' — nyelv/oldal szerint csoportosítva, " +
+              "4) 'Valószínű ok' 1-2 mondatban, 5) 'Javasolt következő lépés'. Ne találj ki adatot. Max 250 szó.",
+          },
+          { role: "user", content: JSON.stringify(ctx) },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      if (res.status === 429) throw new Error("Az AI szolgáltatás túlterhelt, próbáld pár perc múlva.");
+      if (res.status === 402) throw new Error("Elfogytak az AI kreditek a munkaterületen.");
+      throw new Error(`AI hiba (${res.status}): ${body.slice(0, 200)}`);
+    }
+    const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const text = j.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error("Az AI üres választ adott.");
+
+    const generated_at = new Date().toISOString();
+    await supabase
+      .from("audit_qa_runs")
+      .update({ ai_explanation: { text, generated_at } })
+      .eq("id", data.runId);
+
+    return { text, generated_at, cached: false };
+  });
