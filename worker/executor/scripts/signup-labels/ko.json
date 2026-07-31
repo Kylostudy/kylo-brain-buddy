@@ -1,0 +1,26 @@
+{
+  "lang": "ko",
+  "register": {
+    "title": "회원가입 / 로그인",
+    "submitButton": "회원가입",
+    "email": "이메일 주소",
+    "password": "비밀번호",
+    "passwordConfirm": "비밀번호 확인",
+    "firstName": "이름",
+    "lastName": "성",
+    "country": "국가",
+    "postalCode": "우편번호",
+    "address": "시/군/구",
+    "streetName": "주소",
+    "houseNumber": "상세 주소",
+    "birthDate": "생년월일",
+    "acceptTerms": "동의합니다:",
+    "termsLink": "이용약관",
+    "acceptPrivacy": "동의합니다:",
+    "privacyLink": "개인정보 처리방침"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}
