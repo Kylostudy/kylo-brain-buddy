@@ -118,6 +118,7 @@ function applyLanguageLabels(lang, log) {
   merge(CLICK_HINTS_PAY, L.pay);
   merge(CLICK_REJECTS_SIGNIN, L.signinReject);
   LEGAL_LABEL_HINTS = L.legal;
+  LANG_FIELD_HINTS = L.fields;
   log?.(
     "info",
     `Feliratszótár betöltve (${L.lang}): regisztráció „${L.signupCta[0] ?? "?"}", fizetés „${L.pay[0] ?? "?"}", jogi címkék: ${L.legal.length} db.`,
