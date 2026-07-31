@@ -22,6 +22,8 @@ import { billingProfile } from "./billing-locales.js";
 import { checkStripeCurrency, expectedCurrency } from "./currency-rules.js";
 import { scaleMs } from "./proxy-health.js";
 import { langForCountry, currencyForCountry } from "./country-lang.js";
+import { hintsFor } from "./signup-labels/index.js";
+
 
 
 // Számlázási űrlap tesztadatai — ország-konzisztensen (lásd billing-locales.js).
@@ -1667,6 +1669,9 @@ export async function runKyloSignup({ page, context, spec, log }) {
     "info",
     `Nyelvi elvárás az IP alapján: ${geoCountry ?? "?"} → oldalnyelv „${lang}", pénznem ${currency}.`,
   );
+  // A Kylo saját fordításaiból kinyert feliratok betöltése erre a nyelvre.
+  applyLanguageLabels(lang, log);
+
   // Ország-konzisztens számlázási tesztadatok: az IP/nyelv szerinti országhoz
   // illő irányítószám és telefonszám, különben a Stripe „incomplete" hibát dob.
   const billing = billingProfile(lang, geoCountry);
