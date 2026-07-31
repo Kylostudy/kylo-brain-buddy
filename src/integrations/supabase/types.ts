@@ -215,6 +215,7 @@ export type Database = {
       }
       audit_qa_runs: {
         Row: {
+          ai_explanation: Json | null
           base_url: string
           config: Json
           cost_cap_usd: number | null
@@ -231,6 +232,7 @@ export type Database = {
           workflow_id: string | null
         }
         Insert: {
+          ai_explanation?: Json | null
           base_url: string
           config?: Json
           cost_cap_usd?: number | null
@@ -247,6 +249,7 @@ export type Database = {
           workflow_id?: string | null
         }
         Update: {
+          ai_explanation?: Json | null
           base_url?: string
           config?: Json
           cost_cap_usd?: number | null

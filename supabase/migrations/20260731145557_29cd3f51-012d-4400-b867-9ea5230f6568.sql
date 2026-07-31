@@ -1,0 +1,1 @@
+ALTER TABLE public.audit_qa_runs ADD COLUMN IF NOT EXISTS ai_explanation jsonb;
