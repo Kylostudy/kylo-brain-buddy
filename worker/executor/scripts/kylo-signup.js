@@ -601,7 +601,8 @@ async function tickRequiredCheckboxes(page, log) {
       out.push({ marker, label: label.slice(0, 80) });
     });
     return out;
-  });
+  }, LEGAL_LABEL_HINTS);
+
   for (const item of markers.slice(0, 10)) {
     const handle = await page.$(`[data-kylo-worker-checkbox="${item.marker}"]`);
     if (!handle) continue;
