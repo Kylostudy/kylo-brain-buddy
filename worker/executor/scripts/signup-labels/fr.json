@@ -1,0 +1,19 @@
+{
+  "lang": "fr",
+  "register": {},
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "billingName": "Nom de facturation",
+    "fullName": "Nom complet",
+    "country": "Pays",
+    "postalCode": "Code postal",
+    "city": "Ville",
+    "street": "Rue",
+    "houseNumber": "Numéro de rue",
+    "processing": "Traitement en cours...",
+    "continueSocial": "Continuer vers le paiement (28 jours gratuits)",
+    "continuePay": "Continuer vers le paiement"
+  },
+  "emailConfirmation": {}
+}
