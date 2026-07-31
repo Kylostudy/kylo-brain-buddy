@@ -1,0 +1,26 @@
+{
+  "lang": "zh",
+  "register": {
+    "title": "注册 / 登录",
+    "submitButton": "注册",
+    "email": "电子邮箱",
+    "password": "密码",
+    "passwordConfirm": "确认密码",
+    "firstName": "名字",
+    "lastName": "姓氏",
+    "country": "国家/地区",
+    "postalCode": "邮政编码",
+    "address": "城市/城镇",
+    "streetName": "详细地址",
+    "houseNumber": "门牌号",
+    "birthDate": "出生日期",
+    "acceptTerms": "我同意",
+    "termsLink": "服务条款",
+    "acceptPrivacy": "我同意",
+    "privacyLink": "隐私政策"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}

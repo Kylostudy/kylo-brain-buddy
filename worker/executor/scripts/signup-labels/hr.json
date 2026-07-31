@@ -1,0 +1,26 @@
+{
+  "lang": "hr",
+  "register": {
+    "title": "Registracija / Prijava",
+    "submitButton": "Registriraj se",
+    "email": "E-mail adresa",
+    "password": "Lozinka",
+    "passwordConfirm": "Potvrdi lozinku",
+    "firstName": "Ime",
+    "lastName": "Prezime",
+    "country": "Država",
+    "postalCode": "Poštanski broj",
+    "address": "Grad",
+    "streetName": "Adresa",
+    "houseNumber": "Kućni broj",
+    "birthDate": "Datum rođenja",
+    "acceptTerms": "Prihvaćam",
+    "termsLink": "Uvjete pružanja usluge",
+    "acceptPrivacy": "Prihvaćam",
+    "privacyLink": "Pravila privatnosti"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}

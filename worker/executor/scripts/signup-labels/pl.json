@@ -1,0 +1,26 @@
+{
+  "lang": "pl",
+  "register": {
+    "title": "Zarejestruj się / Zaloguj się",
+    "submitButton": "Zarejestruj się",
+    "email": "Adres e-mail",
+    "password": "Hasło",
+    "passwordConfirm": "Potwierdź hasło",
+    "firstName": "Imię",
+    "lastName": "Nazwisko",
+    "country": "Kraj",
+    "postalCode": "Kod pocztowy",
+    "address": "Miejscowość",
+    "streetName": "Adres",
+    "houseNumber": "Numer domu/lokalu",
+    "birthDate": "Data urodzenia",
+    "acceptTerms": "Akceptuję",
+    "termsLink": "Regulamin",
+    "acceptPrivacy": "Akceptuję",
+    "privacyLink": "Politykę prywatności"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}
