@@ -1479,7 +1479,8 @@ async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
       // Kötelező jelölőnégyzetek (ÁSZF stb.)
       for (const b of Array.from(document.querySelectorAll('input[type="checkbox"]'))) {
         const ctx = `${b.name || ""} ${b.id || ""} ${labelTextFor(b)}`.toLowerCase();
-        if ((b.required || /terms|aszf|ászf|accept|elfogad|agree|privacy|adatkezel/.test(ctx)) && !b.checked) {
+        const langLegal = (legalHints || []).some((h) => h && ctx.includes(h));
+        if ((b.required || langLegal || /terms|aszf|ászf|accept|elfogad|agree|privacy|adatkezel/.test(ctx)) && !b.checked) {
           b.click();
         }
       }
