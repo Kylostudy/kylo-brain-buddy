@@ -1401,15 +1401,16 @@ async function signInAfterConfirmation(page, email, password, log) {
 // nézzük — a /fizetes oldalon a mezőknek gyakran csak label-je van (pl. "House number").
 async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
   const result = await page.evaluate(
-    ({ billing, email }) => {
+    ({ billing, email, langFields, legalHints }) => {
+      const lf = langFields || {};
       const targets = [
-        { keys: ["housenumber", "house number", "hazszam", "házszám", "house_no", "houseno"], value: billing.houseNumber },
-        { keys: ["zip", "postal", "postcode", "post code", "iranyitoszam", "irányítószám"], value: billing.postal },
-        { keys: ["city", "town", "varos", "város"], value: billing.city },
-        { keys: ["address", "line1", "street", "utca", "cim", "cím"], value: billing.line1 },
-        { keys: ["email", "e-mail"], value: email },
+        { keys: ["housenumber", "house number", "hazszam", "házszám", "house_no", "houseno", ...(lf.houseNumber || [])], value: billing.houseNumber },
+        { keys: ["zip", "postal", "postcode", "post code", "iranyitoszam", "irányítószám", ...(lf.postalCode || [])], value: billing.postal },
+        { keys: ["city", "town", "varos", "város", ...(lf.city || [])], value: billing.city },
+        { keys: ["address", "line1", "street", "utca", "cim", "cím", ...(lf.street || [])], value: billing.line1 },
+        { keys: ["email", "e-mail", ...(lf.email || [])], value: email },
         { keys: ["phone", "tel"], value: billing.phone },
-        { keys: ["name", "nev", "név", "fullname", "cardholder", "billingname"], value: billing.name },
+        { keys: ["name", "nev", "név", "fullname", "cardholder", "billingname", ...(lf.billingName || []), ...(lf.firstName || []), ...(lf.lastName || [])], value: billing.name },
       ];
 
       const labelTextFor = (n) => {
