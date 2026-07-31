@@ -1513,7 +1513,7 @@ async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
 
       return { filled, skipped, selects };
     },
-    { billing: billingData, email },
+    { billing: billingData, email, langFields: LANG_FIELD_HINTS, legalHints: LEGAL_LABEL_HINTS },
   ).catch((e) => {
     log("warn", `Számlázási űrlap kitöltés hiba: ${e.message}`);
     return { filled: [], skipped: [], selects: [] };
