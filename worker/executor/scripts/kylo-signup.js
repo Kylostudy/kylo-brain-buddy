@@ -558,7 +558,8 @@ async function ensureSignupMode(page, log) {
 }
 
 async function tickRequiredCheckboxes(page, log) {
-  const markers = await page.evaluate(() => {
+  const markers = await page.evaluate((legalHints) => {
+
     const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
     const visible = (el) => {
       const r = el.getBoundingClientRect();
