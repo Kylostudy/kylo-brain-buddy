@@ -88,6 +88,39 @@ const CLICK_REJECTS_SIGNUP = [
   "várólista", "varolista", "lista de espera", "liste d'attente",
 ];
 
+// ---------------------------------------------------------------------------
+// Nyelvi feliratszótár (a Kylo.study SAJÁT fordításaiból kinyerve)
+// ---------------------------------------------------------------------------
+// Nem AI-fordítás: pontosan azok a szövegek, amiket a termék kiír. Amint
+// ismerjük az IP szerinti nyelvet, hozzáfűzzük őket a keresési fogódzókhoz,
+// így nem a szerkezeti heurisztikán múlik minden.
+export let LEGAL_LABEL_HINTS = [];
+
+function applyLanguageLabels(lang, log) {
+  let L;
+  try {
+    L = hintsFor(lang);
+  } catch (e) {
+    log?.("warn", `Feliratszótár betöltése sikertelen (${lang}): ${e.message}`);
+    return null;
+  }
+  const merge = (target, extra) => {
+    for (const v of extra) if (v && !target.includes(v)) target.unshift(v);
+  };
+  // A nyelvspecifikus feliratok ELŐRE kerülnek, hogy elsőbbséget élvezzenek.
+  merge(CLICK_HINTS_SIGNUP, L.signupCta);
+  merge(CLICK_HINTS_SIGNUP_MODE, L.signupMode);
+  merge(CLICK_HINTS_PAY, L.pay);
+  merge(CLICK_REJECTS_SIGNIN, L.signinReject);
+  LEGAL_LABEL_HINTS = L.legal;
+  log?.(
+    "info",
+    `Feliratszótár betöltve (${L.lang}): regisztráció „${L.signupCta[0] ?? "?"}", fizetés „${L.pay[0] ?? "?"}", jogi címkék: ${L.legal.length} db.`,
+  );
+  return L;
+}
+
+
 const CLICK_HINTS_SUBSCRIBE = [
   "előfizetés", "elofizetes", "előfizetek", "elofizetek", "vásárlás", "vasarlas",
   "subscribe", "checkout", "buy", "start plan", "get plan", "upgrade",
