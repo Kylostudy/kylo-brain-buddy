@@ -1,0 +1,26 @@
+{
+  "lang": "nl",
+  "register": {
+    "title": "Registreren / Inloggen",
+    "submitButton": "Registreren",
+    "email": "E-mailadres",
+    "password": "Wachtwoord",
+    "passwordConfirm": "Wachtwoord bevestigen",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "country": "Land",
+    "postalCode": "Postcode",
+    "address": "Plaats",
+    "streetName": "Adres",
+    "houseNumber": "Huisnummer",
+    "birthDate": "Geboortedatum",
+    "acceptTerms": "Ik ga akkoord met de",
+    "termsLink": "Algemene voorwaarden",
+    "acceptPrivacy": "Ik ga akkoord met het",
+    "privacyLink": "Privacybeleid"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}

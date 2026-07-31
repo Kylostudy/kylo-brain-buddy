@@ -1,0 +1,26 @@
+{
+  "lang": "pt",
+  "register": {
+    "title": "Cadastrar / Entrar",
+    "submitButton": "Cadastrar",
+    "email": "E-mail",
+    "password": "Senha",
+    "passwordConfirm": "Confirmar senha",
+    "firstName": "Nome",
+    "lastName": "Sobrenome",
+    "country": "País",
+    "postalCode": "CEP",
+    "address": "Cidade",
+    "streetName": "Endereço",
+    "houseNumber": "Número",
+    "birthDate": "Data de nascimento",
+    "acceptTerms": "Eu aceito os",
+    "termsLink": "Termos de Serviço",
+    "acceptPrivacy": "Eu aceito a",
+    "privacyLink": "Política de Privacidade"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}
