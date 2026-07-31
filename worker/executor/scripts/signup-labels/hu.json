@@ -1,0 +1,26 @@
+{
+  "lang": "hu",
+  "register": {
+    "title": "Regisztráció / Belépés",
+    "submitButton": "Regisztráció",
+    "email": "Email cím",
+    "password": "Jelszó",
+    "passwordConfirm": "Jelszó megerősítése",
+    "firstName": "Keresztnév",
+    "lastName": "Vezetéknév",
+    "country": "Ország",
+    "postalCode": "Irányítószám",
+    "address": "Település",
+    "streetName": "Cím",
+    "houseNumber": "Házszám",
+    "birthDate": "Születési dátum",
+    "acceptTerms": "Elfogadom az",
+    "termsLink": "ÁSZF",
+    "acceptPrivacy": "Elfogadom az",
+    "privacyLink": "Adatkezelési Tájékoztatót"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}

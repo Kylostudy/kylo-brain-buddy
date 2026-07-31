@@ -1,0 +1,26 @@
+{
+  "lang": "es",
+  "register": {
+    "title": "Registrarse / Iniciar sesión",
+    "submitButton": "Registrarse",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "passwordConfirm": "Confirmar contraseña",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "country": "País",
+    "postalCode": "Código postal",
+    "address": "Ciudad/Población",
+    "streetName": "Dirección",
+    "houseNumber": "Número de la vivienda",
+    "birthDate": "Fecha de nacimiento",
+    "acceptTerms": "Acepto los",
+    "termsLink": "Términos del Servicio",
+    "acceptPrivacy": "Acepto la",
+    "privacyLink": "Política de Privacidad"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}

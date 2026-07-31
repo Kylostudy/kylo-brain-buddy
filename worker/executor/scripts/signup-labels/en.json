@@ -1,0 +1,36 @@
+{
+  "lang": "en",
+  "register": {
+    "title": "Register / Sign In",
+    "submitButton": "Register",
+    "email": "Email address",
+    "password": "Password",
+    "passwordConfirm": "Confirm password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "country": "Country",
+    "postalCode": "Postal code",
+    "address": "City/Town",
+    "streetName": "Address",
+    "houseNumber": "House number",
+    "birthDate": "Date of birth",
+    "acceptTerms": "I accept the",
+    "termsLink": "Terms of Service",
+    "acceptPrivacy": "I accept the",
+    "privacyLink": "Privacy Policy"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {
+    "billingName": "Billing name",
+    "fullName": "Full name",
+    "country": "Country",
+    "postalCode": "Postal code",
+    "city": "City",
+    "street": "Street",
+    "houseNumber": "House number",
+    "processing": "Processing...",
+    "continuePay": "Continue to payment"
+  },
+  "emailConfirmation": {}
+}
