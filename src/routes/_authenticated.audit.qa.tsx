@@ -641,6 +641,36 @@ function StartRunDialog({
               </Button>
               <Button
                 size="sm"
+                variant="outline"
+                onClick={() => {
+                  setLangs("en-GB,hu,de");
+                  setSkins(["magic-school"]);
+                }}
+              >
+                Alap 3 nyelv (EN/HU/DE)
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setLangs("ar");
+                  setSkins(["magic-school"]);
+                }}
+              >
+                RTL nyelvek (arab)
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setLangs("ja,zh,ko,hi");
+                  setSkins(["magic-school"]);
+                }}
+              >
+                Ázsiai nyelvek (JA/ZH/KO/HI)
+              </Button>
+              <Button
+                size="sm"
                 variant="ghost"
                 onClick={() => {
                   setLangs(DEFAULT_LANGS);
@@ -649,6 +679,7 @@ function StartRunDialog({
               >
                 Alapértelmezett
               </Button>
+
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               A preset kitölti a nyelveket és skineket. Kézzel bármit felülírhatsz.
