@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "お支払いに進む",
+    "continueSocial": "お支払いに進む（28日間無料）"
+  },
   "emailConfirmation": {}
 }

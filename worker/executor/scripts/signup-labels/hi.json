@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "भुगतान पर आगे बढ़ें",
+    "continueSocial": "भुगतान पर आगे बढ़ें (28 दिन मुफ़्त)"
+  },
   "emailConfirmation": {}
 }

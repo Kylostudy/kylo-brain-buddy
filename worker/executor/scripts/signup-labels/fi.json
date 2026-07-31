@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "Jatka maksamiseen",
+    "continueSocial": "Jatka maksamiseen (28 päivää ilmaiseksi)"
+  },
   "emailConfirmation": {}
 }

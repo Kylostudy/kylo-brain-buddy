@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "결제 진행하기",
+    "continueSocial": "결제 진행하기 (28일 무료)"
+  },
   "emailConfirmation": {}
 }

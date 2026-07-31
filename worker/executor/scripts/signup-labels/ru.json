@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "Перейти к оплате",
+    "continueSocial": "Перейти к оплате (28 дней бесплатно)"
+  },
   "emailConfirmation": {}
 }

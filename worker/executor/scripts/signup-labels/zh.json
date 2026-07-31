@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "继续付款",
+    "continueSocial": "继续付款（免费试用 28 天）"
+  },
   "emailConfirmation": {}
 }

@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "Nastavi na plaćanje",
+    "continueSocial": "Nastavi na plaćanje (28 dana besplatno)"
+  },
   "emailConfirmation": {}
 }

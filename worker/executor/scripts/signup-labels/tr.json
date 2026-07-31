@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "Ödemeye devam et",
+    "continueSocial": "Ödemeye devam et (28 gün ücretsiz)"
+  },
   "emailConfirmation": {}
 }

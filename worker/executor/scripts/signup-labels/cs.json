@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "Pokračovat k platbě",
+    "continueSocial": "Pokračovat k platbě (28 dní zdarma)"
+  },
   "emailConfirmation": {}
 }

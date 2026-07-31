@@ -30,7 +30,8 @@
     "street": "Street",
     "houseNumber": "House number",
     "processing": "Processing...",
-    "continuePay": "Continue to payment"
+    "continuePay": "Continue to payment",
+    "continueSocial": "Continue to payment (28 days free)"
   },
   "emailConfirmation": {}
 }

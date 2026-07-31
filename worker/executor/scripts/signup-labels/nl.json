@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "Doorgaan naar betaling",
+    "continueSocial": "Doorgaan naar betaling (28 dagen gratis)"
+  },
   "emailConfirmation": {}
 }

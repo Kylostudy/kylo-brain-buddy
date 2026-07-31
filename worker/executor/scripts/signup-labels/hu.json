@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "Tovább a fizetéshez",
+    "continueSocial": "Tovább a fizetéshez (28 nap ingyenes)"
+  },
   "emailConfirmation": {}
 }

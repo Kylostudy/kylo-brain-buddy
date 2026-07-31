@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "Continuar para o pagamento",
+    "continueSocial": "Continuar para o pagamento (28 dias grátis)"
+  },
   "emailConfirmation": {}
 }

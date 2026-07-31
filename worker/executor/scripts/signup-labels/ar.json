@@ -21,6 +21,9 @@
   },
   "login": {},
   "nav": {},
-  "checkout": {},
+  "checkout": {
+    "continuePay": "المتابعة إلى الدفع",
+    "continueSocial": "المتابعة إلى الدفع (28 يومًا مجانًا)"
+  },
   "emailConfirmation": {}
 }
