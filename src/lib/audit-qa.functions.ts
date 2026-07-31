@@ -934,3 +934,35 @@ export const explainAuditQaRun = createServerFn({ method: "POST" })
 
     return { text, generated_at, cached: false };
   });
+
+/**
+ * Összesített hibanapló: az utolsó néhány futás összes hibája egy listában,
+ * hogy egy kattintással vágólapra lehessen másolni a fejlesztésnek.
+ */
+export const listAuditQaAggregatedIssues = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ runLimit: z.number().int().min(1).max(50).default(10) }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: runs, error } = await supabase
+      .from("audit_qa_runs")
+      .select("id, started_at, status, config")
+      .order("started_at", { ascending: false })
+      .limit(data.runLimit);
+    if (error) throw new Error(error.message);
+    const list = runs ?? [];
+    if (list.length === 0) return { runs: [], issues: [] };
+
+    const { data: issues, error: issErr } = await supabase
+      .from("audit_qa_issues")
+      .select("id, run_id, severity, category, language, skin, page_url, problematic_text, ai_diagnosis, ai_suggested_fix, status")
+      .in("run_id", list.map((r) => r.id))
+      .order("severity", { ascending: true })
+      .limit(1000);
+    if (issErr) throw new Error(issErr.message);
+
+    return {
+      runs: list.map((r) => ({ id: r.id, started_at: r.started_at, status: r.status })),
+      issues: issues ?? [],
+    };
+  });
