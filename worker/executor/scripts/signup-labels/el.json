@@ -1,0 +1,26 @@
+{
+  "lang": "el",
+  "register": {
+    "title": "Εγγραφή / Σύνδεση",
+    "submitButton": "Εγγραφή",
+    "email": "Διεύθυνση email",
+    "password": "Κωδικός πρόσβασης",
+    "passwordConfirm": "Επιβεβαίωση κωδικού",
+    "firstName": "Όνομα",
+    "lastName": "Επώνυμο",
+    "country": "Χώρα",
+    "postalCode": "Ταχυδρομικός κώδικας",
+    "address": "Πόλη/Περιοχή",
+    "streetName": "Διεύθυνση",
+    "houseNumber": "Αριθμός",
+    "birthDate": "Ημερομηνία γέννησης",
+    "acceptTerms": "Αποδέχομαι τους",
+    "termsLink": "Όρους Χρήσης",
+    "acceptPrivacy": "Αποδέχομαι την",
+    "privacyLink": "Πολιτική Απορρήτου"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}

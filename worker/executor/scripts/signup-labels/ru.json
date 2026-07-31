@@ -1,0 +1,26 @@
+{
+  "lang": "ru",
+  "register": {
+    "title": "Регистрация / Вход",
+    "submitButton": "Зарегистрироваться",
+    "email": "Электронная почта",
+    "password": "Пароль",
+    "passwordConfirm": "Подтверждение пароля",
+    "firstName": "Имя",
+    "lastName": "Фамилия",
+    "country": "Страна",
+    "postalCode": "Почтовый индекс",
+    "address": "Город",
+    "streetName": "Адрес",
+    "houseNumber": "Номер дома",
+    "birthDate": "Дата рождения",
+    "acceptTerms": "Я принимаю",
+    "termsLink": "Условия использования",
+    "acceptPrivacy": "Я принимаю",
+    "privacyLink": "Политику конфиденциальности"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}
