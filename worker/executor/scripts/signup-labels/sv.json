@@ -1,0 +1,26 @@
+{
+  "lang": "sv",
+  "register": {
+    "title": "Registrera / Logga in",
+    "submitButton": "Registrera dig",
+    "email": "E-postadress",
+    "password": "Lösenord",
+    "passwordConfirm": "Bekräfta lösenord",
+    "firstName": "Förnamn",
+    "lastName": "Efternamn",
+    "country": "Land",
+    "postalCode": "Postnummer",
+    "address": "Stad/Ort",
+    "streetName": "Adress",
+    "houseNumber": "Husnummer",
+    "birthDate": "Födelsedatum",
+    "acceptTerms": "Jag godkänner",
+    "termsLink": "användarvillkoren",
+    "acceptPrivacy": "Jag godkänner",
+    "privacyLink": "integritetspolicyn"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}

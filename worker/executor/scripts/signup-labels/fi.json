@@ -1,0 +1,26 @@
+{
+  "lang": "fi",
+  "register": {
+    "title": "Rekisteröidy / Kirjaudu sisään",
+    "submitButton": "Rekisteröidy",
+    "email": "Sähköpostiosoite",
+    "password": "Salasana",
+    "passwordConfirm": "Vahvista salasana",
+    "firstName": "Etunimi",
+    "lastName": "Sukunimi",
+    "country": "Maa",
+    "postalCode": "Postinumero",
+    "address": "Kaupunki/Kunta",
+    "streetName": "Katuosoite",
+    "houseNumber": "Talon numero",
+    "birthDate": "Syntymäaika",
+    "acceptTerms": "Hyväksyn",
+    "termsLink": "käyttöehdot",
+    "acceptPrivacy": "Hyväksyn",
+    "privacyLink": "tietosuojaselosteen"
+  },
+  "login": {},
+  "nav": {},
+  "checkout": {},
+  "emailConfirmation": {}
+}
