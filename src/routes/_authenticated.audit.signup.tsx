@@ -234,8 +234,8 @@ function SignupPage() {
   });
 
   function startBulk(
-    vars: { scope: "english" | "non-english"; notBefore?: string | null; limit?: number | null },
-    action: "english" | "non-english" | "non-english-5" | "scheduled-non-english",
+    vars: { scope: "english" | "non-english" | "pricing"; notBefore?: string | null; limit?: number | null },
+    action: "english" | "non-english" | "non-english-5" | "scheduled-non-english" | "pricing",
   ) {
     if (startAllMut.isPending || bulkLockRef.current) return;
     bulkLockRef.current = true;
