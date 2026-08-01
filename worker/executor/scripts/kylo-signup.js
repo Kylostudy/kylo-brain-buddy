@@ -1557,7 +1557,7 @@ async function pickFirstEmptyCombobox(page, log) {
       for (const el of els) {
         if (el.getAttribute("data-kylo-combo-done")) continue;
         const txt = (el.innerText || "").replace(/\s+/g, " ").trim().toLowerCase();
-        if (!txt || /válass|valass|select|choose|^-+$/.test(txt)) {
+        if (!txt || /válass|valass|select|choose|类型|類型|^-+$/.test(txt)) {
           el.scrollIntoView({ block: "center" });
           el.setAttribute("data-kylo-combo-done", "1");
           el.setAttribute("data-kylo-empty-combo", marker);
@@ -1612,7 +1612,7 @@ async function collectBillingBlockers(page) {
         .filter((n) => n.offsetWidth || n.offsetHeight)
         .filter((n) => {
           const t = (n.innerText || "").replace(/\s+/g, " ").trim().toLowerCase();
-          return !t || /válass|valass|select|choose|^-+$/.test(t);
+          return !t || /válass|valass|select|choose|类型|類型|^-+$/.test(t);
         })
         .map((n) => (n.closest(".space-y-2")?.innerText || n.innerText || "?").replace(/\s+/g, " ").trim().slice(0, 40));
       empty.push(...unselected.map((u) => `[legördülő nincs kiválasztva] ${u}`));
