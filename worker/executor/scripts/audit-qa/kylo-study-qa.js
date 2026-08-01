@@ -829,7 +829,7 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
               const isHome = samePath(targeted, baseUrl);
               const capped = await reportAnalyzedPage({
                 runId, page, url: targeted, title, language, skin,
-                isHome, skipLanguageAnalysis: isHome && language !== "en-GB",
+                isHome, skipLanguageAnalysis: false,
                 interactions: 0, totalCostRef, diffMode, log,
               });
               processed++;
