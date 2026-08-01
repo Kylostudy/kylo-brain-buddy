@@ -941,28 +941,89 @@ export const explainAuditQaRun = createServerFn({ method: "POST" })
  */
 export const listAuditQaAggregatedIssues = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ runLimit: z.number().int().min(1).max(50).default(10) }).parse(i))
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        runLimit: z.number().int().min(1).max(50).default(1),
+        onlyOpen: z.boolean().default(true),
+        dedupe: z.boolean().default(true),
+      })
+      .parse(i),
+  )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    // Csak befejezett futásokat összesítünk — a félkész futás félrevezető darabszámot adna.
     const { data: runs, error } = await supabase
       .from("audit_qa_runs")
-      .select("id, started_at, status, config")
+      .select("id, started_at, finished_at, status, config")
+      .in("status", ["completed", "failed", "cancelled"])
       .order("started_at", { ascending: false })
       .limit(data.runLimit);
     if (error) throw new Error(error.message);
     const list = runs ?? [];
-    if (list.length === 0) return { runs: [], issues: [] };
+    if (list.length === 0) return { runs: [], issues: [], truncated: false, totalRaw: 0 };
 
-    const { data: issues, error: issErr } = await supabase
-      .from("audit_qa_issues")
-      .select("id, run_id, severity, category, language, skin, page_url, problematic_text, ai_diagnosis, ai_suggested_fix, status")
-      .in("run_id", list.map((r) => r.id))
-      .order("severity", { ascending: true })
-      .limit(1000);
-    if (issErr) throw new Error(issErr.message);
+    const runIds = list.map((r) => r.id);
+    const PAGE = 1000;
+    const MAX = 10000;
+    const all: Array<Record<string, unknown>> = [];
+    let truncated = false;
+    for (let from = 0; from < MAX; from += PAGE) {
+      let q = supabase
+        .from("audit_qa_issues")
+        .select(
+          "id, run_id, severity, category, language, skin, page_url, problematic_text, ai_diagnosis, ai_suggested_fix, status, dedupe_hash, occurrence_count, created_at",
+        )
+        .in("run_id", runIds);
+      if (data.onlyOpen) q = q.not("status", "in", "(resolved,ignored,fixed)");
+      const { data: page, error: issErr } = await q
+        .order("severity", { ascending: true })
+        .order("created_at", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (issErr) throw new Error(issErr.message);
+      const rows = page ?? [];
+      all.push(...(rows as Array<Record<string, unknown>>));
+      if (rows.length < PAGE) break;
+      if (from + PAGE >= MAX) truncated = true;
+    }
+
+    const totalRaw = all.length;
+    let issues = all;
+    if (data.dedupe) {
+      const seen = new Set<string>();
+      issues = all.filter((row) => {
+        const key = String(
+          row["dedupe_hash"] ?? `${row["page_url"]}|${row["category"]}|${row["problematic_text"]}`,
+        );
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
 
     return {
-      runs: list.map((r) => ({ id: r.id, started_at: r.started_at, status: r.status })),
-      issues: issues ?? [],
+      runs: list.map((r) => ({
+        id: r.id,
+        started_at: r.started_at,
+        finished_at: r.finished_at,
+        status: r.status,
+      })),
+      issues: issues as unknown as Array<{
+        id: string;
+        run_id: string;
+        severity: string;
+        category: string;
+        language: string | null;
+        skin: string | null;
+        page_url: string;
+        problematic_text: string | null;
+        ai_diagnosis: string | null;
+        ai_suggested_fix: string | null;
+        status: string;
+        occurrence_count: number | null;
+      }>,
+      truncated,
+      totalRaw,
     };
   });
+
