@@ -31,6 +31,7 @@ import { runBotSmokeTest } from "./scripts/bot-smoke-test.js";
 import { runLoggedOutWarmup } from "./scripts/logged-out-warmup.js";
 import { runKyloStudyQa } from "./scripts/audit-qa/kylo-study-qa.js";
 import { runKyloSignup } from "./scripts/kylo-signup.js";
+import { runKyloPricing } from "./scripts/kylo-pricing.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 import { buildFingerprintInitScript } from "./scripts/fingerprint-patch.js";
 import {
@@ -526,7 +527,11 @@ async function main() {
       monitorType === "kylo_signup" ||
       monitorType === "kylo-signup"
     ) {
-      result = await runKyloSignup({ page, context, spec, creds, log });
+      // „Csak árazás" mód: nem regisztrálunk, csak az előfizetési csomagok
+      // nyelvét és pénznemét ellenőrizzük az adott IP-ről.
+      result = spec.kylo_signup?.pricing_only
+        ? await runKyloPricing({ page, spec, log })
+        : await runKyloSignup({ page, context, spec, creds, log });
     } else if (monitorType === "tiktok") {
       result = await runTikTok({ page, context, spec, creds, log });
     } else if (monitorType === "decathlon-stock") {

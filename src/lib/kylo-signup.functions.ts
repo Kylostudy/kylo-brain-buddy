@@ -398,7 +398,7 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
     z
       .object({
         baseUrl: z.string().url().default("https://kylo.study"),
-        scope: z.enum(["english", "non-english", "all"]).default("english"),
+        scope: z.enum(["english", "non-english", "all", "pricing"]).default("english"),
         // Kisebb kör indítása: csak ennyi proxyra tesz sorba futást.
         limit: z.number().int().min(1).max(50).nullable().optional(),
 
@@ -495,9 +495,13 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
     const batchId = crypto.randomUUID();
     const batchStartedAt = new Date().toISOString();
 
+    // „Csak árazás" kör: nem regisztrálunk, csak az előfizetési oldal
+    // nyelvét és pénznemét nézzük meg minden IP-ről, alap skinnel.
+    const pricingOnly = data.scope === "pricing";
+
     for (const [index, p] of english.entries()) {
       counter += 1;
-      const skin = SKIN_ORDER[counter % SKIN_ORDER.length];
+      const skin = pricingOnly ? "puppy-cat" : SKIN_ORDER[counter % SKIN_ORDER.length];
       const expectedCountry = ((p.country as string | null) || "").toUpperCase() || null;
       const lang = langForCountry(expectedCountry);
       const currency = currencyForCountry(expectedCountry);
@@ -507,10 +511,14 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
       const spec = {
         ...currentSpec,
         monitor_type: SIGNUP_MONITOR,
-        account_label: `Kylo Sign Up #${counter} · ${expectedCountry ?? "??"} · ${skin}`,
+        account_label: pricingOnly
+          ? `Pénznem-ellenőrzés #${counter} · ${expectedCountry ?? "??"}`
+          : `Kylo Sign Up #${counter} · ${expectedCountry ?? "??"} · ${skin}`,
         // A felvett lépések útmutatóként mennek — a signup script követi az
         // eredeti regisztrációs űrlapot, de friss aliasszal regisztrál.
-        ...(recordedActions.length > 0 ? { recorded_actions: recordedActions, brain_task: null } : {}),
+        ...(recordedActions.length > 0 && !pricingOnly
+          ? { recorded_actions: recordedActions, brain_task: null }
+          : {}),
         kylo_signup: {
           base_url: data.baseUrl,
           run_index: counter,
@@ -520,12 +528,16 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
           expected_country: expectedCountry,
           email,
           password,
+          ...(pricingOnly
+            ? { pricing_only: true, pricing_paths: ["/előfizetések", "/elofizetesek", "/pricing"] }
+            : {}),
           batch_id: batchId,
           batch_scope: data.scope,
           batch_started_at: batchStartedAt,
           batch_size: english.length,
         },
       };
+
 
       const notBefore =
         baseNotBeforeMs && Number.isFinite(baseNotBeforeMs)
@@ -549,7 +561,9 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
               level: "info",
               message: notBefore
                 ? `Időzítve — Sign Up #${counter} indul ${new Date(notBefore).toLocaleString("hu-HU")} után (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`
-                : `Terheléses teszt — Sign Up #${counter} sorba téve (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`,
+                : pricingOnly
+                  ? `Pénznem-ellenőrzés #${counter} sorba téve (proxy: ${p.label ?? expectedCountry}) — csak az előfizetési csomagok oldala, regisztráció nélkül.`
+                  : `Terheléses teszt — Sign Up #${counter} sorba téve (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`,
             },
           ] as never,
         })
@@ -557,18 +571,21 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
         .single();
       if (qErr) throw new Error(qErr.message);
 
-      await saveTestAccount(supabase as never, {
-        tenantId,
-        workflowId: wfId,
-        runId: run!.id,
-        email,
-        password,
-        runIndex: counter,
-        skin,
-        country: expectedCountry,
-        lang,
-        currency,
-      });
+      if (!pricingOnly) {
+        await saveTestAccount(supabase as never, {
+          tenantId,
+          workflowId: wfId,
+          runId: run!.id,
+          email,
+          password,
+          runIndex: counter,
+          skin,
+          country: expectedCountry,
+          lang,
+          currency,
+        });
+      }
+
 
 
 

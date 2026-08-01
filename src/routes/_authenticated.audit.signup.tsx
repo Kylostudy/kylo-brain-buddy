@@ -151,7 +151,7 @@ function SignupPage() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordSessionId, setRecordSessionId] = useState<string | null>(null);
   const [recordMode, setRecordMode] = useState<"record" | "browse">("record");
-  const [bulkAction, setBulkAction] = useState<"english" | "non-english" | "non-english-5" | "scheduled-non-english" | null>(null);
+  const [bulkAction, setBulkAction] = useState<"english" | "non-english" | "non-english-5" | "scheduled-non-english" | "pricing" | null>(null);
   const bulkLockRef = useRef(false);
 
   useEffect(() => {
@@ -216,7 +216,7 @@ function SignupPage() {
 
   const startAllMut = useMutation({
 
-    mutationFn: (vars: { scope: "english" | "non-english"; notBefore?: string | null; limit?: number | null }) =>
+    mutationFn: (vars: { scope: "english" | "non-english" | "pricing"; notBefore?: string | null; limit?: number | null }) =>
       startAllFn({ data: { scope: vars.scope, notBefore: vars.notBefore ?? null, limit: vars.limit ?? null } }),
     onSuccess: (r, vars) => {
       toast.success(
@@ -234,8 +234,8 @@ function SignupPage() {
   });
 
   function startBulk(
-    vars: { scope: "english" | "non-english"; notBefore?: string | null; limit?: number | null },
-    action: "english" | "non-english" | "non-english-5" | "scheduled-non-english",
+    vars: { scope: "english" | "non-english" | "pricing"; notBefore?: string | null; limit?: number | null },
+    action: "english" | "non-english" | "non-english-5" | "scheduled-non-english" | "pricing",
   ) {
     if (startAllMut.isPending || bulkLockRef.current) return;
     bulkLockRef.current = true;
@@ -379,6 +379,16 @@ function SignupPage() {
               title={canStart ? "Kis kör: 5 véletlenszerű, különböző országú nem-angol proxy — gyors ellenőrzéshez" : "Először kösd be a Gmail postafiókot"}
             >
               {bulkAction === "non-english-5" && startAllMut.isPending ? "Indítás…" : "5-ös nem-angol kör"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              onClick={() => startBulk({ scope: "pricing" }, "pricing")}
+              disabled={startAllMut.isPending}
+              title="Csak az előfizetési csomagok oldalát nyitja meg minden aktív IP-ről, és ellenőrzi a nyelvet és a pénznemet (HU=HUF, EU/CH/UK=EUR, egyéb=USD). Regisztráció és fizetés nincs."
+            >
+              {bulkAction === "pricing" && startAllMut.isPending ? "Indítás…" : "Pénznem-kör (összes IP)"}
             </Button>
 
             <Button
