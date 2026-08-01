@@ -1,13 +1,10 @@
 ---
-name: Hibás IPRoyal proxyk (FR, HK)
-description: A francia és hongkongi IPRoyal proxy folyamatosan elbukik (rossz geolokáció) — cserét kell kérni a szolgáltatótól.
-type: constraint
+name: IPRoyal FR és HK proxy — megjavult
+description: A korábban hibás francia és hongkongi IPRoyal proxy 2026-08-01-től működik, benne van a tömeges körökben.
+type: feature
 ---
 
-Két IPRoyal proxy rendszeresen elbukik, mindig ugyanazok:
-
-- **Franciaország** — `176.103.182.90:12323` — a kimenő IP nem FR-ből jön, „Nem sikerült kiolvasni az országot" hiba.
-- **Hongkong** — `81.181.132.14:12323` — ugyanaz a tünet.
-
-Teendő: írni kell az IPRoyalnak cseréért vagy más országbeli/típusú proxyért.
-Amíg nincs csere, ezekre NE tervezzünk Reddit regisztrációt — csak időt égetnek.
+A francia és hongkongi IPRoyal proxy korábban rossz geolokációt adott, ezért ki voltak hagyva.
+2026-08-01-től mindkettő helyesen működik (FR: EUR + francia, HK: USD + kínai),
+aktívak és automatikusan bekerülnek a tömeges („angol kör”, „nem-angol kör”, „összes IP”) futásokba.
+Külön kivétel-lista nincs rájuk.
