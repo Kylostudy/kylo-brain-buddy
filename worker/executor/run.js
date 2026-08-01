@@ -527,7 +527,11 @@ async function main() {
       monitorType === "kylo_signup" ||
       monitorType === "kylo-signup"
     ) {
-      result = await runKyloSignup({ page, context, spec, creds, log });
+      // „Csak árazás" mód: nem regisztrálunk, csak az előfizetési csomagok
+      // nyelvét és pénznemét ellenőrizzük az adott IP-ről.
+      result = spec.kylo_signup?.pricing_only
+        ? await runKyloPricing({ page, spec, log })
+        : await runKyloSignup({ page, context, spec, creds, log });
     } else if (monitorType === "tiktok") {
       result = await runTikTok({ page, context, spec, creds, log });
     } else if (monitorType === "decathlon-stock") {
