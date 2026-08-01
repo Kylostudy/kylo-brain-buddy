@@ -71,19 +71,25 @@ export const Route = createFileRoute("/api/public/worker/gmail-confirmation-link
           return Response.json({ error: "workflowId hiányzik" }, { status: 400 });
         }
 
-        const { findVerificationLinkServer } = await import("@/lib/gmail/oauth.server");
-        const found = await findVerificationLinkServer({
-          workflowId,
-          recipient,
-          platform: "kylo",
-          freshWithinSec: body.freshWithinSec ?? 6 * 60 * 60,
-        });
+        try {
+          const { findVerificationLinkServer } = await import("@/lib/gmail/oauth.server");
+          const found = await findVerificationLinkServer({
+            workflowId,
+            recipient,
+            platform: "kylo",
+            freshWithinSec: body.freshWithinSec ?? 6 * 60 * 60,
+          });
 
-        if (!found.link) {
-          return Response.json({ link: null, found: false, debug: found.debug }, { status: 200 });
+          if (!found.link) {
+            return Response.json({ link: null, found: false, debug: found.debug }, { status: 200 });
+          }
+
+          return Response.json({ found: true, ...found });
+        } catch (e) {
+          const message = e instanceof Error ? e.message : "Ismeretlen Gmail hiba";
+          console.error("[gmail-confirmation-link] hiba", message);
+          return Response.json({ link: null, found: false, error: message }, { status: 200 });
         }
-
-        return Response.json({ found: true, ...found });
       },
     },
   },
