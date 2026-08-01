@@ -762,11 +762,9 @@ export async function runKyloStudyQa({ page, context, spec, creds, log }) {
             const discovery = await discoverLinksByClicking(context, page, url, baseHost, log, maxClicksPerPage);
             // NEM navigálunk vissza — az aux tabban kattintottunk, a fő page érintetlen.
 
-            // A landing (/) oldal szándékosan angol nyelvű minden nyelven — kihagyjuk a nyelvi elemzést
-            const skipLanguageAnalysis = isHome && language !== "en-GB";
-            if (skipLanguageAnalysis) {
-              log("info", `Landing oldal (${url}) — szándékosan angol, kihagyjuk a ${language} elemzést.`);
-            }
+            // A nyitóoldal (/) 2026-08-01 óta szintén 27 nyelven jelenik meg,
+            // ezért ugyanúgy nyelvi ellenőrzés alá esik, mint a többi oldal.
+            const skipLanguageAnalysis = false;
 
             const capped = await reportAnalyzedPage({
               runId,
