@@ -8,17 +8,34 @@ import { listAuditQaAggregatedIssues } from "@/lib/audit-qa.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const SEVERITY_RANK: Record<string, number> = { critical: 0, major: 1, minor: 2, info: 3 };
 
-/** Összesített hibanapló az utolsó futásokból — lenyitható és vágólapra másolható. */
-export function QaErrorLog({ runLimit = 10 }: { runLimit?: number }) {
+/**
+ * Összesített hibanapló. Alapértelmezésben CSAK a legutolsó befejezett futást
+ * mutatja, nyitott hibákra szűrve és duplikáció nélkül — így a riport valóban
+ * azt tükrözi, mi van még nyitva.
+ */
+export function QaErrorLog() {
   const fn = useServerFn(listAuditQaAggregatedIssues);
   const [open, setOpen] = useState(false);
+  const [runLimit, setRunLimit] = useState(1);
+  const [onlyOpen, setOnlyOpen] = useState(true);
+  const [dedupe, setDedupe] = useState(true);
+
   const { data } = useQuery({
-    queryKey: ["audit-qa-aggregated-issues", runLimit],
-    queryFn: () => fn({ data: { runLimit } }),
-    refetchInterval: 15000,
+    queryKey: ["audit-qa-aggregated-issues", runLimit, onlyOpen, dedupe],
+    queryFn: () => fn({ data: { runLimit, onlyOpen, dedupe } }),
+    refetchInterval: 30000,
   });
 
   const issues = useMemo(() => {
@@ -37,20 +54,41 @@ export function QaErrorLog({ runLimit = 10 }: { runLimit?: number }) {
     return Object.entries(m).sort((a, b) => b[1].length - a[1].length);
   }, [issues]);
 
-  if (!data || issues.length === 0) return null;
+  if (!data) return null;
+
+  const runsMeta = data.runs;
 
   function buildText() {
+    const d = data!;
     const lines: string[] = [];
-    lines.push(`KYLO.STUDY QA — ÖSSZESÍTETT HIBANAPLÓ (utolsó ${data!.runs.length} futás)`);
+    lines.push(
+      runLimit === 1
+        ? "KYLO.STUDY QA — HIBANAPLÓ (LEGUTOLSÓ BEFEJEZETT FUTÁS)"
+        : `KYLO.STUDY QA — ÖSSZESÍTETT HIBANAPLÓ (utolsó ${d.runs.length} befejezett futás)`,
+    );
     lines.push(`Készült: ${new Date().toLocaleString("hu-HU")}`);
-    lines.push(`Összes hiba: ${issues.length}`);
+    for (const r of d.runs) {
+      lines.push(
+        `Futás: ${r.id} · ${r.status} · indult: ${
+          r.started_at ? new Date(r.started_at).toLocaleString("hu-HU") : "?"
+        }${r.finished_at ? ` · vége: ${new Date(r.finished_at).toLocaleString("hu-HU")}` : ""}`,
+      );
+    }
+    lines.push(`Szűrés: ${onlyOpen ? "csak nyitott hibák" : "minden hiba"}${dedupe ? " · duplikátumok összevonva" : ""}`);
+    lines.push(
+      `Megjelenített hibák: ${issues.length}${
+        dedupe && d.totalRaw !== issues.length ? ` (nyers sorok: ${d.totalRaw})` : ""
+      }`,
+    );
+    if (d.truncated) lines.push("FIGYELEM: a lista elérte a 10000 soros felső határt, nem teljes.");
     lines.push("");
     for (const [lang, list] of byLang) {
       lines.push(`── ${lang} (${list.length} hiba) ──`);
       for (const i of list) {
         lines.push(
-          `[${i.severity}/${i.category}] ${i.page_url} (skin: ${i.skin ?? "?"})\n` +
-            `  Diagnózis: ${i.ai_diagnosis ?? "—"}` +
+          `[${i.severity}/${i.category}] ${i.page_url} (skin: ${i.skin ?? "?"})` +
+            (i.occurrence_count && i.occurrence_count > 1 ? ` ×${i.occurrence_count}` : "") +
+            `\n  Diagnózis: ${i.ai_diagnosis ?? "—"}` +
             (i.problematic_text ? `\n  Szöveg: "${i.problematic_text.slice(0, 200)}"` : "") +
             (i.ai_suggested_fix ? `\n  Javaslat: ${i.ai_suggested_fix}` : ""),
         );
@@ -71,7 +109,7 @@ export function QaErrorLog({ runLimit = 10 }: { runLimit?: number }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+      <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2 text-base">
           <button
             type="button"
@@ -80,39 +118,82 @@ export function QaErrorLog({ runLimit = 10 }: { runLimit?: number }) {
             aria-expanded={open}
           >
             {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            Összesített hibanapló ({issues.length})
+            Hibanapló ({issues.length})
           </button>
         </CardTitle>
-        <Button size="sm" variant="outline" onClick={copyAll}>
-          <Copy className="mr-1.5 h-3.5 w-3.5" />
-          Vágólapra
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <Label className="text-xs text-muted-foreground">Futások</Label>
+            <Select value={String(runLimit)} onValueChange={(v) => setRunLimit(Number(v))}>
+              <SelectTrigger className="h-8 w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Csak a legutolsó</SelectItem>
+                <SelectItem value="3">Utolsó 3</SelectItem>
+                <SelectItem value="5">Utolsó 5</SelectItem>
+                <SelectItem value="10">Utolsó 10</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Checkbox checked={onlyOpen} onCheckedChange={(v) => setOnlyOpen(v === true)} />
+            Csak nyitott
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Checkbox checked={dedupe} onCheckedChange={(v) => setDedupe(v === true)} />
+            Duplikátumok összevonva
+          </label>
+          <Button size="sm" variant="outline" onClick={copyAll} disabled={issues.length === 0}>
+            <Copy className="mr-1.5 h-3.5 w-3.5" />
+            Vágólapra
+          </Button>
+        </div>
       </CardHeader>
-      {open && (
-        <CardContent className="space-y-4 text-sm">
-          {byLang.map(([lang, list]) => (
-            <div key={lang} className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">{lang}</Badge>
-                <span className="text-xs text-muted-foreground">{list.length} hiba</span>
+      <CardContent className="space-y-4 text-sm">
+        <div className="text-xs text-muted-foreground">
+          {runsMeta.length === 0
+            ? "Még nincs befejezett futás."
+            : runsMeta
+                .map(
+                  (r) =>
+                    `${r.status} · ${
+                      r.started_at ? new Date(r.started_at).toLocaleString("hu-HU") : "?"
+                    }`,
+                )
+                .join(" | ")}
+          {dedupe && data.totalRaw !== issues.length
+            ? ` · nyers sorok: ${data.totalRaw}, összevonás után: ${issues.length}`
+            : ""}
+          {data.truncated ? " · FIGYELEM: 10000 soros felső határ elérve" : ""}
+        </div>
+
+        {open && issues.length > 0 && (
+          <div className="space-y-4">
+            {byLang.map(([lang, list]) => (
+              <div key={lang} className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{lang}</Badge>
+                  <span className="text-xs text-muted-foreground">{list.length} hiba</span>
+                </div>
+                <div className="space-y-1 rounded-md border p-2">
+                  {list.slice(0, 50).map((i) => (
+                    <div key={i.id} className="text-xs [overflow-wrap:anywhere]">
+                      <span className="font-medium">[{i.severity}]</span> {i.page_url}
+                      {i.skin ? ` · ${i.skin}` : ""} — {i.ai_diagnosis ?? "—"}
+                    </div>
+                  ))}
+                  {list.length > 50 && (
+                    <div className="text-xs text-muted-foreground">
+                      …és további {list.length - 50} hiba (a vágólapra másolás mindet tartalmazza)
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="space-y-1 rounded-md border p-2">
-                {list.slice(0, 50).map((i) => (
-                  <div key={i.id} className="text-xs [overflow-wrap:anywhere]">
-                    <span className="font-medium">[{i.severity}]</span> {i.page_url}
-                    {i.skin ? ` · ${i.skin}` : ""} — {i.ai_diagnosis ?? "—"}
-                  </div>
-                ))}
-                {list.length > 50 && (
-                  <div className="text-xs text-muted-foreground">
-                    …és további {list.length - 50} hiba (a vágólapra másolás mindet tartalmazza)
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      )}
+            ))}
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }
