@@ -380,6 +380,16 @@ function SignupPage() {
             >
               {bulkAction === "non-english-5" && startAllMut.isPending ? "Indítás…" : "5-ös nem-angol kör"}
             </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              onClick={() => startBulk({ scope: "pricing" }, "pricing")}
+              disabled={startAllMut.isPending}
+              title="Csak az előfizetési csomagok oldalát nyitja meg minden aktív IP-ről, és ellenőrzi a nyelvet és a pénznemet (HU=HUF, EU/CH/UK=EUR, egyéb=USD). Regisztráció és fizetés nincs."
+            >
+              {bulkAction === "pricing" && startAllMut.isPending ? "Indítás…" : "Pénznem-kör (összes IP)"}
+            </Button>
 
             <Button
               type="button"
