@@ -3,8 +3,9 @@
 // Közös nyelvi ellenőrzés a Kylo teszt-futásokhoz.
 //
 // Szabály (a megrendelő kritériumai szerint):
-//  - a kylo.study nyitóoldala ("/") MINDIG angol, ez sosem nyelvi hiba,
-//  - minden más oldalnak (belépési párbeszéd, regisztrációs űrlap, konfirmációs
+//  - minden Kylo oldalnak, a nyitóoldalt is beleértve, a proxy geolokációja
+//    szerinti nyelven kell megjelennie,
+//  - a további oldalaknak (belépési párbeszéd, regisztrációs űrlap, konfirmációs
 //    e-mail, csomagválasztó, számlázási űrlap, sikeres fizetés oldal, profil)
 //    a proxy geolokációja szerinti nyelven kell megjelennie,
 //  - a Stripe checkout kivétel: azt nem mi fordítjuk, nem ellenőrizzük.
@@ -114,7 +115,7 @@ export function auditTextLanguage(label, text, expectedLang) {
   };
 }
 
-// Oldal nyelvi ellenőrzése. A landing mindig angolként értékelődik,
+// Oldal nyelvi ellenőrzése. A nyitóoldalt is a megadott cél-nyelven értékeljük,
 // a Stripe oldalt pedig egyáltalán nem értékeljük (ok: null).
 export async function auditLanguage(page, label, log, expectedLang) {
   let currentUrl = "";
@@ -126,7 +127,7 @@ export async function auditLanguage(page, label, log, expectedLang) {
   }
 
   const landing = isLandingUrl(currentUrl);
-  const expected = landing ? "en-GB" : String(expectedLang || "en-GB");
+  const expected = String(expectedLang || "en-GB");
   const prefix = expected.toLowerCase().split("-")[0];
 
   try {
