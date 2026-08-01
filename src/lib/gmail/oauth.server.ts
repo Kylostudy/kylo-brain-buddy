@@ -496,6 +496,8 @@ export async function findVerificationLinkServer(params: {
   recipient?: string | null;
   platform?: string;
   freshWithinSec?: number;
+  /** Hány levelet nyitunk meg maximum (Cloudflare alhívás-limit miatt fontos). */
+  maxMessages?: number;
 }): Promise<GmailLookupResult> {
   const tok = await getGmailAccessTokenServer(params.workflowId);
   if (!tok) return { link: null, from: null, subject: null, snippet: null, debug: { reason: "no_gmail_token" } };
@@ -503,6 +505,9 @@ export async function findVerificationLinkServer(params: {
   const freshCutoff = Date.now() - fresh * 1000;
   const recipient = params.recipient?.trim();
   const platform = params.platform?.trim();
+  // A Worker futásonként korlátozott számú külső hívást tud indítani, ezért
+  // szigorú felső korlát: max ennyi levelet nyitunk meg (a legfrissebbektől).
+  const maxMessages = Math.max(1, Math.min(params.maxMessages ?? 12, 20));
 
   // Ha ismerjük a pontos aliaszt, KIZÁRÓLAG arra a címre szűrünk. Egy Gmail-fiókba
   // több párhuzamos futás levele érkezik, ezért a tárgy alapú keresés téves levelet
@@ -514,16 +519,17 @@ export async function findVerificationLinkServer(params: {
   const ids = new Map<string, true>();
 
   for (const q of queries) {
+    if (ids.size >= maxMessages) break;
     try {
       const list = await gmailJson<{ messages?: { id: string }[] }>(
-        `${GMAIL_API}/users/me/messages?maxResults=30&includeSpamTrash=true&q=${encodeURIComponent(q)}`,
+        `${GMAIL_API}/users/me/messages?maxResults=${maxMessages}&includeSpamTrash=true&q=${encodeURIComponent(q)}`,
         tok.accessToken,
       );
       for (const message of list.messages ?? []) {
         if (message.id) ids.set(message.id, true);
       }
     } catch (error) {
-      if (q === queries[queries.length - 1]) throw error;
+      if (q === queries[queries.length - 1] && ids.size === 0) throw error;
     }
   }
 
@@ -531,11 +537,20 @@ export async function findVerificationLinkServer(params: {
   let latestMeta: { subject: string; from: string; ageSec: number; hadLink: boolean; score: number } | null = null;
   const rejects: Array<{ subject: string; from: string; ageSec: number; reason: string; score?: number }> = [];
 
+  let opened = 0;
   for (const id of ids.keys()) {
-    const msg = await gmailJson<GmailMessage>(
-      `${GMAIL_API}/users/me/messages/${id}?format=full`,
-      tok.accessToken,
-    );
+    if (opened >= maxMessages) break;
+    opened++;
+    let msg: GmailMessage;
+    try {
+      msg = await gmailJson<GmailMessage>(
+        `${GMAIL_API}/users/me/messages/${id}?format=full`,
+        tok.accessToken,
+      );
+    } catch {
+      rejects.push({ subject: "", from: "", ageSec: -1, reason: "fetch_failed" });
+      continue;
+    }
     const headers = msg.payload?.headers ?? [];
     const from = getHeader(headers, "From");
     const subject = getHeader(headers, "Subject");
@@ -573,7 +588,10 @@ export async function findVerificationLinkServer(params: {
     if (!best || score > best.score) {
       best = { score, link, from, subject, snippet: msg.snippet ?? "" };
     }
+    // Biztos találat (kylo.study link) — nem pazarolunk több hívást.
+    if (best.score >= 100) break;
   }
+
 
   const debug = {
     query: queries[0],

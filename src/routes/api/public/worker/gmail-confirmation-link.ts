@@ -51,33 +51,34 @@ export const Route = createFileRoute("/api/public/worker/gmail-confirmation-link
           );
         }
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const sb = supabaseAdmin as ReturnType<typeof createClient<Database>>;
-
-        let workflowId = body.workflowId ?? null;
-        let recipient = body.recipient ?? null;
-
-        if (body.runId) {
-          const { data: run } = await sb
-            .from("brain_workflow_runs")
-            .select("workflow_id, spec_snapshot")
-            .eq("id", body.runId)
-            .maybeSingle();
-          workflowId = workflowId ?? run?.workflow_id ?? null;
-          recipient = recipient ?? readKyloRecipient(run?.spec_snapshot) ?? null;
-        }
-
-        if (!workflowId) {
-          return Response.json({ error: "workflowId hiányzik" }, { status: 400 });
-        }
-
         try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const sb = supabaseAdmin as ReturnType<typeof createClient<Database>>;
+
+          let workflowId = body.workflowId ?? null;
+          let recipient = body.recipient ?? null;
+
+          if (body.runId) {
+            const { data: run } = await sb
+              .from("brain_workflow_runs")
+              .select("workflow_id, spec_snapshot")
+              .eq("id", body.runId)
+              .maybeSingle();
+            workflowId = workflowId ?? run?.workflow_id ?? null;
+            recipient = recipient ?? readKyloRecipient(run?.spec_snapshot) ?? null;
+          }
+
+          if (!workflowId) {
+            return Response.json({ error: "workflowId hiányzik" }, { status: 400 });
+          }
+
           const { findVerificationLinkServer } = await import("@/lib/gmail/oauth.server");
           const found = await findVerificationLinkServer({
             workflowId,
             recipient,
             platform: "kylo",
             freshWithinSec: body.freshWithinSec ?? 6 * 60 * 60,
+            maxMessages: 12,
           });
 
           if (!found.link) {
@@ -90,6 +91,7 @@ export const Route = createFileRoute("/api/public/worker/gmail-confirmation-link
           console.error("[gmail-confirmation-link] hiba", message);
           return Response.json({ link: null, found: false, error: message }, { status: 200 });
         }
+
       },
     },
   },
