@@ -453,9 +453,17 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
     }
 
     // Kisebb kör: véletlenszerű, de országonként változatos mintát veszünk,
-    // hogy ne mindig ugyanaz az 5 ország fusson le.
+    // hogy ne mindig ugyanaz az 5 ország fusson le. A frissen megjavult
+    // francia és hongkongi IP mindig elöl van, hogy minden nem-angol és
+    // pénznem-körben szerepeljen.
     if (data.limit && english.length > data.limit) {
+      const PRIORITY = new Set(["FR", "HK"]);
       const shuffled = [...english].sort(() => Math.random() - 0.5);
+      shuffled.sort((a, b) => {
+        const pa = PRIORITY.has(((a.country as string | null) || "").toUpperCase()) ? 0 : 1;
+        const pb = PRIORITY.has(((b.country as string | null) || "").toUpperCase()) ? 0 : 1;
+        return pa - pb;
+      });
       const picked: typeof english = [];
       const seen = new Set<string>();
       for (const p of shuffled) {
