@@ -133,7 +133,7 @@ FONTOS KIZÁRÁSOK — ezeket SOHA ne jelentsd hibaként:
   * Devizajelek (€, Ft, $) és számformátumok — a magyar oldalon is jelenhet € nemzetközi árnál.
   * Felhasználó által feltöltött tananyag- / tantárgy-címek (pl. "AL-ARABIYYA-TEST") — ezek user content, nem UI szöveg.
 
-- ${is_home_page ? 'Ez a landing (/) oldal — szándékosan angol nyelvű MINDEN nyelvi verzióban (nemzetközi szülőknek szól). Itt SOHA ne jelents "translation_missing" vagy nyelvi hibát; csak layout / kontraszt / levágott szöveg / törött elem hibákat.' : "(landing kizárás itt nem releváns)"}
+- ${is_home_page ? "Ez a nyitóoldal (/) — 2026-08-01 óta ez is le van fordítva mind a 27 nyelvre, ezért ugyanúgy elvárt az elvárt nyelvű megjelenés, mint bármely más oldalon." : "(nyitóoldal kivétel nincs)"}
 
 Ellenőrzési kritériumok:
 1) NYELV: minden látható felhasználói szöveg az elvárt ${langNote} nyelven van-e? Menü, gomb, hibaüzenet, tooltip, placeholder is számít. Ha egyetlen szó is más nyelven (pl. "Submit" magyar oldalon), az translation_missing (critical). ${isEnglish ? 'Az "en-GB" nem különböztetendő meg az "en-US"-tól szótár szinten — csak akkor jelezz, ha ténylegesen NEM angol.' : ""}
