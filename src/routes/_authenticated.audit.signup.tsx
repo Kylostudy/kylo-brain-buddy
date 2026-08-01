@@ -122,6 +122,7 @@ function readResult(r: unknown): {
 
 const CRITERIA_LABELS_HU: Record<string, string> = {
   landing_english: "Nyitóoldal angolul jelenik meg",
+  landing_language: "Nyitóoldal a cél nyelven jelenik meg",
   auth_dialog_language: "Belépési panel a cél nyelven",
   signup_form_language: "Regisztrációs űrlap a cél nyelven",
   registration_submitted: "Regisztráció elküldve",

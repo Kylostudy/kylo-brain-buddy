@@ -1526,9 +1526,9 @@ async function fillBillingForm(page, email, log, billingData = BILLING_TEST) {
   // Shadcn/Radix stílusú (nem natív) legördülők: közterület jellege + ország
   const streetTypePicked = await selectComboboxOption(page, log, {
     label: "Közterület jellege",
-    labelTexts: ["jelleg", "közterület", "kozterulet", "street type", "utca típusa", "utca tipusa", "address type", "cím típusa"],
-    buttonTexts: ["válassz", "select", "típus", "type", "jelleg", "utca"],
-    optionTexts: ["utca", "street", "road"],
+    labelTexts: ["jelleg", "közterület", "kozterulet", "street type", "utca típusa", "utca tipusa", "address type", "cím típusa", "类型", "類型", "街道类型", "街道類型"],
+    buttonTexts: ["válassz", "select", "típus", "type", "jelleg", "utca", "类型", "類型"],
+    optionTexts: ["utca", "street", "road", "街道", "路"],
   }).catch(() => false);
   if (streetTypePicked) log("info", "Számlázás: közterület jellege = utca kiválasztva.");
 
@@ -1557,7 +1557,7 @@ async function pickFirstEmptyCombobox(page, log) {
       for (const el of els) {
         if (el.getAttribute("data-kylo-combo-done")) continue;
         const txt = (el.innerText || "").replace(/\s+/g, " ").trim().toLowerCase();
-        if (!txt || /válass|valass|select|choose|^-+$/.test(txt)) {
+        if (!txt || /válass|valass|select|choose|类型|類型|^-+$/.test(txt)) {
           el.scrollIntoView({ block: "center" });
           el.setAttribute("data-kylo-combo-done", "1");
           el.setAttribute("data-kylo-empty-combo", marker);
@@ -1612,7 +1612,7 @@ async function collectBillingBlockers(page) {
         .filter((n) => n.offsetWidth || n.offsetHeight)
         .filter((n) => {
           const t = (n.innerText || "").replace(/\s+/g, " ").trim().toLowerCase();
-          return !t || /válass|valass|select|choose|^-+$/.test(t);
+          return !t || /válass|valass|select|choose|类型|類型|^-+$/.test(t);
         })
         .map((n) => (n.closest(".space-y-2")?.innerText || n.innerText || "?").replace(/\s+/g, " ").trim().slice(0, 40));
       empty.push(...unselected.map((u) => `[legördülő nincs kiválasztva] ${u}`));
@@ -1796,8 +1796,8 @@ export async function runKyloSignup({ page, context, spec, log }) {
   await page.waitForTimeout(1500);
   screenshots.push(await shot(page, "1-home"));
   steps.push({ step: "home", url: page.url() });
-  // A nyitóoldal szándékosan MINDIG angol — ezt is ellenőrizzük.
-  langChecks.push(await auditLanguage(page, "nyitóoldal (angol)", log, "en-GB"));
+  // A nyitóoldalnak is az IP alapján elvárt nyelven kell megjelennie.
+  langChecks.push(await auditLanguage(page, "nyitóoldal", log, lang));
 
 
   await acceptCookies(page, log);
@@ -2628,7 +2628,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   const languageOk = failedLangChecks.length === 0;
 
   const criteria = {
-    landing_english: langChecks.find((c) => c.label === "nyitóoldal (angol)")?.ok !== false,
+    landing_language: langChecks.find((c) => c.label === "nyitóoldal")?.ok !== false,
     auth_dialog_language: langChecks.find((c) => c.label === "belépési párbeszéd")?.ok !== false,
     signup_form_language: langChecks.find((c) => c.label === "regisztrációs űrlap")?.ok !== false,
     registration_submitted: registrationOk,
@@ -2647,7 +2647,7 @@ export async function runKyloSignup({ page, context, spec, log }) {
   };
 
   const CRITERIA_LABELS = {
-    landing_english: "A nyitóoldal angol",
+    landing_language: "Nyitóoldal a cél nyelven",
     auth_dialog_language: "Belépési párbeszéd a cél nyelven",
     signup_form_language: "Regisztrációs űrlap a cél nyelven",
     registration_submitted: "Regisztráció elküldve",
