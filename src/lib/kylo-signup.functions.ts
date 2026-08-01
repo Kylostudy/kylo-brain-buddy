@@ -398,7 +398,7 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
     z
       .object({
         baseUrl: z.string().url().default("https://kylo.study"),
-        scope: z.enum(["english", "non-english", "all"]).default("english"),
+        scope: z.enum(["english", "non-english", "all", "pricing"]).default("english"),
         // Kisebb kör indítása: csak ennyi proxyra tesz sorba futást.
         limit: z.number().int().min(1).max(50).nullable().optional(),
 
