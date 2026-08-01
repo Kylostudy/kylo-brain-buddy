@@ -216,7 +216,7 @@ function SignupPage() {
 
   const startAllMut = useMutation({
 
-    mutationFn: (vars: { scope: "english" | "non-english"; notBefore?: string | null; limit?: number | null }) =>
+    mutationFn: (vars: { scope: "english" | "non-english" | "pricing"; notBefore?: string | null; limit?: number | null }) =>
       startAllFn({ data: { scope: vars.scope, notBefore: vars.notBefore ?? null, limit: vars.limit ?? null } }),
     onSuccess: (r, vars) => {
       toast.success(
