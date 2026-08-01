@@ -561,7 +561,9 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
               level: "info",
               message: notBefore
                 ? `Időzítve — Sign Up #${counter} indul ${new Date(notBefore).toLocaleString("hu-HU")} után (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`
-                : `Terheléses teszt — Sign Up #${counter} sorba téve (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`,
+                : pricingOnly
+                  ? `Pénznem-ellenőrzés #${counter} sorba téve (proxy: ${p.label ?? expectedCountry}) — csak az előfizetési csomagok oldala, regisztráció nélkül.`
+                  : `Terheléses teszt — Sign Up #${counter} sorba téve (proxy: ${p.label ?? expectedCountry}, skin=${skin}, alias=${email})`,
             },
           ] as never,
         })
@@ -569,18 +571,21 @@ export const startAllEnglishSignupRuns = createServerFn({ method: "POST" })
         .single();
       if (qErr) throw new Error(qErr.message);
 
-      await saveTestAccount(supabase as never, {
-        tenantId,
-        workflowId: wfId,
-        runId: run!.id,
-        email,
-        password,
-        runIndex: counter,
-        skin,
-        country: expectedCountry,
-        lang,
-        currency,
-      });
+      if (!pricingOnly) {
+        await saveTestAccount(supabase as never, {
+          tenantId,
+          workflowId: wfId,
+          runId: run!.id,
+          email,
+          password,
+          runIndex: counter,
+          skin,
+          country: expectedCountry,
+          lang,
+          currency,
+        });
+      }
+
 
 
 
