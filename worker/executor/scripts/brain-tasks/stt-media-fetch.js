@@ -113,8 +113,14 @@ async function captureAudioViaBrowser(pageUrl, dir, maxBytes, log) {
   }
 }
 
+function pageUrlOf(payload) {
+  return payload.page_url || payload.source_page || payload.url || null;
+}
+
 async function fetchAudio(payload, dir, maxBytes, log) {
   const candidate = payload.audio_url || null;
+  const pageUrl = pageUrlOf(payload);
+  let lastError = "";
 
   // 1) Közvetlen fájl
   if (candidate) {
@@ -126,13 +132,14 @@ async function fetchAudio(payload, dir, maxBytes, log) {
       if (looksAudio) return { file: raw, method: "direct", alreadyConverted: false };
       log("warn", `A megadott audio_url nem hangfájl (${meta.contentType}) — yt-dlp következik`);
     } catch (e) {
+      lastError = e.message;
       log("warn", `Közvetlen letöltés nem ment: ${e.message}`);
     }
   }
 
   // 2) yt-dlp
-  const target = candidate || payload.page_url;
-  if (target) {
+  const targets = [...new Set([candidate, pageUrl].filter(Boolean))];
+  for (const target of targets) {
     const out = path.join(dir, "ytdlp.%(ext)s");
     const r = await run("yt-dlp", ["-f", "bestaudio/best", "--no-playlist", "-o", out, target], { timeoutMs: 15 * 60 * 1000 });
     if (r.code === 0) {
@@ -142,15 +149,21 @@ async function fetchAudio(payload, dir, maxBytes, log) {
         return { file: path.join(dir, files[0]), method: "yt-dlp", alreadyConverted: false };
       }
     }
-    log("warn", `yt-dlp nem járt sikerrel: ${(r.err || "").slice(-200)}`);
+    lastError = (r.err || "").trim().slice(-300) || `yt-dlp kilépési kód ${r.code}`;
+    log("warn", `yt-dlp nem járt sikerrel (${target.slice(0, 100)}): ${lastError}`);
   }
 
   // 3) Playwright hálózati elkapás
-  if (payload.page_url) {
-    return await captureAudioViaBrowser(payload.page_url, dir, maxBytes, log);
+  if (pageUrl) {
+    return await captureAudioViaBrowser(pageUrl, dir, maxBytes, log);
   }
-  throw new Error("nincs használható hangforrás (audio_url / page_url)");
+  throw new Error(
+    lastError
+      ? `nem sikerült hangot szerezni: ${lastError}`
+      : "nincs használható hangforrás (audio_url / page_url / source_page)",
+  );
 }
+
 
 function htmlToText(html) {
   return html
