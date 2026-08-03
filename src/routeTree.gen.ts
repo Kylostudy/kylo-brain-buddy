@@ -22,6 +22,7 @@ import { Route as AuthenticatedAuditQaRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAuditScenariosRouteImport } from './routes/_authenticated.audit.scenarios'
 import { Route as AuthenticatedAuditSignupRouteImport } from './routes/_authenticated.audit.signup'
 import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicAdminCreateWarmupWorkflowsRouteImport } from './routes/api/public/admin/create-warmup-workflows'
 import { Route as ApiPublicAdminImportBrightdataKylogicRouteImport } from './routes/api/public/admin/import-brightdata-kylogic'
 import { Route as ApiPublicAdminImportIproyalRouteImport } from './routes/api/public/admin/import-iproyal'
@@ -130,6 +131,11 @@ const AuthenticatedWWorkflowIdRoute =
     path: '/w/$workflowId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAdminCreateWarmupWorkflowsRoute =
   ApiPublicAdminCreateWarmupWorkflowsRouteImport.update({
     id: '/api/public/admin/create-warmup-workflows',
@@ -361,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
   '/audit/signup': typeof AuthenticatedAuditSignupRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
   '/api/public/admin/import-iproyal': typeof ApiPublicAdminImportIproyalRoute
@@ -412,6 +419,7 @@ export interface FileRoutesByTo {
   '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
   '/audit/signup': typeof AuthenticatedAuditSignupRoute
   '/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
   '/api/public/admin/import-iproyal': typeof ApiPublicAdminImportIproyalRoute
@@ -465,6 +473,7 @@ export interface FileRoutesById {
   '/_authenticated/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
   '/_authenticated/audit/signup': typeof AuthenticatedAuditSignupRoute
   '/_authenticated/w/$workflowId': typeof AuthenticatedWWorkflowIdRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/admin/create-warmup-workflows': typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   '/api/public/admin/import-brightdata-kylogic': typeof ApiPublicAdminImportBrightdataKylogicRoute
   '/api/public/admin/import-iproyal': typeof ApiPublicAdminImportIproyalRoute
@@ -518,6 +527,7 @@ export interface FileRouteTypes {
     | '/audit/scenarios'
     | '/audit/signup'
     | '/w/$workflowId'
+    | '/api/public/health'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
     | '/api/public/admin/import-iproyal'
@@ -569,6 +579,7 @@ export interface FileRouteTypes {
     | '/audit/scenarios'
     | '/audit/signup'
     | '/w/$workflowId'
+    | '/api/public/health'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
     | '/api/public/admin/import-iproyal'
@@ -621,6 +632,7 @@ export interface FileRouteTypes {
     | '/_authenticated/audit/scenarios'
     | '/_authenticated/audit/signup'
     | '/_authenticated/w/$workflowId'
+    | '/api/public/health'
     | '/api/public/admin/create-warmup-workflows'
     | '/api/public/admin/import-brightdata-kylogic'
     | '/api/public/admin/import-iproyal'
@@ -664,6 +676,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicAdminCreateWarmupWorkflowsRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   ApiPublicAdminImportBrightdataKylogicRoute: typeof ApiPublicAdminImportBrightdataKylogicRoute
   ApiPublicAdminImportIproyalRoute: typeof ApiPublicAdminImportIproyalRoute
@@ -794,6 +807,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workflowId'
       preLoaderRoute: typeof AuthenticatedWWorkflowIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/admin/create-warmup-workflows': {
       id: '/api/public/admin/create-warmup-workflows'
@@ -1104,6 +1124,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicAdminCreateWarmupWorkflowsRoute:
     ApiPublicAdminCreateWarmupWorkflowsRoute,
   ApiPublicAdminImportBrightdataKylogicRoute:
@@ -1150,13 +1171,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
