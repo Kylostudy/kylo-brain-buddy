@@ -12,7 +12,6 @@
 
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
-import { createReadStream } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -314,6 +313,3 @@ export async function runSttMediaFetch({ brainTask, log }) {
     }
   }
 }
-
-// Kis segéd, hogy a createReadStream import ne legyen felesleges lint-hiba
-export const __unusedStream = createReadStream;
