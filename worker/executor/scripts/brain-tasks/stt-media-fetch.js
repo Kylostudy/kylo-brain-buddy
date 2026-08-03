@@ -180,8 +180,9 @@ function htmlToText(html) {
 }
 
 async function fetchTranscript(payload, dir, maxBytes, log) {
-  const url = payload.transcript_url || payload.page_url;
-  if (!url) throw new Error("nincs transcript_url és page_url sem");
+  const url = payload.transcript_url || pageUrlOf(payload);
+  if (!url) throw new Error("nincs transcript_url és page_url/source_page sem");
+
 
   const res = await fetch(url, { redirect: "follow" });
   if (!res.ok) throw new Error(`HTTP ${res.status} az átirat letöltésénél`);
