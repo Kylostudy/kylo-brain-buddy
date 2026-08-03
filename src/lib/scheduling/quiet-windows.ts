@@ -1,8 +1,6 @@
 // Központi időablak-szabályok minden worker ütemezéshez.
 //
-// 1) "Gazdi-ablak": este 17:00–23:00 budapesti idő között SEMMILYEN worker
-//    futás nem indulhat (se bemelegítés, se monitor, se brain task), hogy
-//    nyugodtan lehessen dolgozni a gépen.
+// 1) "Gazdi-ablak" (17:00–23:00): KIKAPCSOLVA, a workerek bármikor futhatnak.
 // 2) Helyi nappal: egy fiókot/proxyt csak a saját országa szerinti nappali
 //    órákban melegítünk — ne éjjel 3-kor görgessen a szingapúri fiók.
 
@@ -36,10 +34,13 @@ export function isRedditBoostActive(now: Date = new Date()): boolean {
   return now.getTime() < REDDIT_BOOST_UNTIL.getTime();
 }
 
-/** Igaz, ha most a gazdi esti tiltott ablakában vagyunk (17:00–23:00 CET/CEST). */
-export function isOwnerBlackout(now: Date = new Date()): boolean {
-  const h = hourInTimezone(OWNER_TIMEZONE, now);
-  return h >= OWNER_BLACKOUT_START && h < OWNER_BLACKOUT_END;
+/**
+ * A korábbi "gazdi-ablak" (17:00–23:00) tiltás KI VAN KAPCSOLVA.
+ * A Blue-Green frissítés miatt már nincs rá szükség: a workerek éjjel-nappal
+ * futhatnak. A függvény megmarad, hogy a hívók változatlanul működjenek.
+ */
+export function isOwnerBlackout(_now: Date = new Date()): boolean {
+  return false;
 }
 
 /** Ország → IANA időzóna (a nálunk használt proxy/locale országokra). */
