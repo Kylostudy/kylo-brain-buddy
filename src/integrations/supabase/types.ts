@@ -1607,6 +1607,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       worker_deploy_requests: {
         Row: {
           active_color: string | null
@@ -1955,6 +1976,13 @@ export type Database = {
     Functions: {
       current_tenant_id: { Args: never; Returns: string }
       fail_stuck_brain_runs: { Args: never; Returns: number }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_platform_operator: { Args: never; Returns: boolean }
       is_workflow_quiet_now: {
         Args: { _workflow_id: string }
@@ -1970,6 +1998,7 @@ export type Database = {
     }
     Enums: {
       app_module: "brain" | "audit"
+      app_role: "admin" | "platform_operator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2098,6 +2127,7 @@ export const Constants = {
   public: {
     Enums: {
       app_module: ["brain", "audit"],
+      app_role: ["admin", "platform_operator", "user"],
     },
   },
 } as const
