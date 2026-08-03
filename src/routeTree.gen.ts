@@ -9,64 +9,64 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
-import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
-import { Route as AuthenticatedWorkerHealthRouteImport } from './routes/_authenticated.worker-health'
-import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authenticated.reddit-warmup'
-import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenticated.reddit-scout'
-import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
-import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
-import { Route as AuthenticatedAuditSignupRouteImport } from './routes/_authenticated.audit.signup'
-import { Route as AuthenticatedAuditScenariosRouteImport } from './routes/_authenticated.audit.scenarios'
+import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
+import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenticated.reddit-scout'
+import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authenticated.reddit-warmup'
+import { Route as AuthenticatedWorkerHealthRouteImport } from './routes/_authenticated.worker-health'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedAuditQaRouteImport } from './routes/_authenticated.audit.qa'
-import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
-import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
-import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
-import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
-import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
-import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
-import { Route as ApiPublicWorkerHeartbeatRouteImport } from './routes/api/public/worker/heartbeat'
-import { Route as ApiPublicWorkerGmailConfirmationLinkRouteImport } from './routes/api/public/worker/gmail-confirmation-link'
-import { Route as ApiPublicWorkerDeployStatusRouteImport } from './routes/api/public/worker/deploy-status'
-import { Route as ApiPublicWorkerDeployRequestRouteImport } from './routes/api/public/worker/deploy-request'
-import { Route as ApiPublicWorkerDeployClaimRouteImport } from './routes/api/public/worker/deploy-claim'
-import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
-import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
-import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
-import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
-import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
-import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
-import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
-import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
-import { Route as ApiPublicAdminImportIproyalRouteImport } from './routes/api/public/admin/import-iproyal'
-import { Route as ApiPublicAdminImportBrightdataKylogicRouteImport } from './routes/api/public/admin/import-brightdata-kylogic'
+import { Route as AuthenticatedAuditScenariosRouteImport } from './routes/_authenticated.audit.scenarios'
+import { Route as AuthenticatedAuditSignupRouteImport } from './routes/_authenticated.audit.signup'
+import { Route as AuthenticatedWWorkflowIdRouteImport } from './routes/_authenticated.w.$workflowId'
 import { Route as ApiPublicAdminCreateWarmupWorkflowsRouteImport } from './routes/api/public/admin/create-warmup-workflows'
-import { Route as ApiPublicWorkerScenarioJudgeRouteImport } from './routes/api/public/worker/scenario/judge'
-import { Route as ApiPublicWorkerReadingLogJudgeRouteImport } from './routes/api/public/worker/reading-log/judge'
-import { Route as ApiPublicWorkerQaUploadScreenshotRouteImport } from './routes/api/public/worker/qa/upload-screenshot'
-import { Route as ApiPublicWorkerQaReportIssueRouteImport } from './routes/api/public/worker/qa/report-issue'
-import { Route as ApiPublicWorkerQaReportCoverageRouteImport } from './routes/api/public/worker/qa/report-coverage'
-import { Route as ApiPublicWorkerQaFinishRunRouteImport } from './routes/api/public/worker/qa/finish-run'
-import { Route as ApiPublicWorkerQaCheckCacheRouteImport } from './routes/api/public/worker/qa/check-cache'
-import { Route as ApiPublicWorkerQaAnalyzeRouteImport } from './routes/api/public/worker/qa/analyze'
-import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
-import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
-import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
-import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './routes/api/public/cross/kylogic/replay-callback'
-import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
+import { Route as ApiPublicAdminImportBrightdataKylogicRouteImport } from './routes/api/public/admin/import-brightdata-kylogic'
+import { Route as ApiPublicAdminImportIproyalRouteImport } from './routes/api/public/admin/import-iproyal'
+import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
+import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
+import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
+import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
+import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
+import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
+import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
+import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
+import { Route as ApiPublicWorkerDeployClaimRouteImport } from './routes/api/public/worker/deploy-claim'
+import { Route as ApiPublicWorkerDeployRequestRouteImport } from './routes/api/public/worker/deploy-request'
+import { Route as ApiPublicWorkerDeployStatusRouteImport } from './routes/api/public/worker/deploy-status'
+import { Route as ApiPublicWorkerGmailConfirmationLinkRouteImport } from './routes/api/public/worker/gmail-confirmation-link'
+import { Route as ApiPublicWorkerHeartbeatRouteImport } from './routes/api/public/worker/heartbeat'
+import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
+import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
+import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
+import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
+import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
+import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicAuthGoogleCallbackRouteImport } from './routes/api/public/auth.google.callback'
+import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
+import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './routes/api/public/cross/kylogic/replay-callback'
+import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
+import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
+import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
+import { Route as ApiPublicWorkerQaAnalyzeRouteImport } from './routes/api/public/worker/qa/analyze'
+import { Route as ApiPublicWorkerQaCheckCacheRouteImport } from './routes/api/public/worker/qa/check-cache'
+import { Route as ApiPublicWorkerQaFinishRunRouteImport } from './routes/api/public/worker/qa/finish-run'
+import { Route as ApiPublicWorkerQaReportCoverageRouteImport } from './routes/api/public/worker/qa/report-coverage'
+import { Route as ApiPublicWorkerQaReportIssueRouteImport } from './routes/api/public/worker/qa/report-issue'
+import { Route as ApiPublicWorkerQaUploadScreenshotRouteImport } from './routes/api/public/worker/qa/upload-screenshot'
+import { Route as ApiPublicWorkerReadingLogJudgeRouteImport } from './routes/api/public/worker/reading-log/judge'
+import { Route as ApiPublicWorkerScenarioJudgeRouteImport } from './routes/api/public/worker/scenario/judge'
 import { Route as ApiPublicCrossKitTaskTask_idLogRouteImport } from './routes/api/public/cross/kit/task/$task_id/log'
 
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -74,15 +74,20 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
-  id: '/api/transcribe',
-  path: '/api/transcribe',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedWorkerHealthRoute =
-  AuthenticatedWorkerHealthRouteImport.update({
-    id: '/worker-health',
-    path: '/worker-health',
+const AuthenticatedProxiesRoute = AuthenticatedProxiesRouteImport.update({
+  id: '/proxies',
+  path: '/proxies',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRedditScoutRoute =
+  AuthenticatedRedditScoutRouteImport.update({
+    id: '/reddit-scout',
+    path: '/reddit-scout',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedRedditWarmupRoute =
@@ -91,26 +96,26 @@ const AuthenticatedRedditWarmupRoute =
     path: '/reddit-warmup',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedRedditScoutRoute =
-  AuthenticatedRedditScoutRouteImport.update({
-    id: '/reddit-scout',
-    path: '/reddit-scout',
+const AuthenticatedWorkerHealthRoute =
+  AuthenticatedWorkerHealthRouteImport.update({
+    id: '/worker-health',
+    path: '/worker-health',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedProxiesRoute = AuthenticatedProxiesRouteImport.update({
-  id: '/proxies',
-  path: '/proxies',
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAuditQaRoute = AuthenticatedAuditQaRouteImport.update({
+  id: '/audit/qa',
+  path: '/audit/qa',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
-  id: '/inbox',
-  path: '/inbox',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedWWorkflowIdRoute =
-  AuthenticatedWWorkflowIdRouteImport.update({
-    id: '/w/$workflowId',
-    path: '/w/$workflowId',
+const AuthenticatedAuditScenariosRoute =
+  AuthenticatedAuditScenariosRouteImport.update({
+    id: '/audit/scenarios',
+    path: '/audit/scenarios',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAuditSignupRoute =
@@ -119,131 +124,16 @@ const AuthenticatedAuditSignupRoute =
     path: '/audit/signup',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedAuditScenariosRoute =
-  AuthenticatedAuditScenariosRouteImport.update({
-    id: '/audit/scenarios',
-    path: '/audit/scenarios',
+const AuthenticatedWWorkflowIdRoute =
+  AuthenticatedWWorkflowIdRouteImport.update({
+    id: '/w/$workflowId',
+    path: '/w/$workflowId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedAuditQaRoute = AuthenticatedAuditQaRouteImport.update({
-  id: '/audit/qa',
-  path: '/audit/qa',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const ApiPublicWorkerVisionExtractRoute =
-  ApiPublicWorkerVisionExtractRouteImport.update({
-    id: '/api/public/worker/vision-extract',
-    path: '/api/public/worker/vision-extract',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerSaveCookiesRoute =
-  ApiPublicWorkerSaveCookiesRouteImport.update({
-    id: '/api/public/worker/save-cookies',
-    path: '/api/public/worker/save-cookies',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerRecordStatusRoute =
-  ApiPublicWorkerRecordStatusRouteImport.update({
-    id: '/api/public/worker/record-status',
-    path: '/api/public/worker/record-status',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerRecordClaimRoute =
-  ApiPublicWorkerRecordClaimRouteImport.update({
-    id: '/api/public/worker/record-claim',
-    path: '/api/public/worker/record-claim',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerProgressRoute = ApiPublicWorkerProgressRouteImport.update({
-  id: '/api/public/worker/progress',
-  path: '/api/public/worker/progress',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicWorkerLearnedSelectorsRoute =
-  ApiPublicWorkerLearnedSelectorsRouteImport.update({
-    id: '/api/public/worker/learned-selectors',
-    path: '/api/public/worker/learned-selectors',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerHeartbeatRoute =
-  ApiPublicWorkerHeartbeatRouteImport.update({
-    id: '/api/public/worker/heartbeat',
-    path: '/api/public/worker/heartbeat',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerGmailConfirmationLinkRoute =
-  ApiPublicWorkerGmailConfirmationLinkRouteImport.update({
-    id: '/api/public/worker/gmail-confirmation-link',
-    path: '/api/public/worker/gmail-confirmation-link',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerDeployStatusRoute =
-  ApiPublicWorkerDeployStatusRouteImport.update({
-    id: '/api/public/worker/deploy-status',
-    path: '/api/public/worker/deploy-status',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerDeployRequestRoute =
-  ApiPublicWorkerDeployRequestRouteImport.update({
-    id: '/api/public/worker/deploy-request',
-    path: '/api/public/worker/deploy-request',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerDeployClaimRoute =
-  ApiPublicWorkerDeployClaimRouteImport.update({
-    id: '/api/public/worker/deploy-claim',
-    path: '/api/public/worker/deploy-claim',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWorkerCompleteRoute = ApiPublicWorkerCompleteRouteImport.update({
-  id: '/api/public/worker/complete',
-  path: '/api/public/worker/complete',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicWorkerClaimRoute = ApiPublicWorkerClaimRouteImport.update({
-  id: '/api/public/worker/claim',
-  path: '/api/public/worker/claim',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicHooksQaSchedulerRoute =
-  ApiPublicHooksQaSchedulerRouteImport.update({
-    id: '/api/public/hooks/qa-scheduler',
-    path: '/api/public/hooks/qa-scheduler',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCronScheduleWarmupsRoute =
-  ApiPublicCronScheduleWarmupsRouteImport.update({
-    id: '/api/public/cron/schedule-warmups',
-    path: '/api/public/cron/schedule-warmups',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCronScheduleRedditWarmupsRoute =
-  ApiPublicCronScheduleRedditWarmupsRouteImport.update({
-    id: '/api/public/cron/schedule-reddit-warmups',
-    path: '/api/public/cron/schedule-reddit-warmups',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCronEnqueueMonitorsRoute =
-  ApiPublicCronEnqueueMonitorsRouteImport.update({
-    id: '/api/public/cron/enqueue-monitors',
-    path: '/api/public/cron/enqueue-monitors',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCronDispatchBrainTasksRoute =
-  ApiPublicCronDispatchBrainTasksRouteImport.update({
-    id: '/api/public/cron/dispatch-brain-tasks',
-    path: '/api/public/cron/dispatch-brain-tasks',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicAuthPasswordRoute = ApiPublicAuthPasswordRouteImport.update({
-  id: '/api/public/auth/password',
-  path: '/api/public/auth/password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAdminImportIproyalRoute =
-  ApiPublicAdminImportIproyalRouteImport.update({
-    id: '/api/public/admin/import-iproyal',
-    path: '/api/public/admin/import-iproyal',
+const ApiPublicAdminCreateWarmupWorkflowsRoute =
+  ApiPublicAdminCreateWarmupWorkflowsRouteImport.update({
+    id: '/api/public/admin/create-warmup-workflows',
+    path: '/api/public/admin/create-warmup-workflows',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicAdminImportBrightdataKylogicRoute =
@@ -252,70 +142,137 @@ const ApiPublicAdminImportBrightdataKylogicRoute =
     path: '/api/public/admin/import-brightdata-kylogic',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicAdminCreateWarmupWorkflowsRoute =
-  ApiPublicAdminCreateWarmupWorkflowsRouteImport.update({
-    id: '/api/public/admin/create-warmup-workflows',
-    path: '/api/public/admin/create-warmup-workflows',
+const ApiPublicAdminImportIproyalRoute =
+  ApiPublicAdminImportIproyalRouteImport.update({
+    id: '/api/public/admin/import-iproyal',
+    path: '/api/public/admin/import-iproyal',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWorkerScenarioJudgeRoute =
-  ApiPublicWorkerScenarioJudgeRouteImport.update({
-    id: '/api/public/worker/scenario/judge',
-    path: '/api/public/worker/scenario/judge',
+const ApiPublicAuthPasswordRoute = ApiPublicAuthPasswordRouteImport.update({
+  id: '/api/public/auth/password',
+  path: '/api/public/auth/password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCronDispatchBrainTasksRoute =
+  ApiPublicCronDispatchBrainTasksRouteImport.update({
+    id: '/api/public/cron/dispatch-brain-tasks',
+    path: '/api/public/cron/dispatch-brain-tasks',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWorkerReadingLogJudgeRoute =
-  ApiPublicWorkerReadingLogJudgeRouteImport.update({
-    id: '/api/public/worker/reading-log/judge',
-    path: '/api/public/worker/reading-log/judge',
+const ApiPublicCronEnqueueMonitorsRoute =
+  ApiPublicCronEnqueueMonitorsRouteImport.update({
+    id: '/api/public/cron/enqueue-monitors',
+    path: '/api/public/cron/enqueue-monitors',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWorkerQaUploadScreenshotRoute =
-  ApiPublicWorkerQaUploadScreenshotRouteImport.update({
-    id: '/api/public/worker/qa/upload-screenshot',
-    path: '/api/public/worker/qa/upload-screenshot',
+const ApiPublicCronScheduleRedditWarmupsRoute =
+  ApiPublicCronScheduleRedditWarmupsRouteImport.update({
+    id: '/api/public/cron/schedule-reddit-warmups',
+    path: '/api/public/cron/schedule-reddit-warmups',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWorkerQaReportIssueRoute =
-  ApiPublicWorkerQaReportIssueRouteImport.update({
-    id: '/api/public/worker/qa/report-issue',
-    path: '/api/public/worker/qa/report-issue',
+const ApiPublicCronScheduleWarmupsRoute =
+  ApiPublicCronScheduleWarmupsRouteImport.update({
+    id: '/api/public/cron/schedule-warmups',
+    path: '/api/public/cron/schedule-warmups',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWorkerQaReportCoverageRoute =
-  ApiPublicWorkerQaReportCoverageRouteImport.update({
-    id: '/api/public/worker/qa/report-coverage',
-    path: '/api/public/worker/qa/report-coverage',
+const ApiPublicHooksQaSchedulerRoute =
+  ApiPublicHooksQaSchedulerRouteImport.update({
+    id: '/api/public/hooks/qa-scheduler',
+    path: '/api/public/hooks/qa-scheduler',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWorkerQaFinishRunRoute =
-  ApiPublicWorkerQaFinishRunRouteImport.update({
-    id: '/api/public/worker/qa/finish-run',
-    path: '/api/public/worker/qa/finish-run',
+const ApiPublicWorkerClaimRoute = ApiPublicWorkerClaimRouteImport.update({
+  id: '/api/public/worker/claim',
+  path: '/api/public/worker/claim',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWorkerCompleteRoute = ApiPublicWorkerCompleteRouteImport.update({
+  id: '/api/public/worker/complete',
+  path: '/api/public/worker/complete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWorkerDeployClaimRoute =
+  ApiPublicWorkerDeployClaimRouteImport.update({
+    id: '/api/public/worker/deploy-claim',
+    path: '/api/public/worker/deploy-claim',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWorkerQaCheckCacheRoute =
-  ApiPublicWorkerQaCheckCacheRouteImport.update({
-    id: '/api/public/worker/qa/check-cache',
-    path: '/api/public/worker/qa/check-cache',
+const ApiPublicWorkerDeployRequestRoute =
+  ApiPublicWorkerDeployRequestRouteImport.update({
+    id: '/api/public/worker/deploy-request',
+    path: '/api/public/worker/deploy-request',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWorkerQaAnalyzeRoute =
-  ApiPublicWorkerQaAnalyzeRouteImport.update({
-    id: '/api/public/worker/qa/analyze',
-    path: '/api/public/worker/qa/analyze',
+const ApiPublicWorkerDeployStatusRoute =
+  ApiPublicWorkerDeployStatusRouteImport.update({
+    id: '/api/public/worker/deploy-status',
+    path: '/api/public/worker/deploy-status',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicCrossProxiesListRoute =
-  ApiPublicCrossProxiesListRouteImport.update({
-    id: '/api/public/cross/proxies/list',
-    path: '/api/public/cross/proxies/list',
+const ApiPublicWorkerGmailConfirmationLinkRoute =
+  ApiPublicWorkerGmailConfirmationLinkRouteImport.update({
+    id: '/api/public/worker/gmail-confirmation-link',
+    path: '/api/public/worker/gmail-confirmation-link',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicCrossKylogicWorkflowsRoute =
-  ApiPublicCrossKylogicWorkflowsRouteImport.update({
-    id: '/api/public/cross/kylogic/workflows',
-    path: '/api/public/cross/kylogic/workflows',
+const ApiPublicWorkerHeartbeatRoute =
+  ApiPublicWorkerHeartbeatRouteImport.update({
+    id: '/api/public/worker/heartbeat',
+    path: '/api/public/worker/heartbeat',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerLearnedSelectorsRoute =
+  ApiPublicWorkerLearnedSelectorsRouteImport.update({
+    id: '/api/public/worker/learned-selectors',
+    path: '/api/public/worker/learned-selectors',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerProgressRoute = ApiPublicWorkerProgressRouteImport.update({
+  id: '/api/public/worker/progress',
+  path: '/api/public/worker/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWorkerRecordClaimRoute =
+  ApiPublicWorkerRecordClaimRouteImport.update({
+    id: '/api/public/worker/record-claim',
+    path: '/api/public/worker/record-claim',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerRecordStatusRoute =
+  ApiPublicWorkerRecordStatusRouteImport.update({
+    id: '/api/public/worker/record-status',
+    path: '/api/public/worker/record-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerSaveCookiesRoute =
+  ApiPublicWorkerSaveCookiesRouteImport.update({
+    id: '/api/public/worker/save-cookies',
+    path: '/api/public/worker/save-cookies',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerVisionExtractRoute =
+  ApiPublicWorkerVisionExtractRouteImport.update({
+    id: '/api/public/worker/vision-extract',
+    path: '/api/public/worker/vision-extract',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicAuthGoogleCallbackRoute =
+  ApiPublicAuthGoogleCallbackRouteImport.update({
+    id: '/api/public/auth/google/callback',
+    path: '/api/public/auth/google/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCrossKitTaskRoute = ApiPublicCrossKitTaskRouteImport.update({
+  id: '/api/public/cross/kit/task',
+  path: '/api/public/cross/kit/task',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCrossKylogicReplayCallbackRoute =
+  ApiPublicCrossKylogicReplayCallbackRouteImport.update({
+    id: '/api/public/cross/kylogic/replay-callback',
+    path: '/api/public/cross/kylogic/replay-callback',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCrossKylogicTaskRoute =
@@ -324,21 +281,64 @@ const ApiPublicCrossKylogicTaskRoute =
     path: '/api/public/cross/kylogic/task',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicCrossKylogicReplayCallbackRoute =
-  ApiPublicCrossKylogicReplayCallbackRouteImport.update({
-    id: '/api/public/cross/kylogic/replay-callback',
-    path: '/api/public/cross/kylogic/replay-callback',
+const ApiPublicCrossKylogicWorkflowsRoute =
+  ApiPublicCrossKylogicWorkflowsRouteImport.update({
+    id: '/api/public/cross/kylogic/workflows',
+    path: '/api/public/cross/kylogic/workflows',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicCrossKitTaskRoute = ApiPublicCrossKitTaskRouteImport.update({
-  id: '/api/public/cross/kit/task',
-  path: '/api/public/cross/kit/task',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAuthGoogleCallbackRoute =
-  ApiPublicAuthGoogleCallbackRouteImport.update({
-    id: '/api/public/auth/google/callback',
-    path: '/api/public/auth/google/callback',
+const ApiPublicCrossProxiesListRoute =
+  ApiPublicCrossProxiesListRouteImport.update({
+    id: '/api/public/cross/proxies/list',
+    path: '/api/public/cross/proxies/list',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaAnalyzeRoute =
+  ApiPublicWorkerQaAnalyzeRouteImport.update({
+    id: '/api/public/worker/qa/analyze',
+    path: '/api/public/worker/qa/analyze',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaCheckCacheRoute =
+  ApiPublicWorkerQaCheckCacheRouteImport.update({
+    id: '/api/public/worker/qa/check-cache',
+    path: '/api/public/worker/qa/check-cache',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaFinishRunRoute =
+  ApiPublicWorkerQaFinishRunRouteImport.update({
+    id: '/api/public/worker/qa/finish-run',
+    path: '/api/public/worker/qa/finish-run',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaReportCoverageRoute =
+  ApiPublicWorkerQaReportCoverageRouteImport.update({
+    id: '/api/public/worker/qa/report-coverage',
+    path: '/api/public/worker/qa/report-coverage',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaReportIssueRoute =
+  ApiPublicWorkerQaReportIssueRouteImport.update({
+    id: '/api/public/worker/qa/report-issue',
+    path: '/api/public/worker/qa/report-issue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerQaUploadScreenshotRoute =
+  ApiPublicWorkerQaUploadScreenshotRouteImport.update({
+    id: '/api/public/worker/qa/upload-screenshot',
+    path: '/api/public/worker/qa/upload-screenshot',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerReadingLogJudgeRoute =
+  ApiPublicWorkerReadingLogJudgeRouteImport.update({
+    id: '/api/public/worker/reading-log/judge',
+    path: '/api/public/worker/reading-log/judge',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerScenarioJudgeRoute =
+  ApiPublicWorkerScenarioJudgeRouteImport.update({
+    id: '/api/public/worker/scenario/judge',
+    path: '/api/public/worker/scenario/judge',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCrossKitTaskTask_idLogRoute =
@@ -704,18 +704,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -725,32 +725,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/transcribe': {
-      id: '/api/transcribe'
-      path: '/api/transcribe'
-      fullPath: '/api/transcribe'
-      preLoaderRoute: typeof ApiTranscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/worker-health': {
-      id: '/_authenticated/worker-health'
-      path: '/worker-health'
-      fullPath: '/worker-health'
-      preLoaderRoute: typeof AuthenticatedWorkerHealthRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/reddit-warmup': {
-      id: '/_authenticated/reddit-warmup'
-      path: '/reddit-warmup'
-      fullPath: '/reddit-warmup'
-      preLoaderRoute: typeof AuthenticatedRedditWarmupRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/reddit-scout': {
-      id: '/_authenticated/reddit-scout'
-      path: '/reddit-scout'
-      fullPath: '/reddit-scout'
-      preLoaderRoute: typeof AuthenticatedRedditScoutRouteImport
+    '/_authenticated/inbox': {
+      id: '/_authenticated/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AuthenticatedInboxRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/proxies': {
@@ -760,25 +739,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProxiesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/inbox': {
-      id: '/_authenticated/inbox'
-      path: '/inbox'
-      fullPath: '/inbox'
-      preLoaderRoute: typeof AuthenticatedInboxRouteImport
+    '/_authenticated/reddit-scout': {
+      id: '/_authenticated/reddit-scout'
+      path: '/reddit-scout'
+      fullPath: '/reddit-scout'
+      preLoaderRoute: typeof AuthenticatedRedditScoutRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/w/$workflowId': {
-      id: '/_authenticated/w/$workflowId'
-      path: '/w/$workflowId'
-      fullPath: '/w/$workflowId'
-      preLoaderRoute: typeof AuthenticatedWWorkflowIdRouteImport
+    '/_authenticated/reddit-warmup': {
+      id: '/_authenticated/reddit-warmup'
+      path: '/reddit-warmup'
+      fullPath: '/reddit-warmup'
+      preLoaderRoute: typeof AuthenticatedRedditWarmupRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/audit/signup': {
-      id: '/_authenticated/audit/signup'
-      path: '/audit/signup'
-      fullPath: '/audit/signup'
-      preLoaderRoute: typeof AuthenticatedAuditSignupRouteImport
+    '/_authenticated/worker-health': {
+      id: '/_authenticated/worker-health'
+      path: '/worker-health'
+      fullPath: '/worker-health'
+      preLoaderRoute: typeof AuthenticatedWorkerHealthRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/audit/qa': {
+      id: '/_authenticated/audit/qa'
+      path: '/audit/qa'
+      fullPath: '/audit/qa'
+      preLoaderRoute: typeof AuthenticatedAuditQaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/audit/scenarios': {
@@ -788,151 +781,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditScenariosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/audit/qa': {
-      id: '/_authenticated/audit/qa'
-      path: '/audit/qa'
-      fullPath: '/audit/qa'
-      preLoaderRoute: typeof AuthenticatedAuditQaRouteImport
+    '/_authenticated/audit/signup': {
+      id: '/_authenticated/audit/signup'
+      path: '/audit/signup'
+      fullPath: '/audit/signup'
+      preLoaderRoute: typeof AuthenticatedAuditSignupRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/worker/vision-extract': {
-      id: '/api/public/worker/vision-extract'
-      path: '/api/public/worker/vision-extract'
-      fullPath: '/api/public/worker/vision-extract'
-      preLoaderRoute: typeof ApiPublicWorkerVisionExtractRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/w/$workflowId': {
+      id: '/_authenticated/w/$workflowId'
+      path: '/w/$workflowId'
+      fullPath: '/w/$workflowId'
+      preLoaderRoute: typeof AuthenticatedWWorkflowIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/worker/save-cookies': {
-      id: '/api/public/worker/save-cookies'
-      path: '/api/public/worker/save-cookies'
-      fullPath: '/api/public/worker/save-cookies'
-      preLoaderRoute: typeof ApiPublicWorkerSaveCookiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/record-status': {
-      id: '/api/public/worker/record-status'
-      path: '/api/public/worker/record-status'
-      fullPath: '/api/public/worker/record-status'
-      preLoaderRoute: typeof ApiPublicWorkerRecordStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/record-claim': {
-      id: '/api/public/worker/record-claim'
-      path: '/api/public/worker/record-claim'
-      fullPath: '/api/public/worker/record-claim'
-      preLoaderRoute: typeof ApiPublicWorkerRecordClaimRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/progress': {
-      id: '/api/public/worker/progress'
-      path: '/api/public/worker/progress'
-      fullPath: '/api/public/worker/progress'
-      preLoaderRoute: typeof ApiPublicWorkerProgressRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/learned-selectors': {
-      id: '/api/public/worker/learned-selectors'
-      path: '/api/public/worker/learned-selectors'
-      fullPath: '/api/public/worker/learned-selectors'
-      preLoaderRoute: typeof ApiPublicWorkerLearnedSelectorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/heartbeat': {
-      id: '/api/public/worker/heartbeat'
-      path: '/api/public/worker/heartbeat'
-      fullPath: '/api/public/worker/heartbeat'
-      preLoaderRoute: typeof ApiPublicWorkerHeartbeatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/gmail-confirmation-link': {
-      id: '/api/public/worker/gmail-confirmation-link'
-      path: '/api/public/worker/gmail-confirmation-link'
-      fullPath: '/api/public/worker/gmail-confirmation-link'
-      preLoaderRoute: typeof ApiPublicWorkerGmailConfirmationLinkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/deploy-status': {
-      id: '/api/public/worker/deploy-status'
-      path: '/api/public/worker/deploy-status'
-      fullPath: '/api/public/worker/deploy-status'
-      preLoaderRoute: typeof ApiPublicWorkerDeployStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/deploy-request': {
-      id: '/api/public/worker/deploy-request'
-      path: '/api/public/worker/deploy-request'
-      fullPath: '/api/public/worker/deploy-request'
-      preLoaderRoute: typeof ApiPublicWorkerDeployRequestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/deploy-claim': {
-      id: '/api/public/worker/deploy-claim'
-      path: '/api/public/worker/deploy-claim'
-      fullPath: '/api/public/worker/deploy-claim'
-      preLoaderRoute: typeof ApiPublicWorkerDeployClaimRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/complete': {
-      id: '/api/public/worker/complete'
-      path: '/api/public/worker/complete'
-      fullPath: '/api/public/worker/complete'
-      preLoaderRoute: typeof ApiPublicWorkerCompleteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/worker/claim': {
-      id: '/api/public/worker/claim'
-      path: '/api/public/worker/claim'
-      fullPath: '/api/public/worker/claim'
-      preLoaderRoute: typeof ApiPublicWorkerClaimRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/qa-scheduler': {
-      id: '/api/public/hooks/qa-scheduler'
-      path: '/api/public/hooks/qa-scheduler'
-      fullPath: '/api/public/hooks/qa-scheduler'
-      preLoaderRoute: typeof ApiPublicHooksQaSchedulerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron/schedule-warmups': {
-      id: '/api/public/cron/schedule-warmups'
-      path: '/api/public/cron/schedule-warmups'
-      fullPath: '/api/public/cron/schedule-warmups'
-      preLoaderRoute: typeof ApiPublicCronScheduleWarmupsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron/schedule-reddit-warmups': {
-      id: '/api/public/cron/schedule-reddit-warmups'
-      path: '/api/public/cron/schedule-reddit-warmups'
-      fullPath: '/api/public/cron/schedule-reddit-warmups'
-      preLoaderRoute: typeof ApiPublicCronScheduleRedditWarmupsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron/enqueue-monitors': {
-      id: '/api/public/cron/enqueue-monitors'
-      path: '/api/public/cron/enqueue-monitors'
-      fullPath: '/api/public/cron/enqueue-monitors'
-      preLoaderRoute: typeof ApiPublicCronEnqueueMonitorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron/dispatch-brain-tasks': {
-      id: '/api/public/cron/dispatch-brain-tasks'
-      path: '/api/public/cron/dispatch-brain-tasks'
-      fullPath: '/api/public/cron/dispatch-brain-tasks'
-      preLoaderRoute: typeof ApiPublicCronDispatchBrainTasksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/auth/password': {
-      id: '/api/public/auth/password'
-      path: '/api/public/auth/password'
-      fullPath: '/api/public/auth/password'
-      preLoaderRoute: typeof ApiPublicAuthPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/admin/import-iproyal': {
-      id: '/api/public/admin/import-iproyal'
-      path: '/api/public/admin/import-iproyal'
-      fullPath: '/api/public/admin/import-iproyal'
-      preLoaderRoute: typeof ApiPublicAdminImportIproyalRouteImport
+    '/api/public/admin/create-warmup-workflows': {
+      id: '/api/public/admin/create-warmup-workflows'
+      path: '/api/public/admin/create-warmup-workflows'
+      fullPath: '/api/public/admin/create-warmup-workflows'
+      preLoaderRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/admin/import-brightdata-kylogic': {
@@ -942,95 +809,151 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAdminImportBrightdataKylogicRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/admin/create-warmup-workflows': {
-      id: '/api/public/admin/create-warmup-workflows'
-      path: '/api/public/admin/create-warmup-workflows'
-      fullPath: '/api/public/admin/create-warmup-workflows'
-      preLoaderRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRouteImport
+    '/api/public/admin/import-iproyal': {
+      id: '/api/public/admin/import-iproyal'
+      path: '/api/public/admin/import-iproyal'
+      fullPath: '/api/public/admin/import-iproyal'
+      preLoaderRoute: typeof ApiPublicAdminImportIproyalRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/worker/scenario/judge': {
-      id: '/api/public/worker/scenario/judge'
-      path: '/api/public/worker/scenario/judge'
-      fullPath: '/api/public/worker/scenario/judge'
-      preLoaderRoute: typeof ApiPublicWorkerScenarioJudgeRouteImport
+    '/api/public/auth/password': {
+      id: '/api/public/auth/password'
+      path: '/api/public/auth/password'
+      fullPath: '/api/public/auth/password'
+      preLoaderRoute: typeof ApiPublicAuthPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/worker/reading-log/judge': {
-      id: '/api/public/worker/reading-log/judge'
-      path: '/api/public/worker/reading-log/judge'
-      fullPath: '/api/public/worker/reading-log/judge'
-      preLoaderRoute: typeof ApiPublicWorkerReadingLogJudgeRouteImport
+    '/api/public/cron/dispatch-brain-tasks': {
+      id: '/api/public/cron/dispatch-brain-tasks'
+      path: '/api/public/cron/dispatch-brain-tasks'
+      fullPath: '/api/public/cron/dispatch-brain-tasks'
+      preLoaderRoute: typeof ApiPublicCronDispatchBrainTasksRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/worker/qa/upload-screenshot': {
-      id: '/api/public/worker/qa/upload-screenshot'
-      path: '/api/public/worker/qa/upload-screenshot'
-      fullPath: '/api/public/worker/qa/upload-screenshot'
-      preLoaderRoute: typeof ApiPublicWorkerQaUploadScreenshotRouteImport
+    '/api/public/cron/enqueue-monitors': {
+      id: '/api/public/cron/enqueue-monitors'
+      path: '/api/public/cron/enqueue-monitors'
+      fullPath: '/api/public/cron/enqueue-monitors'
+      preLoaderRoute: typeof ApiPublicCronEnqueueMonitorsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/worker/qa/report-issue': {
-      id: '/api/public/worker/qa/report-issue'
-      path: '/api/public/worker/qa/report-issue'
-      fullPath: '/api/public/worker/qa/report-issue'
-      preLoaderRoute: typeof ApiPublicWorkerQaReportIssueRouteImport
+    '/api/public/cron/schedule-reddit-warmups': {
+      id: '/api/public/cron/schedule-reddit-warmups'
+      path: '/api/public/cron/schedule-reddit-warmups'
+      fullPath: '/api/public/cron/schedule-reddit-warmups'
+      preLoaderRoute: typeof ApiPublicCronScheduleRedditWarmupsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/worker/qa/report-coverage': {
-      id: '/api/public/worker/qa/report-coverage'
-      path: '/api/public/worker/qa/report-coverage'
-      fullPath: '/api/public/worker/qa/report-coverage'
-      preLoaderRoute: typeof ApiPublicWorkerQaReportCoverageRouteImport
+    '/api/public/cron/schedule-warmups': {
+      id: '/api/public/cron/schedule-warmups'
+      path: '/api/public/cron/schedule-warmups'
+      fullPath: '/api/public/cron/schedule-warmups'
+      preLoaderRoute: typeof ApiPublicCronScheduleWarmupsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/worker/qa/finish-run': {
-      id: '/api/public/worker/qa/finish-run'
-      path: '/api/public/worker/qa/finish-run'
-      fullPath: '/api/public/worker/qa/finish-run'
-      preLoaderRoute: typeof ApiPublicWorkerQaFinishRunRouteImport
+    '/api/public/hooks/qa-scheduler': {
+      id: '/api/public/hooks/qa-scheduler'
+      path: '/api/public/hooks/qa-scheduler'
+      fullPath: '/api/public/hooks/qa-scheduler'
+      preLoaderRoute: typeof ApiPublicHooksQaSchedulerRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/worker/qa/check-cache': {
-      id: '/api/public/worker/qa/check-cache'
-      path: '/api/public/worker/qa/check-cache'
-      fullPath: '/api/public/worker/qa/check-cache'
-      preLoaderRoute: typeof ApiPublicWorkerQaCheckCacheRouteImport
+    '/api/public/worker/claim': {
+      id: '/api/public/worker/claim'
+      path: '/api/public/worker/claim'
+      fullPath: '/api/public/worker/claim'
+      preLoaderRoute: typeof ApiPublicWorkerClaimRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/worker/qa/analyze': {
-      id: '/api/public/worker/qa/analyze'
-      path: '/api/public/worker/qa/analyze'
-      fullPath: '/api/public/worker/qa/analyze'
-      preLoaderRoute: typeof ApiPublicWorkerQaAnalyzeRouteImport
+    '/api/public/worker/complete': {
+      id: '/api/public/worker/complete'
+      path: '/api/public/worker/complete'
+      fullPath: '/api/public/worker/complete'
+      preLoaderRoute: typeof ApiPublicWorkerCompleteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/cross/proxies/list': {
-      id: '/api/public/cross/proxies/list'
-      path: '/api/public/cross/proxies/list'
-      fullPath: '/api/public/cross/proxies/list'
-      preLoaderRoute: typeof ApiPublicCrossProxiesListRouteImport
+    '/api/public/worker/deploy-claim': {
+      id: '/api/public/worker/deploy-claim'
+      path: '/api/public/worker/deploy-claim'
+      fullPath: '/api/public/worker/deploy-claim'
+      preLoaderRoute: typeof ApiPublicWorkerDeployClaimRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/cross/kylogic/workflows': {
-      id: '/api/public/cross/kylogic/workflows'
-      path: '/api/public/cross/kylogic/workflows'
-      fullPath: '/api/public/cross/kylogic/workflows'
-      preLoaderRoute: typeof ApiPublicCrossKylogicWorkflowsRouteImport
+    '/api/public/worker/deploy-request': {
+      id: '/api/public/worker/deploy-request'
+      path: '/api/public/worker/deploy-request'
+      fullPath: '/api/public/worker/deploy-request'
+      preLoaderRoute: typeof ApiPublicWorkerDeployRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/cross/kylogic/task': {
-      id: '/api/public/cross/kylogic/task'
-      path: '/api/public/cross/kylogic/task'
-      fullPath: '/api/public/cross/kylogic/task'
-      preLoaderRoute: typeof ApiPublicCrossKylogicTaskRouteImport
+    '/api/public/worker/deploy-status': {
+      id: '/api/public/worker/deploy-status'
+      path: '/api/public/worker/deploy-status'
+      fullPath: '/api/public/worker/deploy-status'
+      preLoaderRoute: typeof ApiPublicWorkerDeployStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/cross/kylogic/replay-callback': {
-      id: '/api/public/cross/kylogic/replay-callback'
-      path: '/api/public/cross/kylogic/replay-callback'
-      fullPath: '/api/public/cross/kylogic/replay-callback'
-      preLoaderRoute: typeof ApiPublicCrossKylogicReplayCallbackRouteImport
+    '/api/public/worker/gmail-confirmation-link': {
+      id: '/api/public/worker/gmail-confirmation-link'
+      path: '/api/public/worker/gmail-confirmation-link'
+      fullPath: '/api/public/worker/gmail-confirmation-link'
+      preLoaderRoute: typeof ApiPublicWorkerGmailConfirmationLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/heartbeat': {
+      id: '/api/public/worker/heartbeat'
+      path: '/api/public/worker/heartbeat'
+      fullPath: '/api/public/worker/heartbeat'
+      preLoaderRoute: typeof ApiPublicWorkerHeartbeatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/learned-selectors': {
+      id: '/api/public/worker/learned-selectors'
+      path: '/api/public/worker/learned-selectors'
+      fullPath: '/api/public/worker/learned-selectors'
+      preLoaderRoute: typeof ApiPublicWorkerLearnedSelectorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/progress': {
+      id: '/api/public/worker/progress'
+      path: '/api/public/worker/progress'
+      fullPath: '/api/public/worker/progress'
+      preLoaderRoute: typeof ApiPublicWorkerProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/record-claim': {
+      id: '/api/public/worker/record-claim'
+      path: '/api/public/worker/record-claim'
+      fullPath: '/api/public/worker/record-claim'
+      preLoaderRoute: typeof ApiPublicWorkerRecordClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/record-status': {
+      id: '/api/public/worker/record-status'
+      path: '/api/public/worker/record-status'
+      fullPath: '/api/public/worker/record-status'
+      preLoaderRoute: typeof ApiPublicWorkerRecordStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/save-cookies': {
+      id: '/api/public/worker/save-cookies'
+      path: '/api/public/worker/save-cookies'
+      fullPath: '/api/public/worker/save-cookies'
+      preLoaderRoute: typeof ApiPublicWorkerSaveCookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/vision-extract': {
+      id: '/api/public/worker/vision-extract'
+      path: '/api/public/worker/vision-extract'
+      fullPath: '/api/public/worker/vision-extract'
+      preLoaderRoute: typeof ApiPublicWorkerVisionExtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/auth/google/callback': {
+      id: '/api/public/auth/google/callback'
+      path: '/api/public/auth/google/callback'
+      fullPath: '/api/public/auth/google/callback'
+      preLoaderRoute: typeof ApiPublicAuthGoogleCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cross/kit/task': {
@@ -1040,11 +963,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrossKitTaskRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/auth/google/callback': {
-      id: '/api/public/auth/google/callback'
-      path: '/api/public/auth/google/callback'
-      fullPath: '/api/public/auth/google/callback'
-      preLoaderRoute: typeof ApiPublicAuthGoogleCallbackRouteImport
+    '/api/public/cross/kylogic/replay-callback': {
+      id: '/api/public/cross/kylogic/replay-callback'
+      path: '/api/public/cross/kylogic/replay-callback'
+      fullPath: '/api/public/cross/kylogic/replay-callback'
+      preLoaderRoute: typeof ApiPublicCrossKylogicReplayCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cross/kylogic/task': {
+      id: '/api/public/cross/kylogic/task'
+      path: '/api/public/cross/kylogic/task'
+      fullPath: '/api/public/cross/kylogic/task'
+      preLoaderRoute: typeof ApiPublicCrossKylogicTaskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cross/kylogic/workflows': {
+      id: '/api/public/cross/kylogic/workflows'
+      path: '/api/public/cross/kylogic/workflows'
+      fullPath: '/api/public/cross/kylogic/workflows'
+      preLoaderRoute: typeof ApiPublicCrossKylogicWorkflowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cross/proxies/list': {
+      id: '/api/public/cross/proxies/list'
+      path: '/api/public/cross/proxies/list'
+      fullPath: '/api/public/cross/proxies/list'
+      preLoaderRoute: typeof ApiPublicCrossProxiesListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/analyze': {
+      id: '/api/public/worker/qa/analyze'
+      path: '/api/public/worker/qa/analyze'
+      fullPath: '/api/public/worker/qa/analyze'
+      preLoaderRoute: typeof ApiPublicWorkerQaAnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/check-cache': {
+      id: '/api/public/worker/qa/check-cache'
+      path: '/api/public/worker/qa/check-cache'
+      fullPath: '/api/public/worker/qa/check-cache'
+      preLoaderRoute: typeof ApiPublicWorkerQaCheckCacheRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/finish-run': {
+      id: '/api/public/worker/qa/finish-run'
+      path: '/api/public/worker/qa/finish-run'
+      fullPath: '/api/public/worker/qa/finish-run'
+      preLoaderRoute: typeof ApiPublicWorkerQaFinishRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/report-coverage': {
+      id: '/api/public/worker/qa/report-coverage'
+      path: '/api/public/worker/qa/report-coverage'
+      fullPath: '/api/public/worker/qa/report-coverage'
+      preLoaderRoute: typeof ApiPublicWorkerQaReportCoverageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/report-issue': {
+      id: '/api/public/worker/qa/report-issue'
+      path: '/api/public/worker/qa/report-issue'
+      fullPath: '/api/public/worker/qa/report-issue'
+      preLoaderRoute: typeof ApiPublicWorkerQaReportIssueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/qa/upload-screenshot': {
+      id: '/api/public/worker/qa/upload-screenshot'
+      path: '/api/public/worker/qa/upload-screenshot'
+      fullPath: '/api/public/worker/qa/upload-screenshot'
+      preLoaderRoute: typeof ApiPublicWorkerQaUploadScreenshotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/reading-log/judge': {
+      id: '/api/public/worker/reading-log/judge'
+      path: '/api/public/worker/reading-log/judge'
+      fullPath: '/api/public/worker/reading-log/judge'
+      preLoaderRoute: typeof ApiPublicWorkerReadingLogJudgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/scenario/judge': {
+      id: '/api/public/worker/scenario/judge'
+      path: '/api/public/worker/scenario/judge'
+      fullPath: '/api/public/worker/scenario/judge'
+      preLoaderRoute: typeof ApiPublicWorkerScenarioJudgeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cross/kit/task/$task_id/log': {
