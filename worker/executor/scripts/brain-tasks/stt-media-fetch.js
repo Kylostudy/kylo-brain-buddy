@@ -282,6 +282,17 @@ export async function runSttMediaFetch({ brainTask, log }) {
         const duration = await probeDuration(mp3);
         const size = (await fs.stat(mp3)).size;
 
+        // Épség-ellenőrzés: egy vizsgahang sosem pár másodperces töredék.
+        const minSec = Number(payload.min_duration_sec) > 0 ? Number(payload.min_duration_sec) : 20;
+        if (!duration || duration < minSec || size < 20000) {
+          throw new Error(
+            `a letöltött hang töredékes (${duration ?? 0} mp, ${Math.round(size / 1024)} KB) — ` +
+            `nem éri el a ${minSec} mp-es minimumot`,
+          );
+        }
+
+
+
         let url = null;
         if (payload.audio_upload_url) {
           url = await putToSignedUrl(payload.audio_upload_url, mp3, "audio/mpeg", log);
