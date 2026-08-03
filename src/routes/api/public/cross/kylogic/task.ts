@@ -227,6 +227,71 @@ export const Route = createFileRoute("/api/public/cross/kylogic/task")({
           );
         }
 
+        // stt_media_fetch — Kylo.study STT labor: hang + átirat letöltés.
+        if (body.task_type === "stt_media_fetch") {
+          const { handleSttMediaFetch, validateSttMediaPayload } = await import(
+            "@/lib/kylogic-stt-media.server"
+          );
+
+          const validated = validateSttMediaPayload(body.payload);
+          if (!validated.ok) {
+            await supabaseAdmin
+              .from("kylogic_incoming_tasks")
+              .update({ status: "failed", result: { error: validated.error } as never })
+              .eq("task_id", body.task_id);
+            await supabaseAdmin.from("kylogic_incoming_task_log").insert({
+              task_id: body.task_id,
+              event: "task.rejected",
+              outcome: "failure",
+              detail: { error: validated.error },
+            });
+            return jsonError(400, validated.error);
+          }
+
+          const result = await handleSttMediaFetch({
+            kylogicTaskId: body.task_id,
+            tenantId: body.tenant_id,
+            kylogicCallbackUrl: body.kylogic_callback_url,
+            payload: validated.payload,
+          });
+
+          if (!result.ok) {
+            await supabaseAdmin
+              .from("kylogic_incoming_tasks")
+              .update({ status: "failed", result: { error: result.error } as never })
+              .eq("task_id", body.task_id);
+            return jsonError(result.status, result.error);
+          }
+
+          const summary = {
+            workflow_id: result.workflow_id,
+            scheduled_utc: result.scheduled_utc,
+            source_id: validated.payload.source_id,
+          };
+
+          await supabaseAdmin
+            .from("kylogic_incoming_tasks")
+            .update({ status: "queued", result: summary as never })
+            .eq("task_id", body.task_id);
+
+          await supabaseAdmin.from("kylogic_incoming_task_log").insert({
+            task_id: body.task_id,
+            event: "task.queued",
+            outcome: "success",
+            detail: { task_type: body.task_type, ...summary } as never,
+          });
+
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              task_id: body.task_id,
+              status: "queued",
+              ...summary,
+            }),
+            { status: 202, headers: { "Content-Type": "application/json" } },
+          );
+        }
+
         // Single-workflow task types (reply / snapshots).
         if (
           body.task_type === "post_comment_reply" ||

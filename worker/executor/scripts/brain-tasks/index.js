@@ -18,6 +18,7 @@ import { runTikTokUploadVideo } from "./tiktok-upload-video.js";
 import { runRecordReplay } from "./record-replay.js";
 import { runRedditWarmup } from "./reddit-warmup.js";
 import { runRedditRegister } from "./reddit-register.js";
+import { runSttMediaFetch } from "./stt-media-fetch.js";
 
 
 export function isBrainTask(spec) {
@@ -26,7 +27,7 @@ export function isBrainTask(spec) {
 
 /** Igaz → böngészőt kell nyitni a taszkhoz. */
 export function needsBrowser(brainTask) {
-  return brainTask.task_type !== "ping";
+  return !["ping", "stt_media_fetch"].includes(brainTask.task_type);
 }
 
 /**
@@ -40,6 +41,9 @@ export async function runBrainTask(args) {
   switch (t) {
     case "ping":
       return await runBrainPing({ brainTask, log: args.log });
+
+    case "stt_media_fetch":
+      return await runSttMediaFetch({ brainTask, log: args.log });
 
     case "record_replay_login":
       return await runRecordReplay(args);
