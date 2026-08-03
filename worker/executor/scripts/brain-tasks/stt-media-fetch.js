@@ -117,13 +117,18 @@ function pageUrlOf(payload) {
   return payload.page_url || payload.source_page || payload.url || null;
 }
 
+function isStreamingSite(url) {
+  return /(?:youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|soundcloud\.com)/i.test(url || "");
+}
+
 async function fetchAudio(payload, dir, maxBytes, log) {
   const candidate = payload.audio_url || null;
   const pageUrl = pageUrlOf(payload);
   let lastError = "";
+  const streaming = isStreamingSite(candidate) || isStreamingSite(pageUrl);
 
-  // 1) Közvetlen fájl
-  if (candidate) {
+  // 1) Közvetlen fájl (streaming oldalnál értelmetlen — ott egyből yt-dlp)
+  if (candidate && !streaming) {
     try {
       const raw = path.join(dir, "source.bin");
       const meta = await downloadTo(candidate, raw, maxBytes, log);
@@ -141,7 +146,16 @@ async function fetchAudio(payload, dir, maxBytes, log) {
   const targets = [...new Set([candidate, pageUrl].filter(Boolean))];
   for (const target of targets) {
     const out = path.join(dir, "ytdlp.%(ext)s");
-    const r = await run("yt-dlp", ["-f", "bestaudio/best", "--no-playlist", "-o", out, target], { timeoutMs: 15 * 60 * 1000 });
+    const args = [
+      "-f", "bestaudio/best",
+      "--no-playlist",
+      "--no-warnings",
+      "--retries", "5",
+      "--extractor-args", "youtube:player_client=android,web",
+      "-o", out,
+      target,
+    ];
+    const r = await run("yt-dlp", args, { timeoutMs: 15 * 60 * 1000 });
     if (r.code === 0) {
       const files = (await fs.readdir(dir)).filter((f) => f.startsWith("ytdlp."));
       if (files[0]) {
@@ -153,8 +167,9 @@ async function fetchAudio(payload, dir, maxBytes, log) {
     log("warn", `yt-dlp nem járt sikerrel (${target.slice(0, 100)}): ${lastError}`);
   }
 
-  // 3) Playwright hálózati elkapás
-  if (pageUrl) {
+  // 3) Playwright hálózati elkapás — streaming oldalnál TILOS,
+  //    mert csak pár másodperces DASH-szeletet kapnánk el.
+  if (pageUrl && !streaming) {
     return await captureAudioViaBrowser(pageUrl, dir, maxBytes, log);
   }
   throw new Error(
@@ -163,6 +178,7 @@ async function fetchAudio(payload, dir, maxBytes, log) {
       : "nincs használható hangforrás (audio_url / page_url / source_page)",
   );
 }
+
 
 
 function htmlToText(html) {
