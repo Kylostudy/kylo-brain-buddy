@@ -5,7 +5,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type DraftKind = "reddit_post" | "reddit_comment" | "generic_text";
+export type DraftKind =
+  | "reddit_post"
+  | "reddit_comment"
+  | "linkedin_post"
+  | "generic_text";
 
 export const listContentDrafts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
