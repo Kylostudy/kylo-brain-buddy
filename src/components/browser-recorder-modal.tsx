@@ -93,6 +93,10 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [gmailConfirmBusy, setGmailConfirmBusy] = useState(false);
   const [kyloUnlockBusy, setKyloUnlockBusy] = useState(false);
   const [inputStatus, setInputStatus] = useState("");
+  // Jelszó-beküldés: a Bitwarden-féle bonyolult jelszót nem lehet emberként
+  // gépelni, ezért egy mezőbe beillesztve, egy lépésben küldjük a workernek.
+  const [secretOpen, setSecretOpen] = useState(false);
+  const [secretValue, setSecretValue] = useState("");
   const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
   const [lockedFrameSize, setLockedFrameSize] = useState<{ w: number; h: number } | null>(null);
