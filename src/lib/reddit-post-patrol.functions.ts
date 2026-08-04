@@ -156,8 +156,10 @@ export const markPatrolCommentStatus = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { reply_status: data.status };
-    if (data.status === "answered") patch["answered_at"] = new Date().toISOString();
+    const patch = {
+      reply_status: data.status,
+      ...(data.status === "answered" ? { answered_at: new Date().toISOString() } : {}),
+    };
     const { error } = await context.supabase
       .from("reddit_comments")
       .update(patch)
