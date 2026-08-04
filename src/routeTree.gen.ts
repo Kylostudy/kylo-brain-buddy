@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated.content'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
+import { Route as AuthenticatedPatrolRouteImport } from './routes/_authenticated.patrol'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
 import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenticated.reddit-scout'
 import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authenticated.reddit-warmup'
@@ -86,6 +87,11 @@ const AuthenticatedContentRoute = AuthenticatedContentRouteImport.update({
 const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPatrolRoute = AuthenticatedPatrolRouteImport.update({
+  id: '/patrol',
+  path: '/patrol',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedProxiesRoute = AuthenticatedProxiesRouteImport.update({
@@ -379,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/content': typeof AuthenticatedContentRoute
   '/inbox': typeof AuthenticatedInboxRoute
+  '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
@@ -433,6 +440,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/content': typeof AuthenticatedContentRoute
   '/inbox': typeof AuthenticatedInboxRoute
+  '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
@@ -490,6 +498,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/content': typeof AuthenticatedContentRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
+  '/_authenticated/patrol': typeof AuthenticatedPatrolRoute
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
   '/_authenticated/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/_authenticated/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
@@ -548,6 +557,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/content'
     | '/inbox'
+    | '/patrol'
     | '/proxies'
     | '/reddit-scout'
     | '/reddit-warmup'
@@ -602,6 +612,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/content'
     | '/inbox'
+    | '/patrol'
     | '/proxies'
     | '/reddit-scout'
     | '/reddit-warmup'
@@ -658,6 +669,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/content'
     | '/_authenticated/inbox'
+    | '/_authenticated/patrol'
     | '/_authenticated/proxies'
     | '/_authenticated/reddit-scout'
     | '/_authenticated/reddit-warmup'
@@ -790,6 +802,13 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof AuthenticatedInboxRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/patrol': {
+      id: '/_authenticated/patrol'
+      path: '/patrol'
+      fullPath: '/patrol'
+      preLoaderRoute: typeof AuthenticatedPatrolRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/proxies': {
@@ -1141,6 +1160,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedContentRoute: typeof AuthenticatedContentRoute
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
+  AuthenticatedPatrolRoute: typeof AuthenticatedPatrolRoute
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
   AuthenticatedRedditScoutRoute: typeof AuthenticatedRedditScoutRoute
   AuthenticatedRedditWarmupRoute: typeof AuthenticatedRedditWarmupRoute
@@ -1155,6 +1175,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedContentRoute: AuthenticatedContentRoute,
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
+  AuthenticatedPatrolRoute: AuthenticatedPatrolRoute,
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
   AuthenticatedRedditScoutRoute: AuthenticatedRedditScoutRoute,
   AuthenticatedRedditWarmupRoute: AuthenticatedRedditWarmupRoute,

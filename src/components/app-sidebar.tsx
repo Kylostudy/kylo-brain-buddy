@@ -13,6 +13,7 @@ import {
   Globe,
   ClipboardCheck,
   ClipboardPaste,
+  Radar,
   Inbox,
   Radar,
   Flame,
@@ -681,6 +682,16 @@ export function AppSidebar() {
                     <Link to="/reddit-warmup" className="flex items-center gap-2">
                       <Flame className="size-4 shrink-0" />
                       <span className="truncate">Reddit Warmup</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {module === "brain" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath === "/patrol"}>
+                    <Link to="/patrol" className="flex items-center gap-2">
+                      <Radar className="size-4 shrink-0" />
+                      <span className="truncate">Poszt-őrjárat</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
