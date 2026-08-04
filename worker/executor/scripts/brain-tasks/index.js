@@ -20,6 +20,7 @@ import { runRedditWarmup } from "./reddit-warmup.js";
 import { runRedditRegister } from "./reddit-register.js";
 import { runRedditPost } from "./reddit-post.js";
 import { runSttMediaFetch } from "./stt-media-fetch.js";
+import { runLinkedInPost } from "./linkedin-post.js";
 
 
 export function isBrainTask(spec) {
