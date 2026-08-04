@@ -26,6 +26,7 @@ import {
 const KINDS = [
   { value: "reddit_post", label: "Reddit poszt" },
   { value: "reddit_comment", label: "Reddit hozzászólás" },
+  { value: "linkedin_post", label: "LinkedIn poszt" },
   { value: "generic_text", label: "Egyéb szöveg" },
 ];
 
