@@ -881,6 +881,48 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         )}
       </div>
 
+      {secretOpen && (
+        <div className="flex items-center gap-2 border-b border-white/10 bg-neutral-900 px-3 py-2">
+          <KeyRound className="size-4 shrink-0 text-amber-400" />
+          <Input
+            type="password"
+            autoFocus
+            value={secretValue}
+            onChange={(e) => setSecretValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitSecret();
+              }
+            }}
+            placeholder="Illeszd be ide a jelszót, majd Enter — a távoli böngésző fókuszált mezőjébe kerül"
+            className="h-8 flex-1 border-white/20 bg-black/40 text-white placeholder:text-white/40"
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-amber-700 text-white hover:bg-amber-600"
+            onClick={submitSecret}
+            disabled={!secretValue || status !== "active"}
+          >
+            Beírás
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-white hover:bg-white/10"
+            onClick={() => {
+              setSecretValue("");
+              setSecretOpen(false);
+            }}
+          >
+            Mégse
+          </Button>
+        </div>
+      )}
+
+
+
       <div className="flex min-h-0 flex-1">
         {/* Böngésző-kép */}
         <div
