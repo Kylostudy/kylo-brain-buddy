@@ -822,10 +822,13 @@ async function runSession(payload) {
   };
 
   async function ensureEditableFocusFromLastClick() {
-    if (!lastClickPoint || Date.now() - lastClickPoint.t > 8000) return;
-    if (await hasEditableFocus()) return;
+    if (await hasEditableFocus()) return true;
+    // A jelszó beillesztése tovább tarthat, ezért itt nincs szűk időablak.
+    if (!lastClickPoint) return false;
     await focusEditableAt(lastClickPoint.x, lastClickPoint.y);
+    return await hasEditableFocus();
   }
+
 
   let clickBusy = false;
   channel.on("broadcast", { event: "click" }, async ({ payload }) => {
