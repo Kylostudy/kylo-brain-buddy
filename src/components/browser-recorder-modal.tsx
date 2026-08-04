@@ -829,6 +829,20 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         <Button
           size="sm"
           variant="secondary"
+          className="bg-amber-700 text-white hover:bg-amber-600"
+          onClick={() => setSecretOpen((v) => !v)}
+          disabled={status !== "active"}
+          aria-label="Jelszó beírása a távoli böngészőbe"
+          title="Jelszó (vagy más hosszú szöveg) beírása a távoli böngésző fókuszált mezőjébe"
+        >
+          <KeyRound className="size-4" />
+          <span className="ml-1 hidden lg:inline">Jelszó</span>
+        </Button>
+
+
+        <Button
+          size="sm"
+          variant="secondary"
           className="bg-emerald-700 text-white hover:bg-emerald-600"
           onClick={handleSaveCookies}
           disabled={cookieBusy || status !== "active"}
