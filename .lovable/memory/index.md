@@ -4,6 +4,7 @@
 - Minden válasz magyarul. Technikai zsargon helyett egyszerű magyarázat.
 - Brain workflow-k KÖTELEZŐEN emberi módon viselkednek: Poisson időzítés, véletlen kurzor, alkalmi hibázás+javítás. Fix sleep / egyenes kurzor / tökéletes kattintás TILOS.
 - Proxy stratégia: 12 proxy, 28 (proxy_id, language) profil. Első fázis (aug-szept): csak en + de régiók. Új proxyt csak akkor veszünk, ha a jelenlegi 12 fel van töltve.
+- Saját posztot SOHA nem szavazunk fel / kommentelünk alá saját másik fiókkal (Reddit vote manipulation = site-wide ban).
 
 ## Memóriák
 - [emberi-viselkedés](mem://features/human-behavior) — Poisson időzítés, véletlen kurzor overshoot+jitter, kötelező misclick+javítás. Brain ≠ Audit (Audit nyíltan bot lehet).
@@ -22,3 +23,4 @@
 - [account-separation](mem://features/account-separation) — Brain-only accountok kötelező. User saját profiljai SOHA nem futnak a VPS-en. FB: Kovács László profil külön HU telefonszámmal admin az összes HU Kylo oldalon. User saját FB feketelistás. TikTok/Instagram: usernek nincs is személyes, párhuzam-probléma eleve nem játszik.
 - [kylo-study-positioning](mem://features/kylo-study-positioning) — Kylo.study képességprofil (nyelvvizsga fő eladhatóság + matek/kémia/fizika/rajz soronkénti magyarázattal, 3 vizsgáztatói személyiség, %-alapú értékelés). Gemini promptokhoz.
 - [reddit-scout](mem://features/reddit-scout) — READ-ONLY figyelő nyelvi subredditekhez (EnglishLearning, IELTS, TOEFL, ChineseLanguage, Italian, Spanish, LearnJapanese, stb.). Publikus JSON, Gemini pontoz Kylo.study szempontból, 0-100 relevancia + magyar válaszjavaslat. Semmi auto-post.
+- [reddit-poszthálózat](mem://features/reddit-posting-network) — 22 fiók subreddit-kiosztása nyelvenként (en/de/es/pt/pl), felfutási sorrend, és a TILTOTT önszavazás/kommentgyűrű szabály.
