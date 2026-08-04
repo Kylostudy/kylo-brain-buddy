@@ -388,11 +388,7 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
         }
 
         const startUrl =
-          platform === "pinterest" && !candidate.start_url
-            ? PINTEREST_LOGIN_URL
-            : platform === "reddit" && !candidate.start_url
-              ? REDDIT_HOME_URL
-            : candidate.start_url;
+          candidate.start_url || PLATFORM_HOME_URLS[platform] || null;
 
         const { data: claimed, error: updErr } = await sb
           .from("recording_sessions")
