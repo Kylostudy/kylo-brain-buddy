@@ -18,6 +18,7 @@ import { runTikTokUploadVideo } from "./tiktok-upload-video.js";
 import { runRecordReplay } from "./record-replay.js";
 import { runRedditWarmup } from "./reddit-warmup.js";
 import { runRedditRegister } from "./reddit-register.js";
+import { runRedditPost } from "./reddit-post.js";
 import { runSttMediaFetch } from "./stt-media-fetch.js";
 
 
@@ -53,6 +54,10 @@ export async function runBrainTask(args) {
 
     case "reddit_register":
       return await runRedditRegister(args);
+
+    case "reddit_post":
+    case "reddit_comment":
+      return await runRedditPost(args);
 
 
     case "metrics_snapshot": {
