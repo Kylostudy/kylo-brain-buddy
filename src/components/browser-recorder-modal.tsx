@@ -395,6 +395,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     }
   }
 
+  // A beírt jelszót egy lépésben, "type" eseményként küldjük a workernek.
+  // Nem naplózzuk és nem tároljuk sehol — küldés után rögtön töröljük.
+  function submitSecret() {
+    const text = secretValue;
+    if (!text) return;
+    const sent = sendToWorker("type", { text });
+    if (!sent) {
+      toast.error("Nincs élő kapcsolat a böngészővel.");
+      return;
+    }
+    setSecretValue("");
+    setSecretOpen(false);
+    setInputStatus("Jelszó beírva a fókuszált mezőbe.");
+    toast.success("Jelszó elküldve a böngészőnek.");
+  }
+
+
   function requestPageText() {
     setTextBusy(true);
     setTextPanelOpen(true);
