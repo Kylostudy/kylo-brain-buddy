@@ -181,6 +181,10 @@ export async function patrolWatch(watch: PatrolWatch): Promise<{
   error?: string;
 }> {
   const db = await sb();
+  if (!watch.workflow_id) {
+    return { newComments: 0, notified: 0, error: "A figyelt poszthoz nincs workflow rendelve." };
+  }
+  const workflowId = watch.workflow_id;
   const path = watch.permalink.replace(/^https?:\/\/[^/]+/, "").replace(/\/+$/, "");
   const thread = await redditFetch<Array<{ data?: { children?: Array<{ data?: Json }> } }>>(
     `https://www.reddit.com${path}.json?limit=200&depth=6&raw_json=1`,
@@ -234,7 +238,7 @@ export async function patrolWatch(watch: PatrolWatch): Promise<{
       .from("reddit_comments")
       .insert({
         tenant_id: watch.tenant_id,
-        workflow_id: watch.workflow_id,
+        workflow_id: workflowId,
         account_id: watch.account_id,
         watch_id: watch.id,
         source: "post_patrol",
