@@ -822,10 +822,13 @@ async function runSession(payload) {
   };
 
   async function ensureEditableFocusFromLastClick() {
-    if (!lastClickPoint || Date.now() - lastClickPoint.t > 8000) return;
-    if (await hasEditableFocus()) return;
+    if (await hasEditableFocus()) return true;
+    // A jelszó beillesztése tovább tarthat, ezért itt nincs szűk időablak.
+    if (!lastClickPoint) return false;
     await focusEditableAt(lastClickPoint.x, lastClickPoint.y);
+    return await hasEditableFocus();
   }
+
 
   let clickBusy = false;
   channel.on("broadcast", { event: "click" }, async ({ payload }) => {
@@ -1024,19 +1027,50 @@ async function runSession(payload) {
 
 
   channel.on("broadcast", { event: "type" }, async ({ payload }) => {
+    const text = payload?.text || "";
     try {
-      await ensureEditableFocusFromLastClick();
-      await page.keyboard.type(payload.text || "");
-      pushAction({
-        type: "type",
-        selector: lastClickSelector || "activeElement",
-        value: payload.text || "",
-        t: Date.now(),
-      });
+      const focused = await ensureEditableFocusFromLastClick();
+      let ok = false;
+      if (focused) {
+        await page.keyboard.type(text);
+        ok = true;
+      } else {
+        // Nincs szerkeszthető fókusz: megpróbáljuk a legutóbb kattintott
+        // selectort közvetlenül kitölteni (jelszómező esetén ez a tipikus eset).
+        if (lastClickSelector && !lastClickSelector.startsWith("point:")) {
+          await page.fill(lastClickSelector, text);
+          ok = true;
+        }
+      }
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: {
+          kind: "type",
+          status: ok ? "received" : "error",
+          target: ok
+            ? `${text.length} karakter beírva`
+            : "nincs kijelölt beviteli mező — kattints a mezőbe a képen, majd küldd újra",
+        },
+      }).catch(() => {});
+      if (ok) {
+        pushAction({
+          type: "type",
+          selector: lastClickSelector || "activeElement",
+          value: text,
+          t: Date.now(),
+        });
+      }
     } catch (e) {
       console.error(`[session ${session.id}] type error`, e.message);
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "type", status: "error", target: e.message },
+      }).catch(() => {});
     }
   });
+
 
   channel.on("broadcast", { event: "key" }, async ({ payload }) => {
     try {
