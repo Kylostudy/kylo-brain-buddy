@@ -29,6 +29,7 @@ import {
   Cookie,
   Check,
   Copy,
+  KeyRound,
   Loader2,
   MailCheck,
   Maximize2,
@@ -92,6 +93,10 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [gmailConfirmBusy, setGmailConfirmBusy] = useState(false);
   const [kyloUnlockBusy, setKyloUnlockBusy] = useState(false);
   const [inputStatus, setInputStatus] = useState("");
+  // Jelszó-beküldés: a Bitwarden-féle bonyolult jelszót nem lehet emberként
+  // gépelni, ezért egy mezőbe beillesztve, egy lépésben küldjük a workernek.
+  const [secretOpen, setSecretOpen] = useState(false);
+  const [secretValue, setSecretValue] = useState("");
   const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
   const [lockedFrameSize, setLockedFrameSize] = useState<{ w: number; h: number } | null>(null);
@@ -282,6 +287,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     setPageText("");
     setTextBusy(false);
     setInputStatus("");
+    setSecretOpen(false);
+    setSecretValue("");
     setGmailConfirmBusy(false);
     setKyloUnlockBusy(false);
     setFailureReason("");
@@ -387,6 +394,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       toast.error("A teljes képernyő nem indítható ebben a böngészőben.");
     }
   }
+
+  // A beírt jelszót egy lépésben, "type" eseményként küldjük a workernek.
+  // Nem naplózzuk és nem tároljuk sehol — küldés után rögtön töröljük.
+  function submitSecret() {
+    const text = secretValue;
+    if (!text) return;
+    const sent = sendToWorker("type", { text });
+    if (!sent) {
+      toast.error("Nincs élő kapcsolat a böngészővel.");
+      return;
+    }
+    setSecretValue("");
+    setSecretOpen(false);
+    setInputStatus("Jelszó beírva a fókuszált mezőbe.");
+    toast.success("Jelszó elküldve a böngészőnek.");
+  }
+
 
   function requestPageText() {
     setTextBusy(true);
@@ -822,6 +846,20 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         <Button
           size="sm"
           variant="secondary"
+          className="bg-amber-700 text-white hover:bg-amber-600"
+          onClick={() => setSecretOpen((v) => !v)}
+          disabled={status !== "active"}
+          aria-label="Jelszó beírása a távoli böngészőbe"
+          title="Jelszó (vagy más hosszú szöveg) beírása a távoli böngésző fókuszált mezőjébe"
+        >
+          <KeyRound className="size-4" />
+          <span className="ml-1 hidden lg:inline">Jelszó</span>
+        </Button>
+
+
+        <Button
+          size="sm"
+          variant="secondary"
           className="bg-emerald-700 text-white hover:bg-emerald-600"
           onClick={handleSaveCookies}
           disabled={cookieBusy || status !== "active"}
@@ -859,6 +897,48 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           </Button>
         )}
       </div>
+
+      {secretOpen && (
+        <div className="flex items-center gap-2 border-b border-white/10 bg-neutral-900 px-3 py-2">
+          <KeyRound className="size-4 shrink-0 text-amber-400" />
+          <Input
+            type="password"
+            autoFocus
+            value={secretValue}
+            onChange={(e) => setSecretValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitSecret();
+              }
+            }}
+            placeholder="Illeszd be ide a jelszót, majd Enter — a távoli böngésző fókuszált mezőjébe kerül"
+            className="h-8 flex-1 border-white/20 bg-black/40 text-white placeholder:text-white/40"
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-amber-700 text-white hover:bg-amber-600"
+            onClick={submitSecret}
+            disabled={!secretValue || status !== "active"}
+          >
+            Beírás
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-white hover:bg-white/10"
+            onClick={() => {
+              setSecretValue("");
+              setSecretOpen(false);
+            }}
+          >
+            Mégse
+          </Button>
+        </div>
+      )}
+
+
 
       <div className="flex min-h-0 flex-1">
         {/* Böngésző-kép */}
