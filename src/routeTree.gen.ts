@@ -30,6 +30,7 @@ import { Route as ApiPublicAdminImportIproyalRouteImport } from './routes/api/pu
 import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
 import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
+import { Route as ApiPublicCronRedditPostPatrolRouteImport } from './routes/api/public/cron/reddit-post-patrol'
 import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
 import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
 import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
@@ -175,6 +176,12 @@ const ApiPublicCronEnqueueMonitorsRoute =
   ApiPublicCronEnqueueMonitorsRouteImport.update({
     id: '/api/public/cron/enqueue-monitors',
     path: '/api/public/cron/enqueue-monitors',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronRedditPostPatrolRoute =
+  ApiPublicCronRedditPostPatrolRouteImport.update({
+    id: '/api/public/cron/reddit-post-patrol',
+    path: '/api/public/cron/reddit-post-patrol',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCronScheduleRedditWarmupsRoute =
@@ -381,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
@@ -434,6 +442,7 @@ export interface FileRoutesByTo {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
@@ -489,6 +498,7 @@ export interface FileRoutesById {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
@@ -544,6 +554,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
@@ -597,6 +608,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
@@ -651,6 +663,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
@@ -695,6 +708,7 @@ export interface RootRouteChildren {
   ApiPublicAuthPasswordRoute: typeof ApiPublicAuthPasswordRoute
   ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
+  ApiPublicCronRedditPostPatrolRoute: typeof ApiPublicCronRedditPostPatrolRoute
   ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
   ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
   ApiPublicHooksQaSchedulerRoute: typeof ApiPublicHooksQaSchedulerRoute
@@ -874,6 +888,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/enqueue-monitors'
       fullPath: '/api/public/cron/enqueue-monitors'
       preLoaderRoute: typeof ApiPublicCronEnqueueMonitorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/reddit-post-patrol': {
+      id: '/api/public/cron/reddit-post-patrol'
+      path: '/api/public/cron/reddit-post-patrol'
+      fullPath: '/api/public/cron/reddit-post-patrol'
+      preLoaderRoute: typeof ApiPublicCronRedditPostPatrolRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cron/schedule-reddit-warmups': {
@@ -1154,6 +1175,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAuthPasswordRoute: ApiPublicAuthPasswordRoute,
   ApiPublicCronDispatchBrainTasksRoute: ApiPublicCronDispatchBrainTasksRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
+  ApiPublicCronRedditPostPatrolRoute: ApiPublicCronRedditPostPatrolRoute,
   ApiPublicCronScheduleRedditWarmupsRoute:
     ApiPublicCronScheduleRedditWarmupsRoute,
   ApiPublicCronScheduleWarmupsRoute: ApiPublicCronScheduleWarmupsRoute,
