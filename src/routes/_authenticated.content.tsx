@@ -26,6 +26,7 @@ import {
 const KINDS = [
   { value: "reddit_post", label: "Reddit poszt" },
   { value: "reddit_comment", label: "Reddit hozzászólás" },
+  { value: "linkedin_post", label: "LinkedIn poszt" },
   { value: "generic_text", label: "Egyéb szöveg" },
 ];
 
@@ -196,13 +197,14 @@ function ContentStudioPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Hely (pl. subreddit)</Label>
+              <Label>{kind === "linkedin_post" ? "Céges oldal (üresen: személyes profil)" : "Hely (pl. subreddit)"}</Label>
               <Input
                 value={targetRef}
                 onChange={(e) => setTargetRef(e.target.value)}
-                placeholder="r/EnglishLearning"
+                placeholder={kind === "linkedin_post" ? "127334023 vagy kylo-study" : "r/EnglishLearning"}
               />
             </div>
+
           </div>
           <div className="space-y-1">
             <Label>Cím</Label>

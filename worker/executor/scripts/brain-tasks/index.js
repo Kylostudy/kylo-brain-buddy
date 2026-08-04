@@ -20,6 +20,7 @@ import { runRedditWarmup } from "./reddit-warmup.js";
 import { runRedditRegister } from "./reddit-register.js";
 import { runRedditPost } from "./reddit-post.js";
 import { runSttMediaFetch } from "./stt-media-fetch.js";
+import { runLinkedInPost } from "./linkedin-post.js";
 
 
 export function isBrainTask(spec) {
@@ -58,6 +59,10 @@ export async function runBrainTask(args) {
     case "reddit_post":
     case "reddit_comment":
       return await runRedditPost(args);
+
+    case "linkedin_post":
+      return await runLinkedInPost(args);
+
 
 
     case "metrics_snapshot": {

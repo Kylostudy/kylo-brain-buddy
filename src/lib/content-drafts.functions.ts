@@ -5,7 +5,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type DraftKind = "reddit_post" | "reddit_comment" | "generic_text";
+export type DraftKind =
+  | "reddit_post"
+  | "reddit_comment"
+  | "linkedin_post"
+  | "generic_text";
 
 export const listContentDrafts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -113,21 +117,36 @@ export const queueContentDraft = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const spec = (wf.spec ?? {}) as Record<string, unknown>;
+    const platform = (wf.platform ?? "reddit").toLowerCase();
+    const isLinkedIn = platform === "linkedin" || draft.kind === "linkedin_post";
+
+    const taskType = isLinkedIn
+      ? "linkedin_post"
+      : draft.kind === "reddit_comment"
+        ? "reddit_comment"
+        : "reddit_post";
+
+    const startUrl = isLinkedIn
+      ? "https://www.linkedin.com/feed/"
+      : "https://www.reddit.com/";
+
     const specSnapshot = {
       ...spec,
-      platform: wf.platform ?? "reddit",
-      start_url: "https://www.reddit.com/",
+      platform: isLinkedIn ? "linkedin" : platform,
+      start_url: startUrl,
       brain_task: {
-        platform: wf.platform ?? "reddit",
-        task_type: draft.kind === "reddit_comment" ? "reddit_comment" : "reddit_post",
+        platform: isLinkedIn ? "linkedin" : platform,
+        task_type: taskType,
         draft_id: draft.id,
         title: draft.title,
         body: draft.body,
-        subreddit: draft.target_ref ?? null,
+        subreddit: isLinkedIn ? null : (draft.target_ref ?? null),
+        target_ref: draft.target_ref ?? null,
         submit: data.submit !== false,
         dry_run: !!data.dry_run,
       },
     };
+
 
     const { data: run, error: rErr } = await context.supabase
       .from("brain_workflow_runs")
