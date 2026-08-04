@@ -13,8 +13,8 @@ import {
   Globe,
   ClipboardCheck,
   ClipboardPaste,
-  Radar,
   Inbox,
+  ShieldCheck,
   Radar,
   Flame,
   Folder,
@@ -690,7 +690,7 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={currentPath === "/patrol"}>
                     <Link to="/patrol" className="flex items-center gap-2">
-                      <Radar className="size-4 shrink-0" />
+                      <ShieldCheck className="size-4 shrink-0" />
                       <span className="truncate">Poszt-őrjárat</span>
                     </Link>
                   </SidebarMenuButton>
