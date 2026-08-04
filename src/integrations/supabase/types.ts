@@ -769,6 +769,59 @@ export type Database = {
           },
         ]
       }
+      content_drafts: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          last_run_id: string | null
+          status: string
+          submitted_at: string | null
+          target_ref: string | null
+          target_workflow_id: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          last_run_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          target_ref?: string | null
+          target_workflow_id?: string | null
+          tenant_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          last_run_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          target_ref?: string | null
+          target_workflow_id?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_drafts_target_workflow_id_fkey"
+            columns: ["target_workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cross_module_tenant_cache: {
         Row: {
           cached_until: string
