@@ -1117,6 +1117,77 @@ async function runSession(payload) {
     }
   });
 
+  // Atomi jelszóbeillesztés koordinátára. A felület előbb bekéri a jelszót,
+  // majd a következő távoli képkattintással együtt küldi el a célpontot. Így
+  // nem függünk egy korábbi kattintás fókuszától vagy annak időzítésétől.
+  channel.on("broadcast", { event: "pasteSecretAt" }, async ({ payload }) => {
+    const text = typeof payload?.text === "string" ? payload.text : "";
+    try {
+      if (!text) throw new Error("üres jelszó érkezett");
+      const vs = page.viewportSize() || { width: viewportW, height: viewportH };
+      const x = Math.max(0, Math.min(vs.width - 1, Number(payload?.x) * vs.width));
+      const y = Math.max(0, Math.min(vs.height - 1, Number(payload?.y) * vs.height));
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        throw new Error("érvénytelen kattintási hely");
+      }
+
+      lastClickPoint = { x, y, t: Date.now() };
+      const desc = await describeAt(x, y);
+      lastClickSelector = desc?.selector || `point:${Math.round(Number(payload?.x) * 10000)},${Math.round(Number(payload?.y) * 10000)}`;
+
+      // Előbb valódi kattintást küldünk, utána explicit módon is megkeressük
+      // és fókuszáljuk az alatta lévő inputot (label/overlay esetén is).
+      await page.mouse.click(x, y);
+      const focusResult = await focusEditableAt(x, y);
+      let focused = Boolean(focusResult?.focused) && await hasEditableFocus();
+
+      // LinkedIn belépésnél tipikusan pontosan egy látható password mező van.
+      // Ez biztonságos tartalék, ha egy overlay miatt a képpont nem az inputot adja.
+      if (!focused) {
+        const visiblePasswords = page.locator('input[type="password"]:visible');
+        if (await visiblePasswords.count() === 1) {
+          await visiblePasswords.first().focus();
+          focused = await hasEditableFocus();
+        }
+      }
+      if (!focused) {
+        throw new Error("A kijelölt ponton nem található beviteli mező. Kattints közvetlenül a jelszómező közepére.");
+      }
+
+      const beforeLength = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el) return null;
+        if (typeof el.value === "string") return el.value.length;
+        if (el.isContentEditable) return (el.textContent || "").length;
+        return null;
+      });
+      await page.keyboard.insertText(text);
+      const afterLength = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el) return null;
+        if (typeof el.value === "string") return el.value.length;
+        if (el.isContentEditable) return (el.textContent || "").length;
+        return null;
+      });
+      if (afterLength === null || afterLength <= (beforeLength ?? 0)) {
+        throw new Error("A jelszómező nem fogadta el a beillesztést.");
+      }
+
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "secret", status: "done", target: `${text.length} karakter beillesztve` },
+      }).catch(() => {});
+    } catch (e) {
+      console.error(`[session ${session.id}] coordinate secret paste error:`, e?.message || e);
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "secret", status: "error", target: e?.message || "sikertelen beillesztés" },
+      }).catch(() => {});
+    }
+  });
+
 
   channel.on("broadcast", { event: "key" }, async ({ payload }) => {
     try {

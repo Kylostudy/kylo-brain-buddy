@@ -508,6 +508,33 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     const y = (e.clientY - rect.top) / rect.height;
     const px = Math.round(x * (frame?.w ?? 0));
     const py = Math.round(y * (frame?.h ?? 0));
+
+    // Ha a kulcsablakban már van jelszó, a következő képkattintás nem külön
+    // kattintás lesz: a worker ugyanazon koordinátán megkeresi a mezőt,
+    // fókuszálja, majd azonnal beilleszti a jelszót. Így a helyi jelszómező
+    // fókusza és a távoli böngésző fókusza nem tudja egymást felülírni.
+    if (secretOpen && secretValue && !secretBusy) {
+      setSecretBusy(true);
+      setInputStatus(`Jelszómező kijelölése és beillesztés… (${px}, ${py})`);
+      const sent = sendToWorker("pasteSecretAt", {
+        text: secretValue,
+        x,
+        y,
+        frameW: frame?.w,
+        frameH: frame?.h,
+      });
+      if (!sent) {
+        setSecretBusy(false);
+        setInputStatus("Nincs aktív kapcsolat a workerhez (channel=null)");
+        return;
+      }
+      void Promise.resolve(sent).catch((err) => {
+        setSecretBusy(false);
+        setInputStatus(`Jelszó küldési hiba: ${err instanceof Error ? err.message : String(err)}`);
+      });
+      return;
+    }
+
     clickInFlightRef.current = true;
     if (clickTimeoutRef.current !== null) window.clearTimeout(clickTimeoutRef.current);
     clickTimeoutRef.current = window.setTimeout(() => {
@@ -932,7 +959,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
                 submitSecret();
               }
             }}
-            placeholder="Illeszd be ide a jelszót, majd Enter — a távoli böngésző fókuszált mezőjébe kerül"
+            placeholder="Illeszd be ide a jelszót, majd kattints a távoli jelszómezőre"
             className="h-8 flex-1 border-white/20 bg-black/40 text-white placeholder:text-white/40"
           />
           <Button
@@ -942,7 +969,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
             onClick={submitSecret}
             disabled={!secretValue || status !== "active" || secretBusy}
           >
-            {secretBusy ? <Loader2 className="size-4 animate-spin" /> : "Beillesztés"}
+            {secretBusy ? <Loader2 className="size-4 animate-spin" /> : "Beillesztés a kijelölt mezőbe"}
           </Button>
           <Button
             size="sm"
