@@ -15,6 +15,20 @@ import type { Database } from "@/integrations/supabase/types";
 
 const PINTEREST_LOGIN_URL = "https://www.pinterest.com/login/";
 const REDDIT_HOME_URL = "https://www.reddit.com/";
+// Ha a session-höz nincs megadva kezdő URL (pl. Live Browse gomb), a platform
+// alapján nyitunk egy értelmes oldalt — különben üres (fehér) about:blank jön.
+const PLATFORM_HOME_URLS: Record<string, string> = {
+  pinterest: PINTEREST_LOGIN_URL,
+  reddit: REDDIT_HOME_URL,
+  linkedin: "https://www.linkedin.com/feed/",
+  facebook: "https://www.facebook.com/",
+  instagram: "https://www.instagram.com/",
+  youtube: "https://www.youtube.com/",
+  x: "https://x.com/home",
+  twitter: "https://x.com/home",
+  tiktok: "https://www.tiktok.com/",
+  gmail: "https://mail.google.com/",
+};
 
 function normalizeCountryCode(country: string | null | undefined) {
   const value = String(country || "").trim().toUpperCase();
@@ -374,11 +388,7 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
         }
 
         const startUrl =
-          platform === "pinterest" && !candidate.start_url
-            ? PINTEREST_LOGIN_URL
-            : platform === "reddit" && !candidate.start_url
-              ? REDDIT_HOME_URL
-            : candidate.start_url;
+          candidate.start_url || PLATFORM_HOME_URLS[platform] || null;
 
         const { data: claimed, error: updErr } = await sb
           .from("recording_sessions")
