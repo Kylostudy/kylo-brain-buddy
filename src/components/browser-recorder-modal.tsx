@@ -287,6 +287,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     setPageText("");
     setTextBusy(false);
     setInputStatus("");
+    setSecretOpen(false);
+    setSecretValue("");
     setGmailConfirmBusy(false);
     setKyloUnlockBusy(false);
     setFailureReason("");
