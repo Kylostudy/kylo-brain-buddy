@@ -4,6 +4,7 @@
 - Minden válasz magyarul. Technikai zsargon helyett egyszerű magyarázat.
 - Brain workflow-k KÖTELEZŐEN emberi módon viselkednek: Poisson időzítés, véletlen kurzor, alkalmi hibázás+javítás. Fix sleep / egyenes kurzor / tökéletes kattintás TILOS.
 - Proxy stratégia: 12 proxy, 28 (proxy_id, language) profil. Első fázis (aug-szept): csak en + de régiók. Új proxyt csak akkor veszünk, ha a jelenlegi 12 fel van töltve.
+- Saját posztot SOHA nem szavazunk fel / kommentelünk alá saját másik fiókkal (Reddit vote manipulation = site-wide ban).
 
 ## Memóriák
 - [emberi-viselkedés](mem://features/human-behavior) — Poisson időzítés, véletlen kurzor overshoot+jitter, kötelező misclick+javítás. Brain ≠ Audit (Audit nyíltan bot lehet).
