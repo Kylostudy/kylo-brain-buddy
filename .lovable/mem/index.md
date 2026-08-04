@@ -23,3 +23,4 @@ MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = 
 - [napi-reddit-melegítés](mem://features/daily-reddit-warmup) — Minden aktív Reddit fiók naponta 1× bemelegszik; pg_cron ütemezi, VPS rebuild után is fut
 - [futási időablakok](mem://features/run-time-windows) — Esti 17-23 budapesti tilalom minden futásra; bemelegítés csak helyi nappal
 - [esti-fejlesztoi-mod](mem://features/live-dev-mode) — Élő szkript-becsatolás build nélkül a workeren (17:00–08:00), live.sh kapcsoló, biztonsági fékek
+- [facebook-bemelegítés](mem://features/facebook-warmup) — HU IP-s FB fiók passzív melegítése: csak süti-belépés, soha nem posztol, checkpointra azonnal leáll
