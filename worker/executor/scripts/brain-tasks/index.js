@@ -22,6 +22,7 @@ import { runRedditPost } from "./reddit-post.js";
 import { runSttMediaFetch } from "./stt-media-fetch.js";
 import { runLinkedInPost } from "./linkedin-post.js";
 import { runFacebookWarmup } from "./facebook-warmup.js";
+import { runLinkedInWarmup } from "./linkedin-warmup.js";
 
 
 export function isBrainTask(spec) {
@@ -66,6 +67,9 @@ export async function runBrainTask(args) {
 
     case "facebook_warmup":
       return await runFacebookWarmup(args);
+
+    case "linkedin_warmup":
+      return await runLinkedInWarmup(args);
 
 
 
