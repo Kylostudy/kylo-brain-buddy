@@ -64,6 +64,9 @@ export async function runBrainTask(args) {
     case "linkedin_post":
       return await runLinkedInPost(args);
 
+    case "facebook_warmup":
+      return await runFacebookWarmup(args);
+
 
 
     case "metrics_snapshot": {
