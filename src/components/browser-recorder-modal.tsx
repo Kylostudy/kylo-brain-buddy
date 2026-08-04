@@ -29,6 +29,7 @@ import {
   Cookie,
   Check,
   Copy,
+  KeyRound,
   Loader2,
   MailCheck,
   Maximize2,
