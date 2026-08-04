@@ -1339,6 +1339,8 @@ export type Database = {
         Row: {
           account_id: string | null
           answered_at: string | null
+          approved_at: string | null
+          approved_reply_en: string | null
           author: string | null
           body_en: string
           body_hu: string | null
@@ -1350,16 +1352,22 @@ export type Database = {
           permalink: string
           posted_at: string | null
           reply_status: string
+          source: string
           subreddit: string | null
           suggested_reply_en: string | null
           suggested_reply_hu: string | null
+          telegram_chat_id: number | null
+          telegram_message_id: number | null
           tenant_id: string
           updated_at: string
+          watch_id: string | null
           workflow_id: string
         }
         Insert: {
           account_id?: string | null
           answered_at?: string | null
+          approved_at?: string | null
+          approved_reply_en?: string | null
           author?: string | null
           body_en: string
           body_hu?: string | null
@@ -1371,16 +1379,22 @@ export type Database = {
           permalink: string
           posted_at?: string | null
           reply_status?: string
+          source?: string
           subreddit?: string | null
           suggested_reply_en?: string | null
           suggested_reply_hu?: string | null
+          telegram_chat_id?: number | null
+          telegram_message_id?: number | null
           tenant_id: string
           updated_at?: string
+          watch_id?: string | null
           workflow_id: string
         }
         Update: {
           account_id?: string | null
           answered_at?: string | null
+          approved_at?: string | null
+          approved_reply_en?: string | null
           author?: string | null
           body_en?: string
           body_hu?: string | null
@@ -1392,11 +1406,15 @@ export type Database = {
           permalink?: string
           posted_at?: string | null
           reply_status?: string
+          source?: string
           subreddit?: string | null
           suggested_reply_en?: string | null
           suggested_reply_hu?: string | null
+          telegram_chat_id?: number | null
+          telegram_message_id?: number | null
           tenant_id?: string
           updated_at?: string
+          watch_id?: string | null
           workflow_id?: string
         }
         Relationships: [
@@ -1408,7 +1426,77 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reddit_comments_watch_id_fkey"
+            columns: ["watch_id"]
+            isOneToOne: false
+            referencedRelation: "reddit_post_watches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reddit_comments_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reddit_post_watches: {
+        Row: {
+          account_id: string | null
+          active: boolean
+          created_at: string
+          id: string
+          language: string
+          last_scanned_at: string | null
+          permalink: string
+          post_external_id: string | null
+          subreddit: string | null
+          tenant_id: string
+          title: string | null
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          active?: boolean
+          created_at?: string
+          id?: string
+          language?: string
+          last_scanned_at?: string | null
+          permalink: string
+          post_external_id?: string | null
+          subreddit?: string | null
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          active?: boolean
+          created_at?: string
+          id?: string
+          language?: string
+          last_scanned_at?: string | null
+          permalink?: string
+          post_external_id?: string | null
+          subreddit?: string | null
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_post_watches_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "reddit_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reddit_post_watches_workflow_id_fkey"
             columns: ["workflow_id"]
             isOneToOne: false
             referencedRelation: "workflows"
