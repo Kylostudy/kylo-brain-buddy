@@ -12,6 +12,7 @@ import {
   Copy,
   Globe,
   ClipboardCheck,
+  ClipboardPaste,
   Inbox,
   Radar,
   Flame,
