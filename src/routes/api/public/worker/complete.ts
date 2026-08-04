@@ -588,6 +588,29 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           console.error("warmup reschedule error", e);
         }
 
+        // Reddit bemelegítés naplózása: a futás eredményéből feltöltjük a napi
+        // naplót, hogy a haladás (napok, subredditek, upvote-ok) látszódjon.
+        try {
+          if (update.status === "succeeded") {
+            const { data: runFull } = await sb
+              .from("brain_workflow_runs")
+              .select("workflow_id, finished_at")
+              .eq("id", parsed.runId)
+              .maybeSingle();
+            const { syncRedditWarmupRun } = await import(
+              "@/lib/reddit-warmup-sync.server"
+            );
+            await syncRedditWarmupRun(sb, {
+              workflowId: runFull?.workflow_id ?? null,
+              finishedAt: runFull?.finished_at ?? null,
+              result: slimResult as Record<string, unknown> | null,
+            });
+          }
+        } catch (e) {
+          console.error("reddit warmup log sync error", e);
+        }
+
+
         // Monitor workflow utófeldolgozás (Decathlon stb.) — később bővül.
         try {
           const { handleRunCompletion } = await import(

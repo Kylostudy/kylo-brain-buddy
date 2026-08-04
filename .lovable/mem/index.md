@@ -5,7 +5,7 @@ Non-technical user, kommunikáció magyarul, közérthetően, zsargon nélkül.
 Brain fő célja: Facebook / TikTok / YouTube fiókokba bejelentkezés süti/session alapján és videófeltöltés — NEM webshop scraping.
 Decathlon tesztfeladat lezárva: Cloudflare Turnstile blokkol, nem fejlesztési kérdés. Ne próbáljuk újra.
 Recorder infrastruktúra (VPS + IPRoyal ISP proxy + Steel) működik; session-alapú login (FB/TikTok) korábban már működött amszterdami VPS-ről.
-FUTÁSI TILALOM: 17:00–23:00 budapesti idő között SEMMILYEN worker futás. Bemelegítés csak helyi idő szerint 09:00–21:00.
+A 17–23 órás esti futási tilalom MEGSZŰNT (Blue-Green óta). Bemelegítés továbbra is csak a fiók helyi ideje szerint 09:00–21:00.
 MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = elfelejtett = későbbi probléma.
 
 
