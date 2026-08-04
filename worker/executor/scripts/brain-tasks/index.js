@@ -60,6 +60,10 @@ export async function runBrainTask(args) {
     case "reddit_comment":
       return await runRedditPost(args);
 
+    case "linkedin_post":
+      return await runLinkedInPost(args);
+
+
 
     case "metrics_snapshot": {
       const platform = (brainTask.platform || args.spec?.platform || "").toLowerCase();
