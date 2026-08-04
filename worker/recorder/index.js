@@ -1071,6 +1071,52 @@ async function runSession(payload) {
     }
   });
 
+  // Egyszer használatos titkos beillesztés. Nem kerül az actions listába és
+  // nem naplózzuk az értékét. Az insertText a Ctrl+V eredményével egyezően,
+  // egyben viszi be a speciális karaktereket is.
+  channel.on("broadcast", { event: "pasteSecret" }, async ({ payload }) => {
+    const text = typeof payload?.text === "string" ? payload.text : "";
+    try {
+      if (!text) throw new Error("üres jelszó érkezett");
+
+      let focused = await ensureEditableFocusFromLastClick();
+      if (!focused) {
+        const visiblePasswords = page.locator('input[type="password"]:visible');
+        const passwordCount = await visiblePasswords.count();
+        if (passwordCount === 1) {
+          await visiblePasswords.first().focus();
+          focused = true;
+        }
+      }
+      if (!focused) {
+        throw new Error("Nem található kijelölt jelszómező. Kattints rá a képen, majd próbáld újra.");
+      }
+
+      await page.keyboard.insertText(text);
+      const insertedLength = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el) return null;
+        if (typeof el.value === "string") return el.value.length;
+        if (el.isContentEditable) return (el.textContent || "").length;
+        return null;
+      });
+      if (insertedLength === 0) throw new Error("A mező nem fogadta el a beillesztést.");
+
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "secret", status: "done", target: `${text.length} karakter beillesztve` },
+      }).catch(() => {});
+    } catch (e) {
+      console.error(`[session ${session.id}] secret paste error:`, e?.message || e);
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "secret", status: "error", target: e?.message || "sikertelen beillesztés" },
+      }).catch(() => {});
+    }
+  });
+
 
   channel.on("broadcast", { event: "key" }, async ({ payload }) => {
     try {

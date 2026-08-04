@@ -97,6 +97,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   // gépelni, ezért egy mezőbe beillesztve, egy lépésben küldjük a workernek.
   const [secretOpen, setSecretOpen] = useState(false);
   const [secretValue, setSecretValue] = useState("");
+  const [secretBusy, setSecretBusy] = useState(false);
   const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
   const [lockedFrameSize, setLockedFrameSize] = useState<{ w: number; h: number } | null>(null);
@@ -170,6 +171,19 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     });
     ch.on("broadcast", { event: "inputAck" }, ({ payload }) => {
       const p = payload as { kind?: string; status?: string; x?: number; y?: number; target?: string };
+      if (p.kind === "secret") {
+        setSecretBusy(false);
+        if (p.status === "done") {
+          setSecretValue("");
+          setSecretOpen(false);
+          setInputStatus(`✓ ${p.target ?? "A jelszó bekerült a kijelölt mezőbe."}`);
+          toast.success("A jelszó bekerült a távoli böngészőbe.");
+        } else {
+          setInputStatus(`Jelszóbeillesztési hiba: ${p.target ?? "kattints újra a jelszómezőre"}`);
+          toast.error(p.target ?? "Nem található a jelszómező. Kattints rá, majd próbáld újra.");
+        }
+        return;
+      }
       if (p.kind === "click") {
         const targetStr = p.target ? ` → ${p.target}` : "";
         if (p.status === "done" || p.status === "busy") clearClickInFlight();
@@ -289,6 +303,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     setInputStatus("");
     setSecretOpen(false);
     setSecretValue("");
+    setSecretBusy(false);
     setGmailConfirmBusy(false);
     setKyloUnlockBusy(false);
     setFailureReason("");
@@ -395,20 +410,25 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     }
   }
 
-  // A beírt jelszót egy lépésben, "type" eseményként küldjük a workernek.
-  // Nem naplózzuk és nem tároljuk sehol — küldés után rögtön töröljük.
-  function submitSecret() {
+  // Külön egyszer használatos beillesztési parancs: a worker a kijelölt távoli
+  // mezőbe insertText-tel teszi be. Csak a worker visszaigazolása után törlünk.
+  async function submitSecret() {
     const text = secretValue;
-    if (!text) return;
-    const sent = sendToWorker("type", { text });
+    if (!text || secretBusy) return;
+    setSecretBusy(true);
+    setInputStatus("Jelszó beillesztése folyamatban…");
+    const sent = sendToWorker("pasteSecret", { text });
     if (!sent) {
+      setSecretBusy(false);
       toast.error("Nincs élő kapcsolat a böngészővel.");
       return;
     }
-    setSecretValue("");
-    setSecretOpen(false);
-    setInputStatus("Jelszó beírva a fókuszált mezőbe.");
-    toast.success("Jelszó elküldve a böngészőnek.");
+    try {
+      await sent;
+    } catch {
+      setSecretBusy(false);
+      toast.error("A jelszó nem jutott el a workerhez. Próbáld újra.");
+    }
   }
 
 
@@ -920,9 +940,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
             variant="secondary"
             className="bg-amber-700 text-white hover:bg-amber-600"
             onClick={submitSecret}
-            disabled={!secretValue || status !== "active"}
+            disabled={!secretValue || status !== "active" || secretBusy}
           >
-            Beírás
+            {secretBusy ? <Loader2 className="size-4 animate-spin" /> : "Beillesztés"}
           </Button>
           <Button
             size="sm"
