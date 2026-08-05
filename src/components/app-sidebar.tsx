@@ -132,6 +132,38 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [folderDraft, setFolderDraft] = useState("");
+  const [search, setSearch] = useState("");
+  const [lastWorkflowId, setLastWorkflowId] = useState<string | null>(null);
+
+  // Az utoljára megnyitott workflow megjegyzése (böngészőben tárolva).
+  useEffect(() => {
+    setLastWorkflowId(localStorage.getItem(`kylo.lastWorkflow.${module}`));
+  }, [module]);
+
+  useEffect(() => {
+    const match = /^\/w\/([^/]+)$/.exec(currentPath);
+    if (match) {
+      localStorage.setItem(`kylo.lastWorkflow.${module}`, match[1]);
+      setLastWorkflowId(match[1]);
+    }
+  }, [currentPath, module]);
+
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return null;
+    const starts = workflows.filter((w) => w.name.toLowerCase().startsWith(q));
+    const contains = workflows.filter(
+      (w) => !w.name.toLowerCase().startsWith(q) && w.name.toLowerCase().includes(q),
+    );
+    return [...starts, ...contains];
+  }, [search, workflows]);
+
+  const lastWorkflow = useMemo(
+    () => workflows.find((w) => w.id === lastWorkflowId) ?? null,
+    [workflows, lastWorkflowId],
+  );
+
+
 
   const grouped = useMemo(() => {
     const byFolder = new Map<string, Workflow[]>();
