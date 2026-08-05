@@ -1441,6 +1441,121 @@ export type Database = {
           },
         ]
       }
+      reddit_discourse_snapshots: {
+        Row: {
+          comments_analyzed: number
+          created_at: string
+          id: string
+          language_label: string
+          posts_analyzed: number
+          snapshot_date: string
+          subreddit: string
+          summary_hu: string
+          tenant_id: string
+          themes: Json
+          tone_hu: string
+          workflow_id: string | null
+        }
+        Insert: {
+          comments_analyzed?: number
+          created_at?: string
+          id?: string
+          language_label?: string
+          posts_analyzed?: number
+          snapshot_date?: string
+          subreddit: string
+          summary_hu?: string
+          tenant_id: string
+          themes?: Json
+          tone_hu?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          comments_analyzed?: number
+          created_at?: string
+          id?: string
+          language_label?: string
+          posts_analyzed?: number
+          snapshot_date?: string
+          subreddit?: string
+          summary_hu?: string
+          tenant_id?: string
+          themes?: Json
+          tone_hu?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_discourse_snapshots_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reddit_discourse_suggestions: {
+        Row: {
+          based_on_days: number
+          best_time_hu: string
+          confidence: number
+          created_at: string
+          draft_hu: string
+          entry_type: string
+          headline_hu: string
+          id: string
+          language_label: string
+          rationale_hu: string
+          status: string
+          subreddit: string
+          target_permalink: string | null
+          tenant_id: string
+          workflow_id: string | null
+        }
+        Insert: {
+          based_on_days?: number
+          best_time_hu?: string
+          confidence?: number
+          created_at?: string
+          draft_hu?: string
+          entry_type?: string
+          headline_hu?: string
+          id?: string
+          language_label?: string
+          rationale_hu?: string
+          status?: string
+          subreddit: string
+          target_permalink?: string | null
+          tenant_id: string
+          workflow_id?: string | null
+        }
+        Update: {
+          based_on_days?: number
+          best_time_hu?: string
+          confidence?: number
+          created_at?: string
+          draft_hu?: string
+          entry_type?: string
+          headline_hu?: string
+          id?: string
+          language_label?: string
+          rationale_hu?: string
+          status?: string
+          subreddit?: string
+          target_permalink?: string | null
+          tenant_id?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_discourse_suggestions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reddit_post_watches: {
         Row: {
           account_id: string | null
