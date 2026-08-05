@@ -861,6 +861,14 @@ async function runSession(payload) {
     }, text).catch(() => false);
   }
 
+  async function secretRemainsInTarget(locator, text) {
+    if (!await targetContainsExactSecret(locator, text)) return false;
+    // A LinkedInhez hasonló, vezérelt mezők egy későbbi újrarajzoláskor
+    // visszaállíthatják az értéket. Ne jelezzünk sikert egy pillanatnyi állapotra.
+    await sleep(900);
+    return await targetContainsExactSecret(locator, text);
+  }
+
   async function writeSecretToTarget(locator, text) {
     await locator.scrollIntoViewIfNeeded().catch(() => {});
     await locator.focus();
@@ -868,14 +876,14 @@ async function runSession(payload) {
     // 1. A Playwright fill kezeli helyesen a React/Vue által figyelt inputokat.
     await locator.fill(text, { timeout: 5000 }).catch(() => {});
     await sleep(120);
-    if (await targetContainsExactSecret(locator, text)) return "fill";
+    if (await secretRemainsInTarget(locator, text)) return "fill";
 
     // 2. Natív böngésző-bevitel, ugyanazon a célmezőn.
     await locator.focus();
     await page.keyboard.press("Control+A").catch(() => {});
     await page.keyboard.insertText(text).catch(() => {});
     await sleep(120);
-    if (await targetContainsExactSecret(locator, text)) return "insertText";
+    if (await secretRemainsInTarget(locator, text)) return "insertText";
 
     // 3. Utolsó tartalék: a natív value setter + valódi input/change esemény.
     // Ez olyan vezérelt mezőknél segít, amelyek a billentyűeseményt elnyelik.
@@ -894,7 +902,16 @@ async function runSession(payload) {
       el.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
     }, text);
     await sleep(120);
-    if (await targetContainsExactSecret(locator, text)) return "nativeSetter";
+    if (await secretRemainsInTarget(locator, text)) return "nativeSetter";
+
+    // 4. Végső, valódi billentyűzetes út. Ez nem függ a vágólaptól, de a
+    // Bitwardenből érkező speciális karaktereket is változtatás nélkül viszi
+    // be, és az oldal minden billentyűeseményét kiváltja.
+    await locator.focus();
+    await page.keyboard.press("Control+A").catch(() => {});
+    await page.keyboard.type(text, { delay: 12 }).catch(() => {});
+    await sleep(120);
+    if (await secretRemainsInTarget(locator, text)) return "keyboard";
 
     throw new Error("A jelszómező nem fogadta el a beillesztést.");
   }
