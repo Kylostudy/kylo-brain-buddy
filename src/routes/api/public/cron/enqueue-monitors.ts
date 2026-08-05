@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/public/cron/enqueue-monitors")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const token = process.env.WORKER_API_TOKEN;
+        const token = (process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN);
         let body: { secret?: string } = {};
         try {
           body = (await request.json()) as { secret?: string };

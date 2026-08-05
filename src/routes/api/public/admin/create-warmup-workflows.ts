@@ -41,7 +41,7 @@ export const Route = createFileRoute("/api/public/admin/create-warmup-workflows"
     handlers: {
       POST: async ({ request }) => {
         const token = request.headers.get("x-admin-token");
-        if (!token || token !== process.env.WORKER_API_TOKEN) {
+        if (!token || token !== (process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN)) {
           return new Response("Unauthorized", { status: 401 });
         }
 

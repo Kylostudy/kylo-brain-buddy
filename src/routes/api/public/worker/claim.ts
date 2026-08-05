@@ -11,7 +11,7 @@ import { timingSafeEqual } from "node:crypto";
 import type { Database } from "@/integrations/supabase/types";
 
 function checkAuth(request: Request): string | null {
-  const token = process.env.WORKER_API_TOKEN?.trim();
+  const token = (process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN)?.trim();
   if (!token) return "WORKER_API_TOKEN nincs beállítva";
   const header = request.headers.get("authorization") ?? "";
   const provided = (
