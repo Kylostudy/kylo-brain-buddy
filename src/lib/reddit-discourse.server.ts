@@ -50,11 +50,9 @@ async function collectSubreddit(subreddit: string): Promise<CollectedPost[]> {
   const byId = new Map<string, CollectedPost>();
   for (const path of [`new.json?limit=40`, `hot.json?limit=25`]) {
     const listing = await redditFetch<Listing>(
-      `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/${path}&raw_json=1`.replace(
-        "json?limit",
-        "json?limit",
-      ),
+      `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/${path}&raw_json=1`,
     );
+
     for (const child of listing?.data?.children ?? []) {
       const d = child.data ?? {};
       if (d["stickied"] || d["over_18"]) continue;
