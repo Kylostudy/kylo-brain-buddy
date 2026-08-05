@@ -71,8 +71,15 @@ export async function runBrainTask(args) {
     case "facebook_warmup":
       return await runFacebookWarmup(args);
 
+    case "instagram_warmup":
+      return await runInstagramWarmup(args);
+
+    case "tiktok_warmup":
+      return await runTikTokWarmup(args);
+
     case "linkedin_warmup":
       return await runLinkedInWarmup(args);
+
 
 
 
