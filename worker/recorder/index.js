@@ -765,7 +765,7 @@ async function runSession(payload) {
   let viewportH = viewport.height;
   const actions = [];
   const channel = sb.channel(session.channel, {
-    config: { broadcast: { self: false, ack: false } },
+    config: { broadcast: { self: false, ack: true } },
   });
   console.log(`[session ${session.id}] channel létrehozva: ${session.channel}`);
   // DIAGNOSZTIKA: minden beérkező broadcast eventet logolunk
@@ -878,28 +878,32 @@ async function runSession(payload) {
   }
 
   async function writeSecretToTarget(locator, text) {
-    await locator.scrollIntoViewIfNeeded().catch(() => {});
-    await locator.focus();
+    // Minden művelet közvetlenül a megtalált locatoron fut. Ez iframe-ben is
+    // biztosan a célmezőt kezeli, és egyik lépés sem tarthat tovább a felület
+    // 15 másodperces visszajelzési idejénél.
+    await locator.scrollIntoViewIfNeeded({ timeout: 1500 }).catch(() => {});
+    await locator.focus({ timeout: 1500 });
 
-    // 1. Valódi billentyűesemények: a LinkedIn vezérelt jelszómezője ezt
-    // fogadja el a legmegbízhatóbban. A speciális karaktereket is pontosan
-    // visszaellenőrizzük, mielőtt sikert jelzünk.
-    await page.keyboard.press("Control+A").catch(() => {});
-    await page.keyboard.type(text, { delay: 12 }).catch(() => {});
-    await sleep(120);
-    if (await secretRemainsInTarget(locator, text)) return "keyboard";
-
-    // 2. A Playwright fill kezeli helyesen a legtöbb React/Vue inputot.
-    await locator.fill(text, { timeout: 5000 }).catch(() => {});
+    // 1. A Playwright fill kezeli helyesen a legtöbb React/Vue inputot, és a
+    // bonyolult Bitwarden-jelszavakat is egyetlen értékként adja át.
+    await locator.fill(text, { timeout: 2500 }).catch(() => {});
     await sleep(120);
     if (await secretRemainsInTarget(locator, text)) return "fill";
 
-    // 3. Natív böngésző-bevitel, ugyanazon a célmezőn.
-    await locator.focus();
-    await page.keyboard.press("Control+A").catch(() => {});
+    // 2. Natív böngésző-bevitel. A locator.press tartja meg helyesen az
+    // iframe-en belüli fókuszt, a page.keyboard önmagában ezt elveszíthette.
+    await locator.focus({ timeout: 1500 });
+    await locator.press("Control+A", { timeout: 1500 }).catch(() => {});
     await page.keyboard.insertText(text).catch(() => {});
     await sleep(120);
     if (await secretRemainsInTarget(locator, text)) return "insertText";
+
+    // 3. Valódi billentyűesemények, közvetlenül a célmezőn. Ez lassabb, ezért
+    // csak az előző két gyors módszer után használjuk.
+    await locator.press("Control+A", { timeout: 1500 }).catch(() => {});
+    await locator.pressSequentially(text, { delay: 8, timeout: 4000 }).catch(() => {});
+    await sleep(120);
+    if (await secretRemainsInTarget(locator, text)) return "keyboard";
 
     // 4. Utolsó tartalék: a natív value setter + input/change esemény.
     // Ez olyan vezérelt mezőknél segít, amelyek a billentyűeseményt elnyelik.
@@ -1168,10 +1172,13 @@ async function runSession(payload) {
   // Egyszer használatos titkos beillesztés. Nem kerül az actions listába és
   // nem naplózzuk az értékét. Az insertText a Ctrl+V eredményével egyezően,
   // egyben viszi be a speciális karaktereket is.
+  let secretPasteBusy = false;
   channel.on("broadcast", { event: "pasteSecret" }, async ({ payload }) => {
     const text = typeof payload?.text === "string" ? payload.text : "";
     try {
       if (!text) throw new Error("üres jelszó érkezett");
+      if (secretPasteBusy) throw new Error("Az előző beillesztés még fut. Várj néhány másodpercet, majd próbáld újra.");
+      secretPasteBusy = true;
 
       await channel.send({
         type: "broadcast",
@@ -1198,6 +1205,8 @@ async function runSession(payload) {
         event: "inputAck",
         payload: { kind: "secret", status: "error", target: e?.message || "sikertelen beillesztés" },
       }).catch(() => {});
+    } finally {
+      secretPasteBusy = false;
     }
   });
 
@@ -1208,6 +1217,8 @@ async function runSession(payload) {
     const text = typeof payload?.text === "string" ? payload.text : "";
     try {
       if (!text) throw new Error("üres jelszó érkezett");
+      if (secretPasteBusy) throw new Error("Az előző beillesztés még fut. Várj néhány másodpercet, majd próbáld újra.");
+      secretPasteBusy = true;
       await channel.send({
         type: "broadcast",
         event: "inputAck",
@@ -1259,6 +1270,8 @@ async function runSession(payload) {
         event: "inputAck",
         payload: { kind: "secret", status: "error", target: e?.message || "sikertelen beillesztés" },
       }).catch(() => {});
+    } finally {
+      secretPasteBusy = false;
     }
   });
 

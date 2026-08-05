@@ -130,7 +130,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   useEffect(() => {
     if (!open || !sessionId) return;
     const ch = supabase.channel(`record:${sessionId}`, {
-      config: { broadcast: { self: false } },
+      config: { broadcast: { self: false, ack: true } },
     });
 
     ch.on("broadcast", { event: "frame" }, ({ payload }) => {
@@ -175,6 +175,15 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       if (p.kind === "secret") {
         if (p.status === "received") {
           setInputStatus(p.target ?? "A worker átvette a jelszót, beillesztés folyamatban…");
+          // A kézbesítés megtörtént: az első időkorlát helyett innentől a
+          // tényleges mezőművelet befejezésére várunk.
+          if (secretTimeoutRef.current !== null) window.clearTimeout(secretTimeoutRef.current);
+          secretTimeoutRef.current = window.setTimeout(() => {
+            secretTimeoutRef.current = null;
+            setSecretBusy(false);
+            setInputStatus("A worker átvette a jelszót, de a mező nem fejezte be a beillesztést.");
+            toast.error("A távoli mező nem fogadta el a jelszót. Kattints a mező közepére, majd próbáld újra.");
+          }, 20000);
           return;
         }
         if (secretTimeoutRef.current !== null) {
@@ -434,9 +443,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     secretTimeoutRef.current = window.setTimeout(() => {
       secretTimeoutRef.current = null;
       setSecretBusy(false);
-      setInputStatus("A worker nem válaszolt 15 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
+      setInputStatus("A worker nem válaszolt 25 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
       toast.error("A beillesztés nem fejeződött be. Próbáld újra a mezőre kattintás után.");
-    }, 15000);
+    }, 25000);
     const sent = sendToWorker("pasteSecret", { text });
     if (!sent) {
       if (secretTimeoutRef.current !== null) window.clearTimeout(secretTimeoutRef.current);
@@ -551,8 +560,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       secretTimeoutRef.current = window.setTimeout(() => {
         secretTimeoutRef.current = null;
         setSecretBusy(false);
-        setInputStatus("A worker nem válaszolt 15 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
-      }, 15000);
+        setInputStatus("A worker nem válaszolt 25 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
+      }, 25000);
       const sent = sendToWorker("pasteSecretAt", {
         text: secretValue,
         x,
