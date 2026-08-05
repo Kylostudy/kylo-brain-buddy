@@ -829,6 +829,76 @@ async function runSession(payload) {
     return await hasEditableFocus();
   }
 
+  async function findSecretTarget() {
+    // A fókuszált mezőt abban a frame-ben keressük, ahol ténylegesen van.
+    // A page.locator(':focus') csak a fő dokumentumot látja, ezért iframe-ben
+    // lévő login mezőknél korábban tévesen elveszett a célpont.
+    for (const frame of page.frames()) {
+      const focused = frame.locator(
+        'input:focus:not([disabled]):not([readonly]), textarea:focus:not([disabled]):not([readonly]), [contenteditable="true"]:focus, [contenteditable="plaintext-only"]:focus, [role="textbox"]:focus',
+      );
+      if (await focused.count().catch(() => 0)) return focused.first();
+    }
+
+    // Ha a kattintás fókuszát az oldal közben elvette, egyetlen látható
+    // jelszómező még egyértelmű célpont. Minden frame-et átnézünk.
+    const passwords = [];
+    for (const frame of page.frames()) {
+      const fields = frame.locator('input[type="password"]:visible:not([disabled]):not([readonly])');
+      const count = await fields.count().catch(() => 0);
+      for (let index = 0; index < count; index += 1) passwords.push(fields.nth(index));
+    }
+    return passwords.length === 1 ? passwords[0] : null;
+  }
+
+  async function targetContainsExactSecret(locator, text) {
+    // Csak logikai eredményt hozunk ki az oldalból: a jelszó értéke nem kerül
+    // sem worker-naplóba, sem Realtime üzenetbe.
+    return locator.evaluate((el, expected) => {
+      if (typeof el.value === "string") return el.value === expected;
+      if (el.isContentEditable) return (el.textContent || "") === expected;
+      return false;
+    }, text).catch(() => false);
+  }
+
+  async function writeSecretToTarget(locator, text) {
+    await locator.scrollIntoViewIfNeeded().catch(() => {});
+    await locator.focus();
+
+    // 1. A Playwright fill kezeli helyesen a React/Vue által figyelt inputokat.
+    await locator.fill(text, { timeout: 5000 }).catch(() => {});
+    await sleep(120);
+    if (await targetContainsExactSecret(locator, text)) return "fill";
+
+    // 2. Natív böngésző-bevitel, ugyanazon a célmezőn.
+    await locator.focus();
+    await page.keyboard.press("Control+A").catch(() => {});
+    await page.keyboard.insertText(text).catch(() => {});
+    await sleep(120);
+    if (await targetContainsExactSecret(locator, text)) return "insertText";
+
+    // 3. Utolsó tartalék: a natív value setter + valódi input/change esemény.
+    // Ez olyan vezérelt mezőknél segít, amelyek a billentyűeseményt elnyelik.
+    await locator.evaluate((el, value) => {
+      if (el.isContentEditable) {
+        el.textContent = value;
+      } else {
+        const proto = el instanceof HTMLTextAreaElement
+          ? HTMLTextAreaElement.prototype
+          : HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+        if (setter) setter.call(el, value);
+        else el.value = value;
+      }
+      el.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: value }));
+      el.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    }, text);
+    await sleep(120);
+    if (await targetContainsExactSecret(locator, text)) return "nativeSetter";
+
+    throw new Error("A jelszómező nem fogadta el a beillesztést.");
+  }
+
 
   let clickBusy = false;
   channel.on("broadcast", { event: "click" }, async ({ payload }) => {
@@ -1085,38 +1155,17 @@ async function runSession(payload) {
         payload: { kind: "secret", status: "received", target: "A worker átvette a jelszót, beillesztés folyamatban…" },
       }).catch(() => {});
 
-      let focused = await ensureEditableFocusFromLastClick();
-      if (!focused) {
-        const visiblePasswords = page.locator('input[type="password"]:visible');
-        const passwordCount = await visiblePasswords.count();
-        if (passwordCount === 1) {
-          await visiblePasswords.first().focus();
-          focused = true;
-        }
-      }
-      if (!focused) {
+      await ensureEditableFocusFromLastClick();
+      const target = await findSecretTarget();
+      if (!target) {
         throw new Error("Nem található kijelölt jelszómező. Kattints rá a képen, majd próbáld újra.");
       }
-
-      const focusedField = page.locator(":focus");
-      try {
-        await focusedField.fill(text, { timeout: 5000 });
-      } catch {
-        await page.keyboard.insertText(text);
-      }
-      const insertedLength = await page.evaluate(() => {
-        const el = document.activeElement;
-        if (!el) return null;
-        if (typeof el.value === "string") return el.value.length;
-        if (el.isContentEditable) return (el.textContent || "").length;
-        return null;
-      });
-      if (insertedLength === 0) throw new Error("A mező nem fogadta el a beillesztést.");
+      const method = await writeSecretToTarget(target, text);
 
       await channel.send({
         type: "broadcast",
         event: "inputAck",
-        payload: { kind: "secret", status: "done", target: `${text.length} karakter beillesztve` },
+        payload: { kind: "secret", status: "done", target: `${text.length} karakter ellenőrizve (${method})` },
       }).catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] secret paste error:`, e?.message || e);
@@ -1170,34 +1219,14 @@ async function runSession(payload) {
         throw new Error("A kijelölt ponton nem található beviteli mező. Kattints közvetlenül a jelszómező közepére.");
       }
 
-      const beforeLength = await page.evaluate(() => {
-        const el = document.activeElement;
-        if (!el) return null;
-        if (typeof el.value === "string") return el.value.length;
-        if (el.isContentEditable) return (el.textContent || "").length;
-        return null;
-      });
-      const focusedField = page.locator(":focus");
-      try {
-        await focusedField.fill(text, { timeout: 5000 });
-      } catch {
-        await page.keyboard.insertText(text);
-      }
-      const afterLength = await page.evaluate(() => {
-        const el = document.activeElement;
-        if (!el) return null;
-        if (typeof el.value === "string") return el.value.length;
-        if (el.isContentEditable) return (el.textContent || "").length;
-        return null;
-      });
-      if (afterLength === null || afterLength <= (beforeLength ?? 0)) {
-        throw new Error("A jelszómező nem fogadta el a beillesztést.");
-      }
+      const target = await findSecretTarget();
+      if (!target) throw new Error("A kijelölt jelszómező nem található.");
+      const method = await writeSecretToTarget(target, text);
 
       await channel.send({
         type: "broadcast",
         event: "inputAck",
-        payload: { kind: "secret", status: "done", target: `${text.length} karakter beillesztve` },
+        payload: { kind: "secret", status: "done", target: `${text.length} karakter ellenőrizve (${method})` },
       }).catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] coordinate secret paste error:`, e?.message || e);
