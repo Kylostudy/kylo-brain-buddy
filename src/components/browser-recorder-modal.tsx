@@ -446,7 +446,14 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       return;
     }
     try {
-      await sent;
+      const result = await sent;
+      if (result !== "ok") {
+        if (secretTimeoutRef.current !== null) window.clearTimeout(secretTimeoutRef.current);
+        secretTimeoutRef.current = null;
+        setSecretBusy(false);
+        setInputStatus(`A jelszó küldése sikertelen: ${result}`);
+        toast.error("A jelszó nem jutott el a workerhez. Próbáld újra.");
+      }
     } catch {
       if (secretTimeoutRef.current !== null) window.clearTimeout(secretTimeoutRef.current);
       secretTimeoutRef.current = null;
@@ -560,12 +567,20 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         setInputStatus("Nincs aktív kapcsolat a workerhez (channel=null)");
         return;
       }
-      void Promise.resolve(sent).catch((err) => {
-        if (secretTimeoutRef.current !== null) window.clearTimeout(secretTimeoutRef.current);
-        secretTimeoutRef.current = null;
-        setSecretBusy(false);
-        setInputStatus(`Jelszó küldési hiba: ${err instanceof Error ? err.message : String(err)}`);
-      });
+      void Promise.resolve(sent)
+        .then((result) => {
+          if (result === "ok") return;
+          if (secretTimeoutRef.current !== null) window.clearTimeout(secretTimeoutRef.current);
+          secretTimeoutRef.current = null;
+          setSecretBusy(false);
+          setInputStatus(`A jelszó küldése sikertelen: ${result}`);
+        })
+        .catch((err) => {
+          if (secretTimeoutRef.current !== null) window.clearTimeout(secretTimeoutRef.current);
+          secretTimeoutRef.current = null;
+          setSecretBusy(false);
+          setInputStatus(`Jelszó küldési hiba: ${err instanceof Error ? err.message : String(err)}`);
+        });
       return;
     }
 
