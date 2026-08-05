@@ -635,7 +635,7 @@ export function AppSidebar() {
                 </>
               )}
 
-              {folders.map((folder) => {
+              {searchResults === null && folders.map((folder) => {
                 const items = grouped.byFolder.get(folder.id) ?? [];
                 const isOpen = !collapsed[folder.id];
                 return (
