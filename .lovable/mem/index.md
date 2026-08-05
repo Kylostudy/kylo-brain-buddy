@@ -25,3 +25,4 @@ MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = 
 - [esti-fejlesztoi-mod](mem://features/live-dev-mode) — Élő szkript-becsatolás build nélkül a workeren (17:00–08:00), live.sh kapcsoló, biztonsági fékek
 - [facebook-bemelegítés](mem://features/facebook-warmup) — HU IP-s FB fiók passzív melegítése: csak süti-belépés, soha nem posztol, checkpointra azonnal leáll
 - [nyelvtanulási-subredditek](mem://features/language-learning-subreddits) — Nyelvtanulási subredditek a warmupban, később külön (nem személyes) tartalommal posztolunk
+- [reddit-diskurzus-elemzés](mem://features/reddit-discourse-analysis) — Roadmap: nyelvtanuló subredditek napi tartalomelemzése, pár nap után konkrét beszállási javaslatok magyar válaszvázlattal
