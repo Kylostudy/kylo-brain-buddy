@@ -830,25 +830,33 @@ async function runSession(payload) {
   }
 
   async function findSecretTarget() {
-    // A fókuszált mezőt abban a frame-ben keressük, ahol ténylegesen van.
-    // A page.locator(':focus') csak a fő dokumentumot látja, ezért iframe-ben
-    // lévő login mezőknél korábban tévesen elveszett a célpont.
+    // Először a fókuszált JELSZÓMEZŐT keressük. Korábban egy fókuszban maradt
+    // felhasználónév-mező is sikeres célpontnak számított, ezért a worker kész
+    // állapotot küldhetett úgy, hogy a látható jelszómező üres maradt.
     for (const frame of page.frames()) {
-      const focused = frame.locator(
-        'input:focus:not([disabled]):not([readonly]), textarea:focus:not([disabled]):not([readonly]), [contenteditable="true"]:focus, [contenteditable="plaintext-only"]:focus, [role="textbox"]:focus',
-      );
-      if (await focused.count().catch(() => 0)) return focused.first();
+      const focusedPassword = frame.locator('input[type="password"]:focus:not([disabled]):not([readonly])');
+      if (await focusedPassword.count().catch(() => 0)) return focusedPassword.first();
     }
 
-    // Ha a kattintás fókuszát az oldal közben elvette, egyetlen látható
-    // jelszómező még egyértelmű célpont. Minden frame-et átnézünk.
+    // Ha pontosan egy látható jelszómező van, az mindig elsőbbséget élvez egy
+    // másik, korábban fókuszált szövegmezővel szemben.
     const passwords = [];
     for (const frame of page.frames()) {
       const fields = frame.locator('input[type="password"]:visible:not([disabled]):not([readonly])');
       const count = await fields.count().catch(() => 0);
       for (let index = 0; index < count; index += 1) passwords.push(fields.nth(index));
     }
-    return passwords.length === 1 ? passwords[0] : null;
+    if (passwords.length === 1) return passwords[0];
+
+    // Nem belépési képernyőn a kijelölt általános beviteli mező marad a
+    // tartalék célpont. Az iframe-eket itt is külön átnézzük.
+    for (const frame of page.frames()) {
+      const focused = frame.locator(
+        'input:focus:not([disabled]):not([readonly]), textarea:focus:not([disabled]):not([readonly]), [contenteditable="true"]:focus, [contenteditable="plaintext-only"]:focus, [role="textbox"]:focus',
+      );
+      if (await focused.count().catch(() => 0)) return focused.first();
+    }
+    return null;
   }
 
   async function targetContainsExactSecret(locator, text) {
