@@ -24,6 +24,8 @@ import {
   ChevronDown,
   FolderInput,
   Activity,
+  Search,
+
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -130,6 +132,38 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [folderDraft, setFolderDraft] = useState("");
+  const [search, setSearch] = useState("");
+  const [lastWorkflowId, setLastWorkflowId] = useState<string | null>(null);
+
+  // Az utoljára megnyitott workflow megjegyzése (böngészőben tárolva).
+  useEffect(() => {
+    setLastWorkflowId(localStorage.getItem(`kylo.lastWorkflow.${module}`));
+  }, [module]);
+
+  useEffect(() => {
+    const match = /^\/w\/([^/]+)$/.exec(currentPath);
+    if (match) {
+      localStorage.setItem(`kylo.lastWorkflow.${module}`, match[1]);
+      setLastWorkflowId(match[1]);
+    }
+  }, [currentPath, module]);
+
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return null;
+    const starts = workflows.filter((w) => w.name.toLowerCase().startsWith(q));
+    const contains = workflows.filter(
+      (w) => !w.name.toLowerCase().startsWith(q) && w.name.toLowerCase().includes(q),
+    );
+    return [...starts, ...contains];
+  }, [search, workflows]);
+
+  const lastWorkflow = useMemo(
+    () => workflows.find((w) => w.id === lastWorkflowId) ?? null,
+    [workflows, lastWorkflowId],
+  );
+
+
 
   const grouped = useMemo(() => {
     const byFolder = new Map<string, Workflow[]>();
@@ -548,6 +582,27 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Workflow-k</SidebarGroupLabel>
           <SidebarGroupContent>
+            <div className="mb-2 px-1 group-data-[collapsible=icon]:hidden">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Keresés a workflow-k közt…"
+                  className="h-8 pl-7 pr-7 text-xs"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-1.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+                    aria-label="Keresés törlése"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
             <SidebarMenu>
               {isLoading && (
                 <div className="px-2 py-1 text-xs text-muted-foreground">
@@ -559,7 +614,31 @@ export function AppSidebar() {
                   Még nincs workflow.
                 </div>
               )}
-              {folders.map((folder) => {
+              {searchResults !== null && (
+                <>
+                  {searchResults.length === 0 ? (
+                    <div className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                      Nincs találat.
+                    </div>
+                  ) : (
+                    searchResults.map((wf) => renderWorkflow(wf))
+                  )}
+                </>
+              )}
+              {searchResults === null && lastWorkflow && (
+                <>
+                  <div className="px-2 pb-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                    Legutóbb használt
+                  </div>
+                  <div className="contents" key={`pinned-${lastWorkflow.id}`}>
+                    {renderWorkflow(lastWorkflow)}
+                  </div>
+
+                  <div className="my-1 border-t border-sidebar-border group-data-[collapsible=icon]:hidden" />
+                </>
+              )}
+
+              {searchResults === null && folders.map((folder) => {
                 const items = grouped.byFolder.get(folder.id) ?? [];
                 const isOpen = !collapsed[folder.id];
                 return (
@@ -641,12 +720,13 @@ export function AppSidebar() {
                 );
               })}
 
-              {folders.length > 0 && grouped.loose.length > 0 && (
+              {searchResults === null && folders.length > 0 && grouped.loose.length > 0 && (
                 <div className="px-2 pt-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
                   Mappa nélkül
                 </div>
               )}
-              {grouped.loose.map((wf) => renderWorkflow(wf))}
+              {searchResults === null && grouped.loose.map((wf) => renderWorkflow(wf))}
+
 
             </SidebarMenu>
           </SidebarGroupContent>
