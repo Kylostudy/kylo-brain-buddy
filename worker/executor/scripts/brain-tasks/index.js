@@ -22,7 +22,10 @@ import { runRedditPost } from "./reddit-post.js";
 import { runSttMediaFetch } from "./stt-media-fetch.js";
 import { runLinkedInPost } from "./linkedin-post.js";
 import { runFacebookWarmup } from "./facebook-warmup.js";
+import { runInstagramWarmup } from "./instagram-warmup.js";
+import { runTikTokWarmup } from "./tiktok-warmup.js";
 import { runLinkedInWarmup } from "./linkedin-warmup.js";
+
 
 
 export function isBrainTask(spec) {
