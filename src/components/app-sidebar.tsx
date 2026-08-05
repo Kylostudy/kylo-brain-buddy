@@ -717,12 +717,13 @@ export function AppSidebar() {
                 );
               })}
 
-              {folders.length > 0 && grouped.loose.length > 0 && (
+              {searchResults === null && folders.length > 0 && grouped.loose.length > 0 && (
                 <div className="px-2 pt-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
                   Mappa nélkül
                 </div>
               )}
-              {grouped.loose.map((wf) => renderWorkflow(wf))}
+              {searchResults === null && grouped.loose.map((wf) => renderWorkflow(wf))}
+
 
             </SidebarMenu>
           </SidebarGroupContent>
