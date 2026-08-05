@@ -765,7 +765,7 @@ async function runSession(payload) {
   let viewportH = viewport.height;
   const actions = [];
   const channel = sb.channel(session.channel, {
-    config: { broadcast: { self: false, ack: false } },
+    config: { broadcast: { self: false, ack: true } },
   });
   console.log(`[session ${session.id}] channel létrehozva: ${session.channel}`);
   // DIAGNOSZTIKA: minden beérkező broadcast eventet logolunk
