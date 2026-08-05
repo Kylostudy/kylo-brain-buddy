@@ -24,9 +24,22 @@ function Index() {
   const { module, meta } = useModule();
   const Icon = module === "brain" ? Brain : Bot;
 
-  // Auto-open last workflow if any exists — modul-szerint szűrve.
+  // Auto-open: először az utoljára használt workflow, ha még létezik.
   useEffect(() => {
     (async () => {
+      const lastId = localStorage.getItem(`kylo.lastWorkflow.${module}`);
+      if (lastId) {
+        const { data: last } = await supabase
+          .from("workflows")
+          .select("id")
+          .eq("id", lastId)
+          .eq("module", module)
+          .maybeSingle();
+        if (last?.id) {
+          navigate({ to: "/w/$workflowId", params: { workflowId: last.id }, replace: true });
+          return;
+        }
+      }
       const { data } = await supabase
         .from("workflows")
         .select("id")
@@ -39,6 +52,7 @@ function Index() {
       }
     })();
   }, [navigate, module]);
+
 
   return (
     <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
