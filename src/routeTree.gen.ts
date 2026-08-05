@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated.content'
+import { Route as AuthenticatedDiscourseRouteImport } from './routes/_authenticated.discourse'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
 import { Route as AuthenticatedPatrolRouteImport } from './routes/_authenticated.patrol'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
@@ -83,6 +84,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedContentRoute = AuthenticatedContentRouteImport.update({
   id: '/content',
   path: '/content',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDiscourseRoute = AuthenticatedDiscourseRouteImport.update({
+  id: '/discourse',
+  path: '/discourse',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
@@ -391,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/content': typeof AuthenticatedContentRoute
+  '/discourse': typeof AuthenticatedDiscourseRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
@@ -447,6 +454,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/content': typeof AuthenticatedContentRoute
+  '/discourse': typeof AuthenticatedDiscourseRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
@@ -506,6 +514,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/content': typeof AuthenticatedContentRoute
+  '/_authenticated/discourse': typeof AuthenticatedDiscourseRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/patrol': typeof AuthenticatedPatrolRoute
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
@@ -566,6 +575,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/content'
+    | '/discourse'
     | '/inbox'
     | '/patrol'
     | '/proxies'
@@ -622,6 +632,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/content'
+    | '/discourse'
     | '/inbox'
     | '/patrol'
     | '/proxies'
@@ -680,6 +691,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/content'
+    | '/_authenticated/discourse'
     | '/_authenticated/inbox'
     | '/_authenticated/patrol'
     | '/_authenticated/proxies'
@@ -809,6 +821,13 @@ declare module '@tanstack/react-router' {
       path: '/content'
       fullPath: '/content'
       preLoaderRoute: typeof AuthenticatedContentRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/discourse': {
+      id: '/_authenticated/discourse'
+      path: '/discourse'
+      fullPath: '/discourse'
+      preLoaderRoute: typeof AuthenticatedDiscourseRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/inbox': {
@@ -1180,6 +1199,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedContentRoute: typeof AuthenticatedContentRoute
+  AuthenticatedDiscourseRoute: typeof AuthenticatedDiscourseRoute
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedPatrolRoute: typeof AuthenticatedPatrolRoute
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
@@ -1195,6 +1215,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedContentRoute: AuthenticatedContentRoute,
+  AuthenticatedDiscourseRoute: AuthenticatedDiscourseRoute,
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedPatrolRoute: AuthenticatedPatrolRoute,
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
