@@ -548,6 +548,27 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Workflow-k</SidebarGroupLabel>
           <SidebarGroupContent>
+            <div className="mb-2 px-1 group-data-[collapsible=icon]:hidden">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Keresés a workflow-k közt…"
+                  className="h-8 pl-7 pr-7 text-xs"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-1.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+                    aria-label="Keresés törlése"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
             <SidebarMenu>
               {isLoading && (
                 <div className="px-2 py-1 text-xs text-muted-foreground">
@@ -559,6 +580,27 @@ export function AppSidebar() {
                   Még nincs workflow.
                 </div>
               )}
+              {searchResults !== null && (
+                <>
+                  {searchResults.length === 0 ? (
+                    <div className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                      Nincs találat.
+                    </div>
+                  ) : (
+                    searchResults.map((wf) => renderWorkflow(wf))
+                  )}
+                </>
+              )}
+              {searchResults === null && lastWorkflow && (
+                <>
+                  <div className="px-2 pb-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                    Legutóbb használt
+                  </div>
+                  {renderWorkflow(lastWorkflow)}
+                  <div className="my-1 border-t border-sidebar-border group-data-[collapsible=icon]:hidden" />
+                </>
+              )}
+
               {folders.map((folder) => {
                 const items = grouped.byFolder.get(folder.id) ?? [];
                 const isOpen = !collapsed[folder.id];
