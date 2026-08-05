@@ -93,6 +93,12 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [gmailConfirmBusy, setGmailConfirmBusy] = useState(false);
   const [kyloUnlockBusy, setKyloUnlockBusy] = useState(false);
   const [inputStatus, setInputStatus] = useState("");
+  // A státusz-sáv ne maradjon ott örökre (eltakarhatja a Bezár gombot).
+  useEffect(() => {
+    if (!inputStatus) return;
+    const t = window.setTimeout(() => setInputStatus(""), 3000);
+    return () => window.clearTimeout(t);
+  }, [inputStatus]);
   // Jelszó-beküldés: a Bitwarden-féle bonyolult jelszót nem lehet emberként
   // gépelni, ezért egy mezőbe beillesztve, egy lépésben küldjük a workernek.
   const [secretOpen, setSecretOpen] = useState(false);
