@@ -830,25 +830,33 @@ async function runSession(payload) {
   }
 
   async function findSecretTarget() {
-    // A fókuszált mezőt abban a frame-ben keressük, ahol ténylegesen van.
-    // A page.locator(':focus') csak a fő dokumentumot látja, ezért iframe-ben
-    // lévő login mezőknél korábban tévesen elveszett a célpont.
+    // Először a fókuszált JELSZÓMEZŐT keressük. Korábban egy fókuszban maradt
+    // felhasználónév-mező is sikeres célpontnak számított, ezért a worker kész
+    // állapotot küldhetett úgy, hogy a látható jelszómező üres maradt.
     for (const frame of page.frames()) {
-      const focused = frame.locator(
-        'input:focus:not([disabled]):not([readonly]), textarea:focus:not([disabled]):not([readonly]), [contenteditable="true"]:focus, [contenteditable="plaintext-only"]:focus, [role="textbox"]:focus',
-      );
-      if (await focused.count().catch(() => 0)) return focused.first();
+      const focusedPassword = frame.locator('input[type="password"]:focus:not([disabled]):not([readonly])');
+      if (await focusedPassword.count().catch(() => 0)) return focusedPassword.first();
     }
 
-    // Ha a kattintás fókuszát az oldal közben elvette, egyetlen látható
-    // jelszómező még egyértelmű célpont. Minden frame-et átnézünk.
+    // Ha pontosan egy látható jelszómező van, az mindig elsőbbséget élvez egy
+    // másik, korábban fókuszált szövegmezővel szemben.
     const passwords = [];
     for (const frame of page.frames()) {
       const fields = frame.locator('input[type="password"]:visible:not([disabled]):not([readonly])');
       const count = await fields.count().catch(() => 0);
       for (let index = 0; index < count; index += 1) passwords.push(fields.nth(index));
     }
-    return passwords.length === 1 ? passwords[0] : null;
+    if (passwords.length === 1) return passwords[0];
+
+    // Nem belépési képernyőn a kijelölt általános beviteli mező marad a
+    // tartalék célpont. Az iframe-eket itt is külön átnézzük.
+    for (const frame of page.frames()) {
+      const focused = frame.locator(
+        'input:focus:not([disabled]):not([readonly]), textarea:focus:not([disabled]):not([readonly]), [contenteditable="true"]:focus, [contenteditable="plaintext-only"]:focus, [role="textbox"]:focus',
+      );
+      if (await focused.count().catch(() => 0)) return focused.first();
+    }
+    return null;
   }
 
   async function targetContainsExactSecret(locator, text) {
@@ -861,23 +869,39 @@ async function runSession(payload) {
     }, text).catch(() => false);
   }
 
+  async function secretRemainsInTarget(locator, text) {
+    if (!await targetContainsExactSecret(locator, text)) return false;
+    // A LinkedInhez hasonló, vezérelt mezők egy későbbi újrarajzoláskor
+    // visszaállíthatják az értéket. Ne jelezzünk sikert egy pillanatnyi állapotra.
+    await sleep(900);
+    return await targetContainsExactSecret(locator, text);
+  }
+
   async function writeSecretToTarget(locator, text) {
     await locator.scrollIntoViewIfNeeded().catch(() => {});
     await locator.focus();
 
-    // 1. A Playwright fill kezeli helyesen a React/Vue által figyelt inputokat.
+    // 1. Valódi billentyűesemények: a LinkedIn vezérelt jelszómezője ezt
+    // fogadja el a legmegbízhatóbban. A speciális karaktereket is pontosan
+    // visszaellenőrizzük, mielőtt sikert jelzünk.
+    await page.keyboard.press("Control+A").catch(() => {});
+    await page.keyboard.type(text, { delay: 12 }).catch(() => {});
+    await sleep(120);
+    if (await secretRemainsInTarget(locator, text)) return "keyboard";
+
+    // 2. A Playwright fill kezeli helyesen a legtöbb React/Vue inputot.
     await locator.fill(text, { timeout: 5000 }).catch(() => {});
     await sleep(120);
-    if (await targetContainsExactSecret(locator, text)) return "fill";
+    if (await secretRemainsInTarget(locator, text)) return "fill";
 
-    // 2. Natív böngésző-bevitel, ugyanazon a célmezőn.
+    // 3. Natív böngésző-bevitel, ugyanazon a célmezőn.
     await locator.focus();
     await page.keyboard.press("Control+A").catch(() => {});
     await page.keyboard.insertText(text).catch(() => {});
     await sleep(120);
-    if (await targetContainsExactSecret(locator, text)) return "insertText";
+    if (await secretRemainsInTarget(locator, text)) return "insertText";
 
-    // 3. Utolsó tartalék: a natív value setter + valódi input/change esemény.
+    // 4. Utolsó tartalék: a natív value setter + input/change esemény.
     // Ez olyan vezérelt mezőknél segít, amelyek a billentyűeseményt elnyelik.
     await locator.evaluate((el, value) => {
       if (el.isContentEditable) {
@@ -894,7 +918,7 @@ async function runSession(payload) {
       el.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
     }, text);
     await sleep(120);
-    if (await targetContainsExactSecret(locator, text)) return "nativeSetter";
+    if (await secretRemainsInTarget(locator, text)) return "nativeSetter";
 
     throw new Error("A jelszómező nem fogadta el a beillesztést.");
   }
