@@ -434,9 +434,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     secretTimeoutRef.current = window.setTimeout(() => {
       secretTimeoutRef.current = null;
       setSecretBusy(false);
-      setInputStatus("A worker nem válaszolt 15 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
+      setInputStatus("A worker nem válaszolt 25 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
       toast.error("A beillesztés nem fejeződött be. Próbáld újra a mezőre kattintás után.");
-    }, 15000);
+    }, 25000);
     const sent = sendToWorker("pasteSecret", { text });
     if (!sent) {
       if (secretTimeoutRef.current !== null) window.clearTimeout(secretTimeoutRef.current);
@@ -551,8 +551,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       secretTimeoutRef.current = window.setTimeout(() => {
         secretTimeoutRef.current = null;
         setSecretBusy(false);
-        setInputStatus("A worker nem válaszolt 15 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
-      }, 15000);
+        setInputStatus("A worker nem válaszolt 25 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
+      }, 25000);
       const sent = sendToWorker("pasteSecretAt", {
         text: secretValue,
         x,
