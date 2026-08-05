@@ -851,12 +851,14 @@ async function runSession(payload) {
     return passwords.length === 1 ? passwords[0] : null;
   }
 
-  async function readEditableLength(locator) {
-    return locator.evaluate((el) => {
-      if (typeof el.value === "string") return el.value.length;
-      if (el.isContentEditable) return (el.textContent || "").length;
-      return null;
-    }).catch(() => null);
+  async function targetContainsExactSecret(locator, text) {
+    // Csak logikai eredményt hozunk ki az oldalból: a jelszó értéke nem kerül
+    // sem worker-naplóba, sem Realtime üzenetbe.
+    return locator.evaluate((el, expected) => {
+      if (typeof el.value === "string") return el.value === expected;
+      if (el.isContentEditable) return (el.textContent || "") === expected;
+      return false;
+    }, text).catch(() => false);
   }
 
   async function writeSecretToTarget(locator, text) {
@@ -865,13 +867,15 @@ async function runSession(payload) {
 
     // 1. A Playwright fill kezeli helyesen a React/Vue által figyelt inputokat.
     await locator.fill(text, { timeout: 5000 }).catch(() => {});
-    if ((await readEditableLength(locator)) === text.length) return "fill";
+    await sleep(120);
+    if (await targetContainsExactSecret(locator, text)) return "fill";
 
     // 2. Natív böngésző-bevitel, ugyanazon a célmezőn.
     await locator.focus();
     await page.keyboard.press("Control+A").catch(() => {});
     await page.keyboard.insertText(text).catch(() => {});
-    if ((await readEditableLength(locator)) === text.length) return "insertText";
+    await sleep(120);
+    if (await targetContainsExactSecret(locator, text)) return "insertText";
 
     // 3. Utolsó tartalék: a natív value setter + valódi input/change esemény.
     // Ez olyan vezérelt mezőknél segít, amelyek a billentyűeseményt elnyelik.
@@ -889,7 +893,8 @@ async function runSession(payload) {
       el.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: value }));
       el.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
     }, text);
-    if ((await readEditableLength(locator)) === text.length) return "nativeSetter";
+    await sleep(120);
+    if (await targetContainsExactSecret(locator, text)) return "nativeSetter";
 
     throw new Error("A jelszómező nem fogadta el a beillesztést.");
   }
