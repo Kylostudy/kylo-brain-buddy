@@ -1079,6 +1079,12 @@ async function runSession(payload) {
     try {
       if (!text) throw new Error("üres jelszó érkezett");
 
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "secret", status: "received", target: "A worker átvette a jelszót, beillesztés folyamatban…" },
+      }).catch(() => {});
+
       let focused = await ensureEditableFocusFromLastClick();
       if (!focused) {
         const visiblePasswords = page.locator('input[type="password"]:visible');
@@ -1092,7 +1098,12 @@ async function runSession(payload) {
         throw new Error("Nem található kijelölt jelszómező. Kattints rá a képen, majd próbáld újra.");
       }
 
-      await page.keyboard.insertText(text);
+      const focusedField = page.locator(":focus");
+      try {
+        await focusedField.fill(text, { timeout: 5000 });
+      } catch {
+        await page.keyboard.insertText(text);
+      }
       const insertedLength = await page.evaluate(() => {
         const el = document.activeElement;
         if (!el) return null;
@@ -1124,6 +1135,11 @@ async function runSession(payload) {
     const text = typeof payload?.text === "string" ? payload.text : "";
     try {
       if (!text) throw new Error("üres jelszó érkezett");
+      await channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "secret", status: "received", target: "A worker átvette a célmezőt és a jelszót…" },
+      }).catch(() => {});
       const vs = page.viewportSize() || { width: viewportW, height: viewportH };
       const x = Math.max(0, Math.min(vs.width - 1, Number(payload?.x) * vs.width));
       const y = Math.max(0, Math.min(vs.height - 1, Number(payload?.y) * vs.height));
@@ -1161,7 +1177,12 @@ async function runSession(payload) {
         if (el.isContentEditable) return (el.textContent || "").length;
         return null;
       });
-      await page.keyboard.insertText(text);
+      const focusedField = page.locator(":focus");
+      try {
+        await focusedField.fill(text, { timeout: 5000 });
+      } catch {
+        await page.keyboard.insertText(text);
+      }
       const afterLength = await page.evaluate(() => {
         const el = document.activeElement;
         if (!el) return null;
