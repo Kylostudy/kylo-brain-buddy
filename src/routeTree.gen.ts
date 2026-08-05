@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated.content'
+import { Route as AuthenticatedDiscourseRouteImport } from './routes/_authenticated.discourse'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
 import { Route as AuthenticatedPatrolRouteImport } from './routes/_authenticated.patrol'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
@@ -31,6 +32,7 @@ import { Route as ApiPublicAdminImportIproyalRouteImport } from './routes/api/pu
 import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/auth.password'
 import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
+import { Route as ApiPublicCronRedditDiscourseRouteImport } from './routes/api/public/cron/reddit-discourse'
 import { Route as ApiPublicCronRedditPostPatrolRouteImport } from './routes/api/public/cron/reddit-post-patrol'
 import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
 import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
@@ -82,6 +84,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedContentRoute = AuthenticatedContentRouteImport.update({
   id: '/content',
   path: '/content',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDiscourseRoute = AuthenticatedDiscourseRouteImport.update({
+  id: '/discourse',
+  path: '/discourse',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
@@ -183,6 +190,12 @@ const ApiPublicCronEnqueueMonitorsRoute =
   ApiPublicCronEnqueueMonitorsRouteImport.update({
     id: '/api/public/cron/enqueue-monitors',
     path: '/api/public/cron/enqueue-monitors',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronRedditDiscourseRoute =
+  ApiPublicCronRedditDiscourseRouteImport.update({
+    id: '/api/public/cron/reddit-discourse',
+    path: '/api/public/cron/reddit-discourse',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCronRedditPostPatrolRoute =
@@ -384,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/content': typeof AuthenticatedContentRoute
+  '/discourse': typeof AuthenticatedDiscourseRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
@@ -402,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
@@ -439,6 +454,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/content': typeof AuthenticatedContentRoute
+  '/discourse': typeof AuthenticatedDiscourseRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
@@ -458,6 +474,7 @@ export interface FileRoutesByTo {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
@@ -497,6 +514,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/content': typeof AuthenticatedContentRoute
+  '/_authenticated/discourse': typeof AuthenticatedDiscourseRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/patrol': typeof AuthenticatedPatrolRoute
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
@@ -516,6 +534,7 @@ export interface FileRoutesById {
   '/api/public/auth/password': typeof ApiPublicAuthPasswordRoute
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
+  '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
@@ -556,6 +575,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/content'
+    | '/discourse'
     | '/inbox'
     | '/patrol'
     | '/proxies'
@@ -574,6 +594,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
@@ -611,6 +632,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/content'
+    | '/discourse'
     | '/inbox'
     | '/patrol'
     | '/proxies'
@@ -630,6 +652,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
@@ -668,6 +691,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/content'
+    | '/_authenticated/discourse'
     | '/_authenticated/inbox'
     | '/_authenticated/patrol'
     | '/_authenticated/proxies'
@@ -687,6 +711,7 @@ export interface FileRouteTypes {
     | '/api/public/auth/password'
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
+    | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
@@ -733,6 +758,7 @@ export interface RootRouteChildren {
   ApiPublicAuthPasswordRoute: typeof ApiPublicAuthPasswordRoute
   ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
+  ApiPublicCronRedditDiscourseRoute: typeof ApiPublicCronRedditDiscourseRoute
   ApiPublicCronRedditPostPatrolRoute: typeof ApiPublicCronRedditPostPatrolRoute
   ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
   ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
@@ -795,6 +821,13 @@ declare module '@tanstack/react-router' {
       path: '/content'
       fullPath: '/content'
       preLoaderRoute: typeof AuthenticatedContentRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/discourse': {
+      id: '/_authenticated/discourse'
+      path: '/discourse'
+      fullPath: '/discourse'
+      preLoaderRoute: typeof AuthenticatedDiscourseRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/inbox': {
@@ -921,6 +954,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/enqueue-monitors'
       fullPath: '/api/public/cron/enqueue-monitors'
       preLoaderRoute: typeof ApiPublicCronEnqueueMonitorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/reddit-discourse': {
+      id: '/api/public/cron/reddit-discourse'
+      path: '/api/public/cron/reddit-discourse'
+      fullPath: '/api/public/cron/reddit-discourse'
+      preLoaderRoute: typeof ApiPublicCronRedditDiscourseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cron/reddit-post-patrol': {
@@ -1159,6 +1199,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedContentRoute: typeof AuthenticatedContentRoute
+  AuthenticatedDiscourseRoute: typeof AuthenticatedDiscourseRoute
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedPatrolRoute: typeof AuthenticatedPatrolRoute
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
@@ -1174,6 +1215,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedContentRoute: AuthenticatedContentRoute,
+  AuthenticatedDiscourseRoute: AuthenticatedDiscourseRoute,
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedPatrolRoute: AuthenticatedPatrolRoute,
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
@@ -1217,6 +1259,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAuthPasswordRoute: ApiPublicAuthPasswordRoute,
   ApiPublicCronDispatchBrainTasksRoute: ApiPublicCronDispatchBrainTasksRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
+  ApiPublicCronRedditDiscourseRoute: ApiPublicCronRedditDiscourseRoute,
   ApiPublicCronRedditPostPatrolRoute: ApiPublicCronRedditPostPatrolRoute,
   ApiPublicCronScheduleRedditWarmupsRoute:
     ApiPublicCronScheduleRedditWarmupsRoute,
@@ -1257,13 +1300,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

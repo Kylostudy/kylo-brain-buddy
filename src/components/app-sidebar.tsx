@@ -778,6 +778,17 @@ export function AppSidebar() {
               )}
               {module === "brain" && (
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath === "/discourse"}>
+                    <Link to="/discourse" className="flex items-center gap-2">
+                      <MessageSquare className="size-4 shrink-0" />
+                      <span className="truncate">Diskurzus-elemző</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {module === "brain" && (
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={currentPath === "/content"}>
                     <Link to="/content" className="flex items-center gap-2">
                       <ClipboardPaste className="size-4 shrink-0" />
