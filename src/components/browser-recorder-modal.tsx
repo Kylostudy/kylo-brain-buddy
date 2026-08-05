@@ -263,12 +263,13 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       const p = payload as { savedCount?: number; platform?: string | null };
       toast.success(
         `Sütik mentve a workflow-hoz (${p.savedCount ?? "?"} db${p.platform ? ` · ${p.platform}` : ""}).`,
+        { duration: 3000 },
       );
       setCookieBusy(false);
     });
     ch.on("broadcast", { event: "cookieSaveError" }, ({ payload }) => {
       const p = payload as { error?: string };
-      toast.error(`Süti mentés sikertelen: ${p.error ?? "ismeretlen hiba"}`);
+      toast.error(`Süti mentés sikertelen: ${p.error ?? "ismeretlen hiba"}`, { duration: 5000 });
       setCookieBusy(false);
     });
 
