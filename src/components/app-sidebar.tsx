@@ -630,7 +630,10 @@ export function AppSidebar() {
                   <div className="px-2 pb-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
                     Legutóbb használt
                   </div>
-                  {renderWorkflow(lastWorkflow)}
+                  <div className="contents" key={`pinned-${lastWorkflow.id}`}>
+                    {renderWorkflow(lastWorkflow)}
+                  </div>
+
                   <div className="my-1 border-t border-sidebar-border group-data-[collapsible=icon]:hidden" />
                 </>
               )}
