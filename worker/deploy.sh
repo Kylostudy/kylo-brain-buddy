@@ -31,12 +31,30 @@ log() { echo "[deploy $(date -u +%FT%TZ)] $*"; }
 # be a szkripteket az executor konténerbe.
 ENV_FILE="$WORKER_DIR/.env"
 # A LIVE_* beállítások a worker/.env-ből jönnek (kézi futtatásnál is).
+# FONTOS: NEM "source"-oljuk a fájlt, mert a jelszavakban lévő speciális
+# karakterek (pl. $, !, ^) miatt a shell hibára futna. Soronként olvassuk be.
 if [ -f "$ENV_FILE" ]; then
-  set -a
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
-  set +a
+  while IFS= read -r __line || [ -n "$__line" ]; do
+    case "$__line" in
+      ''|'#'*) continue ;;
+      *=*) ;;
+      *) continue ;;
+    esac
+    __key="${__line%%=*}"
+    __val="${__line#*=}"
+    case "$__key" in
+      *[!A-Za-z0-9_]*|'') continue ;;
+    esac
+    # Idézőjelek levágása, ha a teljes értéket körbeveszik
+    case "$__val" in
+      \"*\") __val="${__val#\"}"; __val="${__val%\"}" ;;
+      \'*\') __val="${__val#\'}"; __val="${__val%\'}" ;;
+    esac
+    export "$__key=$__val"
+  done < "$ENV_FILE"
+  unset __line __key __val
 fi
+
 if [ -f "$ENV_FILE" ] && ! grep -q '^LIVE_EXECUTOR_HOST_DIR=' "$ENV_FILE"; then
   printf '\n# Élő szkript mód: az executor forrásának valódi útvonala a VPS-en\nLIVE_EXECUTOR_HOST_DIR=%s\n' \
     "$WORKER_DIR/executor" >> "$ENV_FILE"
