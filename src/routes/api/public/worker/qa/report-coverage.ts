@@ -7,7 +7,7 @@ import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 function checkAuth(request: Request): string | null {
-  const token = process.env.WORKER_API_TOKEN?.trim();
+  const token = (process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN)?.trim();
   if (!token) return "WORKER_API_TOKEN nincs beállítva";
   const header = request.headers.get("authorization") ?? "";
   const provided = (header.startsWith("Bearer ") ? header.slice(7) : request.headers.get("x-worker-token") ?? "").trim();

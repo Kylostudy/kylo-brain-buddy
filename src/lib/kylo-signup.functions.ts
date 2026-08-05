@@ -871,7 +871,7 @@ export const deleteKyloSignupRun = createServerFn({ method: "POST" })
 
     // A képek a Hetzner puffer szolgáltatásban vannak — azokat is töröljük.
     const shotsUrl = (process.env.SHOTS_UPLOAD_URL || "").replace(/\/$/, "");
-    const token = (process.env.WORKER_API_TOKEN || "").trim();
+    const token = ((process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN) || "").trim();
     let shotsDeleted = false;
     if (shotsUrl && token) {
       try {
@@ -1001,7 +1001,7 @@ export const deleteKyloSignupRuns = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const shotsUrl = (process.env.SHOTS_UPLOAD_URL || "").replace(/\/$/, "");
-    const token = (process.env.WORKER_API_TOKEN || "").trim();
+    const token = ((process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN) || "").trim();
     if (shotsUrl && token) {
       await Promise.all(
         data.runIds.map((id) =>
