@@ -780,7 +780,7 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={currentPath === "/discourse"}>
                     <Link to="/discourse" className="flex items-center gap-2">
-                      <MessagesSquare className="size-4 shrink-0" />
+                      <MessageSquare className="size-4 shrink-0" />
                       <span className="truncate">Diskurzus-elemző</span>
                     </Link>
                   </SidebarMenuButton>
