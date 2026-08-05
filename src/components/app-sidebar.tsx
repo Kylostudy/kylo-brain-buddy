@@ -24,6 +24,8 @@ import {
   ChevronDown,
   FolderInput,
   Activity,
+  Search,
+
 } from "lucide-react";
 import { toast } from "sonner";
 
