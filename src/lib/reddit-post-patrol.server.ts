@@ -331,7 +331,15 @@ export async function patrolWatch(watch: PatrolWatch): Promise<{
     ].join("\n");
 
 
-    const tg = await sendTelegram(text);
+    const tg = await sendTelegram(text, {
+      topic: "reddit_comment",
+      platform: "reddit",
+      ref_table: "reddit_comments",
+      ref_id: inserted.id,
+      label: `r/${subreddit} · u/${author}`,
+      payload: { post_title: postTitle, permalink: link, own_account: ownUsername },
+    });
+
     if (tg.messageId) {
       await db
         .from("reddit_comments")
