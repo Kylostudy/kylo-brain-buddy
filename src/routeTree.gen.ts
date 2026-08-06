@@ -49,6 +49,7 @@ import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/ap
 import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
+import { Route as ApiPublicWorkerRedditCommentDraftRouteImport } from './routes/api/public/worker/reddit-comment-draft'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicAuthGoogleCallbackRouteImport } from './routes/api/public/auth.google.callback'
@@ -291,6 +292,12 @@ const ApiPublicWorkerRecordStatusRoute =
     path: '/api/public/worker/record-status',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerRedditCommentDraftRoute =
+  ApiPublicWorkerRedditCommentDraftRouteImport.update({
+    id: '/api/public/worker/reddit-comment-draft',
+    path: '/api/public/worker/reddit-comment-draft',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerSaveCookiesRoute =
   ApiPublicWorkerSaveCookiesRouteImport.update({
     id: '/api/public/worker/save-cookies',
@@ -433,6 +440,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -491,6 +499,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -551,6 +560,7 @@ export interface FileRoutesById {
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -611,6 +621,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -669,6 +680,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -728,6 +740,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -775,6 +788,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerProgressRoute: typeof ApiPublicWorkerProgressRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
+  ApiPublicWorkerRedditCommentDraftRoute: typeof ApiPublicWorkerRedditCommentDraftRoute
   ApiPublicWorkerSaveCookiesRoute: typeof ApiPublicWorkerSaveCookiesRoute
   ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
   ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
@@ -1075,6 +1089,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerRecordStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/reddit-comment-draft': {
+      id: '/api/public/worker/reddit-comment-draft'
+      path: '/api/public/worker/reddit-comment-draft'
+      fullPath: '/api/public/worker/reddit-comment-draft'
+      preLoaderRoute: typeof ApiPublicWorkerRedditCommentDraftRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/save-cookies': {
       id: '/api/public/worker/save-cookies'
       path: '/api/public/worker/save-cookies'
@@ -1278,6 +1299,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerProgressRoute: ApiPublicWorkerProgressRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
+  ApiPublicWorkerRedditCommentDraftRoute:
+    ApiPublicWorkerRedditCommentDraftRoute,
   ApiPublicWorkerSaveCookiesRoute: ApiPublicWorkerSaveCookiesRoute,
   ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
   ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
