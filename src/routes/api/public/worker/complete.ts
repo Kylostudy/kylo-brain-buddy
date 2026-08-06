@@ -434,6 +434,34 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           console.error("[complete] Telegram poszt-visszaigazolás sikertelen:", e);
         }
 
+        // ---- LinkedIn metrika-pillanatkép elmentése ----
+        // A metrics_snapshot futás eredményét eltesszük, és Telegramon
+        // összefoglaljuk, mennyit mozdultak a posztok az előző mérés óta.
+        try {
+          const bt =
+            specSnapshot.brain_task && typeof specSnapshot.brain_task === "object"
+              ? (specSnapshot.brain_task as Record<string, unknown>)
+              : null;
+          const isLinkedInMetrics =
+            bt?.["task_type"] === "metrics_snapshot" &&
+            String(bt?.["platform"] ?? "").toLowerCase() === "linkedin" &&
+            finalStatus === "succeeded";
+          const snapshot = (res ?? {}) as Record<string, unknown>;
+          const rawPosts = snapshot["posts"];
+          if (isLinkedInMetrics && Array.isArray(rawPosts) && runRow?.tenant_id) {
+            const { saveLinkedInMetrics } = await import("@/lib/linkedin-metrics.server");
+            await saveLinkedInMetrics({
+              tenantId: runRow.tenant_id,
+              workflowId: runRow.workflow_id,
+              posts: rawPosts as never,
+            });
+          }
+        } catch (e) {
+          console.error("[complete] LinkedIn metrika mentés sikertelen:", e);
+        }
+
+
+
 
 
         // Teszt fiók állapota: ha a Sign Up futás végigment, a hozzá tartozó
