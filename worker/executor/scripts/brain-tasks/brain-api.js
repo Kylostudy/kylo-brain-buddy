@@ -145,3 +145,22 @@ export async function judgeReadingLog({
     clipboard_ok: clipboardOk,
   });
 }
+
+/** Karma-építő kommentjavaslat (Gemini Flash a Brain oldalán). */
+export async function draftRedditComment({
+  subreddit,
+  title,
+  body = "",
+  topComments = [],
+  language = "en",
+  account = "",
+}) {
+  return brainPost("/api/public/worker/reddit-comment-draft", {
+    subreddit,
+    title,
+    body,
+    top_comments: topComments,
+    language,
+    account,
+  }, { timeoutMs: 45000 });
+}

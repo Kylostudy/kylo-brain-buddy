@@ -19,6 +19,7 @@ import { runRecordReplay } from "./record-replay.js";
 import { runRedditWarmup } from "./reddit-warmup.js";
 import { runRedditRegister } from "./reddit-register.js";
 import { runRedditPost } from "./reddit-post.js";
+import { runRedditKarmaBuild } from "./reddit-karma-build.js";
 import { runSttMediaFetch } from "./stt-media-fetch.js";
 import { runLinkedInPost } from "./linkedin-post.js";
 import { runFacebookWarmup } from "./facebook-warmup.js";
@@ -57,6 +58,9 @@ export async function runBrainTask(args) {
 
     case "reddit_warmup":
       return await runRedditWarmup(args);
+
+    case "reddit_karma_build":
+      return await runRedditKarmaBuild(args);
 
     case "reddit_register":
       return await runRedditRegister(args);

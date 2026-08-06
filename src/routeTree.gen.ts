@@ -34,6 +34,7 @@ import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/ap
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCronRedditDiscourseRouteImport } from './routes/api/public/cron/reddit-discourse'
 import { Route as ApiPublicCronRedditPostPatrolRouteImport } from './routes/api/public/cron/reddit-post-patrol'
+import { Route as ApiPublicCronScheduleRedditKarmaRouteImport } from './routes/api/public/cron/schedule-reddit-karma'
 import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
 import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
 import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
@@ -203,6 +204,12 @@ const ApiPublicCronRedditPostPatrolRoute =
   ApiPublicCronRedditPostPatrolRouteImport.update({
     id: '/api/public/cron/reddit-post-patrol',
     path: '/api/public/cron/reddit-post-patrol',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronScheduleRedditKarmaRoute =
+  ApiPublicCronScheduleRedditKarmaRouteImport.update({
+    id: '/api/public/cron/schedule-reddit-karma',
+    path: '/api/public/cron/schedule-reddit-karma',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCronScheduleRedditWarmupsRoute =
@@ -425,6 +432,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
+  '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
@@ -484,6 +492,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
+  '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
@@ -545,6 +554,7 @@ export interface FileRoutesById {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
+  '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
@@ -606,6 +616,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
+    | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
@@ -665,6 +676,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
+    | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
@@ -725,6 +737,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
+    | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
@@ -773,6 +786,7 @@ export interface RootRouteChildren {
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicCronRedditDiscourseRoute: typeof ApiPublicCronRedditDiscourseRoute
   ApiPublicCronRedditPostPatrolRoute: typeof ApiPublicCronRedditPostPatrolRoute
+  ApiPublicCronScheduleRedditKarmaRoute: typeof ApiPublicCronScheduleRedditKarmaRoute
   ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
   ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
   ApiPublicHooksQaSchedulerRoute: typeof ApiPublicHooksQaSchedulerRoute
@@ -982,6 +996,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/reddit-post-patrol'
       fullPath: '/api/public/cron/reddit-post-patrol'
       preLoaderRoute: typeof ApiPublicCronRedditPostPatrolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/schedule-reddit-karma': {
+      id: '/api/public/cron/schedule-reddit-karma'
+      path: '/api/public/cron/schedule-reddit-karma'
+      fullPath: '/api/public/cron/schedule-reddit-karma'
+      preLoaderRoute: typeof ApiPublicCronScheduleRedditKarmaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cron/schedule-reddit-warmups': {
@@ -1282,6 +1303,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicCronRedditDiscourseRoute: ApiPublicCronRedditDiscourseRoute,
   ApiPublicCronRedditPostPatrolRoute: ApiPublicCronRedditPostPatrolRoute,
+  ApiPublicCronScheduleRedditKarmaRoute: ApiPublicCronScheduleRedditKarmaRoute,
   ApiPublicCronScheduleRedditWarmupsRoute:
     ApiPublicCronScheduleRedditWarmupsRoute,
   ApiPublicCronScheduleWarmupsRoute: ApiPublicCronScheduleWarmupsRoute,
