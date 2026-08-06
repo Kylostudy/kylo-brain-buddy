@@ -84,7 +84,38 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           return s < e ? h >= s && h < e : h >= s || h < e;
         }
 
+        // ---- Instagram / TikTok ütközésvédelem ----
+        // Ugyanabban az időben SEM Instagramra, SEM TikTokra nem indulhat
+        // videós/posztoló futás, ha épp fut egy másik a két platform közül
+        // (bármelyik IP alatt). Így soha nem megy ki egyszerre ugyanaz a videó.
+        const VIDEO_PLATFORMS = new Set(["instagram", "tiktok"]);
+        function runPlatform(spec: Record<string, unknown>): string {
+          const bt =
+            spec.brain_task && typeof spec.brain_task === "object"
+              ? (spec.brain_task as Record<string, unknown>)
+              : {};
+          const p =
+            (typeof bt.platform === "string" && bt.platform) ||
+            (typeof spec.platform === "string" && spec.platform) ||
+            "";
+          return p.toLowerCase();
+        }
+        const { data: runningRows } = await sb
+          .from("brain_workflow_runs")
+          .select("spec_snapshot")
+          .eq("status", "running")
+          .limit(50);
+        const videoBusy = (runningRows ?? []).some((r) =>
+          VIDEO_PLATFORMS.has(
+            runPlatform((r.spec_snapshot ?? {}) as Record<string, unknown>),
+          ),
+        );
+
         const candidate = (candidates ?? []).find((c) => {
+          const specForPlatform = (c.spec_snapshot ?? {}) as Record<string, unknown>;
+          if (videoBusy && VIDEO_PLATFORMS.has(runPlatform(specForPlatform))) {
+            return false; // Instagram/TikTok: egyszerre csak egy futhat
+          }
           const spec = (c.spec_snapshot ?? {}) as Record<string, unknown>;
           const brainTask =
             spec.brain_task && typeof spec.brain_task === "object"
