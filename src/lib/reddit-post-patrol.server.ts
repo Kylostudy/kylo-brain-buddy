@@ -170,11 +170,34 @@ export async function sendTelegram(
     console.error("Telegram sendMessage hiba", json.error);
     return { messageId: null, chatId: null };
   }
-  return {
-    messageId: json.result?.message_id ?? null,
-    chatId: json.result?.chat?.id ?? null,
-  };
+  const messageId = json.result?.message_id ?? null;
+  const outChatId = json.result?.chat?.id ?? null;
+
+  // Napló: melyik üzenet mire vonatkozott (válasz-azonosításhoz).
+  if (messageId) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("telegram_outbox").upsert(
+        {
+          message_id: messageId,
+          chat_id: outChatId,
+          topic: meta?.topic ?? "generic",
+          platform: meta?.platform ?? null,
+          ref_table: meta?.ref_table ?? null,
+          ref_id: meta?.ref_id ?? null,
+          label: meta?.label ?? null,
+          payload: (meta?.payload ?? {}) as never,
+        },
+        { onConflict: "message_id" },
+      );
+    } catch (e) {
+      console.error("telegram_outbox mentés sikertelen:", e);
+    }
+  }
+
+  return { messageId, chatId: outChatId };
 }
+
 
 function truncate(s: string, max: number): string {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
