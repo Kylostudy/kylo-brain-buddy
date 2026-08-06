@@ -49,7 +49,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: comment } = await supabaseAdmin
           .from("reddit_comments")
-          .select("id, subreddit, author")
+          .select("id, subreddit, author, context_title")
           .eq("telegram_message_id", replyTo)
           .maybeSingle();
 
@@ -62,12 +62,14 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           return Response.json({ ok: true, matched: false });
         }
 
+        const tag = `REDDIT · r/${comment.subreddit ?? "?"} · u/${comment.author ?? "?"}`;
+
         if (SKIP_WORDS.has(text.toLowerCase())) {
           await supabaseAdmin
             .from("reddit_comments")
             .update({ reply_status: "ignored" })
             .eq("id", comment.id);
-          await sendTelegram("Rendben, ezt a kommentet kihagyjuk.");
+          await sendTelegram(`Rendben, kihagyjuk — ${tag}`);
           return Response.json({ ok: true, action: "ignored" });
         }
 
@@ -83,14 +85,18 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
         await sendTelegram(
           [
-            `✅ Válasz elmentve — u/${comment.author ?? "?"} (r/${comment.subreddit ?? "?"})`,
+            `✅ Válasz elmentve — ${tag}`,
+            comment.context_title ? `Poszt: ${comment.context_title}` : "",
             ``,
             `ANGOL VÁLTOZAT:`,
             english,
             ``,
             `A Tartalom Stúdióban tudod kiküldeni a workflow-nak.`,
-          ].join("\n"),
+          ]
+            .filter(Boolean)
+            .join("\n"),
         );
+
 
         return Response.json({ ok: true, action: "approved" });
       },
