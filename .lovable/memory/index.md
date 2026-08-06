@@ -26,3 +26,4 @@
 - [reddit-poszthálózat](mem://features/reddit-posting-network) — 22 fiók subreddit-kiosztása nyelvenként (en/de/es/pt/pl), felfutási sorrend, és a TILTOTT önszavazás/kommentgyűrű szabály.
 - [reddit-diskurzus-elemzés](mem://features/reddit-discourse-analysis) — Roadmap: nyelvtanuló subredditek napi tartalomelemzése, pár nap után konkrét beszállási javaslatok magyar válaszvázlattal
 - [ig-tiktok-ütközés](mem://features/ig-tiktok-exclusion) — Instagram és TikTok sosem futhat egyszerre (bármely IP); minden kiküldött posztról Telegram visszaigazolás
+- [reddit-karma-építés](mem://features/reddit-karma-build) — reddit_karma_build feladattípus: 5+ melegítési nap után napi 1–3 AI-írt, reklámmentes komment, óránkénti cron

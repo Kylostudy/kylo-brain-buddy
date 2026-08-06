@@ -34,6 +34,7 @@ import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/ap
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCronRedditDiscourseRouteImport } from './routes/api/public/cron/reddit-discourse'
 import { Route as ApiPublicCronRedditPostPatrolRouteImport } from './routes/api/public/cron/reddit-post-patrol'
+import { Route as ApiPublicCronScheduleRedditKarmaRouteImport } from './routes/api/public/cron/schedule-reddit-karma'
 import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
 import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
 import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
@@ -49,6 +50,7 @@ import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/ap
 import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
+import { Route as ApiPublicWorkerRedditCommentDraftRouteImport } from './routes/api/public/worker/reddit-comment-draft'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicAuthGoogleCallbackRouteImport } from './routes/api/public/auth.google.callback'
@@ -204,6 +206,12 @@ const ApiPublicCronRedditPostPatrolRoute =
     path: '/api/public/cron/reddit-post-patrol',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronScheduleRedditKarmaRoute =
+  ApiPublicCronScheduleRedditKarmaRouteImport.update({
+    id: '/api/public/cron/schedule-reddit-karma',
+    path: '/api/public/cron/schedule-reddit-karma',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronScheduleRedditWarmupsRoute =
   ApiPublicCronScheduleRedditWarmupsRouteImport.update({
     id: '/api/public/cron/schedule-reddit-warmups',
@@ -289,6 +297,12 @@ const ApiPublicWorkerRecordStatusRoute =
   ApiPublicWorkerRecordStatusRouteImport.update({
     id: '/api/public/worker/record-status',
     path: '/api/public/worker/record-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerRedditCommentDraftRoute =
+  ApiPublicWorkerRedditCommentDraftRouteImport.update({
+    id: '/api/public/worker/reddit-comment-draft',
+    path: '/api/public/worker/reddit-comment-draft',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWorkerSaveCookiesRoute =
@@ -418,6 +432,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
+  '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
@@ -433,6 +448,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -476,6 +492,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
+  '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
@@ -491,6 +508,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -536,6 +554,7 @@ export interface FileRoutesById {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
+  '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
@@ -551,6 +570,7 @@ export interface FileRoutesById {
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
+  '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -596,6 +616,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
+    | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
@@ -611,6 +632,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -654,6 +676,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
+    | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
@@ -669,6 +692,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -713,6 +737,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
+    | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
@@ -728,6 +753,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
+    | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -760,6 +786,7 @@ export interface RootRouteChildren {
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicCronRedditDiscourseRoute: typeof ApiPublicCronRedditDiscourseRoute
   ApiPublicCronRedditPostPatrolRoute: typeof ApiPublicCronRedditPostPatrolRoute
+  ApiPublicCronScheduleRedditKarmaRoute: typeof ApiPublicCronScheduleRedditKarmaRoute
   ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
   ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
   ApiPublicHooksQaSchedulerRoute: typeof ApiPublicHooksQaSchedulerRoute
@@ -775,6 +802,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerProgressRoute: typeof ApiPublicWorkerProgressRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
+  ApiPublicWorkerRedditCommentDraftRoute: typeof ApiPublicWorkerRedditCommentDraftRoute
   ApiPublicWorkerSaveCookiesRoute: typeof ApiPublicWorkerSaveCookiesRoute
   ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
   ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
@@ -970,6 +998,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronRedditPostPatrolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/schedule-reddit-karma': {
+      id: '/api/public/cron/schedule-reddit-karma'
+      path: '/api/public/cron/schedule-reddit-karma'
+      fullPath: '/api/public/cron/schedule-reddit-karma'
+      preLoaderRoute: typeof ApiPublicCronScheduleRedditKarmaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/schedule-reddit-warmups': {
       id: '/api/public/cron/schedule-reddit-warmups'
       path: '/api/public/cron/schedule-reddit-warmups'
@@ -1073,6 +1108,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/record-status'
       fullPath: '/api/public/worker/record-status'
       preLoaderRoute: typeof ApiPublicWorkerRecordStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/reddit-comment-draft': {
+      id: '/api/public/worker/reddit-comment-draft'
+      path: '/api/public/worker/reddit-comment-draft'
+      fullPath: '/api/public/worker/reddit-comment-draft'
+      preLoaderRoute: typeof ApiPublicWorkerRedditCommentDraftRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/save-cookies': {
@@ -1261,6 +1303,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicCronRedditDiscourseRoute: ApiPublicCronRedditDiscourseRoute,
   ApiPublicCronRedditPostPatrolRoute: ApiPublicCronRedditPostPatrolRoute,
+  ApiPublicCronScheduleRedditKarmaRoute: ApiPublicCronScheduleRedditKarmaRoute,
   ApiPublicCronScheduleRedditWarmupsRoute:
     ApiPublicCronScheduleRedditWarmupsRoute,
   ApiPublicCronScheduleWarmupsRoute: ApiPublicCronScheduleWarmupsRoute,
@@ -1278,6 +1321,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerProgressRoute: ApiPublicWorkerProgressRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
+  ApiPublicWorkerRedditCommentDraftRoute:
+    ApiPublicWorkerRedditCommentDraftRoute,
   ApiPublicWorkerSaveCookiesRoute: ApiPublicWorkerSaveCookiesRoute,
   ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
   ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
@@ -1300,13 +1345,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
