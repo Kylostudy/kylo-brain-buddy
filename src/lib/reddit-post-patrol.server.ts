@@ -262,15 +262,18 @@ export async function patrolWatch(watch: PatrolWatch): Promise<{
     newComments += 1;
     if (!inserted) continue;
 
-    if (analysis && analysis.needs_reply === false) continue;
+    const needsReply = analysis?.needs_reply !== false;
 
     const link = permalink.startsWith("http")
       ? permalink
       : `https://www.reddit.com${permalink}`;
+    const accountLabel = ownUsername ? `u/${ownUsername}` : "ismeretlen fiók";
     const text = [
-      `🟠 Új komment — r/${subreddit}`,
+      needsReply
+        ? `🟠 REDDIT · r/${subreddit} · fiók: ${accountLabel}`
+        : `⚪ REDDIT · r/${subreddit} · fiók: ${accountLabel} — szerintem NEM kell válasz`,
       `Poszt: ${truncate(postTitle, 90)}`,
-      `Szerző: u/${author}`,
+      `Kommentelő: u/${author}`,
       ``,
       `EREDETI:`,
       truncate(body, 700),
@@ -278,13 +281,16 @@ export async function patrolWatch(watch: PatrolWatch): Promise<{
       `MAGYARUL:`,
       truncate(analysis?.body_hu ?? "(nem sikerült lefordítani)", 700),
       ``,
-      `JAVASOLT VÁLASZ (magyar):`,
-      analysis?.suggested_reply_hu ?? "(nincs javaslat)",
+      needsReply ? `JAVASOLT VÁLASZ (magyar):` : `MIÉRT NEM JAVASLOM:`,
+      needsReply
+        ? (analysis?.suggested_reply_hu ?? "(nincs javaslat)")
+        : "Nem kérdés, nem vita — sima visszajelzés, spam vagy troll. De ha mégis akarsz, csak válaszolj erre az üzenetre.",
       ``,
       `${link}`,
       ``,
-      `↩️ Válaszolj erre az üzenetre magyarul — lefordítom angolra és előkészítem kiküldésre. Ha nem kell válasz, írd: nem`,
+      `↩️ Válaszolj ERRE az üzenetre magyarul — lefordítom angolra és előkészítem kiküldésre. Ha nem kell válasz, írd: nem`,
     ].join("\n");
+
 
     const tg = await sendTelegram(text);
     if (tg.messageId) {
