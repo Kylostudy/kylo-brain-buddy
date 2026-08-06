@@ -1009,6 +1009,104 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_alerts: {
+        Row: {
+          author: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          permalink: string
+          post_id: string
+          reason_hu: string | null
+          score: number
+          source: string
+          status: string
+          subreddit: string | null
+          suggested_reply_en: string | null
+          telegram_message_id: number | null
+          tenant_id: string
+          title: string | null
+        }
+        Insert: {
+          author?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          permalink: string
+          post_id: string
+          reason_hu?: string | null
+          score?: number
+          source?: string
+          status?: string
+          subreddit?: string | null
+          suggested_reply_en?: string | null
+          telegram_message_id?: number | null
+          tenant_id: string
+          title?: string | null
+        }
+        Update: {
+          author?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          permalink?: string
+          post_id?: string
+          reason_hu?: string | null
+          score?: number
+          source?: string
+          status?: string
+          subreddit?: string | null
+          suggested_reply_en?: string | null
+          telegram_message_id?: number | null
+          tenant_id?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
+      linkedin_post_metrics: {
+        Row: {
+          captured_at: string
+          comments: number | null
+          id: string
+          impressions: number | null
+          post_url: string | null
+          reactions: number | null
+          reposts: number | null
+          tenant_id: string
+          workflow_id: string | null
+        }
+        Insert: {
+          captured_at?: string
+          comments?: number | null
+          id?: string
+          impressions?: number | null
+          post_url?: string | null
+          reactions?: number | null
+          reposts?: number | null
+          tenant_id: string
+          workflow_id?: string | null
+        }
+        Update: {
+          captured_at?: string
+          comments?: number | null
+          id?: string
+          impressions?: number | null
+          post_url?: string | null
+          reactions?: number | null
+          reposts?: number | null
+          tenant_id?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linkedin_post_metrics_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
