@@ -292,5 +292,26 @@ export async function processCandidates(
     alerted++;
   }
 
-  return { scanned: subs.size, candidates: fresh.length, alerted, blocked: blockedCount };
+  return { candidates: candidates.length, alerted };
+}
+
+/** Szerver-oldali beolvasás (a Reddit gyakran blokkolja a szerver IP-ket). */
+export async function runLeadRadar(): Promise<{
+  scanned: number;
+  candidates: number;
+  alerted: number;
+  blocked: number;
+}> {
+  blockedCount = 0;
+  const { tenantId, subreddits } = await leadRadarSubreddits();
+  if (!tenantId) {
+    console.warn("lead-radar: nincs tenant (reddit_readonly_watches üres)");
+    return { scanned: 0, candidates: 0, alerted: 0, blocked: blockedCount };
+  }
+  const collected: Candidate[] = [];
+  for (const s of subreddits) collected.push(...(await collect(s)));
+  const res = await processCandidates(tenantId, collected);
+  return { scanned: subreddits.length, ...res, blocked: blockedCount };
+}
+
 }
