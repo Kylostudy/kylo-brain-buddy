@@ -202,7 +202,7 @@ export async function runLeadRadar(): Promise<{
   const tenantId = watches?.[0]?.tenant_id ?? null;
   if (!tenantId) {
     console.warn("lead-radar: nincs tenant (reddit_readonly_watches üres)");
-    return { scanned: 0, candidates: 0, alerted: 0 };
+    return { scanned: 0, candidates: 0, alerted: 0, blocked: blockedCount };
   }
 
   const subs = new Set<string>(FALLBACK_SUBREDDITS);
@@ -295,5 +295,5 @@ export async function runLeadRadar(): Promise<{
     alerted++;
   }
 
-  return { scanned: subs.size, candidates: fresh.length, alerted };
+  return { scanned: subs.size, candidates: fresh.length, alerted, blocked: blockedCount };
 }
