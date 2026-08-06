@@ -189,8 +189,11 @@ export async function runLeadRadar(): Promise<{
   scanned: number;
   candidates: number;
   alerted: number;
+  blocked: number;
 }> {
+  blockedCount = 0;
   const db = await sb();
+
 
   const { data: watches } = await db
     .from("reddit_readonly_watches")
