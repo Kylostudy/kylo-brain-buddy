@@ -1,0 +1,1 @@
+UPDATE public.content_drafts SET status='posted' WHERE id='4071916d-7483-4475-b771-e9dd2ebb421a' AND status='running';
