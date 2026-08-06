@@ -313,5 +313,3 @@ export async function runLeadRadar(): Promise<{
   const res = await processCandidates(tenantId, collected);
   return { scanned: subreddits.length, ...res, blocked: blockedCount };
 }
-
-}
