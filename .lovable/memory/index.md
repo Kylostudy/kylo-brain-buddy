@@ -25,3 +25,4 @@
 - [reddit-scout](mem://features/reddit-scout) — READ-ONLY figyelő nyelvi subredditekhez (EnglishLearning, IELTS, TOEFL, ChineseLanguage, Italian, Spanish, LearnJapanese, stb.). Publikus JSON, Gemini pontoz Kylo.study szempontból, 0-100 relevancia + magyar válaszjavaslat. Semmi auto-post.
 - [reddit-poszthálózat](mem://features/reddit-posting-network) — 22 fiók subreddit-kiosztása nyelvenként (en/de/es/pt/pl), felfutási sorrend, és a TILTOTT önszavazás/kommentgyűrű szabály.
 - [reddit-diskurzus-elemzés](mem://features/reddit-discourse-analysis) — Roadmap: nyelvtanuló subredditek napi tartalomelemzése, pár nap után konkrét beszállási javaslatok magyar válaszvázlattal
+- [ig-tiktok-ütközés](mem://features/ig-tiktok-exclusion) — Instagram és TikTok sosem futhat egyszerre (bármely IP); minden kiküldött posztról Telegram visszaigazolás

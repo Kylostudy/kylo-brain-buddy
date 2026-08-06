@@ -385,6 +385,46 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           }
         }
 
+        // ---- Telegram visszaigazolás a kiküldött posztokról ----
+        // Minden Tartalom Stúdióból indított poszt (Reddit / LinkedIn / stb.)
+        // után azonnal jön értesítés, hogy sikerült-e. Így sosem marad néma
+        // a rendszer, és tudjuk, hogy él a Telegram-csatorna.
+        try {
+          const bt =
+            specSnapshot.brain_task && typeof specSnapshot.brain_task === "object"
+              ? (specSnapshot.brain_task as Record<string, unknown>)
+              : null;
+          const draftId = bt && typeof bt.draft_id === "string" ? bt.draft_id : null;
+          if (draftId) {
+            const platform = String(bt?.platform ?? specSnapshot.platform ?? "ismeretlen");
+            const icon =
+              platform === "reddit" ? "🟠" : platform === "linkedin" ? "🔵" : "⚪";
+            const title = typeof bt?.title === "string" ? bt.title : "";
+            const target = typeof bt?.target_ref === "string" ? bt.target_ref : "";
+            const ok = finalStatus === "succeeded";
+            const url =
+              res && typeof (res as { final_url?: unknown }).final_url === "string"
+                ? ((res as { final_url: string }).final_url)
+                : "";
+            const { sendTelegram } = await import("@/lib/reddit-post-patrol.server");
+            await sendTelegram(
+              [
+                `${icon} ${platform.toUpperCase()}${target ? ` · ${target}` : ""}`,
+                ok ? "✅ A poszt KIMENT." : `❌ A poszt NEM ment ki (${finalStatus}).`,
+                title ? `Cím: ${title}` : "",
+                url ? `Link: ${url}` : "",
+                update.error ? `Hiba: ${String(update.error)}` : "",
+              ]
+                .filter(Boolean)
+                .join("\n"),
+            );
+          }
+        } catch (e) {
+          console.error("[complete] Telegram poszt-visszaigazolás sikertelen:", e);
+        }
+
+
+
         // Teszt fiók állapota: ha a Sign Up futás végigment, a hozzá tartozó
         // alias e-mail + jelszó pár „regisztrált" lesz, így később belépésre
         // használható; ha bukott, jelöljük hibásnak. Infra- (proxy-) hibánál
