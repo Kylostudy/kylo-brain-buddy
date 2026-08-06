@@ -185,35 +185,32 @@ function sanitize(reply: string): string {
     .trim();
 }
 
-export async function runLeadRadar(): Promise<{
-  scanned: number;
-  candidates: number;
-  alerted: number;
-  blocked: number;
+/** A figyelt subredditek listája (worker is ezt kéri le). */
+export async function leadRadarSubreddits(): Promise<{
+  tenantId: string | null;
+  subreddits: string[];
 }> {
-  blockedCount = 0;
   const db = await sb();
-
-
   const { data: watches } = await db
     .from("reddit_readonly_watches")
     .select("tenant_id, subreddits");
-
-  const tenantId = watches?.[0]?.tenant_id ?? null;
-  if (!tenantId) {
-    console.warn("lead-radar: nincs tenant (reddit_readonly_watches üres)");
-    return { scanned: 0, candidates: 0, alerted: 0, blocked: blockedCount };
-  }
-
   const subs = new Set<string>(FALLBACK_SUBREDDITS);
   for (const w of watches ?? []) {
     for (const s of (w.subreddits as string[] | null) ?? []) subs.add(s);
   }
+  return { tenantId: watches?.[0]?.tenant_id ?? null, subreddits: [...subs] };
+}
 
-  const candidates: Candidate[] = [];
-  for (const s of subs) {
-    candidates.push(...(await collect(s)));
-  }
+/**
+ * Jelöltek feldolgozása: pontozás, mentés, Telegram-értesítés.
+ * Ugyanezt használja a szerver-oldali beolvasás és a workerből érkező adag is.
+ */
+export async function processCandidates(
+  tenantId: string,
+  candidates: Candidate[],
+): Promise<{ candidates: number; alerted: number }> {
+  const db = await sb();
+
 
   // Már ismert posztokat kihagyjuk.
   const ids = candidates.map((c) => c.id);
