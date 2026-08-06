@@ -246,26 +246,43 @@ function ContentStudioPage() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">{d.body}</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => queueM.mutate({ id: d.id, dry_run: true })}
-                  disabled={queueM.isPending}
-                >
-                  Próba (begépel, nem küldi el)
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => queueM.mutate({ id: d.id, dry_run: false })}
-                  disabled={queueM.isPending}
-                >
-                  <Send className="mr-2 size-4" /> Kiküldés a workflow-nak
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => delM.mutate(d.id)}>
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
+              {(() => {
+                // Csak AZ A SOR legyen letiltva, amelyiken épp művelet fut —
+                // a többi vázlat gombjai maradjanak használhatók.
+                const queueBusy = queueM.isPending && queueM.variables?.id === d.id;
+                const delBusy = delM.isPending && delM.variables === d.id;
+                const rowBusy = queueBusy || delBusy;
+                const dryBusy = queueBusy && queueM.variables?.dry_run === true;
+                const sendBusy = queueBusy && queueM.variables?.dry_run === false;
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => queueM.mutate({ id: d.id, dry_run: true })}
+                      disabled={rowBusy}
+                    >
+                      {dryBusy ? "Indítás…" : "Próba (begépel, nem küldi el)"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => queueM.mutate({ id: d.id, dry_run: false })}
+                      disabled={rowBusy}
+                    >
+                      <Send className="mr-2 size-4" />
+                      {sendBusy ? "Kiküldés…" : "Kiküldés a workflow-nak"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => delM.mutate(d.id)}
+                      disabled={rowBusy}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </CardContent>
