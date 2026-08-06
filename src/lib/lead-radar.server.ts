@@ -48,16 +48,34 @@ async function sb() {
   return supabaseAdmin as ReturnType<typeof createClient<Database>>;
 }
 
+// Ha a Reddit blokkol vagy HTML-t ad JSON helyett, azt külön számoljuk,
+// hogy a radar sose "csendben" adjon nullát.
+let blockedCount = 0;
+
 async function redditFetch<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url, { headers: { "User-Agent": REDDIT_UA } });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
+    const res = await fetch(url, {
+      headers: { "User-Agent": REDDIT_UA, Accept: "application/json" },
+    });
+    if (!res.ok) {
+      blockedCount++;
+      console.warn("lead-radar: Reddit válasz", res.status, url);
+      return null;
+    }
+    const text = await res.text();
+    if (!text.trimStart().startsWith("{") && !text.trimStart().startsWith("[")) {
+      blockedCount++;
+      console.warn("lead-radar: a Reddit HTML-t adott JSON helyett (blokkolás?)", url);
+      return null;
+    }
+    return JSON.parse(text) as T;
   } catch (err) {
+    blockedCount++;
     console.error("lead-radar reddit fetch hiba", url, err);
     return null;
   }
 }
+
 
 type Candidate = {
   id: string;
