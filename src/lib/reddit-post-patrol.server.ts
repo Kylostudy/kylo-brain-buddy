@@ -115,9 +115,25 @@ Feladat:
 }
 
 // ---------- Telegram ----------
+/**
+ * Minden kimenő üzenethez elmentjük, hogy MIRŐL szólt (platform, felület,
+ * melyik adatsorra hivatkozik). Így amikor a felhasználó a Telegramban
+ * ráválaszol a buborékra, a webhook pontosan be tudja azonosítani.
+ */
+export type TelegramMeta = {
+  topic?: string;
+  platform?: string | null;
+  ref_table?: string | null;
+  ref_id?: string | null;
+  label?: string | null;
+  payload?: Record<string, unknown>;
+};
+
 export async function sendTelegram(
   text: string,
+  meta?: TelegramMeta,
 ): Promise<{ messageId: number | null; chatId: number | null }> {
+
   const lovableKey = process.env.LOVABLE_API_KEY;
   const telegramKey = process.env.TELEGRAM_API_KEY;
   const chatId = process.env.TELEGRAM_CHAT_ID;
