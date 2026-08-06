@@ -52,6 +52,27 @@ async function brainPost(path, body, { timeoutMs = 30000 } = {}) {
   return data;
 }
 
+/** Általános hívás a Brain worker-API-jához (GET vagy POST). */
+export async function brainFetch(path, { method = "POST", body, timeoutMs = 30000 } = {}) {
+  if (method === "POST") return brainPost(path, body, { timeoutMs });
+  assertConfigured();
+  const res = await fetch(`${BRAIN_URL}${path}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${WORKER_API_TOKEN}`,
+      "x-worker-token": WORKER_API_TOKEN,
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Brain API ${path} → ${res.status}: ${text}`);
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return { raw: text };
+  }
+}
+
+
 
 /** Lekérjük a tanult szelektorokat egy adott platform+page_type-ra. */
 export async function lookupLearnedSelectors(platform, pageType) {
