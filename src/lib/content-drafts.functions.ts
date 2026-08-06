@@ -20,8 +20,39 @@ export const listContentDrafts = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const drafts = data ?? [];
+
+    // A vázlat státusza ne ragadjon "queued"-ben: a hozzá tartozó futás
+    // tényleges állapotából frissítjük (kiment / hibázott / fut).
+    const runIds = drafts
+      .filter((d) => d.last_run_id && (d.status === "queued" || d.status === "dry_run"))
+      .map((d) => d.last_run_id as string);
+    if (runIds.length === 0) return drafts;
+
+    const { data: runs } = await context.supabase
+      .from("brain_workflow_runs")
+      .select("id, status, error, finished_at")
+      .in("id", runIds);
+    const byRun = new Map((runs ?? []).map((r) => [r.id, r]));
+
+    for (const d of drafts) {
+      const run = d.last_run_id ? byRun.get(d.last_run_id as string) : undefined;
+      if (!run) continue;
+      let next: string | null = null;
+      if (run.status === "succeeded") next = d.status === "dry_run" ? "dry_run_done" : "posted";
+      else if (run.status === "failed" || run.status === "cancelled") next = "failed";
+      else if (run.status === "running") next = "running";
+      if (next && next !== d.status) {
+        d.status = next;
+        await context.supabase
+          .from("content_drafts")
+          .update({ status: next })
+          .eq("id", d.id);
+      }
+    }
+    return drafts;
   });
+
 
 export const saveContentDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
