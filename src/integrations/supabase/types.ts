@@ -1824,6 +1824,51 @@ export type Database = {
           },
         ]
       }
+      telegram_outbox: {
+        Row: {
+          chat_id: number | null
+          created_at: string
+          id: string
+          label: string | null
+          message_id: number
+          payload: Json
+          platform: string | null
+          ref_id: string | null
+          ref_table: string | null
+          replied_at: string | null
+          reply_text: string | null
+          topic: string
+        }
+        Insert: {
+          chat_id?: number | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          message_id: number
+          payload?: Json
+          platform?: string | null
+          ref_id?: string | null
+          ref_table?: string | null
+          replied_at?: string | null
+          reply_text?: string | null
+          topic?: string
+        }
+        Update: {
+          chat_id?: number | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          message_id?: number
+          payload?: Json
+          platform?: string | null
+          ref_id?: string | null
+          ref_table?: string | null
+          replied_at?: string | null
+          reply_text?: string | null
+          topic?: string
+        }
+        Relationships: []
+      }
       tenant_module_access: {
         Row: {
           created_at: string

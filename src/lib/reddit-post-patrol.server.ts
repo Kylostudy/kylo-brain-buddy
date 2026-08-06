@@ -115,9 +115,25 @@ Feladat:
 }
 
 // ---------- Telegram ----------
+/**
+ * Minden kimenő üzenethez elmentjük, hogy MIRŐL szólt (platform, felület,
+ * melyik adatsorra hivatkozik). Így amikor a felhasználó a Telegramban
+ * ráválaszol a buborékra, a webhook pontosan be tudja azonosítani.
+ */
+export type TelegramMeta = {
+  topic?: string;
+  platform?: string | null;
+  ref_table?: string | null;
+  ref_id?: string | null;
+  label?: string | null;
+  payload?: Record<string, unknown>;
+};
+
 export async function sendTelegram(
   text: string,
+  meta?: TelegramMeta,
 ): Promise<{ messageId: number | null; chatId: number | null }> {
+
   const lovableKey = process.env.LOVABLE_API_KEY;
   const telegramKey = process.env.TELEGRAM_API_KEY;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -154,11 +170,34 @@ export async function sendTelegram(
     console.error("Telegram sendMessage hiba", json.error);
     return { messageId: null, chatId: null };
   }
-  return {
-    messageId: json.result?.message_id ?? null,
-    chatId: json.result?.chat?.id ?? null,
-  };
+  const messageId = json.result?.message_id ?? null;
+  const outChatId = json.result?.chat?.id ?? null;
+
+  // Napló: melyik üzenet mire vonatkozott (válasz-azonosításhoz).
+  if (messageId) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("telegram_outbox").upsert(
+        {
+          message_id: messageId,
+          chat_id: outChatId,
+          topic: meta?.topic ?? "generic",
+          platform: meta?.platform ?? null,
+          ref_table: meta?.ref_table ?? null,
+          ref_id: meta?.ref_id ?? null,
+          label: meta?.label ?? null,
+          payload: (meta?.payload ?? {}) as never,
+        },
+        { onConflict: "message_id" },
+      );
+    } catch (e) {
+      console.error("telegram_outbox mentés sikertelen:", e);
+    }
+  }
+
+  return { messageId, chatId: outChatId };
 }
+
 
 function truncate(s: string, max: number): string {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
@@ -292,7 +331,15 @@ export async function patrolWatch(watch: PatrolWatch): Promise<{
     ].join("\n");
 
 
-    const tg = await sendTelegram(text);
+    const tg = await sendTelegram(text, {
+      topic: "reddit_comment",
+      platform: "reddit",
+      ref_table: "reddit_comments",
+      ref_id: inserted.id,
+      label: `r/${subreddit} · u/${author}`,
+      payload: { post_title: postTitle, permalink: link, own_account: ownUsername },
+    });
+
     if (tg.messageId) {
       await db
         .from("reddit_comments")

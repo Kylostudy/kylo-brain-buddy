@@ -58,9 +58,51 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         );
 
         if (!comment) {
-          await sendTelegram("Nem találom, melyik kommentre válaszoltál. Válaszolj közvetlenül az értesítő üzenetre.");
-          return Response.json({ ok: true, matched: false });
+          // Nem komment-értesítés: nézzük meg az általános üzenet-naplóban,
+          // hogy melyik posztról / platformról szólt az eredeti üzenet.
+          const { data: out } = await supabaseAdmin
+            .from("telegram_outbox")
+            .select("id, topic, platform, ref_table, ref_id, label, payload")
+            .eq("message_id", replyTo)
+            .maybeSingle();
+
+          if (!out) {
+            await sendTelegram(
+              "Nem találom, melyik üzenetre válaszoltál (régi vagy nem a rendszertől jött). Válaszolj közvetlenül egy friss értesítésre.",
+            );
+            return Response.json({ ok: true, matched: false });
+          }
+
+          await supabaseAdmin
+            .from("telegram_outbox")
+            .update({ reply_text: text, replied_at: new Date().toISOString() })
+            .eq("id", out.id);
+
+          const p = (out.payload ?? {}) as Record<string, unknown>;
+          const head = `${(out.platform ?? "rendszer").toString().toUpperCase()}${out.label ? ` · ${out.label}` : ""}`;
+          await sendTelegram(
+            [
+              `📌 Megvan, mire válaszoltál: ${head}`,
+              typeof p.title === "string" && p.title ? `Cím: ${p.title}` : "",
+              typeof p.url === "string" && p.url ? `Link: ${p.url}` : "",
+              ``,
+              `A válaszodat elmentettem ehhez az ügyhöz:`,
+              text,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            {
+              topic: `${out.topic}_ack`,
+              platform: out.platform,
+              ref_table: out.ref_table,
+              ref_id: out.ref_id,
+              label: out.label,
+              payload: p,
+            },
+          );
+          return Response.json({ ok: true, matched: true, topic: out.topic });
         }
+
 
         const tag = `REDDIT · r/${comment.subreddit ?? "?"} · u/${comment.author ?? "?"}`;
 

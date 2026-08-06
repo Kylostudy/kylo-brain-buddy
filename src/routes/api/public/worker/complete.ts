@@ -414,10 +414,21 @@ export const Route = createFileRoute("/api/public/worker/complete")({
                 title ? `Cím: ${title}` : "",
                 url ? `Link: ${url}` : "",
                 update.error ? `Hiba: ${String(update.error)}` : "",
+                ``,
+                `↩️ Ha erre az üzenetre válaszolsz, tudni fogom, melyik posztról van szó.`,
               ]
                 .filter(Boolean)
                 .join("\n"),
+              {
+                topic: "post_result",
+                platform,
+                ref_table: "content_drafts",
+                ref_id: draftId,
+                label: `${platform}${target ? ` · ${target}` : ""}`,
+                payload: { title, url, status: finalStatus },
+              },
             );
+
           }
         } catch (e) {
           console.error("[complete] Telegram poszt-visszaigazolás sikertelen:", e);
