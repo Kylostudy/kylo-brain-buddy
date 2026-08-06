@@ -5,8 +5,11 @@
 - Brain workflow-k KÖTELEZŐEN emberi módon viselkednek: Poisson időzítés, véletlen kurzor, alkalmi hibázás+javítás. Fix sleep / egyenes kurzor / tökéletes kattintás TILOS.
 - Proxy stratégia: 12 proxy, 28 (proxy_id, language) profil. Első fázis (aug-szept): csak en + de régiók. Új proxyt csak akkor veszünk, ha a jelenlegi 12 fel van töltve.
 - Saját posztot SOHA nem szavazunk fel / kommentelünk alá saját másik fiókkal (Reddit vote manipulation = site-wide ban).
+- Reddit-olvasás CSAK a VPS workeren, lakossági proxy mögül — a szerver IP-jét a Reddit blokkolja.
 
 ## Memóriák
+- [reddit-szerver-blokk](mem://features/reddit-server-ip-blocked) — A Reddit HTML „Blocked" oldalt ad a Cloudflare szervernek; minden olvasás worker-feladatként fusson
+
 - [emberi-viselkedés](mem://features/human-behavior) — Poisson időzítés, véletlen kurzor overshoot+jitter, kötelező misclick+javítás. Brain ≠ Audit (Audit nyíltan bot lehet).
 - [workflow-architektúra](mem://features/workflow-architecture) — 3 rétegű workflow rendszer: workflow, scheduled_runs, dispatcher
 - [proxy-szabályok](mem://features/proxy-rules) — Azonos IP-n azonos platform = csak 1 account egyszerre, különböző platformok mehetnek párhuzamosan
