@@ -60,7 +60,11 @@ function ContentStudioPage() {
   const wfFn = useServerFn(listBrainWorkflowsForWarmup);
   const recFn = useServerFn(recommendMatureRedditAccount);
 
-  const draftsQ = useQuery({ queryKey: ["content-drafts"], queryFn: () => listFn() });
+  const draftsQ = useQuery({
+    queryKey: ["content-drafts"],
+    queryFn: () => listFn(),
+    refetchInterval: 15000,
+  });
   const wfQ = useQuery({ queryKey: ["content-workflows"], queryFn: () => wfFn() });
   const recQ = useQuery({ queryKey: ["mature-reddit"], queryFn: () => recFn() });
 
@@ -240,7 +244,25 @@ function ContentStudioPage() {
                 <span className="font-medium">{d.title || "(cím nélkül)"}</span>
                 <Badge variant="outline">{d.kind}</Badge>
                 {d.target_ref && <Badge variant="secondary">{d.target_ref}</Badge>}
-                <Badge variant={d.status === "queued" ? "default" : "secondary"}>{d.status}</Badge>
+                <Badge
+                  variant={
+                    d.status === "failed"
+                      ? "destructive"
+                      : d.status === "posted"
+                        ? "default"
+                        : "secondary"
+                  }
+                >
+                  {d.status === "posted"
+                    ? "kiment"
+                    : d.status === "running"
+                      ? "fut"
+                      : d.status === "queued"
+                        ? "sorban áll"
+                        : d.status === "failed"
+                          ? "hibázott"
+                          : d.status}
+                </Badge>
                 <span className="text-xs text-muted-foreground">
                   {workflows.find((w) => w.id === d.target_workflow_id)?.name ?? "nincs workflow"}
                 </span>
