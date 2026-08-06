@@ -26,3 +26,4 @@ MUNKAFEGYELEM: egy folyamatot végig kell vinni, nem ugrálunk. Félbehagyott = 
 - [facebook-bemelegítés](mem://features/facebook-warmup) — HU IP-s FB fiók passzív melegítése: csak süti-belépés, soha nem posztol, checkpointra azonnal leáll
 - [nyelvtanulási-subredditek](mem://features/language-learning-subreddits) — Nyelvtanulási subredditek a warmupban, később külön (nem személyes) tartalommal posztolunk
 - [reddit-diskurzus-elemzés](mem://features/reddit-discourse-analysis) — Roadmap: nyelvtanuló subredditek napi tartalomelemzése, pár nap után konkrét beszállási javaslatok magyar válaszvázlattal
+- [reddit-kereszt-nyelvű-célzás](mem://features/reddit-cross-language-targeting) — Minden fiók IDEGEN nyelvű tanuló-subredditet néz (angol fiók nem r/EnglishLearning, hanem r/LearnGerman stb.)
