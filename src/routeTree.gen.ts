@@ -33,6 +33,7 @@ import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/a
 import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCronLeadRadarRouteImport } from './routes/api/public/cron/lead-radar'
+import { Route as ApiPublicCronLinkedinMetricsRouteImport } from './routes/api/public/cron/linkedin-metrics'
 import { Route as ApiPublicCronRedditDiscourseRouteImport } from './routes/api/public/cron/reddit-discourse'
 import { Route as ApiPublicCronRedditPostPatrolRouteImport } from './routes/api/public/cron/reddit-post-patrol'
 import { Route as ApiPublicCronScheduleRedditKarmaRouteImport } from './routes/api/public/cron/schedule-reddit-karma'
@@ -200,6 +201,12 @@ const ApiPublicCronLeadRadarRoute = ApiPublicCronLeadRadarRouteImport.update({
   path: '/api/public/cron/lead-radar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronLinkedinMetricsRoute =
+  ApiPublicCronLinkedinMetricsRouteImport.update({
+    id: '/api/public/cron/linkedin-metrics',
+    path: '/api/public/cron/linkedin-metrics',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronRedditDiscourseRoute =
   ApiPublicCronRedditDiscourseRouteImport.update({
     id: '/api/public/cron/reddit-discourse',
@@ -437,6 +444,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/lead-radar': typeof ApiPublicCronLeadRadarRoute
+  '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
@@ -498,6 +506,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/lead-radar': typeof ApiPublicCronLeadRadarRoute
+  '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
@@ -561,6 +570,7 @@ export interface FileRoutesById {
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/lead-radar': typeof ApiPublicCronLeadRadarRoute
+  '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
@@ -624,6 +634,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/lead-radar'
+    | '/api/public/cron/linkedin-metrics'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-karma'
@@ -685,6 +696,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/lead-radar'
+    | '/api/public/cron/linkedin-metrics'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-karma'
@@ -747,6 +759,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/lead-radar'
+    | '/api/public/cron/linkedin-metrics'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-karma'
@@ -797,6 +810,7 @@ export interface RootRouteChildren {
   ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicCronLeadRadarRoute: typeof ApiPublicCronLeadRadarRoute
+  ApiPublicCronLinkedinMetricsRoute: typeof ApiPublicCronLinkedinMetricsRoute
   ApiPublicCronRedditDiscourseRoute: typeof ApiPublicCronRedditDiscourseRoute
   ApiPublicCronRedditPostPatrolRoute: typeof ApiPublicCronRedditPostPatrolRoute
   ApiPublicCronScheduleRedditKarmaRoute: typeof ApiPublicCronScheduleRedditKarmaRoute
@@ -1002,6 +1016,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/lead-radar'
       fullPath: '/api/public/cron/lead-radar'
       preLoaderRoute: typeof ApiPublicCronLeadRadarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/linkedin-metrics': {
+      id: '/api/public/cron/linkedin-metrics'
+      path: '/api/public/cron/linkedin-metrics'
+      fullPath: '/api/public/cron/linkedin-metrics'
+      preLoaderRoute: typeof ApiPublicCronLinkedinMetricsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cron/reddit-discourse': {
@@ -1322,6 +1343,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronDispatchBrainTasksRoute: ApiPublicCronDispatchBrainTasksRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicCronLeadRadarRoute: ApiPublicCronLeadRadarRoute,
+  ApiPublicCronLinkedinMetricsRoute: ApiPublicCronLinkedinMetricsRoute,
   ApiPublicCronRedditDiscourseRoute: ApiPublicCronRedditDiscourseRoute,
   ApiPublicCronRedditPostPatrolRoute: ApiPublicCronRedditPostPatrolRoute,
   ApiPublicCronScheduleRedditKarmaRoute: ApiPublicCronScheduleRedditKarmaRoute,
