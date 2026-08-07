@@ -27,6 +27,7 @@ import { runInstagramWarmup } from "./instagram-warmup.js";
 import { runTikTokWarmup } from "./tiktok-warmup.js";
 import { runLinkedInWarmup } from "./linkedin-warmup.js";
 import { runRedditLeadScan } from "./reddit-lead-scan.js";
+import { runLinkedInCommentScan } from "./linkedin-comment-scan.js";
 
 
 
