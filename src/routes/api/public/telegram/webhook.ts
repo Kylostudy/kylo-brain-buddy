@@ -69,18 +69,35 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           };
         };
         const msg = update.message;
-        const replyTo = msg?.reply_to_message?.message_id;
+        let replyTo = msg?.reply_to_message?.message_id;
         const text = (msg?.text ?? "").trim();
-        if (!replyTo || !text) return Response.json({ ok: true, ignored: true });
+        if (!text) return Response.json({ ok: true, ignored: true });
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        // Ha NEM reply-ként írt (csak simán üzenetet küldött), akkor a legutóbbi
+        // olyan értesítésre értjük, amire még nem válaszolt.
+        let fellBack = false;
+        if (!replyTo) {
+          const { data: last } = await supabaseAdmin
+            .from("telegram_outbox")
+            .select("message_id")
+            .eq("topic", "lead_alert")
+            .is("reply_text", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (!last?.message_id) return Response.json({ ok: true, ignored: true });
+          replyTo = last.message_id as number;
+          fellBack = true;
+        }
         const { data: comment } = await supabaseAdmin
           .from("reddit_comments")
           .select("id, subreddit, author, context_title, suggested_reply_hu")
           .eq("telegram_message_id", replyTo)
           .maybeSingle();
 
-        const { sendTelegram, translateToEnglish } = await import(
+        const { sendTelegram, translateToEnglish, translateToHungarian } = await import(
           "@/lib/reddit-post-patrol.server"
         );
 
@@ -99,6 +116,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             );
             return Response.json({ ok: true, matched: false });
           }
+
 
           await supabaseAdmin
             .from("telegram_outbox")
