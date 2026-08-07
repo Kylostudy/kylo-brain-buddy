@@ -89,6 +89,10 @@ export async function runBrainTask(args) {
     case "linkedin_warmup":
       return await runLinkedInWarmup(args);
 
+    case "linkedin_comment_scan":
+      return await runLinkedInCommentScan(args);
+
+
 
 
 
