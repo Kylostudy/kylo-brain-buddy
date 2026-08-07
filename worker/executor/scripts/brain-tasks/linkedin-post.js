@@ -9,6 +9,12 @@
 //   target_ref: opcionális company slug/ID — ha meg van adva, a céges oldal
 //               admin nézetéből posztolunk, különben személyes profilról.
 
+import { createWriteStream } from "node:fs";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pipeline } from "node:stream/promises";
+
 import {
   humanBrowseMoment,
   humanCasualScroll,
@@ -18,6 +24,21 @@ import {
   humanWait,
   reseedHuman,
 } from "../humanize.js";
+
+async function downloadMediaToTemp(url, name, log) {
+  const dir = await mkdtemp(join(tmpdir(), "kylo-li-media-"));
+  const fname = (name || url.split("/").pop()?.split("?")[0] || "media.jpg").replace(
+    /[^a-zA-Z0-9._-]/g,
+    "_",
+  );
+  const fpath = join(dir, fname);
+  log("info", `Melléklet letöltése: ${fname}`);
+  const res = await fetch(url);
+  if (!res.ok || !res.body) throw new Error(`Letöltés HTTP ${res.status}`);
+  await pipeline(res.body, createWriteStream(fpath));
+  return fpath;
+}
+
 
 async function firstVisible(page, selectors, timeoutMs = 10000) {
   const deadline = Date.now() + timeoutMs;
