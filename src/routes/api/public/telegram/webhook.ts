@@ -238,6 +238,120 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             }
           }
 
+          // ---- LinkedIn hozzászólás / értesítés ----
+          if (out.ref_table === "linkedin_comments" && out.ref_id) {
+            const { data: li } = await supabaseAdmin
+              .from("linkedin_comments")
+              .select(
+                "id, permalink, context_title, author, body_hu, suggested_reply_hu, suggested_reply_en",
+              )
+              .eq("id", out.ref_id)
+              .maybeSingle();
+
+            if (li) {
+              if (SKIP_WORDS.has(text.toLowerCase())) {
+                await supabaseAdmin
+                  .from("linkedin_comments")
+                  .update({ reply_status: "skipped", needs_reply: false })
+                  .eq("id", li.id);
+                await sendTelegram(`Rendben, ezt kihagyjuk — ${head}`, {
+                  topic: "linkedin_comment_ack",
+                  platform: "linkedin",
+                  ref_table: out.ref_table,
+                  ref_id: out.ref_id,
+                  label: out.label,
+                });
+                return Response.json({ ok: true, action: "skipped" });
+              }
+
+              if (looksLikeQuestion(text) && !isAccept(text)) {
+                await sendTelegram(
+                  [
+                    `❓ Ezt kérdésnek értem, ezért NEM mentettem el válaszvázlatként — ${head}`,
+                    li.context_title ? `Poszt: ${li.context_title}` : "",
+                    li.permalink ?? "",
+                    ``,
+                    `Ha mégis ezt küldenéd ki válaszként, írd elé, hogy „válasz:”.`,
+                    `Ha jó a javaslatom, elég annyi: „mehet”.`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n"),
+                  {
+                    topic: "linkedin_comment_ack",
+                    platform: "linkedin",
+                    ref_table: out.ref_table,
+                    ref_id: out.ref_id,
+                    label: out.label,
+                  },
+                );
+                return Response.json({ ok: true, action: "question" });
+              }
+
+              const accepted = isAccept(text);
+              let suggestedHu = li.suggested_reply_hu ?? "";
+              if (accepted && !suggestedHu.trim() && li.suggested_reply_en) {
+                suggestedHu = (await translateToHungarian(li.suggested_reply_en)) || "";
+              }
+              const hungarian = accepted ? suggestedHu : text.replace(/^v[áa]lasz:\s*/i, "");
+
+              if (!hungarian.trim()) {
+                await sendTelegram(
+                  `Nincs mit lefordítanom (nem találom a javasolt választ) — ${head}. Írd le magyarul, mit válaszoljak.`,
+                );
+                return Response.json({ ok: true, action: "empty" });
+              }
+
+              const english =
+                accepted && li.suggested_reply_en
+                  ? li.suggested_reply_en
+                  : (await translateToEnglish(hungarian)) || hungarian;
+
+              const { error: saveError } = await supabaseAdmin
+                .from("linkedin_comments")
+                .update({
+                  approved_reply_hu: hungarian,
+                  approved_reply_en: english,
+                  approved_at: new Date().toISOString(),
+                  reply_status: "approved",
+                })
+                .eq("id", li.id);
+              if (saveError) {
+                await sendTelegram(
+                  `⚠️ Nem sikerült elmenteni a jóváhagyást — ${head}: ${saveError.message}`,
+                );
+                return Response.json({ ok: false, error: saveError.message });
+              }
+
+              await sendTelegram(
+                [
+                  `✅ ${accepted ? "A javasolt választ fogadtad el" : "A saját szövegedet mentettem el"} — ${head}`,
+                  li.context_title ? `Poszt: ${li.context_title}` : "",
+                  li.author ? `Kinek: ${li.author}` : "",
+                  li.permalink ?? "",
+                  ``,
+                  `MAGYARUL:`,
+                  hungarian,
+                  ``,
+                  `ANGOLUL (ezt lehet kimásolni LinkedInre):`,
+                  english,
+                ]
+                  .filter(Boolean)
+                  .join("\n"),
+                {
+                  topic: "linkedin_comment_ack",
+                  platform: "linkedin",
+                  ref_table: out.ref_table,
+                  ref_id: out.ref_id,
+                  label: out.label,
+                  payload: p,
+                },
+              );
+              return Response.json({ ok: true, action: "approved" });
+            }
+          }
+
+
+
           await sendTelegram(
             [
               `📌 Megvan, mire válaszoltál: ${head}`,
