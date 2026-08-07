@@ -64,10 +64,24 @@ export const saveContentDraft = createServerFn({ method: "POST" })
       body: string;
       target_workflow_id?: string | null;
       target_ref?: string | null;
+      media_path?: string | null;
+      media_name?: string | null;
+      media_mime?: string | null;
+      media_size?: number | null;
+      media_slot?: string | null;
     }) => d,
   )
   .handler(async ({ data, context }) => {
-    if (!data.body.trim()) throw new Error("A szöveg nem lehet üres.");
+    if (!data.body.trim() && !data.media_path) {
+      throw new Error("Adj meg szöveget vagy tölts fel egy fájlt.");
+    }
+    const media = {
+      media_path: data.media_path ?? null,
+      media_name: data.media_name ?? null,
+      media_mime: data.media_mime ?? null,
+      media_size: data.media_size ?? null,
+      media_slot: data.media_slot ?? null,
+    };
     if (data.id) {
       const { error } = await context.supabase
         .from("content_drafts")
@@ -77,6 +91,7 @@ export const saveContentDraft = createServerFn({ method: "POST" })
           body: data.body,
           target_workflow_id: data.target_workflow_id ?? null,
           target_ref: data.target_ref ?? null,
+          ...media,
         })
         .eq("id", data.id);
       if (error) throw new Error(error.message);
@@ -98,12 +113,14 @@ export const saveContentDraft = createServerFn({ method: "POST" })
         body: data.body,
         target_workflow_id: data.target_workflow_id ?? null,
         target_ref: data.target_ref ?? null,
+        ...media,
       })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
     return { id: row.id };
   });
+
 
 export const deleteContentDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
