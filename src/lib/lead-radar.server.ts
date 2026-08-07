@@ -123,17 +123,23 @@ const SCORE_SCHEMA = {
   type: "OBJECT",
   properties: {
     score: { type: "INTEGER" },
+    title_hu: { type: "STRING" },
+    summary_hu: { type: "STRING" },
     reason_hu: { type: "STRING" },
-    reply_en: { type: "STRING" },
+    reply_hu: { type: "STRING" },
   },
-  required: ["score", "reason_hu", "reply_en"],
+  required: ["score", "title_hu", "summary_hu", "reason_hu", "reply_hu"],
 };
 
-async function scoreCandidate(c: Candidate): Promise<{
+type Verdict = {
   score: number;
+  title_hu: string;
+  summary_hu: string;
   reason_hu: string;
-  reply_en: string;
-} | null> {
+  reply_hu: string;
+};
+
+async function scoreCandidate(c: Candidate): Promise<Verdict | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   const prompt = `Egy angol nyelvvizsgára / angoltanulásra fókuszáló tanulóplatform (Kylo.study) nevében figyelem a Redditet.
@@ -143,10 +149,12 @@ POSZT (r/${c.subreddit})
 Cím: ${c.title}
 Szöveg: ${c.body || "(nincs szövegtörzs)"}
 
-Feladat:
+Feladat (MINDEN mező MAGYARUL, angol szöveget ne adj vissza):
 1) score (0-100): mennyire olyan KÉRDÉS ez, amire egy gyors, hasznos, szakértő válasz valódi értéket ad, és ahol a mi tudásunk releváns. 0, ha nem kérdés, ha panasz/mém/politika, vagy ha nem angoltanulás.
-2) reason_hu: egy mondat magyarul, miért érdemes (vagy nem érdemes) válaszolni.
-3) reply_en: rövid (3-5 mondat), természetes, segítőkész angol válaszvázlat Reddit-stílusban. SEMMILYEN link, márkanév, termékajánlás vagy reklám. Konkrét, gyakorlati tanács legyen.`;
+2) title_hu: a poszt címének magyar fordítása (rövid).
+3) summary_hu: 1-2 mondat magyarul arról, mit kérdez/ír a poszt szerzője.
+4) reason_hu: egy mondat magyarul, miért érdemes (vagy nem érdemes) válaszolni.
+5) reply_hu: rövid (3-5 mondat), természetes, segítőkész válaszvázlat MAGYARUL, de úgy megfogalmazva, hogy angolra fordítva Reddit-stílusú hozzászólás legyen. SEMMILYEN link, márkanév, termékajánlás vagy reklám. Konkrét, gyakorlati tanács legyen.`;
 
   try {
     const res = await fetch(
@@ -170,11 +178,12 @@ Feladat:
     };
     const raw =
       json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    return JSON.parse(raw) as { score: number; reason_hu: string; reply_en: string };
+    return JSON.parse(raw) as Verdict;
   } catch {
     return null;
   }
 }
+
 
 // Reklámszűrő: ha a modell mégis linket vagy márkát írna, kivesszük.
 function sanitize(reply: string): string {
@@ -235,7 +244,7 @@ export async function processCandidates(
     const verdict = await scoreCandidate(c);
     if (!verdict) continue;
 
-    const reply = sanitize(verdict.reply_en);
+    const replyHu = sanitize(verdict.reply_hu);
     const worth = verdict.score >= ALERT_THRESHOLD;
 
     const { data: row } = await db
@@ -247,11 +256,13 @@ export async function processCandidates(
         post_id: c.id,
         permalink: c.permalink,
         title: c.title,
+        title_hu: verdict.title_hu,
         author: c.author,
         excerpt: c.body.slice(0, 500),
+        excerpt_hu: verdict.summary_hu,
         score: verdict.score,
         reason_hu: verdict.reason_hu,
-        suggested_reply_en: reply,
+        suggested_reply_hu: replyHu,
         status: worth ? "new" : "skipped",
       })
       .select("id")
@@ -264,17 +275,22 @@ export async function processCandidates(
       [
         `🎯 ÉRDEKLŐDÉS · r/${c.subreddit} · ${verdict.score}/100 · ${ageMin} perce`,
         ``,
-        `„${c.title}”`,
+        `„${verdict.title_hu}”`,
+        `(eredeti: ${c.title})`,
         `u/${c.author}`,
         ``,
-        `Miért: ${verdict.reason_hu}`,
+        `MIRŐL SZÓL: ${verdict.summary_hu}`,
+        `MIÉRT ÉRDEKES: ${verdict.reason_hu}`,
         ``,
-        `Válaszvázlat (angol):`,
-        reply,
+        `JAVASOLT VÁLASZ (magyarul):`,
+        replyHu,
         ``,
         c.permalink,
         ``,
-        `↩️ Válaszolj erre az üzenetre, ha átírnád a választ.`,
+        `↩️ Válaszolj ERRE az üzenetre:`,
+        `• „mehet” → ezt a javaslatot fordítom angolra`,
+        `• saját magyar szöveg → azt fordítom le`,
+        `• „nem” → kihagyjuk`,
       ].join("\n"),
       {
         topic: "lead_alert",
@@ -282,9 +298,10 @@ export async function processCandidates(
         ref_table: "lead_alerts",
         ref_id: row.id,
         label: `r/${c.subreddit}`,
-        payload: { permalink: c.permalink, score: verdict.score },
+        payload: { permalink: c.permalink, score: verdict.score, title_hu: verdict.title_hu },
       },
     );
+
 
     if (messageId) {
       await db.from("lead_alerts").update({ telegram_message_id: messageId }).eq("id", row.id);

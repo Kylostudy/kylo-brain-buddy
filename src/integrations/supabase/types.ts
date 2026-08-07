@@ -1011,9 +1011,13 @@ export type Database = {
       }
       lead_alerts: {
         Row: {
+          approved_at: string | null
+          approved_reply_en: string | null
+          approved_reply_hu: string | null
           author: string | null
           created_at: string
           excerpt: string | null
+          excerpt_hu: string | null
           id: string
           permalink: string
           post_id: string
@@ -1023,14 +1027,20 @@ export type Database = {
           status: string
           subreddit: string | null
           suggested_reply_en: string | null
+          suggested_reply_hu: string | null
           telegram_message_id: number | null
           tenant_id: string
           title: string | null
+          title_hu: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_reply_en?: string | null
+          approved_reply_hu?: string | null
           author?: string | null
           created_at?: string
           excerpt?: string | null
+          excerpt_hu?: string | null
           id?: string
           permalink: string
           post_id: string
@@ -1040,14 +1050,20 @@ export type Database = {
           status?: string
           subreddit?: string | null
           suggested_reply_en?: string | null
+          suggested_reply_hu?: string | null
           telegram_message_id?: number | null
           tenant_id: string
           title?: string | null
+          title_hu?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_reply_en?: string | null
+          approved_reply_hu?: string | null
           author?: string | null
           created_at?: string
           excerpt?: string | null
+          excerpt_hu?: string | null
           id?: string
           permalink?: string
           post_id?: string
@@ -1057,9 +1073,11 @@ export type Database = {
           status?: string
           subreddit?: string | null
           suggested_reply_en?: string | null
+          suggested_reply_hu?: string | null
           telegram_message_id?: number | null
           tenant_id?: string
           title?: string | null
+          title_hu?: string | null
         }
         Relationships: []
       }
