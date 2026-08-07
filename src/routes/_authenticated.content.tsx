@@ -261,9 +261,75 @@ function ContentStudioPage() {
             />
             <p className="text-xs text-muted-foreground">{body.length} karakter</p>
           </div>
-          <Button onClick={() => saveM.mutate()} disabled={!body.trim() || saveM.isPending}>
-            {saveM.isPending ? "Mentés…" : "Mentés"}
+
+          <div className="rounded-md border border-dashed p-3 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Paperclip className="size-4 text-primary" /> Fájl feltöltése (kép / videó)
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <Label>Fájl</Label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={file ? file.name : ""}
+                    placeholder="Nincs fájl kiválasztva"
+                    onClick={() => fileRef.current?.click()}
+                  />
+                  <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
+                    <Upload className="mr-2 size-4" /> Tallózás
+                  </Button>
+                  {file && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setFile(null);
+                        if (fileRef.current) fileRef.current.value = "";
+                      }}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/*,video/*"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+                {file && (
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB · {file.type || "ismeretlen típus"}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label>Hova kerüljön?</Label>
+                <Select value={mediaSlot} onValueChange={setMediaSlot}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MEDIA_SLOTS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  A fenti „Cél workflow” dönti el, melyik fiók böngészője viszi ki.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => saveM.mutate()}
+            disabled={(!body.trim() && !file) || saveM.isPending || uploading}
+          >
+            {uploading ? "Fájl feltöltése…" : saveM.isPending ? "Mentés…" : "Mentés"}
           </Button>
+
         </CardContent>
       </Card>
 
