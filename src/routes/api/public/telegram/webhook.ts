@@ -130,9 +130,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           if (out.ref_table === "lead_alerts" && out.ref_id) {
             const { data: alert } = await supabaseAdmin
               .from("lead_alerts")
-              .select("id, permalink, title_hu, title, suggested_reply_hu")
+              .select("id, permalink, title_hu, title, suggested_reply_hu, suggested_reply_en")
               .eq("id", out.ref_id)
               .maybeSingle();
+
 
             if (alert) {
               if (SKIP_WORDS.has(text.toLowerCase())) {
