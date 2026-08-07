@@ -25,6 +25,7 @@ import {
   FolderInput,
   Activity,
   Search,
+  Send,
 
 } from "lucide-react";
 import { toast } from "sonner";
