@@ -94,6 +94,10 @@ export async function runBrainTask(args) {
     case "linkedin_comment_scan":
       return await runLinkedInCommentScan(args);
 
+    case "linkedin_profile_photo":
+      return await runLinkedInProfilePhoto(args);
+
+
 
 
 
