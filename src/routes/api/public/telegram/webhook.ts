@@ -124,7 +124,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             .eq("id", out.id);
 
           const p = (out.payload ?? {}) as Record<string, unknown>;
-          const head = `${(out.platform ?? "rendszer").toString().toUpperCase()}${out.label ? ` · ${out.label}` : ""}`;
+          const head = `${(out.platform ?? "rendszer").toString().toUpperCase()}${out.label ? ` · ${out.label}` : ""}${fellBack ? " (a legutóbbi értesítésre értettem)" : ""}`;
 
           // ---- Érdeklődés-radar találat: itt tényleg választ készítünk ----
           if (out.ref_table === "lead_alerts" && out.ref_id) {
