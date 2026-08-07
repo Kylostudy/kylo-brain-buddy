@@ -82,7 +82,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           const { data: last } = await supabaseAdmin
             .from("telegram_outbox")
             .select("message_id")
-            .eq("topic", "lead_alert")
+            .in("topic", ["lead_alert", "linkedin_comment"])
             .is("reply_text", null)
             .order("created_at", { ascending: false })
             .limit(1)
