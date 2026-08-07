@@ -397,3 +397,20 @@ ${hungarian}
   });
   return r?.english ?? "";
 }
+
+// Angol → magyar fordítás (régi, csak angolul készült javaslatokhoz).
+export async function translateToHungarian(english: string): Promise<string> {
+  const prompt = `Fordítsd le a következő angol Reddit-választ természetes, közvetlen magyarra. Ne használj emojit, ne legyen marketinges. Csak a tiszta magyar szöveget add vissza.
+
+ANGOL:
+"""
+${english}
+"""`;
+  const r = await geminiJSON<{ hungarian: string }>(prompt, {
+    type: "OBJECT",
+    properties: { hungarian: { type: "STRING" } },
+    required: ["hungarian"],
+  });
+  return r?.hungarian ?? "";
+}
+

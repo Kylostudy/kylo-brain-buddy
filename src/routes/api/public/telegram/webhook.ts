@@ -69,18 +69,35 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           };
         };
         const msg = update.message;
-        const replyTo = msg?.reply_to_message?.message_id;
+        let replyTo = msg?.reply_to_message?.message_id;
         const text = (msg?.text ?? "").trim();
-        if (!replyTo || !text) return Response.json({ ok: true, ignored: true });
+        if (!text) return Response.json({ ok: true, ignored: true });
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        // Ha NEM reply-ként írt (csak simán üzenetet küldött), akkor a legutóbbi
+        // olyan értesítésre értjük, amire még nem válaszolt.
+        let fellBack = false;
+        if (!replyTo) {
+          const { data: last } = await supabaseAdmin
+            .from("telegram_outbox")
+            .select("message_id")
+            .eq("topic", "lead_alert")
+            .is("reply_text", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (!last?.message_id) return Response.json({ ok: true, ignored: true });
+          replyTo = last.message_id as number;
+          fellBack = true;
+        }
         const { data: comment } = await supabaseAdmin
           .from("reddit_comments")
           .select("id, subreddit, author, context_title, suggested_reply_hu")
           .eq("telegram_message_id", replyTo)
           .maybeSingle();
 
-        const { sendTelegram, translateToEnglish } = await import(
+        const { sendTelegram, translateToEnglish, translateToHungarian } = await import(
           "@/lib/reddit-post-patrol.server"
         );
 
@@ -100,21 +117,23 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             return Response.json({ ok: true, matched: false });
           }
 
+
           await supabaseAdmin
             .from("telegram_outbox")
             .update({ reply_text: text, replied_at: new Date().toISOString() })
             .eq("id", out.id);
 
           const p = (out.payload ?? {}) as Record<string, unknown>;
-          const head = `${(out.platform ?? "rendszer").toString().toUpperCase()}${out.label ? ` · ${out.label}` : ""}`;
+          const head = `${(out.platform ?? "rendszer").toString().toUpperCase()}${out.label ? ` · ${out.label}` : ""}${fellBack ? " (a legutóbbi értesítésre értettem)" : ""}`;
 
           // ---- Érdeklődés-radar találat: itt tényleg választ készítünk ----
           if (out.ref_table === "lead_alerts" && out.ref_id) {
             const { data: alert } = await supabaseAdmin
               .from("lead_alerts")
-              .select("id, permalink, title_hu, title, suggested_reply_hu")
+              .select("id, permalink, title_hu, title, suggested_reply_hu, suggested_reply_en")
               .eq("id", out.ref_id)
               .maybeSingle();
+
 
             if (alert) {
               if (SKIP_WORDS.has(text.toLowerCase())) {
@@ -156,8 +175,13 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               }
 
               const accepted = isAccept(text);
+              // Régi találatoknál csak angol javaslat van — ilyenkor magyarra fordítjuk.
+              let suggestedHu = alert.suggested_reply_hu ?? "";
+              if (accepted && !suggestedHu.trim() && alert.suggested_reply_en) {
+                suggestedHu = (await translateToHungarian(alert.suggested_reply_en)) || "";
+              }
               const hungarian = accepted
-                ? (alert.suggested_reply_hu ?? "")
+                ? suggestedHu
                 : text.replace(/^v[áa]lasz:\s*/i, "");
 
               if (!hungarian.trim()) {
@@ -167,8 +191,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 return Response.json({ ok: true, action: "empty" });
               }
 
-              const english = (await translateToEnglish(hungarian)) || hungarian;
-              await supabaseAdmin
+              const english = accepted && alert.suggested_reply_en
+                ? alert.suggested_reply_en
+                : (await translateToEnglish(hungarian)) || hungarian;
+              const { error: saveError } = await supabaseAdmin
                 .from("lead_alerts")
                 .update({
                   approved_reply_hu: hungarian,
@@ -177,6 +203,13 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   status: "approved",
                 })
                 .eq("id", alert.id);
+              if (saveError) {
+                await sendTelegram(
+                  `⚠️ Nem sikerült elmenteni a jóváhagyást — ${head}: ${saveError.message}`,
+                );
+                return Response.json({ ok: false, error: saveError.message });
+              }
+
 
               await sendTelegram(
                 [
