@@ -347,6 +347,16 @@ function ContentStudioPage() {
                 <span className="font-medium">{d.title || "(cím nélkül)"}</span>
                 <Badge variant="outline">{d.kind}</Badge>
                 {d.target_ref && <Badge variant="secondary">{d.target_ref}</Badge>}
+                {(d as { media_name?: string | null }).media_name && (
+                  <Badge variant="outline" className="gap-1">
+                    <Paperclip className="size-3" />
+                    {(d as { media_name?: string | null }).media_name}
+                    {(d as { media_slot?: string | null }).media_slot
+                      ? ` · ${MEDIA_SLOTS.find((s) => s.value === (d as { media_slot?: string | null }).media_slot)?.label ?? ""}`
+                      : ""}
+                  </Badge>
+                )}
+
                 <Badge
                   variant={
                     d.status === "failed"
