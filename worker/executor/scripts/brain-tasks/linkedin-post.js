@@ -107,10 +107,46 @@ export async function runLinkedInPost(args) {
 
   await humanThink(page, 4000);
 
+  // Ha van feltöltött melléklet (Tartalom Stúdió), hozzácsatoljuk.
+  if (brainTask.media?.value) {
+    try {
+      const filePath =
+        brainTask.media.kind === "url"
+          ? await downloadMediaToTemp(brainTask.media.value, brainTask.media.name, log)
+          : brainTask.media.value;
+      const addMedia = await firstVisible(page, [
+        'button[aria-label*="Add media" i]',
+        'button[aria-label*="photo" i]',
+        'button:has-text("Add a photo")',
+      ], 6000);
+      if (addMedia) {
+        await humanClick(page, addMedia);
+        await humanWait(page, 2000);
+      }
+      const input = page.locator('input[type="file"]').first();
+      await input.waitFor({ state: "attached", timeout: 15000 });
+      await input.setInputFiles(filePath);
+      await humanWait(page, 6000);
+      const done = await firstVisible(page, [
+        'button:has-text("Done")',
+        'button:has-text("Next")',
+        'button:has-text("Kész")',
+      ], 8000);
+      if (done) {
+        await humanClick(page, done);
+        await humanWait(page, 3000);
+      }
+      log("info", "Melléklet hozzáadva a LinkedIn poszthoz.");
+    } catch (e) {
+      log("warn", `A melléklet feltöltése nem sikerült: ${e.message}`);
+    }
+  }
+
   if (!submit) {
     log("info", "Próbamenet — a poszt be van gépelve, de NEM küldtük el.");
     return { linkedin_post: { typed: true, submitted: false, chars: body.length } };
   }
+
 
   const postBtn = await firstVisible(page, [
     'button.share-actions__primary-action',
