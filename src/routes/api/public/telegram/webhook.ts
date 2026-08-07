@@ -20,7 +20,34 @@ function safeEqual(a: string, b: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-const SKIP_WORDS = new Set(["nem", "skip", "-", "kihagy", "nem kell", "x"]);
+const SKIP_WORDS = new Set([
+  "nem",
+  "skip",
+  "-",
+  "kihagy",
+  "nem kell",
+  "x",
+  "hagyd",
+  "hagyjuk",
+  "nem kell válasz",
+]);
+
+// „Mehet az ajánlott válasz” típusú jóváhagyások: ilyenkor NEM ezt a mondatot
+// fordítjuk le, hanem a rendszer által javasolt választ küldjük tovább.
+const ACCEPT_RE =
+  /^(ok(é|e)?|okay|rendben|mehet|jó|jo|jöhet|johet|igen|küldd|kuldd|elfogadom|tets?zik|passzol|szuper|tökéletes|tokeletes|+1|👍|✅)\b/i;
+
+function isAccept(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (t.length > 60) return false;
+  return ACCEPT_RE.test(t) || /^mehet az aj[áa]nlott/i.test(t);
+}
+
+// Kérdés-szerű válasz: ilyenkor ne mentsünk el semmit válaszvázlatként.
+function looksLikeQuestion(text: string): boolean {
+  return text.trim().endsWith("?") && text.trim().length < 200;
+}
+
 
 export const Route = createFileRoute("/api/public/telegram/webhook")({
   server: {
