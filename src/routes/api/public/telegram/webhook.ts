@@ -175,8 +175,13 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               }
 
               const accepted = isAccept(text);
+              // Régi találatoknál csak angol javaslat van — ilyenkor magyarra fordítjuk.
+              let suggestedHu = alert.suggested_reply_hu ?? "";
+              if (accepted && !suggestedHu.trim() && alert.suggested_reply_en) {
+                suggestedHu = (await translateToHungarian(alert.suggested_reply_en)) || "";
+              }
               const hungarian = accepted
-                ? (alert.suggested_reply_hu ?? "")
+                ? suggestedHu
                 : text.replace(/^v[áa]lasz:\s*/i, "");
 
               if (!hungarian.trim()) {
@@ -186,8 +191,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 return Response.json({ ok: true, action: "empty" });
               }
 
-              const english = (await translateToEnglish(hungarian)) || hungarian;
-              await supabaseAdmin
+              const english = accepted && alert.suggested_reply_en
+                ? alert.suggested_reply_en
+                : (await translateToEnglish(hungarian)) || hungarian;
+              const { error: saveError } = await supabaseAdmin
                 .from("lead_alerts")
                 .update({
                   approved_reply_hu: hungarian,
@@ -196,6 +203,13 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   status: "approved",
                 })
                 .eq("id", alert.id);
+              if (saveError) {
+                await sendTelegram(
+                  `⚠️ Nem sikerült elmenteni a jóváhagyást — ${head}: ${saveError.message}`,
+                );
+                return Response.json({ ok: false, error: saveError.message });
+              }
+
 
               await sendTelegram(
                 [
