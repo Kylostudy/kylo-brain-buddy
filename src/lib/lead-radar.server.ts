@@ -123,17 +123,23 @@ const SCORE_SCHEMA = {
   type: "OBJECT",
   properties: {
     score: { type: "INTEGER" },
+    title_hu: { type: "STRING" },
+    summary_hu: { type: "STRING" },
     reason_hu: { type: "STRING" },
-    reply_en: { type: "STRING" },
+    reply_hu: { type: "STRING" },
   },
-  required: ["score", "reason_hu", "reply_en"],
+  required: ["score", "title_hu", "summary_hu", "reason_hu", "reply_hu"],
 };
 
-async function scoreCandidate(c: Candidate): Promise<{
+type Verdict = {
   score: number;
+  title_hu: string;
+  summary_hu: string;
   reason_hu: string;
-  reply_en: string;
-} | null> {
+  reply_hu: string;
+};
+
+async function scoreCandidate(c: Candidate): Promise<Verdict | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   const prompt = `Egy angol nyelvvizsgára / angoltanulásra fókuszáló tanulóplatform (Kylo.study) nevében figyelem a Redditet.
@@ -143,10 +149,12 @@ POSZT (r/${c.subreddit})
 Cím: ${c.title}
 Szöveg: ${c.body || "(nincs szövegtörzs)"}
 
-Feladat:
+Feladat (MINDEN mező MAGYARUL, angol szöveget ne adj vissza):
 1) score (0-100): mennyire olyan KÉRDÉS ez, amire egy gyors, hasznos, szakértő válasz valódi értéket ad, és ahol a mi tudásunk releváns. 0, ha nem kérdés, ha panasz/mém/politika, vagy ha nem angoltanulás.
-2) reason_hu: egy mondat magyarul, miért érdemes (vagy nem érdemes) válaszolni.
-3) reply_en: rövid (3-5 mondat), természetes, segítőkész angol válaszvázlat Reddit-stílusban. SEMMILYEN link, márkanév, termékajánlás vagy reklám. Konkrét, gyakorlati tanács legyen.`;
+2) title_hu: a poszt címének magyar fordítása (rövid).
+3) summary_hu: 1-2 mondat magyarul arról, mit kérdez/ír a poszt szerzője.
+4) reason_hu: egy mondat magyarul, miért érdemes (vagy nem érdemes) válaszolni.
+5) reply_hu: rövid (3-5 mondat), természetes, segítőkész válaszvázlat MAGYARUL, de úgy megfogalmazva, hogy angolra fordítva Reddit-stílusú hozzászólás legyen. SEMMILYEN link, márkanév, termékajánlás vagy reklám. Konkrét, gyakorlati tanács legyen.`;
 
   try {
     const res = await fetch(
@@ -170,11 +178,12 @@ Feladat:
     };
     const raw =
       json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    return JSON.parse(raw) as { score: number; reason_hu: string; reply_en: string };
+    return JSON.parse(raw) as Verdict;
   } catch {
     return null;
   }
 }
+
 
 // Reklámszűrő: ha a modell mégis linket vagy márkát írna, kivesszük.
 function sanitize(reply: string): string {
