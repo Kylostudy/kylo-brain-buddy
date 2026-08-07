@@ -27,6 +27,7 @@ import { runInstagramWarmup } from "./instagram-warmup.js";
 import { runTikTokWarmup } from "./tiktok-warmup.js";
 import { runLinkedInWarmup } from "./linkedin-warmup.js";
 import { runRedditLeadScan } from "./reddit-lead-scan.js";
+import { runLinkedInCommentScan } from "./linkedin-comment-scan.js";
 
 
 
@@ -87,6 +88,10 @@ export async function runBrainTask(args) {
 
     case "linkedin_warmup":
       return await runLinkedInWarmup(args);
+
+    case "linkedin_comment_scan":
+      return await runLinkedInCommentScan(args);
+
 
 
 

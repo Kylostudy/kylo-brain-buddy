@@ -34,6 +34,7 @@ import { Route as ApiPublicAuthPasswordRouteImport } from './routes/api/public/a
 import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/api/public/cron/dispatch-brain-tasks'
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCronLeadRadarRouteImport } from './routes/api/public/cron/lead-radar'
+import { Route as ApiPublicCronLinkedinCommentScanRouteImport } from './routes/api/public/cron/linkedin-comment-scan'
 import { Route as ApiPublicCronLinkedinMetricsRouteImport } from './routes/api/public/cron/linkedin-metrics'
 import { Route as ApiPublicCronRedditDiscourseRouteImport } from './routes/api/public/cron/reddit-discourse'
 import { Route as ApiPublicCronRedditPostPatrolRouteImport } from './routes/api/public/cron/reddit-post-patrol'
@@ -51,6 +52,7 @@ import { Route as ApiPublicWorkerGmailConfirmationLinkRouteImport } from './rout
 import { Route as ApiPublicWorkerHeartbeatRouteImport } from './routes/api/public/worker/heartbeat'
 import { Route as ApiPublicWorkerLeadRadarIngestRouteImport } from './routes/api/public/worker/lead-radar-ingest'
 import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
+import { Route as ApiPublicWorkerLinkedinCommentIngestRouteImport } from './routes/api/public/worker/linkedin-comment-ingest'
 import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
@@ -209,6 +211,12 @@ const ApiPublicCronLeadRadarRoute = ApiPublicCronLeadRadarRouteImport.update({
   path: '/api/public/cron/lead-radar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronLinkedinCommentScanRoute =
+  ApiPublicCronLinkedinCommentScanRouteImport.update({
+    id: '/api/public/cron/linkedin-comment-scan',
+    path: '/api/public/cron/linkedin-comment-scan',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronLinkedinMetricsRoute =
   ApiPublicCronLinkedinMetricsRouteImport.update({
     id: '/api/public/cron/linkedin-metrics',
@@ -307,6 +315,12 @@ const ApiPublicWorkerLearnedSelectorsRoute =
   ApiPublicWorkerLearnedSelectorsRouteImport.update({
     id: '/api/public/worker/learned-selectors',
     path: '/api/public/worker/learned-selectors',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWorkerLinkedinCommentIngestRoute =
+  ApiPublicWorkerLinkedinCommentIngestRouteImport.update({
+    id: '/api/public/worker/linkedin-comment-ingest',
+    path: '/api/public/worker/linkedin-comment-ingest',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWorkerProgressRoute = ApiPublicWorkerProgressRouteImport.update({
@@ -459,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/lead-radar': typeof ApiPublicCronLeadRadarRoute
+  '/api/public/cron/linkedin-comment-scan': typeof ApiPublicCronLinkedinCommentScanRoute
   '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
@@ -476,6 +491,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/lead-radar-ingest': typeof ApiPublicWorkerLeadRadarIngestRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
+  '/api/public/worker/linkedin-comment-ingest': typeof ApiPublicWorkerLinkedinCommentIngestRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
@@ -523,6 +539,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/lead-radar': typeof ApiPublicCronLeadRadarRoute
+  '/api/public/cron/linkedin-comment-scan': typeof ApiPublicCronLinkedinCommentScanRoute
   '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
@@ -540,6 +557,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/lead-radar-ingest': typeof ApiPublicWorkerLeadRadarIngestRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
+  '/api/public/worker/linkedin-comment-ingest': typeof ApiPublicWorkerLinkedinCommentIngestRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
@@ -589,6 +607,7 @@ export interface FileRoutesById {
   '/api/public/cron/dispatch-brain-tasks': typeof ApiPublicCronDispatchBrainTasksRoute
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/lead-radar': typeof ApiPublicCronLeadRadarRoute
+  '/api/public/cron/linkedin-comment-scan': typeof ApiPublicCronLinkedinCommentScanRoute
   '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
@@ -606,6 +625,7 @@ export interface FileRoutesById {
   '/api/public/worker/heartbeat': typeof ApiPublicWorkerHeartbeatRoute
   '/api/public/worker/lead-radar-ingest': typeof ApiPublicWorkerLeadRadarIngestRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
+  '/api/public/worker/linkedin-comment-ingest': typeof ApiPublicWorkerLinkedinCommentIngestRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
@@ -655,6 +675,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/lead-radar'
+    | '/api/public/cron/linkedin-comment-scan'
     | '/api/public/cron/linkedin-metrics'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
@@ -672,6 +693,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/heartbeat'
     | '/api/public/worker/lead-radar-ingest'
     | '/api/public/worker/learned-selectors'
+    | '/api/public/worker/linkedin-comment-ingest'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
@@ -719,6 +741,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/lead-radar'
+    | '/api/public/cron/linkedin-comment-scan'
     | '/api/public/cron/linkedin-metrics'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
@@ -736,6 +759,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/heartbeat'
     | '/api/public/worker/lead-radar-ingest'
     | '/api/public/worker/learned-selectors'
+    | '/api/public/worker/linkedin-comment-ingest'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
@@ -784,6 +808,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/dispatch-brain-tasks'
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/lead-radar'
+    | '/api/public/cron/linkedin-comment-scan'
     | '/api/public/cron/linkedin-metrics'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
@@ -801,6 +826,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/heartbeat'
     | '/api/public/worker/lead-radar-ingest'
     | '/api/public/worker/learned-selectors'
+    | '/api/public/worker/linkedin-comment-ingest'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
@@ -836,6 +862,7 @@ export interface RootRouteChildren {
   ApiPublicCronDispatchBrainTasksRoute: typeof ApiPublicCronDispatchBrainTasksRoute
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicCronLeadRadarRoute: typeof ApiPublicCronLeadRadarRoute
+  ApiPublicCronLinkedinCommentScanRoute: typeof ApiPublicCronLinkedinCommentScanRoute
   ApiPublicCronLinkedinMetricsRoute: typeof ApiPublicCronLinkedinMetricsRoute
   ApiPublicCronRedditDiscourseRoute: typeof ApiPublicCronRedditDiscourseRoute
   ApiPublicCronRedditPostPatrolRoute: typeof ApiPublicCronRedditPostPatrolRoute
@@ -853,6 +880,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerHeartbeatRoute: typeof ApiPublicWorkerHeartbeatRoute
   ApiPublicWorkerLeadRadarIngestRoute: typeof ApiPublicWorkerLeadRadarIngestRoute
   ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
+  ApiPublicWorkerLinkedinCommentIngestRoute: typeof ApiPublicWorkerLinkedinCommentIngestRoute
   ApiPublicWorkerProgressRoute: typeof ApiPublicWorkerProgressRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
@@ -1052,6 +1080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronLeadRadarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/linkedin-comment-scan': {
+      id: '/api/public/cron/linkedin-comment-scan'
+      path: '/api/public/cron/linkedin-comment-scan'
+      fullPath: '/api/public/cron/linkedin-comment-scan'
+      preLoaderRoute: typeof ApiPublicCronLinkedinCommentScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/linkedin-metrics': {
       id: '/api/public/cron/linkedin-metrics'
       path: '/api/public/cron/linkedin-metrics'
@@ -1169,6 +1204,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/worker/learned-selectors'
       fullPath: '/api/public/worker/learned-selectors'
       preLoaderRoute: typeof ApiPublicWorkerLearnedSelectorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/worker/linkedin-comment-ingest': {
+      id: '/api/public/worker/linkedin-comment-ingest'
+      path: '/api/public/worker/linkedin-comment-ingest'
+      fullPath: '/api/public/worker/linkedin-comment-ingest'
+      preLoaderRoute: typeof ApiPublicWorkerLinkedinCommentIngestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/worker/progress': {
@@ -1386,6 +1428,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronDispatchBrainTasksRoute: ApiPublicCronDispatchBrainTasksRoute,
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicCronLeadRadarRoute: ApiPublicCronLeadRadarRoute,
+  ApiPublicCronLinkedinCommentScanRoute: ApiPublicCronLinkedinCommentScanRoute,
   ApiPublicCronLinkedinMetricsRoute: ApiPublicCronLinkedinMetricsRoute,
   ApiPublicCronRedditDiscourseRoute: ApiPublicCronRedditDiscourseRoute,
   ApiPublicCronRedditPostPatrolRoute: ApiPublicCronRedditPostPatrolRoute,
@@ -1405,6 +1448,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerHeartbeatRoute: ApiPublicWorkerHeartbeatRoute,
   ApiPublicWorkerLeadRadarIngestRoute: ApiPublicWorkerLeadRadarIngestRoute,
   ApiPublicWorkerLearnedSelectorsRoute: ApiPublicWorkerLearnedSelectorsRoute,
+  ApiPublicWorkerLinkedinCommentIngestRoute:
+    ApiPublicWorkerLinkedinCommentIngestRoute,
   ApiPublicWorkerProgressRoute: ApiPublicWorkerProgressRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
