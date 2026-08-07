@@ -3,21 +3,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+const txt = (max: number) =>
+  z
+    .union([z.string(), z.number(), z.null(), z.undefined()])
+    .transform((v) => (v === null || v === undefined ? undefined : String(v).slice(0, max)));
+
 const ItemSchema = z.object({
-  external_id: z.string().min(1).max(200),
-  kind: z.string().max(32).optional(),
-  author: z.string().max(160).optional(),
-  author_headline: z.string().max(300).optional(),
-  context_title: z.string().max(500).optional(),
-  permalink: z.string().max(800).optional(),
-  body: z.string().max(4000).optional(),
-  posted_at: z.string().max(64).optional(),
+  external_id: z.union([z.string(), z.number()]).transform((v) => String(v).slice(0, 200)),
+  kind: txt(32),
+  author: txt(160),
+  author_headline: txt(300),
+  context_title: txt(500),
+  permalink: txt(2000),
+  body: txt(4000),
+  posted_at: txt(64),
 });
 
 const BodySchema = z.object({
-  own_name: z.string().max(160).optional(),
+  own_name: txt(160),
   items: z.array(ItemSchema).max(100),
 });
+
 
 function tokenOk(request: Request): boolean {
   const header = request.headers.get("authorization") ?? "";
