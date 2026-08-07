@@ -19,6 +19,7 @@ import { Route as AuthenticatedPatrolRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
 import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenticated.reddit-scout'
 import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authenticated.reddit-warmup'
+import { Route as AuthenticatedTelegramGuideRouteImport } from './routes/_authenticated.telegram-guide'
 import { Route as AuthenticatedWorkerHealthRouteImport } from './routes/_authenticated.worker-health'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedAuditQaRouteImport } from './routes/_authenticated.audit.qa'
@@ -121,6 +122,12 @@ const AuthenticatedRedditWarmupRoute =
   AuthenticatedRedditWarmupRouteImport.update({
     id: '/reddit-warmup',
     path: '/reddit-warmup',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedTelegramGuideRoute =
+  AuthenticatedTelegramGuideRouteImport.update({
+    id: '/telegram-guide',
+    path: '/telegram-guide',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedWorkerHealthRoute =
@@ -437,6 +444,7 @@ export interface FileRoutesByFullPath {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
+  '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
   '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
@@ -499,6 +507,7 @@ export interface FileRoutesByTo {
   '/proxies': typeof AuthenticatedProxiesRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
+  '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
   '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/': typeof AuthenticatedIndexRoute
@@ -564,6 +573,7 @@ export interface FileRoutesById {
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
   '/_authenticated/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/_authenticated/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
+  '/_authenticated/telegram-guide': typeof AuthenticatedTelegramGuideRoute
   '/_authenticated/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -630,6 +640,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/reddit-scout'
     | '/reddit-warmup'
+    | '/telegram-guide'
     | '/worker-health'
     | '/api/transcribe'
     | '/audit/qa'
@@ -692,6 +703,7 @@ export interface FileRouteTypes {
     | '/proxies'
     | '/reddit-scout'
     | '/reddit-warmup'
+    | '/telegram-guide'
     | '/worker-health'
     | '/api/transcribe'
     | '/'
@@ -756,6 +768,7 @@ export interface FileRouteTypes {
     | '/_authenticated/proxies'
     | '/_authenticated/reddit-scout'
     | '/_authenticated/reddit-warmup'
+    | '/_authenticated/telegram-guide'
     | '/_authenticated/worker-health'
     | '/api/transcribe'
     | '/_authenticated/'
@@ -932,6 +945,13 @@ declare module '@tanstack/react-router' {
       path: '/reddit-warmup'
       fullPath: '/reddit-warmup'
       preLoaderRoute: typeof AuthenticatedRedditWarmupRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/telegram-guide': {
+      id: '/_authenticated/telegram-guide'
+      path: '/telegram-guide'
+      fullPath: '/telegram-guide'
+      preLoaderRoute: typeof AuthenticatedTelegramGuideRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/worker-health': {
@@ -1309,6 +1329,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
   AuthenticatedRedditScoutRoute: typeof AuthenticatedRedditScoutRoute
   AuthenticatedRedditWarmupRoute: typeof AuthenticatedRedditWarmupRoute
+  AuthenticatedTelegramGuideRoute: typeof AuthenticatedTelegramGuideRoute
   AuthenticatedWorkerHealthRoute: typeof AuthenticatedWorkerHealthRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAuditQaRoute: typeof AuthenticatedAuditQaRoute
@@ -1325,6 +1346,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
   AuthenticatedRedditScoutRoute: AuthenticatedRedditScoutRoute,
   AuthenticatedRedditWarmupRoute: AuthenticatedRedditWarmupRoute,
+  AuthenticatedTelegramGuideRoute: AuthenticatedTelegramGuideRoute,
   AuthenticatedWorkerHealthRoute: AuthenticatedWorkerHealthRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAuditQaRoute: AuthenticatedAuditQaRoute,
@@ -1410,3 +1432,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -797,6 +797,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
+              {module === "brain" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath === "/telegram-guide"}>
+                    <Link to="/telegram-guide" className="flex items-center gap-2">
+                      <Send className="size-4 shrink-0" />
+                      <span className="truncate">Telegram közös nyelv</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={currentPath === "/proxies"}>
                   <Link to="/proxies" className="flex items-center gap-2">
