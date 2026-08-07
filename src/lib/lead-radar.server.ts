@@ -244,7 +244,7 @@ export async function processCandidates(
     const verdict = await scoreCandidate(c);
     if (!verdict) continue;
 
-    const reply = sanitize(verdict.reply_en);
+    const replyHu = sanitize(verdict.reply_hu);
     const worth = verdict.score >= ALERT_THRESHOLD;
 
     const { data: row } = await db
@@ -256,11 +256,13 @@ export async function processCandidates(
         post_id: c.id,
         permalink: c.permalink,
         title: c.title,
+        title_hu: verdict.title_hu,
         author: c.author,
         excerpt: c.body.slice(0, 500),
+        excerpt_hu: verdict.summary_hu,
         score: verdict.score,
         reason_hu: verdict.reason_hu,
-        suggested_reply_en: reply,
+        suggested_reply_hu: replyHu,
         status: worth ? "new" : "skipped",
       })
       .select("id")
@@ -273,17 +275,22 @@ export async function processCandidates(
       [
         `🎯 ÉRDEKLŐDÉS · r/${c.subreddit} · ${verdict.score}/100 · ${ageMin} perce`,
         ``,
-        `„${c.title}”`,
+        `„${verdict.title_hu}”`,
+        `(eredeti: ${c.title})`,
         `u/${c.author}`,
         ``,
-        `Miért: ${verdict.reason_hu}`,
+        `MIRŐL SZÓL: ${verdict.summary_hu}`,
+        `MIÉRT ÉRDEKES: ${verdict.reason_hu}`,
         ``,
-        `Válaszvázlat (angol):`,
-        reply,
+        `JAVASOLT VÁLASZ (magyarul):`,
+        replyHu,
         ``,
         c.permalink,
         ``,
-        `↩️ Válaszolj erre az üzenetre, ha átírnád a választ.`,
+        `↩️ Válaszolj ERRE az üzenetre:`,
+        `• „mehet” → ezt a javaslatot fordítom angolra`,
+        `• saját magyar szöveg → azt fordítom le`,
+        `• „nem” → kihagyjuk`,
       ].join("\n"),
       {
         topic: "lead_alert",
@@ -291,9 +298,10 @@ export async function processCandidates(
         ref_table: "lead_alerts",
         ref_id: row.id,
         label: `r/${c.subreddit}`,
-        payload: { permalink: c.permalink, score: verdict.score },
+        payload: { permalink: c.permalink, score: verdict.score, title_hu: verdict.title_hu },
       },
     );
+
 
     if (messageId) {
       await db.from("lead_alerts").update({ telegram_message_id: messageId }).eq("id", row.id);
