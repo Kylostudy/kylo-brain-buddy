@@ -35,7 +35,7 @@ const SKIP_WORDS = new Set([
 // „Mehet az ajánlott válasz” típusú jóváhagyások: ilyenkor NEM ezt a mondatot
 // fordítjuk le, hanem a rendszer által javasolt választ küldjük tovább.
 const ACCEPT_RE =
-  /^(ok(é|e)?|okay|rendben|mehet|jó|jo|jöhet|johet|igen|küldd|kuldd|elfogadom|tets?zik|passzol|szuper|tökéletes|tokeletes|+1|👍|✅)\b/i;
+  /^(ok(é|e)?|okay|rendben|mehet|jó|jo|jöhet|johet|igen|küldd|kuldd|elfogadom|tetszik|passzol|szuper|tökéletes|tokeletes|\+1|👍|✅)\b/i;
 
 function isAccept(text: string): boolean {
   const t = text.trim().toLowerCase();
