@@ -77,32 +77,66 @@ function ContentStudioPage() {
   const [workflowId, setWorkflowId] = useState<string>("");
   const [targetRef, setTargetRef] = useState("");
 
+  // Fájlfeltöltés állapota
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [mediaSlot, setMediaSlot] = useState<string>("linkedin_profile_photo");
+  const [uploading, setUploading] = useState(false);
+  const uploadUrlFn = useServerFn(createMediaUploadUrl);
+
   // Ha még nincs kiválasztott workflow, a legérettebb fiókét ajánljuk fel.
   useEffect(() => {
     const best = recQ.data?.best;
     if (!workflowId && best?.workflow_id) setWorkflowId(best.workflow_id);
   }, [recQ.data, workflowId]);
 
+  async function uploadIfNeeded() {
+    if (!file) return null;
+    setUploading(true);
+    try {
+      const target = await uploadUrlFn({ data: { file_name: file.name } });
+      const { error } = await supabase.storage
+        .from(target.bucket)
+        .uploadToSignedUrl(target.path, target.token, file);
+      if (error) throw new Error(error.message);
+      return {
+        media_path: target.path,
+        media_name: file.name,
+        media_mime: file.type || null,
+        media_size: file.size,
+        media_slot: mediaSlot,
+      };
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const saveM = useMutation({
-    mutationFn: () =>
-      saveFn({
+    mutationFn: async () => {
+      const media = await uploadIfNeeded();
+      return saveFn({
         data: {
           kind,
           title,
           body,
           target_workflow_id: workflowId || null,
           target_ref: targetRef || null,
+          ...(media ?? {}),
         },
-      }),
+      });
+    },
     onSuccess: () => {
-      toast.success("Szöveg elmentve.");
+      toast.success(file ? "Mentve a fájllal együtt." : "Szöveg elmentve.");
       setTitle("");
       setBody("");
       setTargetRef("");
+      setFile(null);
+      if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["content-drafts"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const queueM = useMutation({
     mutationFn: (v: { id: string; dry_run: boolean }) =>
