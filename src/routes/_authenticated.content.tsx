@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ClipboardPaste, Send, Trash2, Trophy } from "lucide-react";
+import { ClipboardPaste, Paperclip, Send, Trash2, Trophy, Upload, X } from "lucide-react";
 
 import {
   listContentDrafts,
@@ -12,6 +12,8 @@ import {
   queueContentDraft,
   recommendMatureRedditAccount,
 } from "@/lib/content-drafts.functions";
+import { createMediaUploadUrl, MEDIA_SLOTS } from "@/lib/content-media.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { listBrainWorkflowsForWarmup } from "@/lib/reddit-warmup.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,7 @@ const KINDS = [
   { value: "linkedin_post", label: "LinkedIn poszt" },
   { value: "generic_text", label: "Egyéb szöveg" },
 ];
+
 
 export const Route = createFileRoute("/_authenticated/content")({
   component: ContentStudioPage,
