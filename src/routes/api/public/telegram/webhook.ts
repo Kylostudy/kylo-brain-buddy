@@ -241,7 +241,33 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           return Response.json({ ok: true, action: "ignored" });
         }
 
-        const english = (await translateToEnglish(text)) || text;
+        if (looksLikeQuestion(text) && !isAccept(text)) {
+          await sendTelegram(
+            [
+              `❓ Ezt kérdésnek értem, ezért NEM mentettem el válaszként — ${tag}`,
+              comment.context_title ? `Poszt: ${comment.context_title}` : "",
+              ``,
+              `Ha mégis ezt küldenéd ki, írd elé: „válasz:”. Ha jó a javaslatom: „mehet”.`,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          );
+          return Response.json({ ok: true, action: "question" });
+        }
+
+        const accepted = isAccept(text);
+        const hungarian = accepted
+          ? (comment.suggested_reply_hu ?? "")
+          : text.replace(/^v[áa]lasz:\s*/i, "");
+
+        if (!hungarian.trim()) {
+          await sendTelegram(
+            `Nincs mit lefordítanom (nem találom a javasolt választ) — ${tag}. Írd le magyarul, mit válaszoljak.`,
+          );
+          return Response.json({ ok: true, action: "empty" });
+        }
+
+        const english = (await translateToEnglish(hungarian)) || hungarian;
         await supabaseAdmin
           .from("reddit_comments")
           .update({
@@ -253,8 +279,11 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
         await sendTelegram(
           [
-            `✅ Válasz elmentve — ${tag}`,
+            `✅ ${accepted ? "A javasolt választ fogadtad el" : "Válasz elmentve"} — ${tag}`,
             comment.context_title ? `Poszt: ${comment.context_title}` : "",
+            ``,
+            `MAGYARUL:`,
+            hungarian,
             ``,
             `ANGOL VÁLTOZAT:`,
             english,
@@ -264,6 +293,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             .filter(Boolean)
             .join("\n"),
         );
+
 
 
         return Response.json({ ok: true, action: "approved" });
