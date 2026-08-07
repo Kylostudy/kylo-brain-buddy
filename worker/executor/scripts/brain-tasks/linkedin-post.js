@@ -9,6 +9,12 @@
 //   target_ref: opcionális company slug/ID — ha meg van adva, a céges oldal
 //               admin nézetéből posztolunk, különben személyes profilról.
 
+import { createWriteStream } from "node:fs";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pipeline } from "node:stream/promises";
+
 import {
   humanBrowseMoment,
   humanCasualScroll,
@@ -18,6 +24,21 @@ import {
   humanWait,
   reseedHuman,
 } from "../humanize.js";
+
+async function downloadMediaToTemp(url, name, log) {
+  const dir = await mkdtemp(join(tmpdir(), "kylo-li-media-"));
+  const fname = (name || url.split("/").pop()?.split("?")[0] || "media.jpg").replace(
+    /[^a-zA-Z0-9._-]/g,
+    "_",
+  );
+  const fpath = join(dir, fname);
+  log("info", `Melléklet letöltése: ${fname}`);
+  const res = await fetch(url);
+  if (!res.ok || !res.body) throw new Error(`Letöltés HTTP ${res.status}`);
+  await pipeline(res.body, createWriteStream(fpath));
+  return fpath;
+}
+
 
 async function firstVisible(page, selectors, timeoutMs = 10000) {
   const deadline = Date.now() + timeoutMs;
@@ -107,10 +128,46 @@ export async function runLinkedInPost(args) {
 
   await humanThink(page, 4000);
 
+  // Ha van feltöltött melléklet (Tartalom Stúdió), hozzácsatoljuk.
+  if (brainTask.media?.value) {
+    try {
+      const filePath =
+        brainTask.media.kind === "url"
+          ? await downloadMediaToTemp(brainTask.media.value, brainTask.media.name, log)
+          : brainTask.media.value;
+      const addMedia = await firstVisible(page, [
+        'button[aria-label*="Add media" i]',
+        'button[aria-label*="photo" i]',
+        'button:has-text("Add a photo")',
+      ], 6000);
+      if (addMedia) {
+        await humanClick(page, addMedia);
+        await humanWait(page, 2000);
+      }
+      const input = page.locator('input[type="file"]').first();
+      await input.waitFor({ state: "attached", timeout: 15000 });
+      await input.setInputFiles(filePath);
+      await humanWait(page, 6000);
+      const done = await firstVisible(page, [
+        'button:has-text("Done")',
+        'button:has-text("Next")',
+        'button:has-text("Kész")',
+      ], 8000);
+      if (done) {
+        await humanClick(page, done);
+        await humanWait(page, 3000);
+      }
+      log("info", "Melléklet hozzáadva a LinkedIn poszthoz.");
+    } catch (e) {
+      log("warn", `A melléklet feltöltése nem sikerült: ${e.message}`);
+    }
+  }
+
   if (!submit) {
     log("info", "Próbamenet — a poszt be van gépelve, de NEM küldtük el.");
     return { linkedin_post: { typed: true, submitted: false, chars: body.length } };
   }
+
 
   const postBtn = await firstVisible(page, [
     'button.share-actions__primary-action',

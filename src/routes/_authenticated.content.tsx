@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ClipboardPaste, Send, Trash2, Trophy } from "lucide-react";
+import { ClipboardPaste, Paperclip, Send, Trash2, Trophy, Upload, X } from "lucide-react";
 
 import {
   listContentDrafts,
@@ -12,6 +12,10 @@ import {
   queueContentDraft,
   recommendMatureRedditAccount,
 } from "@/lib/content-drafts.functions";
+import { createMediaUploadUrl } from "@/lib/content-media.functions";
+import { MEDIA_SLOTS } from "@/lib/content-media";
+
+import { supabase } from "@/integrations/supabase/client";
 import { listBrainWorkflowsForWarmup } from "@/lib/reddit-warmup.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +33,7 @@ const KINDS = [
   { value: "linkedin_post", label: "LinkedIn poszt" },
   { value: "generic_text", label: "Egyéb szöveg" },
 ];
+
 
 export const Route = createFileRoute("/_authenticated/content")({
   component: ContentStudioPage,
@@ -74,32 +79,66 @@ function ContentStudioPage() {
   const [workflowId, setWorkflowId] = useState<string>("");
   const [targetRef, setTargetRef] = useState("");
 
+  // Fájlfeltöltés állapota
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [mediaSlot, setMediaSlot] = useState<string>("linkedin_profile_photo");
+  const [uploading, setUploading] = useState(false);
+  const uploadUrlFn = useServerFn(createMediaUploadUrl);
+
   // Ha még nincs kiválasztott workflow, a legérettebb fiókét ajánljuk fel.
   useEffect(() => {
     const best = recQ.data?.best;
     if (!workflowId && best?.workflow_id) setWorkflowId(best.workflow_id);
   }, [recQ.data, workflowId]);
 
+  async function uploadIfNeeded() {
+    if (!file) return null;
+    setUploading(true);
+    try {
+      const target = await uploadUrlFn({ data: { file_name: file.name } });
+      const { error } = await supabase.storage
+        .from(target.bucket)
+        .uploadToSignedUrl(target.path, target.token, file);
+      if (error) throw new Error(error.message);
+      return {
+        media_path: target.path,
+        media_name: file.name,
+        media_mime: file.type || null,
+        media_size: file.size,
+        media_slot: mediaSlot,
+      };
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const saveM = useMutation({
-    mutationFn: () =>
-      saveFn({
+    mutationFn: async () => {
+      const media = await uploadIfNeeded();
+      return saveFn({
         data: {
           kind,
           title,
           body,
           target_workflow_id: workflowId || null,
           target_ref: targetRef || null,
+          ...(media ?? {}),
         },
-      }),
+      });
+    },
     onSuccess: () => {
-      toast.success("Szöveg elmentve.");
+      toast.success(file ? "Mentve a fájllal együtt." : "Szöveg elmentve.");
       setTitle("");
       setBody("");
       setTargetRef("");
+      setFile(null);
+      if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["content-drafts"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const queueM = useMutation({
     mutationFn: (v: { id: string; dry_run: boolean }) =>
@@ -224,9 +263,75 @@ function ContentStudioPage() {
             />
             <p className="text-xs text-muted-foreground">{body.length} karakter</p>
           </div>
-          <Button onClick={() => saveM.mutate()} disabled={!body.trim() || saveM.isPending}>
-            {saveM.isPending ? "Mentés…" : "Mentés"}
+
+          <div className="rounded-md border border-dashed p-3 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Paperclip className="size-4 text-primary" /> Fájl feltöltése (kép / videó)
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <Label>Fájl</Label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={file ? file.name : ""}
+                    placeholder="Nincs fájl kiválasztva"
+                    onClick={() => fileRef.current?.click()}
+                  />
+                  <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
+                    <Upload className="mr-2 size-4" /> Tallózás
+                  </Button>
+                  {file && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setFile(null);
+                        if (fileRef.current) fileRef.current.value = "";
+                      }}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/*,video/*"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+                {file && (
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB · {file.type || "ismeretlen típus"}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label>Hova kerüljön?</Label>
+                <Select value={mediaSlot} onValueChange={setMediaSlot}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MEDIA_SLOTS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  A fenti „Cél workflow” dönti el, melyik fiók böngészője viszi ki.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => saveM.mutate()}
+            disabled={(!body.trim() && !file) || saveM.isPending || uploading}
+          >
+            {uploading ? "Fájl feltöltése…" : saveM.isPending ? "Mentés…" : "Mentés"}
           </Button>
+
         </CardContent>
       </Card>
 
@@ -244,6 +349,16 @@ function ContentStudioPage() {
                 <span className="font-medium">{d.title || "(cím nélkül)"}</span>
                 <Badge variant="outline">{d.kind}</Badge>
                 {d.target_ref && <Badge variant="secondary">{d.target_ref}</Badge>}
+                {(d as { media_name?: string | null }).media_name && (
+                  <Badge variant="outline" className="gap-1">
+                    <Paperclip className="size-3" />
+                    {(d as { media_name?: string | null }).media_name}
+                    {(d as { media_slot?: string | null }).media_slot
+                      ? ` · ${MEDIA_SLOTS.find((s) => s.value === (d as { media_slot?: string | null }).media_slot)?.label ?? ""}`
+                      : ""}
+                  </Badge>
+                )}
+
                 <Badge
                   variant={
                     d.status === "failed"

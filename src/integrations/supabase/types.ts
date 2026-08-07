@@ -776,6 +776,11 @@ export type Database = {
           id: string
           kind: string
           last_run_id: string | null
+          media_mime: string | null
+          media_name: string | null
+          media_path: string | null
+          media_size: number | null
+          media_slot: string | null
           status: string
           submitted_at: string | null
           target_ref: string | null
@@ -790,6 +795,11 @@ export type Database = {
           id?: string
           kind?: string
           last_run_id?: string | null
+          media_mime?: string | null
+          media_name?: string | null
+          media_path?: string | null
+          media_size?: number | null
+          media_slot?: string | null
           status?: string
           submitted_at?: string | null
           target_ref?: string | null
@@ -804,6 +814,11 @@ export type Database = {
           id?: string
           kind?: string
           last_run_id?: string | null
+          media_mime?: string | null
+          media_name?: string | null
+          media_path?: string | null
+          media_size?: number | null
+          media_slot?: string | null
           status?: string
           submitted_at?: string | null
           target_ref?: string | null
