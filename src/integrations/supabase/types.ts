@@ -1081,6 +1081,98 @@ export type Database = {
         }
         Relationships: []
       }
+      linkedin_comments: {
+        Row: {
+          approved_at: string | null
+          approved_reply_en: string | null
+          approved_reply_hu: string | null
+          author: string | null
+          author_headline: string | null
+          body_en: string
+          body_hu: string | null
+          collected_at: string
+          context_title: string | null
+          created_at: string
+          external_id: string
+          id: string
+          kind: string
+          needs_reply: boolean
+          permalink: string | null
+          posted_at: string | null
+          reply_status: string
+          source: string
+          suggested_reply_en: string | null
+          suggested_reply_hu: string | null
+          telegram_chat_id: number | null
+          telegram_message_id: number | null
+          tenant_id: string
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_reply_en?: string | null
+          approved_reply_hu?: string | null
+          author?: string | null
+          author_headline?: string | null
+          body_en?: string
+          body_hu?: string | null
+          collected_at?: string
+          context_title?: string | null
+          created_at?: string
+          external_id: string
+          id?: string
+          kind?: string
+          needs_reply?: boolean
+          permalink?: string | null
+          posted_at?: string | null
+          reply_status?: string
+          source?: string
+          suggested_reply_en?: string | null
+          suggested_reply_hu?: string | null
+          telegram_chat_id?: number | null
+          telegram_message_id?: number | null
+          tenant_id: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_reply_en?: string | null
+          approved_reply_hu?: string | null
+          author?: string | null
+          author_headline?: string | null
+          body_en?: string
+          body_hu?: string | null
+          collected_at?: string
+          context_title?: string | null
+          created_at?: string
+          external_id?: string
+          id?: string
+          kind?: string
+          needs_reply?: boolean
+          permalink?: string | null
+          posted_at?: string | null
+          reply_status?: string
+          source?: string
+          suggested_reply_en?: string | null
+          suggested_reply_hu?: string | null
+          telegram_chat_id?: number | null
+          telegram_message_id?: number | null
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linkedin_comments_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       linkedin_post_metrics: {
         Row: {
           captured_at: string
