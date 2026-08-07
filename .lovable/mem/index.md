@@ -1,0 +1,1 @@
+- [telegram-magyar-válaszok](mem://features/telegram-hungarian-replies) — Minden Telegram válaszvázlat magyarul; „mehet”=javaslat elfogadása, kérdés=visszakérdezés, fordítás angolra a rendszer dolga
