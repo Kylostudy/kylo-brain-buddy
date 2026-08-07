@@ -107,7 +107,35 @@ export async function runRedditPost(args) {
   await humanClick(page, postBtn);
   await humanWait(page, 6000);
 
-  const finalUrl = page.url();
+  // A Reddit a küldés után átirányít a poszt saját oldalára (/comments/...).
+  // Ez lassú proxyn eltarthat egy darabig, ezért kivárjuk.
+  let finalUrl = page.url();
+  for (let i = 0; i < 20 && !/\/comments\//.test(finalUrl); i++) {
+    await humanWait(page, 3000);
+    finalUrl = page.url();
+  }
+
+  // Ha mégsem kaptuk meg az átirányítást, a saját profilról olvassuk ki
+  // a legfrissebb posztunk linkjét.
+  if (!/\/comments\//.test(finalUrl)) {
+    try {
+      await page.goto("https://www.reddit.com/user/me/submitted/", {
+        waitUntil: "domcontentloaded",
+        timeout: 45000,
+      });
+      await humanWait(page, 4000);
+      const href = await page.evaluate(() => {
+        const a = document.querySelector('a[href*="/comments/"]');
+        return a ? a.getAttribute("href") : null;
+      });
+      if (href) {
+        finalUrl = href.startsWith("http") ? href : `https://www.reddit.com${href}`;
+      }
+    } catch {
+      /* marad az eredeti URL */
+    }
+  }
+
   log("info", `Poszt elküldve — URL: ${finalUrl}`);
   return {
     reddit_post: {
@@ -116,6 +144,8 @@ export async function runRedditPost(args) {
       subreddit,
       chars: body.length,
       url: finalUrl,
+      permalink: /\/comments\//.test(finalUrl) ? finalUrl : null,
     },
   };
 }
+
