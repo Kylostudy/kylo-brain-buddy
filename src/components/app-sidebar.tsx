@@ -85,12 +85,15 @@ async function fetchWorkflows(module: AppModule): Promise<Workflow[]> {
     .from("workflows")
     .select("id, name, status, updated_at, spec, folder_id")
     .eq("module", module)
-    .order("updated_at", { ascending: false });
+    .order("name", { ascending: true });
   if (error) throw error;
   // A teszt-forgatókönyvek mögött technikai felvételi workflow is készül.
   // Ezeket kizárólag a Teszt-forgatókönyvek oldalon kezeljük; a normál
   // Workflow-k listájában csak összezavarnák a felhasználót.
-  return (data ?? []).filter((workflow) => getMonitorType(workflow.spec) !== "kylo-scenario");
+  return (data ?? [])
+    .filter((workflow) => getMonitorType(workflow.spec) !== "kylo-scenario")
+    // Magyar betűrend (ékezetek helyesen), hogy könnyen megtalálható legyen.
+    .sort((a, b) => a.name.localeCompare(b.name, "hu", { numeric: true, sensitivity: "base" }));
 }
 
 async function fetchFolders(module: AppModule): Promise<WorkflowFolder[]> {
