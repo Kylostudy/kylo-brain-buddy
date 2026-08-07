@@ -22,18 +22,26 @@ function safeName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "fajl";
 }
 
-async function tenantOf(context: { supabase: never; userId: string }) {
-  const sb = context.supabase as unknown as {
+type Ctx = { supabase: { from: (t: "profiles") => never }; userId: string };
+
+async function tenantOf(context: Ctx) {
+  const { data } = await (context.supabase as never as {
     from: (t: string) => {
       select: (c: string) => {
-        eq: (a: string, b: string) => { maybeSingle: () => Promise<{ data: { tenant_id: string } | null }> };
+        eq: (a: string, b: string) => {
+          maybeSingle: () => Promise<{ data: { tenant_id: string } | null }>;
+        };
       };
     };
-  };
-  const { data } = await sb.from("profiles").select("tenant_id").eq("id", context.userId).maybeSingle();
+  })
+    .from("profiles")
+    .select("tenant_id")
+    .eq("id", context.userId)
+    .maybeSingle();
   if (!data?.tenant_id) throw new Error("tenant_id hiányzik a profilodhoz.");
   return data.tenant_id;
 }
+
 
 /** Aláírt feltöltési link kérése — a böngésző erre tölti fel a fájlt. */
 export const createMediaUploadUrl = createServerFn({ method: "POST" })
