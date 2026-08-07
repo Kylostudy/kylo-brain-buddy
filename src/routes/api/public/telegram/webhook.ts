@@ -107,13 +107,111 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
           const p = (out.payload ?? {}) as Record<string, unknown>;
           const head = `${(out.platform ?? "rendszer").toString().toUpperCase()}${out.label ? ` · ${out.label}` : ""}`;
+
+          // ---- Érdeklődés-radar találat: itt tényleg választ készítünk ----
+          if (out.ref_table === "lead_alerts" && out.ref_id) {
+            const { data: alert } = await supabaseAdmin
+              .from("lead_alerts")
+              .select("id, permalink, title_hu, title, suggested_reply_hu")
+              .eq("id", out.ref_id)
+              .maybeSingle();
+
+            if (alert) {
+              if (SKIP_WORDS.has(text.toLowerCase())) {
+                await supabaseAdmin
+                  .from("lead_alerts")
+                  .update({ status: "skipped" })
+                  .eq("id", alert.id);
+                await sendTelegram(`Rendben, ezt kihagyjuk — ${head}`, {
+                  topic: "lead_alert_ack",
+                  platform: out.platform,
+                  ref_table: out.ref_table,
+                  ref_id: out.ref_id,
+                  label: out.label,
+                });
+                return Response.json({ ok: true, action: "skipped" });
+              }
+
+              if (looksLikeQuestion(text) && !isAccept(text)) {
+                await sendTelegram(
+                  [
+                    `❓ Ezt kérdésnek értem, ezért NEM mentettem el válaszvázlatként — ${head}`,
+                    alert.title_hu ? `Poszt: ${alert.title_hu}` : "",
+                    alert.permalink ?? "",
+                    ``,
+                    `Ha mégis ezt küldenéd ki válaszként, írd elé, hogy „válasz:”.`,
+                    `Ha jó a javaslatom, elég annyi: „mehet”.`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n"),
+                  {
+                    topic: "lead_alert_ack",
+                    platform: out.platform,
+                    ref_table: out.ref_table,
+                    ref_id: out.ref_id,
+                    label: out.label,
+                  },
+                );
+                return Response.json({ ok: true, action: "question" });
+              }
+
+              const accepted = isAccept(text);
+              const hungarian = accepted
+                ? (alert.suggested_reply_hu ?? "")
+                : text.replace(/^v[áa]lasz:\s*/i, "");
+
+              if (!hungarian.trim()) {
+                await sendTelegram(
+                  `Nincs mit lefordítanom (nem találom a javasolt választ) — ${head}. Írd le magyarul, mit válaszoljak.`,
+                );
+                return Response.json({ ok: true, action: "empty" });
+              }
+
+              const english = (await translateToEnglish(hungarian)) || hungarian;
+              await supabaseAdmin
+                .from("lead_alerts")
+                .update({
+                  approved_reply_hu: hungarian,
+                  approved_reply_en: english,
+                  approved_at: new Date().toISOString(),
+                  status: "approved",
+                })
+                .eq("id", alert.id);
+
+              await sendTelegram(
+                [
+                  `✅ ${accepted ? "A javasolt választ fogadtad el" : "A saját szövegedet mentettem el"} — ${head}`,
+                  alert.title_hu ? `Poszt: ${alert.title_hu}` : "",
+                  alert.permalink ?? "",
+                  ``,
+                  `MAGYARUL:`,
+                  hungarian,
+                  ``,
+                  `ANGOLUL (ezt lehet kimásolni Redditre):`,
+                  english,
+                ]
+                  .filter(Boolean)
+                  .join("\n"),
+                {
+                  topic: "lead_alert_ack",
+                  platform: out.platform,
+                  ref_table: out.ref_table,
+                  ref_id: out.ref_id,
+                  label: out.label,
+                  payload: p,
+                },
+              );
+              return Response.json({ ok: true, action: "approved" });
+            }
+          }
+
           await sendTelegram(
             [
               `📌 Megvan, mire válaszoltál: ${head}`,
               typeof p.title === "string" && p.title ? `Cím: ${p.title}` : "",
               typeof p.url === "string" && p.url ? `Link: ${p.url}` : "",
               ``,
-              `A válaszodat elmentettem ehhez az ügyhöz:`,
+              `Ez az üzenet nem válasz-javaslat volt, ezért csak feljegyeztem, amit írtál:`,
               text,
             ]
               .filter(Boolean)
@@ -129,6 +227,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           );
           return Response.json({ ok: true, matched: true, topic: out.topic });
         }
+
 
 
         const tag = `REDDIT · r/${comment.subreddit ?? "?"} · u/${comment.author ?? "?"}`;
