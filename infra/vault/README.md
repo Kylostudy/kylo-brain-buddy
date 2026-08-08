@@ -12,6 +12,10 @@ magától szinkronban tart. Csak most a saját vasadon, havidíj nélkül.
 3. **Később: második helyszín** — ha lesz másik VPS más országban, a `geo-replica.sh`
    naponta átküldi oda is. Így 3 példányod lesz, két országban.
 
+> **Először a titkosítás!** A lemez-szintű titkosítást (LUKS) a Syncthing elindítása
+> ELŐTT állítsd be: [LUKS.md](./LUKS.md). Utána gyere vissza ide az 1. lépéshez.
+
+
 ---
 
 ## 1. lépés — VPS: Syncthing elindítása
