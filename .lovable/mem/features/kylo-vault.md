@@ -1,18 +1,30 @@
 ---
-name: kylo-vault-tresorit-replacement
-description: Tresorit kiváltása saját VPS-en Syncthinggel, óránkénti tükrözés a 2. winchesterre, később geo-redundancia több VPS-re
+name: Kylo Vault (titkosított széf)
+description: LUKS-titkosított széf a VPS-en Tresorit kiváltására; a motor a Brainben, a kezelőfelület a Kitben, csak a gazdi tenantjának
 type: feature
 ---
 
-A user le akarja mondani a Tresorit (~15 USD/hó) előfizetést, mert van saját VPS-e.
+# Kylo Vault
 
-Megoldás: `infra/vault/`
-- **Syncthing** Docker konténer (`kylo-vault`), GUI csak 127.0.0.1:8384 (SSH alagúton át).
-- Adat: `/srv/kylo-vault/data`, config: `/srv/kylo-vault/config`.
-- VPS oldalon a mappa **Receive Only** + Staggered versioning 30 nap (= Tresorit verziótörténet).
-- `mirror.sh` + systemd timer: óránként rsync a 2. winchesterre (`/mnt/disk2/kylo-vault/current`)
-  + 7 napos hardlink pillanatképek. Védelem: nem fut, ha a 2. lemez nincs csatolva.
-- `geo-replica.sh`: későbbre, ha lesz több VPS más országban (rsync over SSH).
+Cél: a fizetős Tresorit előfizetés kiváltása saját VPS-en. **Nem eladható
+felhőszolgáltatás**, kizárólag a gazdi saját használatára.
 
-Szabály: a Tresorit előfizetést csak akkor mondja le, ha a Syncthing "Up to Date"
-és a tükör mappában is ott vannak a fájlok.
+## Felállás
+- **VPS**: LUKS-titkosított fájl-konténer (`/srv/kylo-vault`), RAID1 lemezeken,
+  óránkénti rsync-tükrözés a 2. lemezre + 7 napos hardlink pillanatképek.
+- **Brain (itt)**: az adatok és a logika. Táblák: `vault_folders`, `vault_status`.
+- **Kit**: CSAK a kezelőfelület, a gazdi saját tenantjának dashboardjában.
+
+## Adatáramlás
+1. A VPS ügynöke (`infra/vault/agent.sh`, 15 percenként) bejelent a
+   `POST /api/public/worker/vault-report` végpontra (Bearer `WORKER_API_TOKEN`).
+2. Válaszul visszakapja a bekapcsolt könyvtárak listáját → `/etc/kylo-vault/sync-paths.txt`.
+3. A `mirror.sh` ezt a listát használja `rsync --files-from`-mal.
+4. A Kit a `POST /api/public/cross/kit/vault` végpontot hívja (Kit↔Brain HMAC,
+   `KIT_BRAIN_TASK_SECRET`) — műveletek: `state`, `set_enabled`, `add_folder`,
+   `remove_folder`.
+
+A VPS-en nincs nyitott bejövő port: mindig a VPS hívja a Braint.
+
+Opcionális szigorítás: a `VAULT_OWNER_TENANT_ID` környezeti változóval a
+Kit-végpont egyetlen tenantra korlátozható.
