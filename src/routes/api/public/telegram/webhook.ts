@@ -278,12 +278,44 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             const { data: li } = await supabaseAdmin
               .from("linkedin_comments")
               .select(
-                "id, permalink, context_title, author, body_hu, suggested_reply_hu, suggested_reply_en",
+                "id, permalink, context_title, author, body_hu, suggested_reply_hu, suggested_reply_en, reply_status, approved_at, approved_reply_hu, approved_reply_en",
               )
               .eq("id", out.ref_id)
               .maybeSingle();
 
             if (li) {
+              // --- Duplikáció-szűrő ---
+              if (li.reply_status === "approved" || li.approved_at) {
+                await sendTelegram(
+                  [
+                    `♻️ Ezt már jóváhagytad korábban — ${head}`,
+                    li.context_title ? `Poszt: ${li.context_title}` : "",
+                    li.permalink ?? "",
+                    ``,
+                    `Az érvényben lévő válasz:`,
+                    li.approved_reply_hu ?? li.approved_reply_en ?? "(nincs mentett szöveg)",
+                    ``,
+                    `Ha módosítanád, írd elé: „válasz:” és jöhet az új szöveg.`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n"),
+                  { topic: "linkedin_comment_ack", platform: "linkedin", ref_table: out.ref_table, ref_id: out.ref_id, label: out.label },
+                );
+                if (!/^v[áa]lasz:\s*/i.test(text)) {
+                  return Response.json({ ok: true, action: "duplicate" });
+                }
+              }
+              if (li.reply_status === "skipped" && SKIP_WORDS.has(text.toLowerCase())) {
+                await sendTelegram(`♻️ Ezt már kihagytuk korábban — ${head}.`, {
+                  topic: "linkedin_comment_ack",
+                  platform: "linkedin",
+                  ref_table: out.ref_table,
+                  ref_id: out.ref_id,
+                  label: out.label,
+                });
+                return Response.json({ ok: true, action: "duplicate_skip" });
+              }
+
               if (SKIP_WORDS.has(text.toLowerCase())) {
                 await supabaseAdmin
                   .from("linkedin_comments")
