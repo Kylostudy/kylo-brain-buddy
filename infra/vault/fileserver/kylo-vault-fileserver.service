@@ -1,0 +1,23 @@
+[Unit]
+Description=Kylo Vault csak olvasó fájlkiszolgáló (megosztó linkek)
+After=network-online.target srv-kylo\x2dvault.mount
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/kylo-vault/agent.env
+Environment=VAULT_ROOT=/srv/kylo-vault/data
+Environment=VAULT_FS_PORT=8079
+ExecStart=/usr/bin/node /opt/kylo-vault/fileserver/server.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/srv/kylo-vault
+StandardOutput=append:/var/log/kylo-vault-fileserver.log
+StandardError=append:/var/log/kylo-vault-fileserver.log
+
+[Install]
+WantedBy=multi-user.target
