@@ -2152,6 +2152,170 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_agent_events: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          detail: Json
+          event: string
+          id: string
+          ip: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          detail?: Json
+          event: string
+          id?: string
+          ip?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          detail?: Json
+          event?: string
+          id?: string
+          ip?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      vault_agent_files: {
+        Row: {
+          agent_id: string
+          folder_id: string
+          hash: string | null
+          id: string
+          mtime: number | null
+          rel: string
+          size: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          folder_id: string
+          hash?: string | null
+          id?: string
+          mtime?: number | null
+          rel: string
+          size?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          folder_id?: string
+          hash?: string | null
+          id?: string
+          mtime?: number | null
+          rel?: string
+          size?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_agent_files_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "vault_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_agent_files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "vault_agent_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_agent_folders: {
+        Row: {
+          agent_id: string
+          created_at: string
+          file_count: number
+          id: string
+          label: string | null
+          last_error: string | null
+          last_synced_at: string | null
+          path: string
+          size_bytes: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          file_count?: number
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          path: string
+          size_bytes?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          file_count?: number
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          path?: string
+          size_bytes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_agent_folders_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "vault_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_agents: {
+        Row: {
+          created_at: string
+          hostname: string | null
+          id: string
+          last_seen_at: string | null
+          platform: string | null
+          revoked_at: string | null
+          tenant_id: string
+          token_hash: string
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          created_at?: string
+          hostname?: string | null
+          id?: string
+          last_seen_at?: string | null
+          platform?: string | null
+          revoked_at?: string | null
+          tenant_id: string
+          token_hash: string
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          created_at?: string
+          hostname?: string | null
+          id?: string
+          last_seen_at?: string | null
+          platform?: string | null
+          revoked_at?: string | null
+          tenant_id?: string
+          token_hash?: string
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
       vault_folders: {
         Row: {
           created_at: string
@@ -2197,6 +2361,33 @@ export type Database = {
           source?: string
           tenant_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      vault_pair_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          tenant_id: string
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          tenant_id: string
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          tenant_id?: string
+          used_at?: string | null
         }
         Relationships: []
       }

@@ -6,3 +6,4 @@
 - [telegram-duplikáció-szűrő](mem://features/telegram-duplicate-guard) — Kétszeri „oké” nem hoz létre új választ; ♻️ emlékeztető megy vissza, „válasz:” előtaggal lehet felülírni
 - [kylo-vault](mem://features/kylo-vault) — LUKS széf a VPS-en Tresorit helyett; motor a Brainben (vault_folders/vault_status), UI a Kitben, csak a gazdi tenantjának
 - [vault-megosztások](mem://features/vault-shares) — Lejáró/jelszavas megosztó linkek: vault_shares tábla, share_create/list/revoke action, /s/:token, Brain proxyzza a VPS fájlkiszolgálót
+- [vault-ügynök](mem://features/vault-agent) — Vault Agent párosítás, manifeszt-különbözet, streamelt feltöltés a LUKS széfbe

@@ -73,6 +73,10 @@ import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/publ
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
 import { Route as ApiPublicSTokenDlRouteImport } from './routes/api/public/s/$token.dl'
+import { Route as ApiPublicVaultAgentHeartbeatRouteImport } from './routes/api/public/vault/agent/heartbeat'
+import { Route as ApiPublicVaultAgentManifestRouteImport } from './routes/api/public/vault/agent/manifest'
+import { Route as ApiPublicVaultAgentPairRouteImport } from './routes/api/public/vault/agent/pair'
+import { Route as ApiPublicVaultAgentUploadRouteImport } from './routes/api/public/vault/agent/upload'
 import { Route as ApiPublicWorkerQaAnalyzeRouteImport } from './routes/api/public/worker/qa/analyze'
 import { Route as ApiPublicWorkerQaCheckCacheRouteImport } from './routes/api/public/worker/qa/check-cache'
 import { Route as ApiPublicWorkerQaFinishRunRouteImport } from './routes/api/public/worker/qa/finish-run'
@@ -445,6 +449,29 @@ const ApiPublicSTokenDlRoute = ApiPublicSTokenDlRouteImport.update({
   path: '/dl',
   getParentRoute: () => ApiPublicSTokenRoute,
 } as any)
+const ApiPublicVaultAgentHeartbeatRoute =
+  ApiPublicVaultAgentHeartbeatRouteImport.update({
+    id: '/api/public/vault/agent/heartbeat',
+    path: '/api/public/vault/agent/heartbeat',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicVaultAgentManifestRoute =
+  ApiPublicVaultAgentManifestRouteImport.update({
+    id: '/api/public/vault/agent/manifest',
+    path: '/api/public/vault/agent/manifest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicVaultAgentPairRoute = ApiPublicVaultAgentPairRouteImport.update({
+  id: '/api/public/vault/agent/pair',
+  path: '/api/public/vault/agent/pair',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicVaultAgentUploadRoute =
+  ApiPublicVaultAgentUploadRouteImport.update({
+    id: '/api/public/vault/agent/upload',
+    path: '/api/public/vault/agent/upload',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerQaAnalyzeRoute =
   ApiPublicWorkerQaAnalyzeRouteImport.update({
     id: '/api/public/worker/qa/analyze',
@@ -564,6 +591,10 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
+  '/api/public/vault/agent/heartbeat': typeof ApiPublicVaultAgentHeartbeatRoute
+  '/api/public/vault/agent/manifest': typeof ApiPublicVaultAgentManifestRoute
+  '/api/public/vault/agent/pair': typeof ApiPublicVaultAgentPairRoute
+  '/api/public/vault/agent/upload': typeof ApiPublicVaultAgentUploadRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -638,6 +669,10 @@ export interface FileRoutesByTo {
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
+  '/api/public/vault/agent/heartbeat': typeof ApiPublicVaultAgentHeartbeatRoute
+  '/api/public/vault/agent/manifest': typeof ApiPublicVaultAgentManifestRoute
+  '/api/public/vault/agent/pair': typeof ApiPublicVaultAgentPairRoute
+  '/api/public/vault/agent/upload': typeof ApiPublicVaultAgentUploadRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -714,6 +749,10 @@ export interface FileRoutesById {
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
+  '/api/public/vault/agent/heartbeat': typeof ApiPublicVaultAgentHeartbeatRoute
+  '/api/public/vault/agent/manifest': typeof ApiPublicVaultAgentManifestRoute
+  '/api/public/vault/agent/pair': typeof ApiPublicVaultAgentPairRoute
+  '/api/public/vault/agent/upload': typeof ApiPublicVaultAgentUploadRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -790,6 +829,10 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/s/$token/dl'
+    | '/api/public/vault/agent/heartbeat'
+    | '/api/public/vault/agent/manifest'
+    | '/api/public/vault/agent/pair'
+    | '/api/public/vault/agent/upload'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -864,6 +907,10 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/s/$token/dl'
+    | '/api/public/vault/agent/heartbeat'
+    | '/api/public/vault/agent/manifest'
+    | '/api/public/vault/agent/pair'
+    | '/api/public/vault/agent/upload'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -939,6 +986,10 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/s/$token/dl'
+    | '/api/public/vault/agent/heartbeat'
+    | '/api/public/vault/agent/manifest'
+    | '/api/public/vault/agent/pair'
+    | '/api/public/vault/agent/upload'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -1000,6 +1051,10 @@ export interface RootRouteChildren {
   ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
   ApiPublicCrossKylogicWorkflowsRoute: typeof ApiPublicCrossKylogicWorkflowsRoute
   ApiPublicCrossProxiesListRoute: typeof ApiPublicCrossProxiesListRoute
+  ApiPublicVaultAgentHeartbeatRoute: typeof ApiPublicVaultAgentHeartbeatRoute
+  ApiPublicVaultAgentManifestRoute: typeof ApiPublicVaultAgentManifestRoute
+  ApiPublicVaultAgentPairRoute: typeof ApiPublicVaultAgentPairRoute
+  ApiPublicVaultAgentUploadRoute: typeof ApiPublicVaultAgentUploadRoute
   ApiPublicWorkerQaAnalyzeRoute: typeof ApiPublicWorkerQaAnalyzeRoute
   ApiPublicWorkerQaCheckCacheRoute: typeof ApiPublicWorkerQaCheckCacheRoute
   ApiPublicWorkerQaFinishRunRoute: typeof ApiPublicWorkerQaFinishRunRoute
@@ -1460,6 +1515,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSTokenDlRouteImport
       parentRoute: typeof ApiPublicSTokenRoute
     }
+    '/api/public/vault/agent/heartbeat': {
+      id: '/api/public/vault/agent/heartbeat'
+      path: '/api/public/vault/agent/heartbeat'
+      fullPath: '/api/public/vault/agent/heartbeat'
+      preLoaderRoute: typeof ApiPublicVaultAgentHeartbeatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/vault/agent/manifest': {
+      id: '/api/public/vault/agent/manifest'
+      path: '/api/public/vault/agent/manifest'
+      fullPath: '/api/public/vault/agent/manifest'
+      preLoaderRoute: typeof ApiPublicVaultAgentManifestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/vault/agent/pair': {
+      id: '/api/public/vault/agent/pair'
+      path: '/api/public/vault/agent/pair'
+      fullPath: '/api/public/vault/agent/pair'
+      preLoaderRoute: typeof ApiPublicVaultAgentPairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/vault/agent/upload': {
+      id: '/api/public/vault/agent/upload'
+      path: '/api/public/vault/agent/upload'
+      fullPath: '/api/public/vault/agent/upload'
+      preLoaderRoute: typeof ApiPublicVaultAgentUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/qa/analyze': {
       id: '/api/public/worker/qa/analyze'
       path: '/api/public/worker/qa/analyze'
@@ -1648,6 +1731,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCrossKylogicTaskRoute: ApiPublicCrossKylogicTaskRoute,
   ApiPublicCrossKylogicWorkflowsRoute: ApiPublicCrossKylogicWorkflowsRoute,
   ApiPublicCrossProxiesListRoute: ApiPublicCrossProxiesListRoute,
+  ApiPublicVaultAgentHeartbeatRoute: ApiPublicVaultAgentHeartbeatRoute,
+  ApiPublicVaultAgentManifestRoute: ApiPublicVaultAgentManifestRoute,
+  ApiPublicVaultAgentPairRoute: ApiPublicVaultAgentPairRoute,
+  ApiPublicVaultAgentUploadRoute: ApiPublicVaultAgentUploadRoute,
   ApiPublicWorkerQaAnalyzeRoute: ApiPublicWorkerQaAnalyzeRoute,
   ApiPublicWorkerQaCheckCacheRoute: ApiPublicWorkerQaCheckCacheRoute,
   ApiPublicWorkerQaFinishRunRoute: ApiPublicWorkerQaFinishRunRoute,
@@ -1661,13 +1748,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

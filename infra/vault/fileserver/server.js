@@ -22,12 +22,14 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
-const { timingSafeEqual } = require("node:crypto");
+const { timingSafeEqual, createHash } = require("node:crypto");
 
 const ROOT = path.resolve(process.env.VAULT_ROOT || "/srv/kylo-vault/data");
 const PORT = Number(process.env.VAULT_FS_PORT || 8079);
 const TOKEN = (process.env.WORKER_API_TOKEN || "").trim();
 const MAX_ENTRIES = 5000;
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB / fájl
+
 
 if (!TOKEN) {
   console.error("WORKER_API_TOKEN hiányzik — a kiszolgáló nem indul el.");
@@ -80,8 +82,65 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
 
     if (url.pathname === "/health") return json(res, { ok: true, root: ROOT });
-    if (req.method !== "GET") return json(res, { error: "method not allowed" }, 405);
     if (!authorized(req)) return json(res, { error: "unauthorized" }, 401);
+
+    // ---- Feltöltés (a Brain ügynök-végpontja folyatja át ide a bájtokat) ----
+    if (url.pathname === "/upload") {
+      if (req.method !== "PUT" && req.method !== "POST") {
+        return json(res, { error: "method not allowed" }, 405);
+      }
+      const target = safeResolve(url.searchParams.get("path"));
+      if (!target || target === ROOT) return json(res, { error: "bad path" }, 400);
+
+      const wantHash = String(req.headers["x-vault-hash"] || "").trim().toLowerCase();
+      const mtime = Number(req.headers["x-vault-mtime"] || 0);
+
+      await fsp.mkdir(path.dirname(target), { recursive: true });
+      const tmp = `${target}.part-${process.pid}-${Date.now()}`;
+      const hasher = createHash("sha256");
+      let written = 0;
+
+      try {
+        await new Promise((resolve, reject) => {
+          const out = fs.createWriteStream(tmp);
+          req.on("data", (chunk) => {
+            written += chunk.length;
+            hasher.update(chunk);
+            if (written > MAX_UPLOAD_BYTES) {
+              req.destroy();
+              out.destroy();
+              reject(new Error("too large"));
+            }
+          });
+          req.on("error", reject);
+          out.on("error", reject);
+          out.on("finish", resolve);
+          req.pipe(out);
+        });
+      } catch (e) {
+        await fsp.rm(tmp, { force: true });
+        const tooLarge = String(e.message).includes("too large");
+        return json(res, { error: e.message }, tooLarge ? 413 : 400);
+      }
+
+      const got = hasher.digest("hex");
+      if (wantHash && wantHash !== got) {
+        await fsp.rm(tmp, { force: true });
+        return json(res, { error: "hash mismatch", expected: wantHash, got }, 422);
+      }
+
+      await fsp.rename(tmp, target); // atomikus csere
+      if (Number.isFinite(mtime) && mtime > 0) {
+        const when = new Date(mtime > 1e12 ? mtime : mtime * 1000);
+        await fsp.utimes(target, when, when).catch(() => {});
+      }
+      return json(res, { ok: true, size: written, hash: got });
+    }
+
+    if (req.method !== "GET") return json(res, { error: "method not allowed" }, 405);
+
+
+
 
     const abs = safeResolve(url.searchParams.get("path"));
     if (!abs) return json(res, { error: "bad path" }, 400);
