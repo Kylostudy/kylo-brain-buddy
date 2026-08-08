@@ -35,6 +35,7 @@ import { Route as ApiPublicCronDispatchBrainTasksRouteImport } from './routes/ap
 import { Route as ApiPublicCronEnqueueMonitorsRouteImport } from './routes/api/public/cron/enqueue-monitors'
 import { Route as ApiPublicCronLeadRadarRouteImport } from './routes/api/public/cron/lead-radar'
 import { Route as ApiPublicCronLinkedinCommentScanRouteImport } from './routes/api/public/cron/linkedin-comment-scan'
+import { Route as ApiPublicCronLinkedinEngageRouteImport } from './routes/api/public/cron/linkedin-engage'
 import { Route as ApiPublicCronLinkedinMetricsRouteImport } from './routes/api/public/cron/linkedin-metrics'
 import { Route as ApiPublicCronRedditDiscourseRouteImport } from './routes/api/public/cron/reddit-discourse'
 import { Route as ApiPublicCronRedditPostPatrolRouteImport } from './routes/api/public/cron/reddit-post-patrol'
@@ -217,6 +218,12 @@ const ApiPublicCronLinkedinCommentScanRoute =
   ApiPublicCronLinkedinCommentScanRouteImport.update({
     id: '/api/public/cron/linkedin-comment-scan',
     path: '/api/public/cron/linkedin-comment-scan',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronLinkedinEngageRoute =
+  ApiPublicCronLinkedinEngageRouteImport.update({
+    id: '/api/public/cron/linkedin-engage',
+    path: '/api/public/cron/linkedin-engage',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCronLinkedinMetricsRoute =
@@ -488,6 +495,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/lead-radar': typeof ApiPublicCronLeadRadarRoute
   '/api/public/cron/linkedin-comment-scan': typeof ApiPublicCronLinkedinCommentScanRoute
+  '/api/public/cron/linkedin-engage': typeof ApiPublicCronLinkedinEngageRoute
   '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
@@ -556,6 +564,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/lead-radar': typeof ApiPublicCronLeadRadarRoute
   '/api/public/cron/linkedin-comment-scan': typeof ApiPublicCronLinkedinCommentScanRoute
+  '/api/public/cron/linkedin-engage': typeof ApiPublicCronLinkedinEngageRoute
   '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
@@ -626,6 +635,7 @@ export interface FileRoutesById {
   '/api/public/cron/enqueue-monitors': typeof ApiPublicCronEnqueueMonitorsRoute
   '/api/public/cron/lead-radar': typeof ApiPublicCronLeadRadarRoute
   '/api/public/cron/linkedin-comment-scan': typeof ApiPublicCronLinkedinCommentScanRoute
+  '/api/public/cron/linkedin-engage': typeof ApiPublicCronLinkedinEngageRoute
   '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
@@ -696,6 +706,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/lead-radar'
     | '/api/public/cron/linkedin-comment-scan'
+    | '/api/public/cron/linkedin-engage'
     | '/api/public/cron/linkedin-metrics'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
@@ -764,6 +775,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/lead-radar'
     | '/api/public/cron/linkedin-comment-scan'
+    | '/api/public/cron/linkedin-engage'
     | '/api/public/cron/linkedin-metrics'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
@@ -833,6 +845,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/enqueue-monitors'
     | '/api/public/cron/lead-radar'
     | '/api/public/cron/linkedin-comment-scan'
+    | '/api/public/cron/linkedin-engage'
     | '/api/public/cron/linkedin-metrics'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
@@ -889,6 +902,7 @@ export interface RootRouteChildren {
   ApiPublicCronEnqueueMonitorsRoute: typeof ApiPublicCronEnqueueMonitorsRoute
   ApiPublicCronLeadRadarRoute: typeof ApiPublicCronLeadRadarRoute
   ApiPublicCronLinkedinCommentScanRoute: typeof ApiPublicCronLinkedinCommentScanRoute
+  ApiPublicCronLinkedinEngageRoute: typeof ApiPublicCronLinkedinEngageRoute
   ApiPublicCronLinkedinMetricsRoute: typeof ApiPublicCronLinkedinMetricsRoute
   ApiPublicCronRedditDiscourseRoute: typeof ApiPublicCronRedditDiscourseRoute
   ApiPublicCronRedditPostPatrolRoute: typeof ApiPublicCronRedditPostPatrolRoute
@@ -1113,6 +1127,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/linkedin-comment-scan'
       fullPath: '/api/public/cron/linkedin-comment-scan'
       preLoaderRoute: typeof ApiPublicCronLinkedinCommentScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/linkedin-engage': {
+      id: '/api/public/cron/linkedin-engage'
+      path: '/api/public/cron/linkedin-engage'
+      fullPath: '/api/public/cron/linkedin-engage'
+      preLoaderRoute: typeof ApiPublicCronLinkedinEngageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cron/linkedin-metrics': {
@@ -1471,6 +1492,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronEnqueueMonitorsRoute: ApiPublicCronEnqueueMonitorsRoute,
   ApiPublicCronLeadRadarRoute: ApiPublicCronLeadRadarRoute,
   ApiPublicCronLinkedinCommentScanRoute: ApiPublicCronLinkedinCommentScanRoute,
+  ApiPublicCronLinkedinEngageRoute: ApiPublicCronLinkedinEngageRoute,
   ApiPublicCronLinkedinMetricsRoute: ApiPublicCronLinkedinMetricsRoute,
   ApiPublicCronRedditDiscourseRoute: ApiPublicCronRedditDiscourseRoute,
   ApiPublicCronRedditPostPatrolRoute: ApiPublicCronRedditPostPatrolRoute,
