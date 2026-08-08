@@ -379,6 +379,30 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
         const tag = `REDDIT · r/${comment.subreddit ?? "?"} · u/${comment.author ?? "?"}`;
 
+        // --- Duplikáció-szűrő: erre már döntöttél korábban ---
+        if (comment.reply_status === "approved" || comment.approved_at) {
+          await sendTelegram(
+            [
+              `♻️ Ezt már jóváhagytad korábban — ${tag}`,
+              comment.context_title ? `Poszt: ${comment.context_title}` : "",
+              ``,
+              `A korábban elmentett válasz marad érvényben:`,
+              comment.approved_reply_en ?? "(nincs mentett szöveg)",
+              ``,
+              `Ha MÓDOSÍTANI szeretnéd, írd elé: „válasz:” és jön az új szöveg.`,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          );
+          if (!/^v[áa]lasz:\s*/i.test(text)) {
+            return Response.json({ ok: true, action: "duplicate" });
+          }
+        }
+        if (comment.reply_status === "ignored" && SKIP_WORDS.has(text.toLowerCase())) {
+          await sendTelegram(`♻️ Ezt már kihagytuk korábban — ${tag}. Nem csinálok vele semmit.`);
+          return Response.json({ ok: true, action: "duplicate_skip" });
+        }
+
         if (SKIP_WORDS.has(text.toLowerCase())) {
           await supabaseAdmin
             .from("reddit_comments")
