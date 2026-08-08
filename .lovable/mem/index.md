@@ -5,3 +5,4 @@
 - [kylo-vault-luks](mem://features/kylo-vault-luks) — A széf lemezei LUKS2-vel titkosítva, kulcsfájl a szerveren, tartalék jelszó Bitwardenben, LUKS mindig a Syncthing előtt
 - [telegram-duplikáció-szűrő](mem://features/telegram-duplicate-guard) — Kétszeri „oké” nem hoz létre új választ; ♻️ emlékeztető megy vissza, „válasz:” előtaggal lehet felülírni
 - [kylo-vault](mem://features/kylo-vault) — LUKS széf a VPS-en Tresorit helyett; motor a Brainben (vault_folders/vault_status), UI a Kitben, csak a gazdi tenantjának
+- [vault-megosztások](mem://features/vault-shares) — Lejáró/jelszavas megosztó linkek: vault_shares tábla, share_create/list/revoke action, /s/:token, Brain proxyzza a VPS fájlkiszolgálót

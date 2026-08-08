@@ -22,6 +22,7 @@ import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authent
 import { Route as AuthenticatedTelegramGuideRouteImport } from './routes/_authenticated.telegram-guide'
 import { Route as AuthenticatedWorkerHealthRouteImport } from './routes/_authenticated.worker-health'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as AuthenticatedAuditQaRouteImport } from './routes/_authenticated.audit.qa'
 import { Route as AuthenticatedAuditScenariosRouteImport } from './routes/_authenticated.audit.scenarios'
 import { Route as AuthenticatedAuditSignupRouteImport } from './routes/_authenticated.audit.signup'
@@ -43,6 +44,7 @@ import { Route as ApiPublicCronScheduleRedditKarmaRouteImport } from './routes/a
 import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
 import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
 import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
+import { Route as ApiPublicSTokenRouteImport } from './routes/api/public/s/$token'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
@@ -70,6 +72,7 @@ import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './route
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
+import { Route as ApiPublicSTokenDlRouteImport } from './routes/api/public/s/$token.dl'
 import { Route as ApiPublicWorkerQaAnalyzeRouteImport } from './routes/api/public/worker/qa/analyze'
 import { Route as ApiPublicWorkerQaCheckCacheRouteImport } from './routes/api/public/worker/qa/check-cache'
 import { Route as ApiPublicWorkerQaFinishRunRouteImport } from './routes/api/public/worker/qa/finish-run'
@@ -146,6 +149,11 @@ const AuthenticatedWorkerHealthRoute =
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAuditQaRoute = AuthenticatedAuditQaRouteImport.update({
@@ -270,6 +278,11 @@ const ApiPublicHooksQaSchedulerRoute =
     path: '/api/public/hooks/qa-scheduler',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSTokenRoute = ApiPublicSTokenRouteImport.update({
+  id: '/api/public/s/$token',
+  path: '/api/public/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTelegramWebhookRoute =
   ApiPublicTelegramWebhookRouteImport.update({
     id: '/api/public/telegram/webhook',
@@ -427,6 +440,11 @@ const ApiPublicCrossProxiesListRoute =
     path: '/api/public/cross/proxies/list',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSTokenDlRoute = ApiPublicSTokenDlRouteImport.update({
+  id: '/dl',
+  path: '/dl',
+  getParentRoute: () => ApiPublicSTokenRoute,
+} as any)
 const ApiPublicWorkerQaAnalyzeRoute =
   ApiPublicWorkerQaAnalyzeRouteImport.update({
     id: '/api/public/worker/qa/analyze',
@@ -495,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
   '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/s/$token': typeof STokenRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
   '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
   '/audit/signup': typeof AuthenticatedAuditSignupRoute
@@ -516,6 +535,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
+  '/api/public/s/$token': typeof ApiPublicSTokenRouteWithChildren
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -543,6 +563,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
+  '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -565,6 +586,7 @@ export interface FileRoutesByTo {
   '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
   '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/s/$token': typeof STokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
   '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
@@ -587,6 +609,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
+  '/api/public/s/$token': typeof ApiPublicSTokenRouteWithChildren
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -614,6 +637,7 @@ export interface FileRoutesByTo {
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
+  '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -638,6 +662,7 @@ export interface FileRoutesById {
   '/_authenticated/telegram-guide': typeof AuthenticatedTelegramGuideRoute
   '/_authenticated/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/s/$token': typeof STokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/audit/qa': typeof AuthenticatedAuditQaRoute
   '/_authenticated/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
@@ -660,6 +685,7 @@ export interface FileRoutesById {
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
+  '/api/public/s/$token': typeof ApiPublicSTokenRouteWithChildren
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -687,6 +713,7 @@ export interface FileRoutesById {
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
+  '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -712,6 +739,7 @@ export interface FileRouteTypes {
     | '/telegram-guide'
     | '/worker-health'
     | '/api/transcribe'
+    | '/s/$token'
     | '/audit/qa'
     | '/audit/scenarios'
     | '/audit/signup'
@@ -733,6 +761,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
+    | '/api/public/s/$token'
     | '/api/public/telegram/webhook'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -760,6 +789,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
+    | '/api/public/s/$token/dl'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -782,6 +812,7 @@ export interface FileRouteTypes {
     | '/telegram-guide'
     | '/worker-health'
     | '/api/transcribe'
+    | '/s/$token'
     | '/'
     | '/audit/qa'
     | '/audit/scenarios'
@@ -804,6 +835,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
+    | '/api/public/s/$token'
     | '/api/public/telegram/webhook'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -831,6 +863,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
+    | '/api/public/s/$token/dl'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -854,6 +887,7 @@ export interface FileRouteTypes {
     | '/_authenticated/telegram-guide'
     | '/_authenticated/worker-health'
     | '/api/transcribe'
+    | '/s/$token'
     | '/_authenticated/'
     | '/_authenticated/audit/qa'
     | '/_authenticated/audit/scenarios'
@@ -876,6 +910,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
+    | '/api/public/s/$token'
     | '/api/public/telegram/webhook'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -903,6 +938,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
+    | '/api/public/s/$token/dl'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -918,6 +954,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  STokenRoute: typeof STokenRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicAdminCreateWarmupWorkflowsRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   ApiPublicAdminImportBrightdataKylogicRoute: typeof ApiPublicAdminImportBrightdataKylogicRoute
@@ -935,6 +972,7 @@ export interface RootRouteChildren {
   ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
   ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
   ApiPublicHooksQaSchedulerRoute: typeof ApiPublicHooksQaSchedulerRoute
+  ApiPublicSTokenRoute: typeof ApiPublicSTokenRouteWithChildren
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
@@ -1063,6 +1101,13 @@ declare module '@tanstack/react-router' {
       path: '/api/transcribe'
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/audit/qa': {
@@ -1210,6 +1255,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/qa-scheduler'
       fullPath: '/api/public/hooks/qa-scheduler'
       preLoaderRoute: typeof ApiPublicHooksQaSchedulerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/s/$token': {
+      id: '/api/public/s/$token'
+      path: '/api/public/s/$token'
+      fullPath: '/api/public/s/$token'
+      preLoaderRoute: typeof ApiPublicSTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/telegram/webhook': {
@@ -1401,6 +1453,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrossProxiesListRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/s/$token/dl': {
+      id: '/api/public/s/$token/dl'
+      path: '/dl'
+      fullPath: '/api/public/s/$token/dl'
+      preLoaderRoute: typeof ApiPublicSTokenDlRouteImport
+      parentRoute: typeof ApiPublicSTokenRoute
+    }
     '/api/public/worker/qa/analyze': {
       id: '/api/public/worker/qa/analyze'
       path: '/api/public/worker/qa/analyze'
@@ -1505,6 +1564,18 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface ApiPublicSTokenRouteChildren {
+  ApiPublicSTokenDlRoute: typeof ApiPublicSTokenDlRoute
+}
+
+const ApiPublicSTokenRouteChildren: ApiPublicSTokenRouteChildren = {
+  ApiPublicSTokenDlRoute: ApiPublicSTokenDlRoute,
+}
+
+const ApiPublicSTokenRouteWithChildren = ApiPublicSTokenRoute._addFileChildren(
+  ApiPublicSTokenRouteChildren,
+)
+
 interface ApiPublicCrossKitTaskRouteChildren {
   ApiPublicCrossKitTaskTask_idLogRoute: typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -1522,6 +1593,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  STokenRoute: STokenRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicAdminCreateWarmupWorkflowsRoute:
     ApiPublicAdminCreateWarmupWorkflowsRoute,
@@ -1542,6 +1614,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicCronScheduleRedditWarmupsRoute,
   ApiPublicCronScheduleWarmupsRoute: ApiPublicCronScheduleWarmupsRoute,
   ApiPublicHooksQaSchedulerRoute: ApiPublicHooksQaSchedulerRoute,
+  ApiPublicSTokenRoute: ApiPublicSTokenRouteWithChildren,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
@@ -1588,13 +1661,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
