@@ -105,6 +105,55 @@ Utána ugyanígy tehető napi időzítésre egy systemd timerrel.
 - A két winchester **nem** RAID, tehát nem valós idejű: a tükrözés óránként fut.
   Ez a legrosszabb esetben 1 óra veszteséget jelent — a Syncthing miatt viszont a
   friss állapot mindig ott van a saját gépeden is.
-- Titkosítás: az átvitel mindig titkosított. Ha azt is szeretnéd, hogy a lemezen
-  se legyen olvasható, szólj — akkor a Syncthing „untrusted device” módját vagy
-  egy titkosított kötetet (LUKS) teszünk alá.
+- Titkosítás: az átvitel mindig titkosított (TLS 1.3, kölcsönös eszköz-hitelesítés).
+
+---
+
+## Titkosítás — pontosan hogyan áll
+
+**Átvitel közben:** a Syncthing minden kapcsolata TLS 1.3-mal titkosított, és a két
+oldal a saját eszközazonosítójával (kulcs ujjlenyomatával) igazolja magát. Idegen gép
+akkor sem tud csatlakozni, ha kitalálja az IP-t: nincs benne a te eszközlistádban.
+Tehát az adatkapcsolat **nem nyilvános**, senki nem tudja lehallgatni vagy leszedni.
+
+**Extra szigorítás (ajánlott, 1 perc).** Alapból a Syncthing használhat nyilvános
+„relay” szervereket, ha nem talál közvetlen utat. Az adat ott is titkosított (a relay
+csak vak csomagokat továbbít), de ha a legszigorúbb módot akarod, kapcsold ki:
+
+A felületen (SSH-alagúton át): **Settings → Connections** →
+- `Enable Relaying`: **ki**
+- `Global Discovery`: **ki**
+- `NAT traversal`: maradhat
+
+Majd a saját gépeden a `kylo-vault` eszköznél add meg fixen a címet:
+`tcp://<vps-ip>:22000`. Ettől kezdve az adat kizárólag a te géped és a te VPS-ed
+között, közvetlenül megy.
+
+A VPS tűzfalán ehhez engedni kell a Syncthing portját:
+
+```bash
+sudo ufw allow 22000/tcp comment 'syncthing'
+sudo ufw allow 22000/udp comment 'syncthing'
+```
+
+**A lemezen (nyugalmi állapotban):** jelenleg a fájlok olvashatóan pihennek a VPS
+lemezén — mint a Tresoritnál a saját gépeden. Ha azt is titkosítanád, két út van:
+titkosított kötet (LUKS) a lemez alá, vagy a Syncthing „untrusted device” módja,
+amitől a VPS csak titkosított darabokat lát. Szólj, ha kéred, összerakom.
+
+---
+
+## Hány példány lesz belőle?
+
+| Példány | Hol | Mikor frissül |
+|---|---|---|
+| 1. | a saját gépeden | azonnal |
+| 2. | VPS 1. lemez (`/srv/kylo-vault/data`) | azonnal (Syncthing) |
+| 3. | VPS 2. winchester (`/mnt/disk2/kylo-vault/current`) | óránként |
+| 3b. | 7 napos pillanatképek a 2. lemezen | naponta |
+| 4. | másik országbeli VPS | később, `geo-replica.sh` |
+
+Tehát **igen: már most két külön fizikai lemezre ír a VPS-en belül**, plusz ott a
+géped. Ez a mai naptól három példány. Amikor lesz másik VPS, a `geo-replica.sh`
+napi másolattal viszi negyedik helyre — az már földrajzilag is szétosztott.
+
