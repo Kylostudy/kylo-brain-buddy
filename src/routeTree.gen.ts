@@ -53,6 +53,7 @@ import { Route as ApiPublicWorkerHeartbeatRouteImport } from './routes/api/publi
 import { Route as ApiPublicWorkerLeadRadarIngestRouteImport } from './routes/api/public/worker/lead-radar-ingest'
 import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
 import { Route as ApiPublicWorkerLinkedinCommentIngestRouteImport } from './routes/api/public/worker/linkedin-comment-ingest'
+import { Route as ApiPublicWorkerLinkedinEngageIngestRouteImport } from './routes/api/public/worker/linkedin-engage-ingest'
 import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
@@ -323,6 +324,12 @@ const ApiPublicWorkerLinkedinCommentIngestRoute =
     path: '/api/public/worker/linkedin-comment-ingest',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerLinkedinEngageIngestRoute =
+  ApiPublicWorkerLinkedinEngageIngestRouteImport.update({
+    id: '/api/public/worker/linkedin-engage-ingest',
+    path: '/api/public/worker/linkedin-engage-ingest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerProgressRoute = ApiPublicWorkerProgressRouteImport.update({
   id: '/api/public/worker/progress',
   path: '/api/public/worker/progress',
@@ -492,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/lead-radar-ingest': typeof ApiPublicWorkerLeadRadarIngestRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/linkedin-comment-ingest': typeof ApiPublicWorkerLinkedinCommentIngestRoute
+  '/api/public/worker/linkedin-engage-ingest': typeof ApiPublicWorkerLinkedinEngageIngestRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
@@ -558,6 +566,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/lead-radar-ingest': typeof ApiPublicWorkerLeadRadarIngestRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/linkedin-comment-ingest': typeof ApiPublicWorkerLinkedinCommentIngestRoute
+  '/api/public/worker/linkedin-engage-ingest': typeof ApiPublicWorkerLinkedinEngageIngestRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
@@ -626,6 +635,7 @@ export interface FileRoutesById {
   '/api/public/worker/lead-radar-ingest': typeof ApiPublicWorkerLeadRadarIngestRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/linkedin-comment-ingest': typeof ApiPublicWorkerLinkedinCommentIngestRoute
+  '/api/public/worker/linkedin-engage-ingest': typeof ApiPublicWorkerLinkedinEngageIngestRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
@@ -694,6 +704,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/lead-radar-ingest'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/linkedin-comment-ingest'
+    | '/api/public/worker/linkedin-engage-ingest'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
@@ -760,6 +771,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/lead-radar-ingest'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/linkedin-comment-ingest'
+    | '/api/public/worker/linkedin-engage-ingest'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
@@ -827,6 +839,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/lead-radar-ingest'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/linkedin-comment-ingest'
+    | '/api/public/worker/linkedin-engage-ingest'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
@@ -881,6 +894,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerLeadRadarIngestRoute: typeof ApiPublicWorkerLeadRadarIngestRoute
   ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
   ApiPublicWorkerLinkedinCommentIngestRoute: typeof ApiPublicWorkerLinkedinCommentIngestRoute
+  ApiPublicWorkerLinkedinEngageIngestRoute: typeof ApiPublicWorkerLinkedinEngageIngestRoute
   ApiPublicWorkerProgressRoute: typeof ApiPublicWorkerProgressRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
@@ -1213,6 +1227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerLinkedinCommentIngestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/linkedin-engage-ingest': {
+      id: '/api/public/worker/linkedin-engage-ingest'
+      path: '/api/public/worker/linkedin-engage-ingest'
+      fullPath: '/api/public/worker/linkedin-engage-ingest'
+      preLoaderRoute: typeof ApiPublicWorkerLinkedinEngageIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/progress': {
       id: '/api/public/worker/progress'
       path: '/api/public/worker/progress'
@@ -1450,6 +1471,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerLearnedSelectorsRoute: ApiPublicWorkerLearnedSelectorsRoute,
   ApiPublicWorkerLinkedinCommentIngestRoute:
     ApiPublicWorkerLinkedinCommentIngestRoute,
+  ApiPublicWorkerLinkedinEngageIngestRoute:
+    ApiPublicWorkerLinkedinEngageIngestRoute,
   ApiPublicWorkerProgressRoute: ApiPublicWorkerProgressRoute,
   ApiPublicWorkerRecordClaimRoute: ApiPublicWorkerRecordClaimRoute,
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
@@ -1477,13 +1500,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
