@@ -33,12 +33,30 @@ fi
 
 mkdir -p "$DST/current" "$SNAPDIR"
 
+# A Kit felületén bekapcsolt könyvtárak listája (az ügynök írja).
+# Ha a fájl létezik és nem üres, CSAK azok a könyvtárak kerülnek tükrözésre.
+SYNC_LIST="${VAULT_SYNC_LIST:-/etc/kylo-vault/sync-paths.txt}"
+
+RSYNC_OPTS=(-aH --delete --numeric-ids --exclude '.stversions/' --exclude '.stfolder/')
+if [ -s "$SYNC_LIST" ]; then
+  log "Válogatott tükrözés: $(wc -l < "$SYNC_LIST" | tr -d ' ') könyvtár a listából"
+  RSYNC_OPTS+=(--files-from="$SYNC_LIST")
+else
+  log "Nincs szűrőlista — a teljes széf tükrözése"
+fi
+
 log "Tükrözés indul: $SRC -> $DST/current"
-rsync -aH --delete --numeric-ids \
-      --exclude '.stversions/' \
-      --exclude '.stfolder/' \
-      "$SRC/" "$DST/current/"
-log "Tükrözés kész."
+if rsync "${RSYNC_OPTS[@]}" "$SRC/" "$DST/current/"; then
+  log "Tükrözés kész."
+  mkdir -p /var/lib/kylo-vault
+  date -Is > /var/lib/kylo-vault/last-mirror
+  : > /var/lib/kylo-vault/last-error
+else
+  log "HIBA: a tükrözés nem sikerült."
+  mkdir -p /var/lib/kylo-vault
+  echo "$(date -Is) rsync hiba" >> /var/lib/kylo-vault/last-error
+  exit 1
+fi
 
 # Napi pillanatkép (hardlinkkel, tehát alig foglal helyet)
 if [ ! -d "$SNAPDIR/$TODAY" ]; then
