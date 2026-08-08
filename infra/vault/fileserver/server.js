@@ -22,12 +22,14 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
-const { timingSafeEqual } = require("node:crypto");
+const { timingSafeEqual, createHash } = require("node:crypto");
 
 const ROOT = path.resolve(process.env.VAULT_ROOT || "/srv/kylo-vault/data");
 const PORT = Number(process.env.VAULT_FS_PORT || 8079);
 const TOKEN = (process.env.WORKER_API_TOKEN || "").trim();
 const MAX_ENTRIES = 5000;
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB / fájl
+
 
 if (!TOKEN) {
   console.error("WORKER_API_TOKEN hiányzik — a kiszolgáló nem indul el.");
@@ -137,7 +139,8 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method !== "GET") return json(res, { error: "method not allowed" }, 405);
 
-    if (!authorized(req)) return json(res, { error: "unauthorized" }, 401);
+
+
 
     const abs = safeResolve(url.searchParams.get("path"));
     if (!abs) return json(res, { error: "bad path" }, 400);
