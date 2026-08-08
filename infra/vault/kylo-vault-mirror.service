@@ -1,11 +1,13 @@
 [Unit]
-Description=Kylo Vault tukrozes a masodik winchesterre
+Description=Kylo Vault napi pillanatkepek (verzio-visszamenet)
 After=docker.service
 
 [Service]
 Type=oneshot
-# Ha mas az utvonal, ird at itt:
 Environment=VAULT_SRC=/srv/kylo-vault/data
-Environment=VAULT_MIRROR=/mnt/disk2/kylo-vault
+Environment=VAULT_MIRROR=/srv/kylo-vault/mirror
 Environment=VAULT_KEEP_DAYS=7
+# Ezen a szerveren a ket lemez mar RAID1-ben tukrozodik, ezert nincs kulon
+# masodik lemez. Ha kesobb lesz, ird at a VAULT_MIRROR sort es vedd ki ezt:
+Environment=VAULT_ALLOW_SAME_DISK=1
 ExecStart=/usr/local/bin/kylo-vault-mirror.sh
