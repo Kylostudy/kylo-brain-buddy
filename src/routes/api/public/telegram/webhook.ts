@@ -93,7 +93,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         }
         const { data: comment } = await supabaseAdmin
           .from("reddit_comments")
-          .select("id, subreddit, author, context_title, suggested_reply_hu")
+          .select(
+            "id, subreddit, author, context_title, suggested_reply_hu, reply_status, approved_at, approved_reply_en",
+          )
           .eq("telegram_message_id", replyTo)
           .maybeSingle();
 
@@ -130,12 +132,45 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           if (out.ref_table === "lead_alerts" && out.ref_id) {
             const { data: alert } = await supabaseAdmin
               .from("lead_alerts")
-              .select("id, permalink, title_hu, title, suggested_reply_hu, suggested_reply_en")
+              .select(
+                "id, permalink, title_hu, title, suggested_reply_hu, suggested_reply_en, status, approved_at, approved_reply_hu, approved_reply_en",
+              )
               .eq("id", out.ref_id)
               .maybeSingle();
 
-
             if (alert) {
+              // --- Duplikáció-szűrő ---
+              if (alert.status === "approved" || alert.approved_at) {
+                await sendTelegram(
+                  [
+                    `♻️ Ezt már jóváhagytad korábban — ${head}`,
+                    alert.title_hu ? `Poszt: ${alert.title_hu}` : "",
+                    alert.permalink ?? "",
+                    ``,
+                    `Az érvényben lévő válasz:`,
+                    alert.approved_reply_hu ?? alert.approved_reply_en ?? "(nincs mentett szöveg)",
+                    ``,
+                    `Ha módosítanád, írd elé: „válasz:” és jöhet az új szöveg.`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n"),
+                  { topic: "lead_alert_ack", platform: out.platform, ref_table: out.ref_table, ref_id: out.ref_id, label: out.label },
+                );
+                if (!/^v[áa]lasz:\s*/i.test(text)) {
+                  return Response.json({ ok: true, action: "duplicate" });
+                }
+              }
+              if (alert.status === "skipped" && SKIP_WORDS.has(text.toLowerCase())) {
+                await sendTelegram(`♻️ Ezt már kihagytuk korábban — ${head}.`, {
+                  topic: "lead_alert_ack",
+                  platform: out.platform,
+                  ref_table: out.ref_table,
+                  ref_id: out.ref_id,
+                  label: out.label,
+                });
+                return Response.json({ ok: true, action: "duplicate_skip" });
+              }
+
               if (SKIP_WORDS.has(text.toLowerCase())) {
                 await supabaseAdmin
                   .from("lead_alerts")
@@ -243,12 +278,44 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             const { data: li } = await supabaseAdmin
               .from("linkedin_comments")
               .select(
-                "id, permalink, context_title, author, body_hu, suggested_reply_hu, suggested_reply_en",
+                "id, permalink, context_title, author, body_hu, suggested_reply_hu, suggested_reply_en, reply_status, approved_at, approved_reply_hu, approved_reply_en",
               )
               .eq("id", out.ref_id)
               .maybeSingle();
 
             if (li) {
+              // --- Duplikáció-szűrő ---
+              if (li.reply_status === "approved" || li.approved_at) {
+                await sendTelegram(
+                  [
+                    `♻️ Ezt már jóváhagytad korábban — ${head}`,
+                    li.context_title ? `Poszt: ${li.context_title}` : "",
+                    li.permalink ?? "",
+                    ``,
+                    `Az érvényben lévő válasz:`,
+                    li.approved_reply_hu ?? li.approved_reply_en ?? "(nincs mentett szöveg)",
+                    ``,
+                    `Ha módosítanád, írd elé: „válasz:” és jöhet az új szöveg.`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n"),
+                  { topic: "linkedin_comment_ack", platform: "linkedin", ref_table: out.ref_table, ref_id: out.ref_id, label: out.label },
+                );
+                if (!/^v[áa]lasz:\s*/i.test(text)) {
+                  return Response.json({ ok: true, action: "duplicate" });
+                }
+              }
+              if (li.reply_status === "skipped" && SKIP_WORDS.has(text.toLowerCase())) {
+                await sendTelegram(`♻️ Ezt már kihagytuk korábban — ${head}.`, {
+                  topic: "linkedin_comment_ack",
+                  platform: "linkedin",
+                  ref_table: out.ref_table,
+                  ref_id: out.ref_id,
+                  label: out.label,
+                });
+                return Response.json({ ok: true, action: "duplicate_skip" });
+              }
+
               if (SKIP_WORDS.has(text.toLowerCase())) {
                 await supabaseAdmin
                   .from("linkedin_comments")
@@ -378,6 +445,30 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
 
         const tag = `REDDIT · r/${comment.subreddit ?? "?"} · u/${comment.author ?? "?"}`;
+
+        // --- Duplikáció-szűrő: erre már döntöttél korábban ---
+        if (comment.reply_status === "approved" || comment.approved_at) {
+          await sendTelegram(
+            [
+              `♻️ Ezt már jóváhagytad korábban — ${tag}`,
+              comment.context_title ? `Poszt: ${comment.context_title}` : "",
+              ``,
+              `A korábban elmentett válasz marad érvényben:`,
+              comment.approved_reply_en ?? "(nincs mentett szöveg)",
+              ``,
+              `Ha MÓDOSÍTANI szeretnéd, írd elé: „válasz:” és jön az új szöveg.`,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          );
+          if (!/^v[áa]lasz:\s*/i.test(text)) {
+            return Response.json({ ok: true, action: "duplicate" });
+          }
+        }
+        if (comment.reply_status === "ignored" && SKIP_WORDS.has(text.toLowerCase())) {
+          await sendTelegram(`♻️ Ezt már kihagytuk korábban — ${tag}. Nem csinálok vele semmit.`);
+          return Response.json({ ok: true, action: "duplicate_skip" });
+        }
 
         if (SKIP_WORDS.has(text.toLowerCase())) {
           await supabaseAdmin
