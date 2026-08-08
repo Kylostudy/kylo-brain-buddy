@@ -43,6 +43,7 @@ import { Route as ApiPublicCronScheduleRedditKarmaRouteImport } from './routes/a
 import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
 import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
 import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
+import { Route as ApiPublicSTokenRouteImport } from './routes/api/public/s/$token'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicWorkerClaimRouteImport } from './routes/api/public/worker/claim'
 import { Route as ApiPublicWorkerCompleteRouteImport } from './routes/api/public/worker/complete'
@@ -270,6 +271,11 @@ const ApiPublicHooksQaSchedulerRoute =
     path: '/api/public/hooks/qa-scheduler',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSTokenRoute = ApiPublicSTokenRouteImport.update({
+  id: '/api/public/s/$token',
+  path: '/api/public/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTelegramWebhookRoute =
   ApiPublicTelegramWebhookRouteImport.update({
     id: '/api/public/telegram/webhook',
@@ -516,6 +522,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
+  '/api/public/s/$token': typeof ApiPublicSTokenRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -587,6 +594,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
+  '/api/public/s/$token': typeof ApiPublicSTokenRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -660,6 +668,7 @@ export interface FileRoutesById {
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
+  '/api/public/s/$token': typeof ApiPublicSTokenRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -733,6 +742,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
+    | '/api/public/s/$token'
     | '/api/public/telegram/webhook'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -804,6 +814,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
+    | '/api/public/s/$token'
     | '/api/public/telegram/webhook'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -876,6 +887,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
     | '/api/public/hooks/qa-scheduler'
+    | '/api/public/s/$token'
     | '/api/public/telegram/webhook'
     | '/api/public/worker/claim'
     | '/api/public/worker/complete'
@@ -935,6 +947,7 @@ export interface RootRouteChildren {
   ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
   ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
   ApiPublicHooksQaSchedulerRoute: typeof ApiPublicHooksQaSchedulerRoute
+  ApiPublicSTokenRoute: typeof ApiPublicSTokenRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
@@ -1210,6 +1223,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/qa-scheduler'
       fullPath: '/api/public/hooks/qa-scheduler'
       preLoaderRoute: typeof ApiPublicHooksQaSchedulerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/s/$token': {
+      id: '/api/public/s/$token'
+      path: '/api/public/s/$token'
+      fullPath: '/api/public/s/$token'
+      preLoaderRoute: typeof ApiPublicSTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/telegram/webhook': {
@@ -1542,6 +1562,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicCronScheduleRedditWarmupsRoute,
   ApiPublicCronScheduleWarmupsRoute: ApiPublicCronScheduleWarmupsRoute,
   ApiPublicHooksQaSchedulerRoute: ApiPublicHooksQaSchedulerRoute,
+  ApiPublicSTokenRoute: ApiPublicSTokenRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
@@ -1588,13 +1609,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
