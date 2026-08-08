@@ -2,3 +2,5 @@
 - [linkedin-radar](mem://features/linkedin-radar) — LinkedIn értesítés/komment figyelő, magyar javaslat + Telegram jóváhagyás, `linkedin_comments` tábla
 - [linkedin-stratégia](mem://features/linkedin-strategy) — LinkedIn a prioritás: heti 2 poszt (kedd/csüt), idegen posztok alatti hozzászólás Telegram-jóváhagyással, zajszűrés
 - [kylo-vault](mem://features/kylo-vault) — Tresorit kiváltása: Syncthing a VPS-en, óránkénti tükrözés a 2. winchesterre, később geo-redundancia
+- [kylo-vault-luks](mem://features/kylo-vault-luks) — A széf lemezei LUKS2-vel titkosítva, kulcsfájl a szerveren, tartalék jelszó Bitwardenben, LUKS mindig a Syncthing előtt
+
