@@ -2152,6 +2152,111 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_folders: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          file_count: number | null
+          id: string
+          label: string | null
+          last_error: string | null
+          last_synced_at: string | null
+          path: string
+          seen_at: string
+          size_bytes: number | null
+          source: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          file_count?: number | null
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          path: string
+          seen_at?: string
+          size_bytes?: number | null
+          source?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          file_count?: number | null
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          path?: string
+          seen_at?: string
+          size_bytes?: number | null
+          source?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vault_status: {
+        Row: {
+          agent_version: string | null
+          created_at: string
+          disk_free_bytes: number | null
+          disk_total_bytes: number | null
+          disk_used_bytes: number | null
+          host: string | null
+          last_error: string | null
+          last_mirror_at: string | null
+          luks_unlocked: boolean | null
+          mirror_ok: boolean | null
+          mirror_used_bytes: number | null
+          mount_ok: boolean | null
+          reported_at: string
+          snapshots: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_version?: string | null
+          created_at?: string
+          disk_free_bytes?: number | null
+          disk_total_bytes?: number | null
+          disk_used_bytes?: number | null
+          host?: string | null
+          last_error?: string | null
+          last_mirror_at?: string | null
+          luks_unlocked?: boolean | null
+          mirror_ok?: boolean | null
+          mirror_used_bytes?: number | null
+          mount_ok?: boolean | null
+          reported_at?: string
+          snapshots?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_version?: string | null
+          created_at?: string
+          disk_free_bytes?: number | null
+          disk_total_bytes?: number | null
+          disk_used_bytes?: number | null
+          host?: string | null
+          last_error?: string | null
+          last_mirror_at?: string | null
+          luks_unlocked?: boolean | null
+          mirror_ok?: boolean | null
+          mirror_used_bytes?: number | null
+          mount_ok?: boolean | null
+          reported_at?: string
+          snapshots?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       worker_deploy_requests: {
         Row: {
           active_color: string | null

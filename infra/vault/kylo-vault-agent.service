@@ -1,0 +1,11 @@
+[Unit]
+Description=Kylo Vault ügynök — állapotjelentés a Brainbe és szinkron-lista frissítése
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/kylo-vault/agent.env
+ExecStart=/opt/kylo-vault/agent.sh
+StandardOutput=append:/var/log/kylo-vault-agent.log
+StandardError=append:/var/log/kylo-vault-agent.log

@@ -61,9 +61,11 @@ import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/pub
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
 import { Route as ApiPublicWorkerRedditCommentDraftRouteImport } from './routes/api/public/worker/reddit-comment-draft'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
+import { Route as ApiPublicWorkerVaultReportRouteImport } from './routes/api/public/worker/vault-report'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicAuthGoogleCallbackRouteImport } from './routes/api/public/auth.google.callback'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
+import { Route as ApiPublicCrossKitVaultRouteImport } from './routes/api/public/cross/kit/vault'
 import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './routes/api/public/cross/kylogic/replay-callback'
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
@@ -373,6 +375,12 @@ const ApiPublicWorkerSaveCookiesRoute =
     path: '/api/public/worker/save-cookies',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerVaultReportRoute =
+  ApiPublicWorkerVaultReportRouteImport.update({
+    id: '/api/public/worker/vault-report',
+    path: '/api/public/worker/vault-report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerVisionExtractRoute =
   ApiPublicWorkerVisionExtractRouteImport.update({
     id: '/api/public/worker/vision-extract',
@@ -388,6 +396,11 @@ const ApiPublicAuthGoogleCallbackRoute =
 const ApiPublicCrossKitTaskRoute = ApiPublicCrossKitTaskRouteImport.update({
   id: '/api/public/cross/kit/task',
   path: '/api/public/cross/kit/task',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCrossKitVaultRoute = ApiPublicCrossKitVaultRouteImport.update({
+  id: '/api/public/cross/kit/vault',
+  path: '/api/public/cross/kit/vault',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicCrossKylogicReplayCallbackRoute =
@@ -521,9 +534,11 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kit/vault': typeof ApiPublicCrossKitVaultRoute
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
@@ -590,9 +605,11 @@ export interface FileRoutesByTo {
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kit/vault': typeof ApiPublicCrossKitVaultRoute
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
@@ -661,9 +678,11 @@ export interface FileRoutesById {
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kit/vault': typeof ApiPublicCrossKitVaultRoute
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
@@ -732,9 +751,11 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kit/vault'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
@@ -801,9 +822,11 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kit/vault'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
@@ -871,9 +894,11 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kit/vault'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
@@ -928,9 +953,11 @@ export interface RootRouteChildren {
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
   ApiPublicWorkerRedditCommentDraftRoute: typeof ApiPublicWorkerRedditCommentDraftRoute
   ApiPublicWorkerSaveCookiesRoute: typeof ApiPublicWorkerSaveCookiesRoute
+  ApiPublicWorkerVaultReportRoute: typeof ApiPublicWorkerVaultReportRoute
   ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
   ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
+  ApiPublicCrossKitVaultRoute: typeof ApiPublicCrossKitVaultRoute
   ApiPublicCrossKylogicReplayCallbackRoute: typeof ApiPublicCrossKylogicReplayCallbackRoute
   ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
   ApiPublicCrossKylogicWorkflowsRoute: typeof ApiPublicCrossKylogicWorkflowsRoute
@@ -1311,6 +1338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerSaveCookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/vault-report': {
+      id: '/api/public/worker/vault-report'
+      path: '/api/public/worker/vault-report'
+      fullPath: '/api/public/worker/vault-report'
+      preLoaderRoute: typeof ApiPublicWorkerVaultReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/vision-extract': {
       id: '/api/public/worker/vision-extract'
       path: '/api/public/worker/vision-extract'
@@ -1330,6 +1364,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cross/kit/task'
       fullPath: '/api/public/cross/kit/task'
       preLoaderRoute: typeof ApiPublicCrossKitTaskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cross/kit/vault': {
+      id: '/api/public/cross/kit/vault'
+      path: '/api/public/cross/kit/vault'
+      fullPath: '/api/public/cross/kit/vault'
+      preLoaderRoute: typeof ApiPublicCrossKitVaultRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cross/kylogic/replay-callback': {
@@ -1524,9 +1565,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerRedditCommentDraftRoute:
     ApiPublicWorkerRedditCommentDraftRoute,
   ApiPublicWorkerSaveCookiesRoute: ApiPublicWorkerSaveCookiesRoute,
+  ApiPublicWorkerVaultReportRoute: ApiPublicWorkerVaultReportRoute,
   ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
   ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
   ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,
+  ApiPublicCrossKitVaultRoute: ApiPublicCrossKitVaultRoute,
   ApiPublicCrossKylogicReplayCallbackRoute:
     ApiPublicCrossKylogicReplayCallbackRoute,
   ApiPublicCrossKylogicTaskRoute: ApiPublicCrossKylogicTaskRoute,
