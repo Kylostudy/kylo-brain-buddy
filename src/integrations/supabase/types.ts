@@ -2200,6 +2200,95 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_share_access: {
+        Row: {
+          id: string
+          ip: string | null
+          outcome: string
+          share_id: string | null
+          token_attempted: string | null
+          ts: string
+          user_agent: string | null
+        }
+        Insert: {
+          id?: string
+          ip?: string | null
+          outcome: string
+          share_id?: string | null
+          token_attempted?: string | null
+          ts?: string
+          user_agent?: string | null
+        }
+        Update: {
+          id?: string
+          ip?: string | null
+          outcome?: string
+          share_id?: string | null
+          token_attempted?: string | null
+          ts?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_share_access_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "vault_shares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_shares: {
+        Row: {
+          allow_download: boolean
+          created_at: string
+          download_count: number
+          expires_at: string
+          id: string
+          label: string | null
+          last_access_at: string | null
+          max_downloads: number | null
+          password_hash: string | null
+          path: string
+          revoked_at: string | null
+          tenant_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          allow_download?: boolean
+          created_at?: string
+          download_count?: number
+          expires_at: string
+          id?: string
+          label?: string | null
+          last_access_at?: string | null
+          max_downloads?: number | null
+          password_hash?: string | null
+          path: string
+          revoked_at?: string | null
+          tenant_id: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          allow_download?: boolean
+          created_at?: string
+          download_count?: number
+          expires_at?: string
+          id?: string
+          label?: string | null
+          last_access_at?: string | null
+          max_downloads?: number | null
+          password_hash?: string | null
+          path?: string
+          revoked_at?: string | null
+          tenant_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       vault_status: {
         Row: {
           agent_version: string | null
