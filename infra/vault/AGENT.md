@@ -7,11 +7,10 @@ hogy melyik könyvtárak legyenek szinkronban (amit a Kit felületén állítasz
 
 ```bash
 sudo mkdir -p /etc/kylo-vault /opt/kylo-vault
-sudo tee /etc/kylo-vault/agent.env >/dev/null <<'EOF'
-BRAIN_URL=https://kylo-brain-buddy.lovable.app
-WORKER_API_TOKEN=<a worker tokened>
-VAULT_TENANT_ID=<a te tenant azonosítód>
-EOF
+TOKEN="$(grep -m1 '^WORKER_API_TOKEN=' ~/kylo-worker/worker/.env | cut -d= -f2- | sed 's/^"//;s/"$//')"
+[ -n "$TOKEN" ] || { echo "HIBA: a worker token nem található"; exit 1; }
+printf 'BRAIN_URL=https://brain.kylosystems.com\nWORKER_API_TOKEN=%s\nVAULT_TENANT_ID=c13c29af-b546-41e3-a4d5-9b3bb3a71326\n' "$TOKEN" | sudo tee /etc/kylo-vault/agent.env >/dev/null
+unset TOKEN
 sudo chmod 600 /etc/kylo-vault/agent.env
 ```
 

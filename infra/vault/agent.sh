@@ -25,7 +25,7 @@ if [ -f "$ENV_FILE" ]; then
   set +a
 fi
 
-AGENT_VERSION="1.0.0"
+AGENT_VERSION="1.0.1"
 VAULT_ROOT="${VAULT_SRC:-/srv/kylo-vault/data}"
 MOUNT_POINT="${VAULT_MOUNT:-/srv/kylo-vault}"
 MIRROR_DIR="${VAULT_MIRROR:-/mnt/disk2/kylo-vault}"
@@ -61,12 +61,12 @@ if [ -d "$MIRROR_DIR" ]; then
   MIRROR_USED=${MIRROR_USED:-0}
 fi
 
-LAST_MIRROR="null"
+LAST_MIRROR="None"
 if [ -f "$LOG_STATE/last-mirror" ]; then
   LAST_MIRROR="\"$(cat "$LOG_STATE/last-mirror")\""
 fi
 
-LAST_ERROR="null"
+LAST_ERROR="None"
 if [ -s "$LOG_STATE/last-error" ]; then
   LAST_ERROR=$(python3 -c 'import json,sys;print(json.dumps(open(sys.argv[1]).read()[-3000:]))' "$LOG_STATE/last-error")
 fi
