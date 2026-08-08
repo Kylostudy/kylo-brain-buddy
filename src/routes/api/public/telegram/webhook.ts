@@ -93,7 +93,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         }
         const { data: comment } = await supabaseAdmin
           .from("reddit_comments")
-          .select("id, subreddit, author, context_title, suggested_reply_hu")
+          .select(
+            "id, subreddit, author, context_title, suggested_reply_hu, reply_status, approved_at, approved_reply_en",
+          )
           .eq("telegram_message_id", replyTo)
           .maybeSingle();
 
