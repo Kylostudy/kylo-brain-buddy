@@ -71,6 +71,7 @@ import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './route
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
+import { Route as ApiPublicSTokenDlRouteImport } from './routes/api/public/s/$token.dl'
 import { Route as ApiPublicWorkerQaAnalyzeRouteImport } from './routes/api/public/worker/qa/analyze'
 import { Route as ApiPublicWorkerQaCheckCacheRouteImport } from './routes/api/public/worker/qa/check-cache'
 import { Route as ApiPublicWorkerQaFinishRunRouteImport } from './routes/api/public/worker/qa/finish-run'
@@ -433,6 +434,11 @@ const ApiPublicCrossProxiesListRoute =
     path: '/api/public/cross/proxies/list',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSTokenDlRoute = ApiPublicSTokenDlRouteImport.update({
+  id: '/dl',
+  path: '/dl',
+  getParentRoute: () => ApiPublicSTokenRoute,
+} as any)
 const ApiPublicWorkerQaAnalyzeRoute =
   ApiPublicWorkerQaAnalyzeRouteImport.update({
     id: '/api/public/worker/qa/analyze',
@@ -522,7 +528,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
-  '/api/public/s/$token': typeof ApiPublicSTokenRoute
+  '/api/public/s/$token': typeof ApiPublicSTokenRouteWithChildren
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -550,6 +556,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
+  '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -594,7 +601,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
-  '/api/public/s/$token': typeof ApiPublicSTokenRoute
+  '/api/public/s/$token': typeof ApiPublicSTokenRouteWithChildren
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -622,6 +629,7 @@ export interface FileRoutesByTo {
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
+  '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -668,7 +676,7 @@ export interface FileRoutesById {
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
-  '/api/public/s/$token': typeof ApiPublicSTokenRoute
+  '/api/public/s/$token': typeof ApiPublicSTokenRouteWithChildren
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/worker/claim': typeof ApiPublicWorkerClaimRoute
   '/api/public/worker/complete': typeof ApiPublicWorkerCompleteRoute
@@ -696,6 +704,7 @@ export interface FileRoutesById {
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
+  '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -770,6 +779,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
+    | '/api/public/s/$token/dl'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -842,6 +852,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
+    | '/api/public/s/$token/dl'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -915,6 +926,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
+    | '/api/public/s/$token/dl'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -947,7 +959,7 @@ export interface RootRouteChildren {
   ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
   ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
   ApiPublicHooksQaSchedulerRoute: typeof ApiPublicHooksQaSchedulerRoute
-  ApiPublicSTokenRoute: typeof ApiPublicSTokenRoute
+  ApiPublicSTokenRoute: typeof ApiPublicSTokenRouteWithChildren
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicWorkerClaimRoute: typeof ApiPublicWorkerClaimRoute
   ApiPublicWorkerCompleteRoute: typeof ApiPublicWorkerCompleteRoute
@@ -1421,6 +1433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrossProxiesListRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/s/$token/dl': {
+      id: '/api/public/s/$token/dl'
+      path: '/dl'
+      fullPath: '/api/public/s/$token/dl'
+      preLoaderRoute: typeof ApiPublicSTokenDlRouteImport
+      parentRoute: typeof ApiPublicSTokenRoute
+    }
     '/api/public/worker/qa/analyze': {
       id: '/api/public/worker/qa/analyze'
       path: '/api/public/worker/qa/analyze'
@@ -1525,6 +1544,18 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface ApiPublicSTokenRouteChildren {
+  ApiPublicSTokenDlRoute: typeof ApiPublicSTokenDlRoute
+}
+
+const ApiPublicSTokenRouteChildren: ApiPublicSTokenRouteChildren = {
+  ApiPublicSTokenDlRoute: ApiPublicSTokenDlRoute,
+}
+
+const ApiPublicSTokenRouteWithChildren = ApiPublicSTokenRoute._addFileChildren(
+  ApiPublicSTokenRouteChildren,
+)
+
 interface ApiPublicCrossKitTaskRouteChildren {
   ApiPublicCrossKitTaskTask_idLogRoute: typeof ApiPublicCrossKitTaskTask_idLogRoute
 }
@@ -1562,7 +1593,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicCronScheduleRedditWarmupsRoute,
   ApiPublicCronScheduleWarmupsRoute: ApiPublicCronScheduleWarmupsRoute,
   ApiPublicHooksQaSchedulerRoute: ApiPublicHooksQaSchedulerRoute,
-  ApiPublicSTokenRoute: ApiPublicSTokenRoute,
+  ApiPublicSTokenRoute: ApiPublicSTokenRouteWithChildren,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicWorkerClaimRoute: ApiPublicWorkerClaimRoute,
   ApiPublicWorkerCompleteRoute: ApiPublicWorkerCompleteRoute,
