@@ -1,17 +1,26 @@
 // Kylo Vault — a Kit dashboard ezen keresztül olvassa és állítja a széf
-// könyvtárlistáját. Hitelesítés: ugyanaz a Kit↔Brain HMAC séma, mint a
-// cross/kit/task végpontnál (KIT_BRAIN_TASK_SECRET).
+// könyvtárlistáját, és itt kezeli a lejáró megosztó linkeket is.
+// Hitelesítés: ugyanaz a Kit↔Brain HMAC séma, mint a cross/kit/task
+// végpontnál (KIT_BRAIN_TASK_SECRET).
 //
 // Műveletek (body.action):
-//   "state"       → állapot + teljes könyvtárlista
-//   "set_enabled" → egy könyvtár szinkronjának be/ki kapcsolása
-//   "add_folder"  → kézzel felvett könyvtár (ha az ügynök még nem látta)
+//   "state"         → állapot + teljes könyvtárlista
+//   "set_enabled"   → egy könyvtár szinkronjának be/ki kapcsolása
+//   "add_folder"    → kézzel felvett könyvtár (ha az ügynök még nem látta)
 //   "remove_folder" → kézzel felvett könyvtár törlése a listából
+//   "share_create"  → új lejáró megosztó link
+//   "share_list"    → megosztások letöltésszámmal és utolsó hozzáféréssel
+//   "share_revoke"  → megosztás visszavonása
 
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { verifyKitRequest } from "@/lib/kit-bridge.server";
+import {
+  defaultExpiryHours,
+  generateShareToken,
+  hashPassword,
+} from "@/lib/vault-shares.server";
 
 const ROUTE_PATH = "/api/public/cross/kit/vault";
 
@@ -35,7 +44,24 @@ const Body = z.discriminatedUnion("action", [
     tenant_id: z.string().uuid(),
     path: z.string().min(1).max(1024),
   }),
+  z.object({
+    action: z.literal("share_create"),
+    tenant_id: z.string().uuid(),
+    path: z.string().min(1).max(1024),
+    label: z.string().max(200).optional(),
+    expires_in_hours: z.number().int().min(1).max(24 * 365).optional(),
+    password: z.string().min(4).max(200).optional(),
+    max_downloads: z.number().int().min(1).max(100000).nullish(),
+    allow_download: z.boolean().optional(),
+  }),
+  z.object({ action: z.literal("share_list"), tenant_id: z.string().uuid() }),
+  z.object({
+    action: z.literal("share_revoke"),
+    tenant_id: z.string().uuid(),
+    id: z.string().uuid(),
+  }),
 ]);
+
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

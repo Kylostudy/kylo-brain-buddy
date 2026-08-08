@@ -22,6 +22,7 @@ import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authent
 import { Route as AuthenticatedTelegramGuideRouteImport } from './routes/_authenticated.telegram-guide'
 import { Route as AuthenticatedWorkerHealthRouteImport } from './routes/_authenticated.worker-health'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as AuthenticatedAuditQaRouteImport } from './routes/_authenticated.audit.qa'
 import { Route as AuthenticatedAuditScenariosRouteImport } from './routes/_authenticated.audit.scenarios'
 import { Route as AuthenticatedAuditSignupRouteImport } from './routes/_authenticated.audit.signup'
@@ -148,6 +149,11 @@ const AuthenticatedWorkerHealthRoute =
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAuditQaRoute = AuthenticatedAuditQaRouteImport.update({
@@ -507,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
   '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/s/$token': typeof STokenRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
   '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
   '/audit/signup': typeof AuthenticatedAuditSignupRoute
@@ -579,6 +586,7 @@ export interface FileRoutesByTo {
   '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
   '/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/s/$token': typeof STokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/audit/qa': typeof AuthenticatedAuditQaRoute
   '/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
@@ -654,6 +662,7 @@ export interface FileRoutesById {
   '/_authenticated/telegram-guide': typeof AuthenticatedTelegramGuideRoute
   '/_authenticated/worker-health': typeof AuthenticatedWorkerHealthRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/s/$token': typeof STokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/audit/qa': typeof AuthenticatedAuditQaRoute
   '/_authenticated/audit/scenarios': typeof AuthenticatedAuditScenariosRoute
@@ -730,6 +739,7 @@ export interface FileRouteTypes {
     | '/telegram-guide'
     | '/worker-health'
     | '/api/transcribe'
+    | '/s/$token'
     | '/audit/qa'
     | '/audit/scenarios'
     | '/audit/signup'
@@ -802,6 +812,7 @@ export interface FileRouteTypes {
     | '/telegram-guide'
     | '/worker-health'
     | '/api/transcribe'
+    | '/s/$token'
     | '/'
     | '/audit/qa'
     | '/audit/scenarios'
@@ -876,6 +887,7 @@ export interface FileRouteTypes {
     | '/_authenticated/telegram-guide'
     | '/_authenticated/worker-health'
     | '/api/transcribe'
+    | '/s/$token'
     | '/_authenticated/'
     | '/_authenticated/audit/qa'
     | '/_authenticated/audit/scenarios'
@@ -942,6 +954,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  STokenRoute: typeof STokenRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicAdminCreateWarmupWorkflowsRoute: typeof ApiPublicAdminCreateWarmupWorkflowsRoute
   ApiPublicAdminImportBrightdataKylogicRoute: typeof ApiPublicAdminImportBrightdataKylogicRoute
@@ -1088,6 +1101,13 @@ declare module '@tanstack/react-router' {
       path: '/api/transcribe'
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/audit/qa': {
@@ -1573,6 +1593,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  STokenRoute: STokenRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicAdminCreateWarmupWorkflowsRoute:
     ApiPublicAdminCreateWarmupWorkflowsRoute,
