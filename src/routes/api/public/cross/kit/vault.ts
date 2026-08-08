@@ -60,7 +60,15 @@ const Body = z.discriminatedUnion("action", [
     tenant_id: z.string().uuid(),
     id: z.string().uuid(),
   }),
+  z.object({ action: z.literal("agent_pair_code"), tenant_id: z.string().uuid() }),
+  z.object({ action: z.literal("agent_list"), tenant_id: z.string().uuid() }),
+  z.object({
+    action: z.literal("agent_remove"),
+    tenant_id: z.string().uuid(),
+    agent_id: z.string().uuid(),
+  }),
 ]);
+
 
 
 function json(body: unknown, status = 200): Response {
