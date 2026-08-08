@@ -1,0 +1,33 @@
+# =============================================================================
+# Kylo Vault — saját, ingyenes Tresorit-pótlás (Syncthing)
+#
+# Mit csinál: a gépeden lévő könyvtárat folyamatosan szinkronban tartja a
+# VPS-szel (titkosított csatornán). A VPS a "mindig elérhető" példány.
+# A második winchesterre az óránkénti tükrözés gondoskodik (mirror.sh).
+#
+# Indítás a VPS-en:  cd ~/kylo-worker/infra/vault && docker compose up -d
+# =============================================================================
+
+services:
+  syncthing:
+    image: syncthing/syncthing:1
+    container_name: kylo-vault
+    hostname: kylo-vault
+    restart: unless-stopped
+    # Host hálózat kell a helyi felderítéshez és a gyors átvitelhez.
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      # A konténer belső órája/umask-ja
+      - STGUIADDRESS=127.0.0.1:8384
+    volumes:
+      # Beállítások + kulcsok (ezt SOHA ne töröld — ez az eszköz azonosítója)
+      - /srv/kylo-vault/config:/var/syncthing/config
+      # Maguk a fájlok (1. winchester)
+      - /srv/kylo-vault/data:/var/syncthing/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8384"]
+      interval: 60s
+      timeout: 5s
+      retries: 3

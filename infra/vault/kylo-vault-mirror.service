@@ -1,0 +1,11 @@
+[Unit]
+Description=Kylo Vault tukrozes a masodik winchesterre
+After=docker.service
+
+[Service]
+Type=oneshot
+# Ha mas az utvonal, ird at itt:
+Environment=VAULT_SRC=/srv/kylo-vault/data
+Environment=VAULT_MIRROR=/mnt/disk2/kylo-vault
+Environment=VAULT_KEEP_DAYS=7
+ExecStart=/usr/local/bin/kylo-vault-mirror.sh
