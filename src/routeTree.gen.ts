@@ -65,6 +65,7 @@ import { Route as ApiPublicWorkerVaultReportRouteImport } from './routes/api/pub
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicAuthGoogleCallbackRouteImport } from './routes/api/public/auth.google.callback'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
+import { Route as ApiPublicCrossKitVaultRouteImport } from './routes/api/public/cross/kit/vault'
 import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './routes/api/public/cross/kylogic/replay-callback'
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
@@ -397,6 +398,11 @@ const ApiPublicCrossKitTaskRoute = ApiPublicCrossKitTaskRouteImport.update({
   path: '/api/public/cross/kit/task',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCrossKitVaultRoute = ApiPublicCrossKitVaultRouteImport.update({
+  id: '/api/public/cross/kit/vault',
+  path: '/api/public/cross/kit/vault',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCrossKylogicReplayCallbackRoute =
   ApiPublicCrossKylogicReplayCallbackRouteImport.update({
     id: '/api/public/cross/kylogic/replay-callback',
@@ -532,6 +538,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kit/vault': typeof ApiPublicCrossKitVaultRoute
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
@@ -602,6 +609,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kit/vault': typeof ApiPublicCrossKitVaultRoute
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
@@ -674,6 +682,7 @@ export interface FileRoutesById {
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
+  '/api/public/cross/kit/vault': typeof ApiPublicCrossKitVaultRoute
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
@@ -746,6 +755,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kit/vault'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
@@ -816,6 +826,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kit/vault'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
@@ -887,6 +898,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
+    | '/api/public/cross/kit/vault'
     | '/api/public/cross/kylogic/replay-callback'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
@@ -945,6 +957,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
   ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
+  ApiPublicCrossKitVaultRoute: typeof ApiPublicCrossKitVaultRoute
   ApiPublicCrossKylogicReplayCallbackRoute: typeof ApiPublicCrossKylogicReplayCallbackRoute
   ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
   ApiPublicCrossKylogicWorkflowsRoute: typeof ApiPublicCrossKylogicWorkflowsRoute
@@ -1353,6 +1366,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrossKitTaskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cross/kit/vault': {
+      id: '/api/public/cross/kit/vault'
+      path: '/api/public/cross/kit/vault'
+      fullPath: '/api/public/cross/kit/vault'
+      preLoaderRoute: typeof ApiPublicCrossKitVaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/kylogic/replay-callback': {
       id: '/api/public/cross/kylogic/replay-callback'
       path: '/api/public/cross/kylogic/replay-callback'
@@ -1549,6 +1569,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
   ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
   ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,
+  ApiPublicCrossKitVaultRoute: ApiPublicCrossKitVaultRoute,
   ApiPublicCrossKylogicReplayCallbackRoute:
     ApiPublicCrossKylogicReplayCallbackRoute,
   ApiPublicCrossKylogicTaskRoute: ApiPublicCrossKylogicTaskRoute,
