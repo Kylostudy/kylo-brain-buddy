@@ -25,7 +25,7 @@ if [ -f "$ENV_FILE" ]; then
   set +a
 fi
 
-AGENT_VERSION="1.0.1"
+AGENT_VERSION="1.0.2"
 VAULT_ROOT="${VAULT_SRC:-/srv/kylo-vault/data}"
 MOUNT_POINT="${VAULT_MOUNT:-/srv/kylo-vault}"
 MIRROR_DIR="${VAULT_MIRROR:-/mnt/disk2/kylo-vault}"
