@@ -53,6 +53,7 @@ import { Route as ApiPublicWorkerHeartbeatRouteImport } from './routes/api/publi
 import { Route as ApiPublicWorkerLeadRadarIngestRouteImport } from './routes/api/public/worker/lead-radar-ingest'
 import { Route as ApiPublicWorkerLearnedSelectorsRouteImport } from './routes/api/public/worker/learned-selectors'
 import { Route as ApiPublicWorkerLinkedinCommentIngestRouteImport } from './routes/api/public/worker/linkedin-comment-ingest'
+import { Route as ApiPublicWorkerLinkedinCommentPostedRouteImport } from './routes/api/public/worker/linkedin-comment-posted'
 import { Route as ApiPublicWorkerLinkedinEngageIngestRouteImport } from './routes/api/public/worker/linkedin-engage-ingest'
 import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public/worker/progress'
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
@@ -324,6 +325,12 @@ const ApiPublicWorkerLinkedinCommentIngestRoute =
     path: '/api/public/worker/linkedin-comment-ingest',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerLinkedinCommentPostedRoute =
+  ApiPublicWorkerLinkedinCommentPostedRouteImport.update({
+    id: '/api/public/worker/linkedin-comment-posted',
+    path: '/api/public/worker/linkedin-comment-posted',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerLinkedinEngageIngestRoute =
   ApiPublicWorkerLinkedinEngageIngestRouteImport.update({
     id: '/api/public/worker/linkedin-engage-ingest',
@@ -499,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/lead-radar-ingest': typeof ApiPublicWorkerLeadRadarIngestRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/linkedin-comment-ingest': typeof ApiPublicWorkerLinkedinCommentIngestRoute
+  '/api/public/worker/linkedin-comment-posted': typeof ApiPublicWorkerLinkedinCommentPostedRoute
   '/api/public/worker/linkedin-engage-ingest': typeof ApiPublicWorkerLinkedinEngageIngestRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
@@ -566,6 +574,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/lead-radar-ingest': typeof ApiPublicWorkerLeadRadarIngestRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/linkedin-comment-ingest': typeof ApiPublicWorkerLinkedinCommentIngestRoute
+  '/api/public/worker/linkedin-comment-posted': typeof ApiPublicWorkerLinkedinCommentPostedRoute
   '/api/public/worker/linkedin-engage-ingest': typeof ApiPublicWorkerLinkedinEngageIngestRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
@@ -635,6 +644,7 @@ export interface FileRoutesById {
   '/api/public/worker/lead-radar-ingest': typeof ApiPublicWorkerLeadRadarIngestRoute
   '/api/public/worker/learned-selectors': typeof ApiPublicWorkerLearnedSelectorsRoute
   '/api/public/worker/linkedin-comment-ingest': typeof ApiPublicWorkerLinkedinCommentIngestRoute
+  '/api/public/worker/linkedin-comment-posted': typeof ApiPublicWorkerLinkedinCommentPostedRoute
   '/api/public/worker/linkedin-engage-ingest': typeof ApiPublicWorkerLinkedinEngageIngestRoute
   '/api/public/worker/progress': typeof ApiPublicWorkerProgressRoute
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
@@ -704,6 +714,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/lead-radar-ingest'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/linkedin-comment-ingest'
+    | '/api/public/worker/linkedin-comment-posted'
     | '/api/public/worker/linkedin-engage-ingest'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
@@ -771,6 +782,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/lead-radar-ingest'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/linkedin-comment-ingest'
+    | '/api/public/worker/linkedin-comment-posted'
     | '/api/public/worker/linkedin-engage-ingest'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
@@ -839,6 +851,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/lead-radar-ingest'
     | '/api/public/worker/learned-selectors'
     | '/api/public/worker/linkedin-comment-ingest'
+    | '/api/public/worker/linkedin-comment-posted'
     | '/api/public/worker/linkedin-engage-ingest'
     | '/api/public/worker/progress'
     | '/api/public/worker/record-claim'
@@ -894,6 +907,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerLeadRadarIngestRoute: typeof ApiPublicWorkerLeadRadarIngestRoute
   ApiPublicWorkerLearnedSelectorsRoute: typeof ApiPublicWorkerLearnedSelectorsRoute
   ApiPublicWorkerLinkedinCommentIngestRoute: typeof ApiPublicWorkerLinkedinCommentIngestRoute
+  ApiPublicWorkerLinkedinCommentPostedRoute: typeof ApiPublicWorkerLinkedinCommentPostedRoute
   ApiPublicWorkerLinkedinEngageIngestRoute: typeof ApiPublicWorkerLinkedinEngageIngestRoute
   ApiPublicWorkerProgressRoute: typeof ApiPublicWorkerProgressRoute
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
@@ -1227,6 +1241,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerLinkedinCommentIngestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/linkedin-comment-posted': {
+      id: '/api/public/worker/linkedin-comment-posted'
+      path: '/api/public/worker/linkedin-comment-posted'
+      fullPath: '/api/public/worker/linkedin-comment-posted'
+      preLoaderRoute: typeof ApiPublicWorkerLinkedinCommentPostedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/linkedin-engage-ingest': {
       id: '/api/public/worker/linkedin-engage-ingest'
       path: '/api/public/worker/linkedin-engage-ingest'
@@ -1471,6 +1492,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerLearnedSelectorsRoute: ApiPublicWorkerLearnedSelectorsRoute,
   ApiPublicWorkerLinkedinCommentIngestRoute:
     ApiPublicWorkerLinkedinCommentIngestRoute,
+  ApiPublicWorkerLinkedinCommentPostedRoute:
+    ApiPublicWorkerLinkedinCommentPostedRoute,
   ApiPublicWorkerLinkedinEngageIngestRoute:
     ApiPublicWorkerLinkedinEngageIngestRoute,
   ApiPublicWorkerProgressRoute: ApiPublicWorkerProgressRoute,
