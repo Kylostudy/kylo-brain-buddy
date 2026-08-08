@@ -19,9 +19,15 @@ const ItemSchema = z.object({
   posted_at: txt(64),
 });
 
+const MetricSchema = z.object({
+  impressions: z.number().int().nonnegative().optional(),
+  post_url: txt(2000),
+});
+
 const BodySchema = z.object({
   own_name: txt(160),
   items: z.array(ItemSchema).max(100),
+  metrics: z.array(MetricSchema).max(50).optional(),
 });
 
 function tokenOk(request: Request): boolean {
