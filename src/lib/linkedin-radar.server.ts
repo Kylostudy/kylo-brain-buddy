@@ -109,8 +109,17 @@ export async function processLinkedInItems(args: {
   let notified = 0;
   let skipped = 0;
 
+  // Biztonsági háló: ha a worker mégis zajt küldene (profilmegtekintés,
+  // "ismerheted", saját poszt statisztika, hírajánló), arról nem szólunk.
+  const NOISE =
+    /(viewed your profile|megnézte a profilod|you may know|ismerheted|powered by premium|see all views|impressions so far|megjelenítés|view more analytics|is hiring|trending|top news|work anniversary)/i;
+
   for (const item of args.items) {
     if (!item.external_id) continue;
+    if (NOISE.test(item.body ?? "")) {
+      skipped += 1;
+      continue;
+    }
 
     const { data: existing } = await db
       .from("linkedin_comments")

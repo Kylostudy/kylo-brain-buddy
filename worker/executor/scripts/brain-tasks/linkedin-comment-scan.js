@@ -66,27 +66,49 @@ async function readNotifications(page, max, log) {
 
   log("info", `Értesítések beolvasva: ${items.length} db`);
 
-  return items.map((n) => {
+  // Zaj: nem hozzászólás, nem kell róla Telegram (profilmegtekintés, ajánlott
+  // hírek, "ismerheted", álláshirdetés, saját poszt statisztika).
+  const NOISE =
+    /(viewed your profile|megnézte a profilod|you may know|ismerheted|powered by premium|see all views|impressions so far|megjelenítés|view more analytics|is hiring|jobs? you|trending|top news|celebrat|work anniversary|munkaévfordul)/i;
+
+  const metrics = [];
+  const out = [];
+
+  for (const n of items) {
     const t = clean(n.text);
-    const kind = /comment|hozzászól|replied|válaszolt/i.test(t)
-      ? "comment"
-      : /mention|megemlít/i.test(t)
-        ? "mention"
-        : /invit|meghív|connect/i.test(t)
-          ? "invite"
-          : /reacted|like|kedvel|reagál/i.test(t)
-            ? "reaction"
-            : "other";
-    const author = t.split(/\s+(commented|reacted|mentioned|hozzászólt|reagált)/i)[0] || "";
-    return {
-      external_id: hashId("notif", t.slice(0, 160)),
-      kind,
+
+    // Saját poszt statisztika kinyerése: ebből metrika lesz, nem üzenet.
+    const imp = t.match(/([\d\s.,]+)\s*(impressions|megjelenítés)/i);
+    if (imp) {
+      const value = Number(String(imp[1]).replace(/[^\d]/g, ""));
+      if (Number.isFinite(value) && value > 0) {
+        metrics.push({ impressions: value, post_url: n.href || null });
+      }
+      continue;
+    }
+
+    if (NOISE.test(t)) continue;
+
+    const isComment = /commented|hozzászól|replied|válaszolt|reply/i.test(t);
+    const isMention = /mentioned you|megemlített/i.test(t);
+    if (!isComment && !isMention) continue; // csak igazi beszélgetés érdekel
+
+    const author = t.split(/\s+(commented|mentioned|hozzászólt|említett)/i)[0] || "";
+    // Az időbélyeg ("16h") és a számok kihagyása az azonosítóból, hogy
+    // ugyanaz az értesítés óránként ne induljon újra.
+    const stable = t.replace(/\b\d+\s*(h|d|w|ó|n|hét)\b/gi, "").slice(0, 160);
+    out.push({
+      external_id: hashId("notif", stable),
+      kind: isMention ? "mention" : "comment",
       author: clean(author).slice(0, 160),
       context_title: null,
       permalink: n.href || NOTIFICATIONS,
       body: t,
-    };
-  });
+    });
+  }
+
+  log("info", `Ebből valódi beszélgetés: ${out.length} db, statisztika: ${metrics.length} db`);
+  return { items: out, metrics };
 }
 
 async function readPostComments(page, max, log) {
@@ -155,12 +177,12 @@ export async function runLinkedInCommentScan({ page, spec, brainTask, log }) {
 
   await ensureLoggedIn(page, log);
 
-  const notifications = await readNotifications(page, max, log);
+  const notif = await readNotifications(page, max, log);
   const comments = await readPostComments(page, max, log);
 
   const seen = new Set();
   const items = [];
-  for (const it of [...comments, ...notifications]) {
+  for (const it of [...comments, ...notif.items]) {
     if (!it.body || seen.has(it.external_id)) continue;
     seen.add(it.external_id);
     items.push(it);
@@ -168,21 +190,22 @@ export async function runLinkedInCommentScan({ page, spec, brainTask, log }) {
   }
 
   let ingest = null;
-  if (items.length) {
+  if (items.length || notif.metrics.length) {
     ingest = await brainFetch("/api/public/worker/linkedin-comment-ingest", {
       method: "POST",
-      body: { items },
+      body: { items, metrics: notif.metrics },
       timeoutMs: 120000,
     });
-    log("info", `Beküldve a Brainnek: ${items.length} tétel.`);
+    log("info", `Beküldve a Brainnek: ${items.length} beszélgetés, ${notif.metrics.length} metrika.`);
   } else {
-    log("info", "Nem találtunk új hozzászólást vagy értesítést.");
+    log("info", "Nem találtunk új hozzászólást.");
   }
 
   return {
     linkedin_comment_scan: {
       collected: items.length,
-      notifications: notifications.length,
+      notifications: notif.items.length,
+      metrics: notif.metrics.length,
       comments: comments.length,
       ingest,
     },
