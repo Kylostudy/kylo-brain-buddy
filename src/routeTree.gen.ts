@@ -73,6 +73,7 @@ import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/publ
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
 import { Route as ApiPublicSTokenDlRouteImport } from './routes/api/public/s/$token.dl'
+import { Route as ApiPublicVaultAgentPairRouteImport } from './routes/api/public/vault/agent/pair'
 import { Route as ApiPublicWorkerQaAnalyzeRouteImport } from './routes/api/public/worker/qa/analyze'
 import { Route as ApiPublicWorkerQaCheckCacheRouteImport } from './routes/api/public/worker/qa/check-cache'
 import { Route as ApiPublicWorkerQaFinishRunRouteImport } from './routes/api/public/worker/qa/finish-run'
@@ -445,6 +446,11 @@ const ApiPublicSTokenDlRoute = ApiPublicSTokenDlRouteImport.update({
   path: '/dl',
   getParentRoute: () => ApiPublicSTokenRoute,
 } as any)
+const ApiPublicVaultAgentPairRoute = ApiPublicVaultAgentPairRouteImport.update({
+  id: '/api/public/vault/agent/pair',
+  path: '/api/public/vault/agent/pair',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWorkerQaAnalyzeRoute =
   ApiPublicWorkerQaAnalyzeRouteImport.update({
     id: '/api/public/worker/qa/analyze',
@@ -564,6 +570,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
+  '/api/public/vault/agent/pair': typeof ApiPublicVaultAgentPairRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -638,6 +645,7 @@ export interface FileRoutesByTo {
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
+  '/api/public/vault/agent/pair': typeof ApiPublicVaultAgentPairRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -714,6 +722,7 @@ export interface FileRoutesById {
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
   '/api/public/s/$token/dl': typeof ApiPublicSTokenDlRoute
+  '/api/public/vault/agent/pair': typeof ApiPublicVaultAgentPairRoute
   '/api/public/worker/qa/analyze': typeof ApiPublicWorkerQaAnalyzeRoute
   '/api/public/worker/qa/check-cache': typeof ApiPublicWorkerQaCheckCacheRoute
   '/api/public/worker/qa/finish-run': typeof ApiPublicWorkerQaFinishRunRoute
@@ -790,6 +799,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/s/$token/dl'
+    | '/api/public/vault/agent/pair'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -864,6 +874,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/s/$token/dl'
+    | '/api/public/vault/agent/pair'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -939,6 +950,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
     | '/api/public/s/$token/dl'
+    | '/api/public/vault/agent/pair'
     | '/api/public/worker/qa/analyze'
     | '/api/public/worker/qa/check-cache'
     | '/api/public/worker/qa/finish-run'
@@ -1000,6 +1012,7 @@ export interface RootRouteChildren {
   ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
   ApiPublicCrossKylogicWorkflowsRoute: typeof ApiPublicCrossKylogicWorkflowsRoute
   ApiPublicCrossProxiesListRoute: typeof ApiPublicCrossProxiesListRoute
+  ApiPublicVaultAgentPairRoute: typeof ApiPublicVaultAgentPairRoute
   ApiPublicWorkerQaAnalyzeRoute: typeof ApiPublicWorkerQaAnalyzeRoute
   ApiPublicWorkerQaCheckCacheRoute: typeof ApiPublicWorkerQaCheckCacheRoute
   ApiPublicWorkerQaFinishRunRoute: typeof ApiPublicWorkerQaFinishRunRoute
@@ -1460,6 +1473,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSTokenDlRouteImport
       parentRoute: typeof ApiPublicSTokenRoute
     }
+    '/api/public/vault/agent/pair': {
+      id: '/api/public/vault/agent/pair'
+      path: '/api/public/vault/agent/pair'
+      fullPath: '/api/public/vault/agent/pair'
+      preLoaderRoute: typeof ApiPublicVaultAgentPairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/qa/analyze': {
       id: '/api/public/worker/qa/analyze'
       path: '/api/public/worker/qa/analyze'
@@ -1648,6 +1668,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCrossKylogicTaskRoute: ApiPublicCrossKylogicTaskRoute,
   ApiPublicCrossKylogicWorkflowsRoute: ApiPublicCrossKylogicWorkflowsRoute,
   ApiPublicCrossProxiesListRoute: ApiPublicCrossProxiesListRoute,
+  ApiPublicVaultAgentPairRoute: ApiPublicVaultAgentPairRoute,
   ApiPublicWorkerQaAnalyzeRoute: ApiPublicWorkerQaAnalyzeRoute,
   ApiPublicWorkerQaCheckCacheRoute: ApiPublicWorkerQaCheckCacheRoute,
   ApiPublicWorkerQaFinishRunRoute: ApiPublicWorkerQaFinishRunRoute,
@@ -1661,13 +1682,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
