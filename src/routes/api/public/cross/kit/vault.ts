@@ -17,10 +17,64 @@ import { z } from "zod";
 
 import { verifyKitRequest } from "@/lib/kit-bridge.server";
 import {
+  AGENT_ONLINE_WINDOW_MS,
+  PAIR_CODE_TTL_MS,
+  agentEndpoint,
+  generatePairCode,
+  sha256Hex,
+} from "@/lib/vault-agents.server";
+import {
   defaultExpiryHours,
   generateShareToken,
   hashPassword,
 } from "@/lib/vault-shares.server";
+
+type AdminClient = Awaited<
+  typeof import("@/integrations/supabase/client.server")
+>["supabaseAdmin"];
+
+/** Ügynökök a hozzájuk tartozó mappákkal, „online" jelzéssel. */
+async function listAgents(supabaseAdmin: AdminClient, tenantId: string) {
+  const { data: agents } = await supabaseAdmin
+    .from("vault_agents")
+    .select("id,hostname,platform,version,last_seen_at,revoked_at")
+    .eq("tenant_id", tenantId)
+    .is("revoked_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  const ids = (agents ?? []).map((a) => a.id);
+  const { data: folders } = ids.length
+    ? await supabaseAdmin
+        .from("vault_agent_folders")
+        .select("agent_id,path,label,file_count,size_bytes,last_synced_at,last_error")
+        .in("agent_id", ids)
+        .order("path")
+    : { data: [] as never[] };
+
+  const now = Date.now();
+  return (agents ?? []).map((a) => ({
+    agent_id: a.id,
+    hostname: a.hostname,
+    platform: a.platform,
+    version: a.version,
+    last_seen_at: a.last_seen_at,
+    online: Boolean(
+      a.last_seen_at && now - new Date(a.last_seen_at).getTime() < AGENT_ONLINE_WINDOW_MS,
+    ),
+    folders: (folders ?? [])
+      .filter((f) => f.agent_id === a.id)
+      .map((f) => ({
+        path: f.path,
+        label: f.label,
+        file_count: f.file_count,
+        size_bytes: f.size_bytes,
+        last_synced_at: f.last_synced_at,
+        last_error: f.last_error,
+      })),
+  }));
+}
+
 
 const ROUTE_PATH = "/api/public/cross/kit/vault";
 
