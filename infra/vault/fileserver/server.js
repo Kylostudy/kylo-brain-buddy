@@ -142,6 +142,9 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`Kylo Vault fájlkiszolgáló fut: 127.0.0.1:${PORT} (gyökér: ${ROOT})`);
+// 0.0.0.0 = minden interfészen figyel, hogy a Brain (Lovable felhő) is elérje.
+// Biztonság: a Bearer token védi, + a VPS tűzfal csak a 8079 portot nyitja ki.
+const BIND = process.env.VAULT_FS_BIND || "0.0.0.0";
+server.listen(PORT, BIND, () => {
+  console.log(`Kylo Vault fájlkiszolgáló fut: ${BIND}:${PORT} (gyökér: ${ROOT})`);
 });
