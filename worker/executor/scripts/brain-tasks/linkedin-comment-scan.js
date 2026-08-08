@@ -177,12 +177,12 @@ export async function runLinkedInCommentScan({ page, spec, brainTask, log }) {
 
   await ensureLoggedIn(page, log);
 
-  const notifications = await readNotifications(page, max, log);
+  const notif = await readNotifications(page, max, log);
   const comments = await readPostComments(page, max, log);
 
   const seen = new Set();
   const items = [];
-  for (const it of [...comments, ...notifications]) {
+  for (const it of [...comments, ...notif.items]) {
     if (!it.body || seen.has(it.external_id)) continue;
     seen.add(it.external_id);
     items.push(it);
@@ -190,21 +190,22 @@ export async function runLinkedInCommentScan({ page, spec, brainTask, log }) {
   }
 
   let ingest = null;
-  if (items.length) {
+  if (items.length || notif.metrics.length) {
     ingest = await brainFetch("/api/public/worker/linkedin-comment-ingest", {
       method: "POST",
-      body: { items },
+      body: { items, metrics: notif.metrics },
       timeoutMs: 120000,
     });
-    log("info", `Beküldve a Brainnek: ${items.length} tétel.`);
+    log("info", `Beküldve a Brainnek: ${items.length} beszélgetés, ${notif.metrics.length} metrika.`);
   } else {
-    log("info", "Nem találtunk új hozzászólást vagy értesítést.");
+    log("info", "Nem találtunk új hozzászólást.");
   }
 
   return {
     linkedin_comment_scan: {
       collected: items.length,
-      notifications: notifications.length,
+      notifications: notif.items.length,
+      metrics: notif.metrics.length,
       comments: comments.length,
       ingest,
     },
