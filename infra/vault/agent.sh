@@ -25,7 +25,7 @@ if [ -f "$ENV_FILE" ]; then
   set +a
 fi
 
-AGENT_VERSION="1.0.1"
+AGENT_VERSION="1.0.2"
 VAULT_ROOT="${VAULT_SRC:-/srv/kylo-vault/data}"
 MOUNT_POINT="${VAULT_MOUNT:-/srv/kylo-vault}"
 MIRROR_DIR="${VAULT_MIRROR:-/mnt/disk2/kylo-vault}"
@@ -131,17 +131,31 @@ log "Bejelentkezés a Brainbe…"
 RESPONSE=$(curl -sS --max-time 60 -X POST "$BRAIN_URL/api/public/worker/vault-report" \
   -H "Authorization: Bearer $WORKER_API_TOKEN" \
   -H "Content-Type: application/json" \
-  --data "$PAYLOAD") || { log "HIBA: nem sikerült elérni a Braint"; exit 1; }
+  --data "$PAYLOAD" | tr -d '\000') || { log "HIBA: nem sikerült elérni a Braint"; exit 1; }
 
 # --- a bekapcsolt könyvtárak kiírása a szinkron-listába ----------------------
-echo "$RESPONSE" | python3 -c '
+mkdir -p "$(dirname "$SYNC_LIST")"
+
+if ! printf '%s' "$RESPONSE" | python3 -c '
 import json, sys
-d = json.load(sys.stdin)
+raw = sys.stdin.read().strip()
+try:
+    d = json.loads(raw)
+except Exception:
+    sys.stderr.write("A Brain nem JSON választ adott (valószínűleg még nincs közzétéve a végpont).\nAz első 300 karakter:\n%s\n" % raw[:300])
+    sys.exit(1)
 if not d.get("ok"):
     sys.stderr.write("Brain hiba: %s\n" % d.get("error"))
     sys.exit(1)
 print("\n".join(d.get("syncPaths", [])))
-' > "$SYNC_LIST.tmp" && mv "$SYNC_LIST.tmp" "$SYNC_LIST"
+' > "$SYNC_LIST.tmp"; then
+  rm -f "$SYNC_LIST.tmp"
+  log "HIBA: a Brain válasza nem dolgozható fel. A szinkron-lista változatlan."
+  exit 1
+fi
+
+mv "$SYNC_LIST.tmp" "$SYNC_LIST"
 
 COUNT=$(wc -l < "$SYNC_LIST" | tr -d ' ')
 log "Kész. Szinkronra kijelölt könyvtárak: $COUNT (lista: $SYNC_LIST)"
+
