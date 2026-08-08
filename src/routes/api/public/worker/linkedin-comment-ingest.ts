@@ -75,7 +75,25 @@ export const Route = createFileRoute("/api/public/worker/linkedin-comment-ingest
               posted_at: i.posted_at ?? null,
             })),
           });
-          return Response.json({ ok: true, ...result });
+
+          // Saját poszt statisztika: csendben elmentjük, Telegram nem megy róla.
+          let metricsSaved = 0;
+          const metrics = parsed.data.metrics ?? [];
+          if (metrics.length) {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            for (const m of metrics) {
+              if (typeof m.impressions !== "number") continue;
+              const { error } = await supabaseAdmin.from("linkedin_post_metrics").insert({
+                tenant_id: tenantId,
+                workflow_id: workflowId,
+                post_url: m.post_url ?? null,
+                impressions: m.impressions,
+              });
+              if (!error) metricsSaved += 1;
+            }
+          }
+
+          return Response.json({ ok: true, ...result, metricsSaved });
         } catch (err) {
           console.error("linkedin-comment-ingest hiba", err);
           return Response.json(
