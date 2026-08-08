@@ -1,2 +1,3 @@
 - [telegram-magyar-válaszok](mem://features/telegram-hungarian-replies) — Minden Telegram válaszvázlat magyarul; „mehet”=javaslat elfogadása, kérdés=visszakérdezés, fordítás angolra a rendszer dolga
 - [linkedin-radar](mem://features/linkedin-radar) — LinkedIn értesítés/komment figyelő, magyar javaslat + Telegram jóváhagyás, `linkedin_comments` tábla
+- [linkedin-stratégia](mem://features/linkedin-strategy) — LinkedIn a prioritás: heti 2 poszt (kedd/csüt), idegen posztok alatti hozzászólás Telegram-jóváhagyással, zajszűrés
