@@ -216,6 +216,45 @@ export const Route = createFileRoute("/api/public/cross/kit/vault")({
           });
         }
 
+        // ---------------- helyi ügynökök (Vault Agent) ----------------
+
+        if (p.action === "agent_pair_code") {
+          const code = generatePairCode();
+          const expiresAt = new Date(Date.now() + PAIR_CODE_TTL_MS).toISOString();
+          const { error } = await supabaseAdmin.from("vault_pair_codes").insert({
+            code_hash: sha256Hex(code),
+            tenant_id: p.tenant_id,
+            expires_at: expiresAt,
+          });
+          if (error) return json({ ok: false, error: error.message }, 500);
+          return json({
+            ok: true,
+            pair_code: code,
+            pair_expires_at: expiresAt,
+            endpoint: agentEndpoint(),
+          });
+        }
+
+        if (p.action === "agent_remove") {
+          const { error } = await supabaseAdmin
+            .from("vault_agents")
+            .update({ revoked_at: new Date().toISOString() })
+            .eq("tenant_id", p.tenant_id)
+            .eq("id", p.agent_id)
+            .is("revoked_at", null);
+          if (error) return json({ ok: false, error: error.message }, 500);
+          await supabaseAdmin.from("vault_agent_events").insert({
+            event: "agent_revoke",
+            tenant_id: p.tenant_id,
+            agent_id: p.agent_id,
+          });
+          return json({ ok: true, agents: await listAgents(supabaseAdmin, p.tenant_id) });
+        }
+
+        if (p.action === "agent_list") {
+          return json({ ok: true, agents: await listAgents(supabaseAdmin, p.tenant_id) });
+        }
+
 
         const [{ data: status }, { data: folders, error: foldersErr }] = await Promise.all([
           supabaseAdmin
