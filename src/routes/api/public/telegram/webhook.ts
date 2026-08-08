@@ -132,12 +132,45 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           if (out.ref_table === "lead_alerts" && out.ref_id) {
             const { data: alert } = await supabaseAdmin
               .from("lead_alerts")
-              .select("id, permalink, title_hu, title, suggested_reply_hu, suggested_reply_en")
+              .select(
+                "id, permalink, title_hu, title, suggested_reply_hu, suggested_reply_en, status, approved_at, approved_reply_hu, approved_reply_en",
+              )
               .eq("id", out.ref_id)
               .maybeSingle();
 
-
             if (alert) {
+              // --- Duplikáció-szűrő ---
+              if (alert.status === "approved" || alert.approved_at) {
+                await sendTelegram(
+                  [
+                    `♻️ Ezt már jóváhagytad korábban — ${head}`,
+                    alert.title_hu ? `Poszt: ${alert.title_hu}` : "",
+                    alert.permalink ?? "",
+                    ``,
+                    `Az érvényben lévő válasz:`,
+                    alert.approved_reply_hu ?? alert.approved_reply_en ?? "(nincs mentett szöveg)",
+                    ``,
+                    `Ha módosítanád, írd elé: „válasz:” és jöhet az új szöveg.`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n"),
+                  { topic: "lead_alert_ack", platform: out.platform, ref_table: out.ref_table, ref_id: out.ref_id, label: out.label },
+                );
+                if (!/^v[áa]lasz:\s*/i.test(text)) {
+                  return Response.json({ ok: true, action: "duplicate" });
+                }
+              }
+              if (alert.status === "skipped" && SKIP_WORDS.has(text.toLowerCase())) {
+                await sendTelegram(`♻️ Ezt már kihagytuk korábban — ${head}.`, {
+                  topic: "lead_alert_ack",
+                  platform: out.platform,
+                  ref_table: out.ref_table,
+                  ref_id: out.ref_id,
+                  label: out.label,
+                });
+                return Response.json({ ok: true, action: "duplicate_skip" });
+              }
+
               if (SKIP_WORDS.has(text.toLowerCase())) {
                 await supabaseAdmin
                   .from("lead_alerts")
