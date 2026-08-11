@@ -59,9 +59,13 @@ export async function runLinkedInPost(args) {
   const { page, brainTask, log } = args;
   reseedHuman();
 
-  const body = (brainTask.body || "").trim();
-  const submit = brainTask.submit !== false && !brainTask.dry_run;
-  const target = (brainTask.target_ref || brainTask.company || "").trim();
+  // A dispatcher a payload mezőket brain_task.payload alá csomagolja.
+  const bt = { ...(brainTask.payload || {}), ...brainTask };
+  delete bt.payload;
+
+  const body = (bt.body || "").trim();
+  const submit = bt.submit !== false && !bt.dry_run;
+  const target = (bt.target_ref || bt.company || "").trim();
 
   if (!body) throw new Error("Nincs szöveg a LinkedIn poszthoz.");
 
