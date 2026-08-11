@@ -66,15 +66,8 @@ export const listReconSnapshots = createServerFn({ method: "GET" })
 
 export const listLearnedSelectors = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    // A tanult szelektorok globálisak; olvasáshoz elég a bejelentkezés,
-    // de a service role kliens adja vissza őket.
-    void data;
-    void error;
+  .handler(async () => {
+    // A tanult szelektorok globálisak (nem tenantonként); bejelentkezés kell hozzájuk.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error: err2 } = await supabaseAdmin
       .from("worker_learned_selectors")
