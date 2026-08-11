@@ -33,7 +33,7 @@ export const listRedditWorkflows = createServerFn({ method: "GET" })
         .in("workflow_id", ids),
       supabase
         .from("reddit_accounts")
-        .select("id, workflow_id, username, warmup_status, warmup_days_completed, karma, proxy_id")
+        .select("id, workflow_id, username, warmup_status, warmup_days_completed, karma, proxy_id, quarantined_until, quarantine_reason")
         .in("workflow_id", ids),
       supabase.from("proxies").select("id, label, country, is_active"),
     ]);
@@ -57,6 +57,8 @@ export const listRedditWorkflows = createServerFn({ method: "GET" })
         warmup_status: a?.warmup_status ?? null,
         warmup_days_completed: a?.warmup_days_completed ?? 0,
         karma: a?.karma ?? null,
+        quarantined_until: a?.quarantined_until ?? null,
+        quarantine_reason: a?.quarantine_reason ?? null,
       };
     });
   });
@@ -246,4 +248,39 @@ export const startRedditTask = createServerFn({ method: "POST" })
       queued++;
     }
     return { queued };
+  });
+
+/**
+ * Karantén: a fiókon MINDEN automatikus tevékenység leáll (melegítés,
+ * karma-építés, lead-figyelés) a megadott napok végéig. Feloldáshoz days = 0.
+ */
+export const setRedditQuarantine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        workflow_ids: z.array(z.string().uuid()).min(1).max(30),
+        days: z.number().int().min(0).max(120),
+        reason: z.string().max(300).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const until =
+      data.days > 0
+        ? new Date(Date.now() + data.days * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+    const { error, count } = await supabase
+      .from("reddit_accounts")
+      .update(
+        {
+          quarantined_until: until,
+          quarantine_reason: until ? (data.reason ?? "kézi karantén") : null,
+        },
+        { count: "exact" },
+      )
+      .in("workflow_id", data.workflow_ids);
+    if (error) throw new Error(error.message);
+    return { updated: count ?? 0, until };
   });
