@@ -91,23 +91,35 @@ export async function runLinkedInPost(args) {
     await humanCasualScroll(page, { steps: 2 });
   }
 
-  // „Start a post" gomb megnyitása (a LinkedIn sokféle jelölést használ)
-  const startBtn = await firstVisible(page, [
-    'button.share-box-feed-entry__trigger',
-    '.share-box-feed-entry__top-bar button',
-    '.share-box-feed-entry button',
-    'button:has-text("Start a post")',
-    'button:has-text("Create a post")',
-    'button:has-text("Beszélgetés indítása")',
-    'button:has-text("Bericht starten")',
-    'button:has-text("Start een bericht")',
-    '[aria-label*="Start a post" i]',
-    '[aria-label*="Create a post" i]',
-    '[aria-label*="post" i][role="button"]',
-    'button:has-text("What do you want to talk about")',
-    'p:has-text("Start a post")',
-    'span:has-text("Start a post")',
-  ], 25000);
+  // „Start a post" gomb — először a TANULT fogódzó, aztán a tartaléklista,
+  // végül menet közbeni felderítés (Gemini Vision) önjavítással.
+  const startBtn = await resolveTarget({
+    page,
+    log,
+    platform: "linkedin",
+    pageType: "feed_composer",
+    field: "start_post_button",
+    description: "A poszt írását indító gomb a hírfolyam tetején (Start a post)",
+    workflowId: args.spec?.workflow_id || null,
+    runId: args.spec?.run_id || null,
+    timeoutMs: 20000,
+    fallbacks: [
+      'button.share-box-feed-entry__trigger',
+      '.share-box-feed-entry__top-bar button',
+      '.share-box-feed-entry button',
+      'button:has-text("Start a post")',
+      'button:has-text("Create a post")',
+      'button:has-text("Beszélgetés indítása")',
+      'button:has-text("Bericht starten")',
+      'button:has-text("Start een bericht")',
+      '[aria-label*="Start a post" i]',
+      '[aria-label*="Create a post" i]',
+      '[aria-label*="post" i][role="button"]',
+      'button:has-text("What do you want to talk about")',
+      'p:has-text("Start a post")',
+      'span:has-text("Start a post")',
+    ],
+  });
   if (!startBtn) {
     // Végső mentsvár: közvetlenül a poszt-szerkesztő URL-je.
     log("warn", "Nem találtam a „Start a post” gombot — közvetlen szerkesztő URL-lel próbálom.");
@@ -121,11 +133,22 @@ export async function runLinkedInPost(args) {
     await humanWait(page, 2500);
   }
 
-  const editor = await firstVisible(page, [
-    'div.ql-editor[contenteditable="true"]',
-    'div[role="textbox"][contenteditable="true"]',
-    '[data-placeholder*="What do you want to talk about" i]',
-  ], 20000);
+  const editor = await resolveTarget({
+    page,
+    log,
+    platform: "linkedin",
+    pageType: "post_editor",
+    field: "editor_box",
+    description: "A poszt szövegének beírására szolgáló mező",
+    workflowId: args.spec?.workflow_id || null,
+    runId: args.spec?.run_id || null,
+    timeoutMs: 20000,
+    fallbacks: [
+      'div.ql-editor[contenteditable="true"]',
+      'div[role="textbox"][contenteditable="true"]',
+      '[data-placeholder*="What do you want to talk about" i]',
+    ],
+  });
 
   if (!editor) throw new Error("Nem található a LinkedIn szövegszerkesztő mező.");
 
