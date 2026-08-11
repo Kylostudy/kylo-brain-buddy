@@ -158,8 +158,14 @@ export const scheduleContentDraft = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; scheduled_for: string | null; submit?: boolean }) => d)
   .handler(async ({ data, context }) => {
     if (data.scheduled_for) {
-      const when = new Date(data.scheduled_for);
-      if (Number.isNaN(when.getTime())) throw new Error("Érvénytelen időpont.");
+      const requested = new Date(data.scheduled_for);
+      if (Number.isNaN(requested.getTime())) throw new Error("Érvénytelen időpont.");
+      // ±30 perc szórás, hogy ne ismétlődjön ugyanaz az óra:perc egy hónapon belül.
+      const { jitterSchedule } = await import("@/lib/schedule-jitter.server");
+      const { when, shifted_minutes } = await jitterSchedule(
+        context.supabase as never,
+        requested,
+      );
       const { error } = await context.supabase
         .from("content_drafts")
         .update({
@@ -169,7 +175,7 @@ export const scheduleContentDraft = createServerFn({ method: "POST" })
         })
         .eq("id", data.id);
       if (error) throw new Error(error.message);
-      return { ok: true, scheduled_for: when.toISOString() };
+      return { ok: true, scheduled_for: when.toISOString(), shifted_minutes };
     }
     const { error } = await context.supabase
       .from("content_drafts")
