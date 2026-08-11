@@ -154,7 +154,7 @@ Feladat (MINDEN mező MAGYARUL, angol szöveget ne adj vissza):
 2) title_hu: a poszt címének magyar fordítása (rövid).
 3) summary_hu: 1-2 mondat magyarul arról, mit kérdez/ír a poszt szerzője.
 4) reason_hu: egy mondat magyarul, miért érdemes (vagy nem érdemes) válaszolni.
-5) reply_hu: rövid (3-5 mondat), természetes, segítőkész válaszvázlat MAGYARUL, de úgy megfogalmazva, hogy angolra fordítva Reddit-stílusú hozzászólás legyen. SEMMILYEN link, márkanév, termékajánlás vagy reklám. Konkrét, gyakorlati tanács legyen.`;
+5) reply_hu: RÖVID (1-2 mondat, max ~35 szó), természetes, segítőkész válaszvázlat MAGYARUL. TÜKRÖZD a kérdező hangvételét — laza, ha laza; korrekt, ha komoly. SEMMILYEN link, márkanév, termékajánlás vagy reklám. Konkrét, gyakorlati tanács legyen. Helyesírási hiba TILOS.`;
 
   try {
     const res = await fetch(

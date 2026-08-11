@@ -201,7 +201,7 @@ FELADAT: minden posztra adj egy JSON objektumot:
 - post_id: pontosan az az id, ami a poszt fejlécében szerepel
 - relevance: 0-100 pontszám (0 = teljesen érdektelen, 100 = azonnal érdemes bekapcsolódni)
 - angle_hu: 1-2 mondat magyarul, hogy MIÉRT releváns (vagy miért nem), és milyen szemszögből érdemes válaszolni
-- suggested_reply_hu: HA relevance >= 60, egy 3-5 mondatos, EMBERI hangvételű, magyar nyelvű válaszjavaslat, ami segít, tanácsot ad, TILOS emojit, TILOS marketinget, TILOS linket. Ha relevance < 60, üres string.
+- suggested_reply_hu: HA relevance >= 60, egy 1-2 mondatos (max ~35 szó), EMBERI hangvételű, magyar nyelvű válaszjavaslat, ami segít, tanácsot ad. TÜKRÖZD a posztoló stílusát. TILOS emojit, TILOS marketinget, TILOS linket, TILOS helyesírási hibát. Ha relevance < 60, üres string.
 
 POSZTOK:
 ${listBlock}`;

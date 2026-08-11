@@ -88,9 +88,9 @@ ${(item.body ?? "").slice(0, 3000)}
 
 Feladat:
 1) body_hu: fordítsd le természetes magyarra (ha már magyar, hagyd úgy).
-2) suggested_reply_hu: rövid (2-4 mondat), barátságos, szakmai, EMBERI magyar válaszjavaslat LinkedIn-stílusban. Ne legyen marketinges, ne legyen AI-szagú, ne ígérj olyat, amit nem tudsz.
-3) suggested_reply_en: ugyanez természetes, szakmai angolul.
-4) needs_reply: igaz, ha érdemes válaszolni (kérdés, szakmai észrevétel, érdeklődés). Hamis, ha csak reakció / "gratulálok" típusú, vagy spam.`;
+2) suggested_reply_hu: RÖVID (1-2 mondat, max ~40 szó), szakmai, EMBERI magyar válaszjavaslat LinkedIn-stílusban. TÜKRÖZD a szerző hangvételét — szakmai és korrekt, de lényegre törő, nem nyálas. Ne legyen marketinges, ne legyen AI-szagú, ne használj emojit, ne ígérj olyat, amit nem tudsz. Helyesírási hiba TILOS.
+  3) suggested_reply_en: ugyanez 1-2 mondatban, természetes, szakmai angolul. Helyesírási hiba TILOS.
+  4) needs_reply: igaz, ha érdemes válaszolni (kérdés, szakmai észrevétel, érdeklődés). Hamis, ha csak reakció / "gratulálok" típusú, vagy spam.`;
   return await geminiJSON<Analysis>(prompt, SCHEMA);
 }
 
