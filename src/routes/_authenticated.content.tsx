@@ -150,6 +150,16 @@ function ContentStudioPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const schedM = useMutation({
+    mutationFn: (v: { id: string; scheduled_for: string | null }) =>
+      schedFn({ data: { id: v.id, scheduled_for: v.scheduled_for } }),
+    onSuccess: (_r, v) => {
+      toast.success(v.scheduled_for ? "Időzítve." : "Időzítés törölve.");
+      qc.invalidateQueries({ queryKey: ["content-drafts"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const delM = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
     onSuccess: () => {
@@ -158,6 +168,7 @@ function ContentStudioPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const workflows = wfQ.data ?? [];
   const best = recQ.data?.best;
