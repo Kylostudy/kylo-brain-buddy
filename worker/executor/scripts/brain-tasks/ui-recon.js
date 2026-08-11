@@ -39,6 +39,38 @@ const PRESETS = {
         url: "https://www.linkedin.com/notifications/",
         fields: [{ name: "notification_item", description: "Egy értesítés-elem a listában" }],
       },
+      {
+        page_type: "profile",
+        url: "https://www.linkedin.com/in/me/",
+        fields: [
+          {
+            name: "intro_edit_button",
+            description:
+              "A profil felső intro szakaszának ceruza gombja (Edit intro) — headline szerkesztése",
+          },
+          {
+            name: "about_edit_button",
+            description: "A bemutatkozás (About) szakasz szerkesztőgombja vagy 'Add about' gomb",
+          },
+          {
+            name: "experience_add_button",
+            description: "A munkatapasztalat (Experience) szakasz '+' vagy 'Add experience' gombja",
+          },
+          {
+            name: "education_add_button",
+            description: "A végzettség (Education) szakasz '+' vagy 'Add education' gombja",
+          },
+          {
+            name: "skills_add_button",
+            description: "A készségek (Skills) szakasz '+' vagy 'Add skill' gombja",
+          },
+          {
+            name: "profile_photo_button",
+            description:
+              "A profilképet szerkesztő gomb (avatar körül ceruza vagy 'Add photo' gomb)",
+          },
+        ],
+      },
     ],
     composer: {
       page_type: "post_editor",
