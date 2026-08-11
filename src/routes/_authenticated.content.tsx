@@ -36,6 +36,10 @@ const KINDS = [
   { value: "generic_text", label: "Egyéb szöveg" },
 ];
 
+/** A LinkedIn céges oldal — beégetett alapérték, felülírható és megjegyezzük. */
+const DEFAULT_LINKEDIN_REF = "kylo-study";
+const LINKEDIN_REF_KEY = "kylo:linkedin-company-ref";
+
 
 export const Route = createFileRoute("/_authenticated/content")({
   component: ContentStudioPage,
@@ -97,6 +101,13 @@ function ContentStudioPage() {
     if (!workflowId && best?.workflow_id) setWorkflowId(best.workflow_id);
   }, [recQ.data, workflowId]);
 
+  // A LinkedIn céges oldalt megjegyezzük — nem kell mindig előkeresni.
+  useEffect(() => {
+    if (kind !== "linkedin_post") return;
+    const saved = localStorage.getItem(LINKEDIN_REF_KEY) ?? DEFAULT_LINKEDIN_REF;
+    setTargetRef((cur) => (cur ? cur : saved));
+  }, [kind]);
+
   async function uploadIfNeeded() {
     if (!file) return null;
     setUploading(true);
@@ -136,7 +147,12 @@ function ContentStudioPage() {
       toast.success(file ? "Mentve a fájllal együtt." : "Szöveg elmentve.");
       setTitle("");
       setBody("");
-      setTargetRef("");
+      // LinkedIn-nél a céges oldal marad, és el is mentjük legközelebbre.
+      if (kind === "linkedin_post" && targetRef.trim()) {
+        localStorage.setItem(LINKEDIN_REF_KEY, targetRef.trim());
+      } else {
+        setTargetRef("");
+      }
       setFile(null);
       setShowFile(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -257,13 +273,19 @@ function ContentStudioPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>{kind === "linkedin_post" ? "Céges oldal (üresen: személyes profil)" : "Hely (pl. subreddit)"}</Label>
+              <Label>{kind === "linkedin_post" ? "Céges oldal (megjegyezve)" : "Hely (pl. subreddit)"}</Label>
               <Input
                 value={targetRef}
                 onChange={(e) => setTargetRef(e.target.value)}
-                placeholder={kind === "linkedin_post" ? "127334023 vagy kylo-study" : "r/EnglishLearning"}
+                placeholder={kind === "linkedin_post" ? "kylo-study" : "r/EnglishLearning"}
               />
+              {kind === "linkedin_post" && (
+                <p className="text-xs text-muted-foreground">
+                  Automatikusan kitöltve — csak akkor írd át, ha máshova posztolnánk.
+                </p>
+              )}
             </div>
+
 
           </div>
           <div className="space-y-1">
