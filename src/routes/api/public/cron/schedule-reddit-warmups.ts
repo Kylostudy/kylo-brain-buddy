@@ -68,7 +68,7 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")
         const { data: accounts, error: accErr } = await supabaseAdmin
           .from("reddit_accounts")
           .select(
-            "id, tenant_id, workflow_id, username, language, locale, proxy_id, target_subreddits, status",
+            "id, tenant_id, workflow_id, username, language, locale, proxy_id, target_subreddits, status, quarantined_until",
           )
           .eq("status", "active");
 
@@ -86,6 +86,10 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-warmups")
           if (enqueued.length >= maxPerTick) break;
           if (!acc.workflow_id) {
             skipped.push({ account_id: acc.id, reason: "nincs workflow" });
+            continue;
+          }
+          if (acc.quarantined_until && new Date(acc.quarantined_until) > new Date()) {
+            skipped.push({ account_id: acc.id, reason: "karanténban" });
             continue;
           }
 

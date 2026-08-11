@@ -39,6 +39,7 @@ export const Route = createFileRoute("/api/public/cron/lead-radar")({
             .select("tenant_id, workflow_id, proxy_id, language, locale")
             .eq("status", "active")
             .not("workflow_id", "is", null)
+            .or(`quarantined_until.is.null,quarantined_until.lt.${new Date().toISOString()}`)
             .order("warmup_days_completed", { ascending: false })
             .limit(1)
             .maybeSingle();
