@@ -29,6 +29,7 @@ import { runLinkedInWarmup } from "./linkedin-warmup.js";
 import { runRedditLeadScan } from "./reddit-lead-scan.js";
 import { runLinkedInCommentScan } from "./linkedin-comment-scan.js";
 import { runLinkedInProfilePhoto } from "./linkedin-profile-photo.js";
+import { runLinkedInProfileSetup } from "./linkedin-profile-setup.js";
 import { runLinkedInEngageScan } from "./linkedin-engage-scan.js";
 import { runLinkedInCommentPost } from "./linkedin-comment-post.js";
 
@@ -98,6 +99,9 @@ export async function runBrainTask(args) {
 
     case "linkedin_profile_photo":
       return await runLinkedInProfilePhoto(args);
+
+    case "linkedin_profile_setup":
+      return await runLinkedInProfileSetup(args);
 
     case "linkedin_engage_scan":
       return await runLinkedInEngageScan(args);

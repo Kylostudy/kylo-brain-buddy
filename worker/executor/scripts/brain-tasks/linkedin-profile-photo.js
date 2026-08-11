@@ -114,16 +114,22 @@ export async function runLinkedInProfilePhoto(args) {
   await humanClick(page, photoBtn);
   await humanWait(page, 3000);
 
-  // A megnyíló ablakban „Add photo” / „Change photo”.
+  // A megnyíló ablakban „Add photo” / „Change photo” / „Change”.
   const changeBtn = await firstVisible(
     page,
     [
       'button:has-text("Add photo")',
+      'button:has-text("Add Photo")',
       'button:has-text("Change photo")',
+      'button:has-text("Change Photo")',
+      'button:has-text("Change")',
       'button:has-text("Fénykép hozzáadása")',
+      'button:has-text("Fénykép módosítása")',
       '[aria-label*="Edit photo" i]',
+      '[aria-label*="Change photo" i]',
+      'button.profile-photo-edit__edit-btn',
     ],
-    6000,
+    8000,
   );
   if (changeBtn) {
     await humanClick(page, changeBtn);
