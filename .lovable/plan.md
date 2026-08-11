@@ -1,46 +1,66 @@
-## A lényeg
+# Felderítő görgetés + képernyőfotó → AI-tanulás (LinkedIn elsőként)
 
-A `Kylo Sign Up` workflow-t **nem másoljuk le**. Ami hetekig fájt, az a motor volt (felvétel → visszajátszás → proxy → riport), és az most stabil. Ha másolgatjuk, minden másolatban külön romlik el.
+## Miért
+A poszt akkor bukik el, amikor a LinkedIn megváltoztatja a felületet, és a merev
+gombkeresés nem talál semmit. Ha a rendszer *előre* megnézi, hogy néz ki ma az
+oldal, és ebből magának megtanulja a helyes fogódzókat, a posztolás nem hasal el.
+Egyben ez emberi viselkedés is: valódi ember is nézelődik két poszt között.
 
-Helyette: **a motor egy darab marad, a tesztek adatok lesznek.** Új funkció tesztelése ezután felvétel + elnevezés, nem kódolás, nem `git pull`, nem VPS build.
+## 1. lépés — Felderítő járat (`ui_recon`)
+Új feladattípus a workerben. Nem kattint, nem posztol, csak:
+- belép a mentett sütikkel, görget a hírfolyamban emberi tempóban,
+- megáll a fontos pontokon (hírfolyam teteje, poszt-szerkesztő nyitott állapota,
+  céges admin nézet), és **képernyőfotót készít** ezekről,
+- minden fotóhoz elmenti az oldal URL-jét, a látható gombok feliratait és a
+  gyanús DOM-jelöléseket (aria-label, data-* attribútumok),
+- feltölti a fotót a tárolóba, a mérést pedig egy új `ui_recon_snapshots`
+  táblába.
 
-## Amit építünk
+Ütemezés: naponta 2–3 alkalommal, véletlen időpontban, a csendes ablakon kívül,
+és **kötelezően minden posztolás előtt 20–40 perccel**.
 
-**1. Teszt-forgatókönyv tár**
-Minden kis teszt egy sor az adatbázisban: név, funkció-címke (pl. „olvasónapló"), lépéslista, elvárások, nyelvvizsga-dimenzió. A meglévő signup flow lesz az első ilyen forgatókönyv — átalakítjuk, nem duplikáljuk.
+## 2. lépés — Gemini Vision elemzés
+A Brain oldalán (`/api/public/worker/ui-recon-analyze`) a fotó + a DOM-kivonat
+megy a Gemini Visionhöz ezzel a kérdéssel:
+- „Hol van a poszt-indító gomb? Hol a szövegmező? Hol a Közzététel gomb?”
+- válasz strukturáltan: mező → javasolt szelektor → magabiztosság → indoklás.
 
-**2. Építőkocka-készlet (közös előjátékok)**
-Bejelentkezés, előfizetés bekapcsolása, nyelvvizsga kiválasztása, navigálás egy modulba. Egyszer vesszük fel, utána bármelyik teszt elé bepipálható. Így az olvasónapló-teszt nem rögzíti újra a belépést.
+Ami 0.8 feletti magabiztossággal jön, az bekerül a már meglévő
+`worker_learned_selectors` táblába (`learned_from: gemini_vision`).
 
-**3. Kétféle létrehozás (a válaszod szerint mindkettő)**
-- *Felveszem*: végigkattintom a funkciót, rögzül, elnevezem.
-- *Összerakom*: kockákból kattintom össze.
-- A felvett lépéslista utólag szerkeszthető, sorok törölhetők/átnevezhetők.
+## 3. lépés — A posztoló használja a tanultat
+A `linkedin-post.js` sorrendje ezután:
+1. tanult szelektorok lekérése (`lookupLearnedSelectors`),
+2. beépített (hard-coded) lista mint tartalék,
+3. ha egyik sem talál: **azonnali önjavítás** — fotó + Vision hívás menet közben,
+   az új szelektorral újrapróbálja, és a sikeres találatot elmenti.
 
-**4. Kettős Gemini-ellenőrzés**
-- **A) Megfigyelő**: mit adott ki a Kylo (feladat, javítás, magyarázat) — képernyőkép + kiolvasott szöveg alapján leírja, mi történt.
-- **B) Bíró**: külön, független hívás. Csak a feladatot és a Kylo válaszát kapja meg, az A) véleményét NEM. Ítél: helyes-e, releváns-e, jó nyelvi szinten van-e. Pontszám + indoklás.
-Így nem tudja magát felmenteni a rendszer.
+Minden találatnál `success: true`, minden bukásnál `success: false` — így a rossz
+szelektor magától kikopik.
 
-**5. Nyelvvizsga-mátrix**
-A vizsgatípus nem külön teszt, hanem dimenzió. Egy forgatókönyv opcionálisan végigfut az összes vizsgán, és a riport mátrixban mutatja: vizsga × funkció → zöld/piros. Ezzel a dinamikus menü is tesztelve lesz: rögzítjük, melyik vizsgánál mely funkcióknak KELL megjelennie, és eltérésnél hibát jelez.
+## 4. lépés — Változás-riasztás
+Ha a felderítő járat olyan felületet lát, ami eltér a legutóbbitól (Gemini
+összehasonlítja a két fotót), Telegram üzenet megy: „🔵 LinkedIn felület
+megváltozott — az új fogódzókat megtanultam / nem sikerült megtanulni”.
+Így nem posztolás közben derül ki a baj.
 
-**6. Riport**
-Forgatókönyvenként: lépések, képernyőképek, bírói pontszám, nyelvi ellenőrzés, proxy/ország. Fölötte összesítő mátrix.
+## 5. lépés — Felület a Brainben
+Új oldal (`/recon`): időrendben a felderítő fotók, mellettük mit tanult a rendszer,
+mi a mostani szelektor, mikor működött utoljára. Egy gombbal kézzel is
+újrataníttatható.
+
+## Technikai részletek
+- Új tábla: `ui_recon_snapshots` (tenant_id, platform, page_type, url,
+  screenshot_path, dom_digest jsonb, analysis jsonb, created_at) — RLS + GRANT.
+- Tároló: meglévő Supabase Storage bucket, tenant szerinti mappában.
+- Új worker szkript: `worker/executor/scripts/brain-tasks/ui-recon.js`,
+  regisztrálva a `brain-tasks/index.js` routerben.
+- Új Brain végpontok: `ui-recon-ingest.ts`, `ui-recon-analyze.ts`
+  (`/api/public/worker/`), a meglévő worker-token védelemmel.
+- A `linkedin-post.js` szelektor-keresése kiszervezve egy közös
+  `resolve-selector.js` segédbe, hogy Reddit/Pinterest is használhassa.
+- Nincs Docker-újraépítés a szelektorokhoz: a tanult értékek adatbázisból jönnek.
 
 ## Sorrend
-
-1. Adatbázis: forgatókönyvek, építőkockák, vizsga-mátrix táblák.
-2. Felület `/audit/scenarios` alatt: lista, felvétel, kockákból építés, szerkesztés, indítás.
-3. A signup flow átemelése első forgatókönyvnek (bizonyíték, hogy a motor változatlanul jó).
-4. Kettős Gemini bíró bekötése.
-5. Első új teszt: **olvasónapló** — végigkattintva, bíróval.
-6. Vizsga-mátrix bekapcsolása.
-
-## Technikai megjegyzés
-
-A worker oldalon a `record-replay` motor és az orchestrator **nem változik** — csak a rá küldött feladat-leírás lesz általánosabb (forgatókönyv-azonosító + lépések + elvárások). Így nem kell VPS-t újraépíteni minden új teszthez; a VPS-en futó kód ugyanaz marad, csak más adatot kap. Ez oldja meg azt, amitől tartasz: nem fordulhat elő újra, hogy egy új workflow miatt egy napot a motorral kell küzdeni.
-
-## Egy nyitott kérdés
-
-A nyelvvizsga-típusok pontos listája (hány darab, mi a nevük) — ezt még megadod, addig a mátrixot úgy építem, hogy a felületen te tudod felvenni őket.
+1) tábla + végpontok, 2) `ui-recon.js` felderítő, 3) Vision-elemzés és tanulás,
+4) posztoló átkötése a tanultra, 5) Telegram riasztás, 6) `/recon` felület.
