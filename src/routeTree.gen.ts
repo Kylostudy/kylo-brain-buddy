@@ -17,6 +17,7 @@ import { Route as AuthenticatedDiscourseRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
 import { Route as AuthenticatedPatrolRouteImport } from './routes/_authenticated.patrol'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
+import { Route as AuthenticatedReconRouteImport } from './routes/_authenticated.recon'
 import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenticated.reddit-scout'
 import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authenticated.reddit-warmup'
 import { Route as AuthenticatedTelegramGuideRouteImport } from './routes/_authenticated.telegram-guide'
@@ -64,6 +65,7 @@ import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/pub
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
 import { Route as ApiPublicWorkerRedditCommentDraftRouteImport } from './routes/api/public/worker/reddit-comment-draft'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
+import { Route as ApiPublicWorkerUiReconIngestRouteImport } from './routes/api/public/worker/ui-recon-ingest'
 import { Route as ApiPublicWorkerVaultReportRouteImport } from './routes/api/public/worker/vault-report'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicAuthGoogleCallbackRouteImport } from './routes/api/public/auth.google.callback'
@@ -125,6 +127,11 @@ const AuthenticatedPatrolRoute = AuthenticatedPatrolRouteImport.update({
 const AuthenticatedProxiesRoute = AuthenticatedProxiesRouteImport.update({
   id: '/proxies',
   path: '/proxies',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedReconRoute = AuthenticatedReconRouteImport.update({
+  id: '/recon',
+  path: '/recon',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedRedditScoutRoute =
@@ -399,6 +406,12 @@ const ApiPublicWorkerSaveCookiesRoute =
     path: '/api/public/worker/save-cookies',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerUiReconIngestRoute =
+  ApiPublicWorkerUiReconIngestRouteImport.update({
+    id: '/api/public/worker/ui-recon-ingest',
+    path: '/api/public/worker/ui-recon-ingest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerVaultReportRoute =
   ApiPublicWorkerVaultReportRouteImport.update({
     id: '/api/public/worker/vault-report',
@@ -542,6 +555,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof AuthenticatedInboxRoute
   '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
+  '/recon': typeof AuthenticatedReconRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
   '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
@@ -589,6 +603,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -620,6 +635,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof AuthenticatedInboxRoute
   '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
+  '/recon': typeof AuthenticatedReconRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
   '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
@@ -668,6 +684,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -701,6 +718,7 @@ export interface FileRoutesById {
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/patrol': typeof AuthenticatedPatrolRoute
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
+  '/_authenticated/recon': typeof AuthenticatedReconRoute
   '/_authenticated/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/_authenticated/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
   '/_authenticated/telegram-guide': typeof AuthenticatedTelegramGuideRoute
@@ -749,6 +767,7 @@ export interface FileRoutesById {
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -783,6 +802,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/patrol'
     | '/proxies'
+    | '/recon'
     | '/reddit-scout'
     | '/reddit-warmup'
     | '/telegram-guide'
@@ -830,6 +850,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -861,6 +882,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/patrol'
     | '/proxies'
+    | '/recon'
     | '/reddit-scout'
     | '/reddit-warmup'
     | '/telegram-guide'
@@ -909,6 +931,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -941,6 +964,7 @@ export interface FileRouteTypes {
     | '/_authenticated/inbox'
     | '/_authenticated/patrol'
     | '/_authenticated/proxies'
+    | '/_authenticated/recon'
     | '/_authenticated/reddit-scout'
     | '/_authenticated/reddit-warmup'
     | '/_authenticated/telegram-guide'
@@ -989,6 +1013,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -1056,6 +1081,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
   ApiPublicWorkerRedditCommentDraftRoute: typeof ApiPublicWorkerRedditCommentDraftRoute
   ApiPublicWorkerSaveCookiesRoute: typeof ApiPublicWorkerSaveCookiesRoute
+  ApiPublicWorkerUiReconIngestRoute: typeof ApiPublicWorkerUiReconIngestRoute
   ApiPublicWorkerVaultReportRoute: typeof ApiPublicWorkerVaultReportRoute
   ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
   ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
@@ -1135,6 +1161,13 @@ declare module '@tanstack/react-router' {
       path: '/proxies'
       fullPath: '/proxies'
       preLoaderRoute: typeof AuthenticatedProxiesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/recon': {
+      id: '/_authenticated/recon'
+      path: '/recon'
+      fullPath: '/recon'
+      preLoaderRoute: typeof AuthenticatedReconRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/reddit-scout': {
@@ -1466,6 +1499,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerSaveCookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/ui-recon-ingest': {
+      id: '/api/public/worker/ui-recon-ingest'
+      path: '/api/public/worker/ui-recon-ingest'
+      fullPath: '/api/public/worker/ui-recon-ingest'
+      preLoaderRoute: typeof ApiPublicWorkerUiReconIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/vault-report': {
       id: '/api/public/worker/vault-report'
       path: '/api/public/worker/vault-report'
@@ -1636,6 +1676,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedPatrolRoute: typeof AuthenticatedPatrolRoute
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
+  AuthenticatedReconRoute: typeof AuthenticatedReconRoute
   AuthenticatedRedditScoutRoute: typeof AuthenticatedRedditScoutRoute
   AuthenticatedRedditWarmupRoute: typeof AuthenticatedRedditWarmupRoute
   AuthenticatedTelegramGuideRoute: typeof AuthenticatedTelegramGuideRoute
@@ -1653,6 +1694,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedPatrolRoute: AuthenticatedPatrolRoute,
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
+  AuthenticatedReconRoute: AuthenticatedReconRoute,
   AuthenticatedRedditScoutRoute: AuthenticatedRedditScoutRoute,
   AuthenticatedRedditWarmupRoute: AuthenticatedRedditWarmupRoute,
   AuthenticatedTelegramGuideRoute: AuthenticatedTelegramGuideRoute,
@@ -1744,6 +1786,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerRedditCommentDraftRoute:
     ApiPublicWorkerRedditCommentDraftRoute,
   ApiPublicWorkerSaveCookiesRoute: ApiPublicWorkerSaveCookiesRoute,
+  ApiPublicWorkerUiReconIngestRoute: ApiPublicWorkerUiReconIngestRoute,
   ApiPublicWorkerVaultReportRoute: ApiPublicWorkerVaultReportRoute,
   ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
   ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
@@ -1771,13 +1814,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

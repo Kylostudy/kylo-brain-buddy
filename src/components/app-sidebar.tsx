@@ -15,6 +15,7 @@ import {
   ClipboardPaste,
   Inbox,
   ShieldCheck,
+  ScanEye,
   Radar,
   Flame,
   Folder,
@@ -776,6 +777,16 @@ export function AppSidebar() {
                     <Link to="/patrol" className="flex items-center gap-2">
                       <ShieldCheck className="size-4 shrink-0" />
                       <span className="truncate">Poszt-őrjárat</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {module === "brain" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={currentPath === "/recon"}>
+                    <Link to="/recon" className="flex items-center gap-2">
+                      <ScanEye className="size-4 shrink-0" />
+                      <span className="truncate">Felderítő járat</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

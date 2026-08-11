@@ -2143,6 +2143,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ui_recon_snapshots: {
+        Row: {
+          analysis: Json
+          change_note: string | null
+          changed: boolean
+          created_at: string
+          dom_digest: Json
+          id: string
+          learned_fields: Json
+          page_type: string
+          platform: string
+          run_id: string | null
+          screenshot_path: string | null
+          tenant_id: string
+          url: string
+          workflow_id: string | null
+        }
+        Insert: {
+          analysis?: Json
+          change_note?: string | null
+          changed?: boolean
+          created_at?: string
+          dom_digest?: Json
+          id?: string
+          learned_fields?: Json
+          page_type: string
+          platform: string
+          run_id?: string | null
+          screenshot_path?: string | null
+          tenant_id: string
+          url?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          analysis?: Json
+          change_note?: string | null
+          changed?: boolean
+          created_at?: string
+          dom_digest?: Json
+          id?: string
+          learned_fields?: Json
+          page_type?: string
+          platform?: string
+          run_id?: string | null
+          screenshot_path?: string | null
+          tenant_id?: string
+          url?: string
+          workflow_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
