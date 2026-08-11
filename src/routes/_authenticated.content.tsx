@@ -138,6 +138,7 @@ function ContentStudioPage() {
       setBody("");
       setTargetRef("");
       setFile(null);
+      setShowFile(false);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["content-drafts"] });
     },
