@@ -459,3 +459,48 @@ function ContentStudioPage() {
     </div>
   );
 }
+
+/** Kis időzítő mező: helyi idő szerinti dátum+óra, egy gombbal beállítva/törölve. */
+function ScheduleControl({
+  current,
+  busy,
+  onSet,
+}: {
+  current: string | null;
+  busy: boolean;
+  onSet: (iso: string | null) => void;
+}) {
+  const toLocal = (iso: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  const [value, setValue] = useState(toLocal(current));
+
+  return (
+    <div className="flex items-center gap-1">
+      <Input
+        type="datetime-local"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="h-8 w-[200px] text-xs"
+      />
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={busy || !value}
+        onClick={() => onSet(new Date(value).toISOString())}
+      >
+        <Clock className="mr-1 size-3.5" />
+        {busy ? "…" : "Időzítés"}
+      </Button>
+      {current && (
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => onSet(null)}>
+          Törlés
+        </Button>
+      )}
+    </div>
+  );
+}
+
