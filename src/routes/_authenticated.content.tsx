@@ -443,9 +443,15 @@ function ContentStudioPage() {
                     >
                       <Trash2 className="size-4" />
                     </Button>
+                    <ScheduleControl
+                      current={(d as { scheduled_for?: string | null }).scheduled_for ?? null}
+                      busy={schedM.isPending && schedM.variables?.id === d.id}
+                      onSet={(iso) => schedM.mutate({ id: d.id, scheduled_for: iso })}
+                    />
                   </div>
                 );
               })()}
+
             </div>
           ))}
         </CardContent>
