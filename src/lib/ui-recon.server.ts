@@ -297,7 +297,7 @@ export async function processReconSnapshot(
     .from("ui_recon_snapshots")
     .insert({
       tenant_id: tenantId,
-      workflow_id: input.workflowId ?? null,
+      workflow_id: workflowId,
       run_id: input.runId ?? null,
       platform: input.platform,
       page_type: input.pageType,
