@@ -64,6 +64,7 @@ import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/pub
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
 import { Route as ApiPublicWorkerRedditCommentDraftRouteImport } from './routes/api/public/worker/reddit-comment-draft'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
+import { Route as ApiPublicWorkerUiReconIngestRouteImport } from './routes/api/public/worker/ui-recon-ingest'
 import { Route as ApiPublicWorkerVaultReportRouteImport } from './routes/api/public/worker/vault-report'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicAuthGoogleCallbackRouteImport } from './routes/api/public/auth.google.callback'
@@ -399,6 +400,12 @@ const ApiPublicWorkerSaveCookiesRoute =
     path: '/api/public/worker/save-cookies',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerUiReconIngestRoute =
+  ApiPublicWorkerUiReconIngestRouteImport.update({
+    id: '/api/public/worker/ui-recon-ingest',
+    path: '/api/public/worker/ui-recon-ingest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerVaultReportRoute =
   ApiPublicWorkerVaultReportRouteImport.update({
     id: '/api/public/worker/vault-report',
@@ -589,6 +596,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -668,6 +676,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -749,6 +758,7 @@ export interface FileRoutesById {
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
@@ -830,6 +840,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -909,6 +920,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -989,6 +1001,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
@@ -1056,6 +1069,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
   ApiPublicWorkerRedditCommentDraftRoute: typeof ApiPublicWorkerRedditCommentDraftRoute
   ApiPublicWorkerSaveCookiesRoute: typeof ApiPublicWorkerSaveCookiesRoute
+  ApiPublicWorkerUiReconIngestRoute: typeof ApiPublicWorkerUiReconIngestRoute
   ApiPublicWorkerVaultReportRoute: typeof ApiPublicWorkerVaultReportRoute
   ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
   ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
@@ -1466,6 +1480,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerSaveCookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/ui-recon-ingest': {
+      id: '/api/public/worker/ui-recon-ingest'
+      path: '/api/public/worker/ui-recon-ingest'
+      fullPath: '/api/public/worker/ui-recon-ingest'
+      preLoaderRoute: typeof ApiPublicWorkerUiReconIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/vault-report': {
       id: '/api/public/worker/vault-report'
       path: '/api/public/worker/vault-report'
@@ -1744,6 +1765,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerRedditCommentDraftRoute:
     ApiPublicWorkerRedditCommentDraftRoute,
   ApiPublicWorkerSaveCookiesRoute: ApiPublicWorkerSaveCookiesRoute,
+  ApiPublicWorkerUiReconIngestRoute: ApiPublicWorkerUiReconIngestRoute,
   ApiPublicWorkerVaultReportRoute: ApiPublicWorkerVaultReportRoute,
   ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
   ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
@@ -1771,13 +1793,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
