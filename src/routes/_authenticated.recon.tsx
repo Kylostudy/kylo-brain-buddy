@@ -9,8 +9,8 @@ import {
   listLearnedSelectors,
   listReconSnapshots,
   queueReconRun,
+  listBrainWorkflows,
 } from "@/lib/ui-recon.functions";
-import { listRedditWorkflows } from "@/lib/reddit-inbox.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,7 +63,7 @@ function ReconPage() {
   });
   const workflows = useQuery({
     queryKey: ["recon-workflows"],
-    queryFn: () => listRedditWorkflows(),
+    queryFn: () => listBrainWorkflows(),
   });
 
   const queueFn = useServerFn(queueReconRun);
@@ -96,9 +96,9 @@ function ReconPage() {
               <SelectValue placeholder="Válassz workflow-t (LinkedIn fiók)" />
             </SelectTrigger>
             <SelectContent>
-              {(workflows.data ?? []).map((w: { id: string; title?: string | null }) => (
+              {(workflows.data ?? []).map((w) => (
                 <SelectItem key={w.id} value={w.id}>
-                  {w.title || w.id.slice(0, 8)}
+                  {w.name || w.id.slice(0, 8)}
                 </SelectItem>
               ))}
             </SelectContent>

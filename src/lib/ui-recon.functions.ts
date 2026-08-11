@@ -110,3 +110,16 @@ export const queueReconRun = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, task_id: taskId };
   });
+
+/** Brain workflow-k listája a felderítő járat indításához. */
+export const listBrainWorkflows = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("workflows")
+      .select("id, name")
+      .eq("module", "brain")
+      .order("name", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
