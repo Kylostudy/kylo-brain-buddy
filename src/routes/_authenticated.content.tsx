@@ -62,6 +62,8 @@ function ContentStudioPage() {
   const saveFn = useServerFn(saveContentDraft);
   const delFn = useServerFn(deleteContentDraft);
   const queueFn = useServerFn(queueContentDraft);
+  const schedFn = useServerFn(scheduleContentDraft);
+
   const wfFn = useServerFn(listBrainWorkflowsForWarmup);
   const recFn = useServerFn(recommendMatureRedditAccount);
 
