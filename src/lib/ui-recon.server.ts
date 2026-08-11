@@ -22,6 +22,7 @@ export type ReconIngestInput = {
   fields: ReconField[];
   workflowId?: string | null;
   runId?: string | null;
+  taskId?: string | null;
 };
 
 export type ReconProposal = {
