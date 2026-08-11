@@ -63,8 +63,8 @@ Feladat (magyarul gondolkodj):
 1) relevance: 0-100. Mennyire érdemes ez alatt megszólalnom? Magas, ha nyelvtanulás, IELTS/TOEFL/Cambridge, EdTech, oktatási technológia, tanulásmódszertan, AI az oktatásban a téma. Alacsony, ha toborzás, önreklám, politika, semmitmondó motivációs poszt, vagy Kína/Oroszország piac.
 2) body_hu: a poszt rövid magyar összefoglalása (2-3 mondat).
 3) angle_hu: egy mondatban, miért érdemes megszólalni.
-4) comment_hu: konkrét, EMBERI hozzászólás-javaslat magyarul, 2-4 mondat. Adjon hozzá valódi szakmai értéket vagy tapasztalatot. TILOS: reklám, link, terméknév emlegetése, „nagyszerű poszt!” típusú üresség, AI-szagú fogalmazás.
-5) comment_en: ugyanez természetes, szakmai angolul (ez megy majd ki).`;
+4) comment_hu: RÖVID, EMBERI hozzászólás-javaslat magyarul, 1-2 mondat (max ~40 szó). TÜKRÖZD a szerző szakmai hangvételét — LinkedIn marad LinkedIn (szakmai, korrekt), de lényegre törő, nem nyálas. Adjon hozzá valódi szakmai értéket vagy tapasztalatot. TILOS: reklám, link, terméknév emlegetése, „nagyszerű poszt!" típusú üresség, AI-szagú fogalmazás, HELYESÍRÁSI HIBA.
+5) comment_en: ugyanez 1-2 mondatban, természetes, szakmai angolul (ez megy majd ki). Helyesírási hiba TILOS.`;
 
   try {
     const res = await fetch(

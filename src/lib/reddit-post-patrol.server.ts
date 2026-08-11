@@ -108,9 +108,9 @@ ${body}
 
 Feladat:
 1) body_hu: fordítsd le természetes magyarra.
-2) suggested_reply_hu: rövid (2-4 mondat), barátságos, EMBERI magyar válaszjavaslat. Ne legyen marketinges, ne legyen AI-szagú, ne használj emojit, ne ígérj olyat, amit nem tudsz.
-3) suggested_reply_en: ugyanez laza, természetes angolul (Reddit-stílus, kisbetűs kezdés is oké).
-4) needs_reply: igaz, ha érdemes válaszolni (kérdés, vita, érdeklődés). Hamis, ha csak "nice" típusú komment, vagy nyilvánvaló spam/troll.`;
+2) suggested_reply_hu: RÖVID (1-2 mondat, max ~35 szó), laza, EMBERI magyar válaszjavaslat. TÜKRÖZD a kommentelő hangvételét — ha lazán ír, te is laza vagy; ha komolyan, te is. Ne legyen marketinges, ne legyen AI-szagú, ne használj emojit, ne ígérj olyat, amit nem tudsz. Helyesírási hiba TILOS.
+  3) suggested_reply_en: ugyanez 1-2 mondatban, laza, természetes angolul (Reddit-stílus, kisbetűs kezdés oké). TÜKRÖZD a kommentelő stílusát. Helyesírási hiba TILOS.
+  4) needs_reply: igaz, ha érdemes válaszolni (kérdés, vita, érdeklődés). Hamis, ha csak "nice" típusú komment, vagy nyilvánvaló spam/troll.`;
   return await geminiJSON<CommentAnalysis>(prompt, ANALYZE_SCHEMA);
 }
 
