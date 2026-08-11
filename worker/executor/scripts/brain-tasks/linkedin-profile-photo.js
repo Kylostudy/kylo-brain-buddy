@@ -56,9 +56,13 @@ export async function runLinkedInProfilePhoto(args) {
   const { page, brainTask, log } = args;
   reseedHuman();
 
-  const media = brainTask.media;
+  // A dispatcher a payload mezőket brain_task.payload alá csomagolja.
+  const bt = { ...(brainTask.payload || {}), ...brainTask };
+  delete bt.payload;
+
+  const media = bt.media;
   if (!media || !media.value) throw new Error("Nincs feltöltött kép a profilképhez.");
-  const submit = brainTask.submit !== false && !brainTask.dry_run;
+  const submit = bt.submit !== false && !bt.dry_run;
 
   const filePath =
     media.kind === "url" ? await downloadToTemp(media.value, media.name, log) : media.value;
