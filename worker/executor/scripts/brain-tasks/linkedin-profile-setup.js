@@ -585,12 +585,17 @@ export async function runLinkedInProfileSetup(args) {
   const { page, brainTask, log } = args;
   reseedHuman();
 
-  const headline = (brainTask.headline || "").trim();
-  const about = (brainTask.about || "").trim();
-  const experience = Array.isArray(brainTask.experience) ? brainTask.experience : [];
-  const education = Array.isArray(brainTask.education) ? brainTask.education : [];
-  const skills = Array.isArray(brainTask.skills) ? brainTask.skills : [];
-  const submit = brainTask.submit !== false && !brainTask.dry_run;
+  // A dispatcher a payload mezőket brain_task.payload alá csomagolja;
+  // ha ott vannak, kitejtjük a felső szintre a kényelmesebb hozzáférésért.
+  const bt = { ...(brainTask.payload || {}), ...brainTask };
+  delete bt.payload;
+
+  const headline = (bt.headline || "").trim();
+  const about = (bt.about || "").trim();
+  const experience = Array.isArray(bt.experience) ? bt.experience : [];
+  const education = Array.isArray(bt.education) ? bt.education : [];
+  const skills = Array.isArray(bt.skills) ? bt.skills : [];
+  const submit = bt.submit !== false && !bt.dry_run;
   const ctx = {
     workflowId: args.spec?.workflow_id || null,
     runId: args.spec?.run_id || null,
