@@ -111,7 +111,7 @@ export async function runBrainTask(args) {
       return await runLinkedInCommentPost(args);
 
     case "ui_recon":
-ății      return await runUiRecon(args);
+return await runUiRecon(args);
 
 
 
