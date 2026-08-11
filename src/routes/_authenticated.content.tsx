@@ -147,7 +147,12 @@ function ContentStudioPage() {
       toast.success(file ? "Mentve a fájllal együtt." : "Szöveg elmentve.");
       setTitle("");
       setBody("");
-      setTargetRef("");
+      // LinkedIn-nél a céges oldal marad, és el is mentjük legközelebbre.
+      if (kind === "linkedin_post" && targetRef.trim()) {
+        localStorage.setItem(LINKEDIN_REF_KEY, targetRef.trim());
+      } else {
+        setTargetRef("");
+      }
       setFile(null);
       setShowFile(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -268,13 +273,19 @@ function ContentStudioPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>{kind === "linkedin_post" ? "Céges oldal (üresen: személyes profil)" : "Hely (pl. subreddit)"}</Label>
+              <Label>{kind === "linkedin_post" ? "Céges oldal (megjegyezve)" : "Hely (pl. subreddit)"}</Label>
               <Input
                 value={targetRef}
                 onChange={(e) => setTargetRef(e.target.value)}
-                placeholder={kind === "linkedin_post" ? "127334023 vagy kylo-study" : "r/EnglishLearning"}
+                placeholder={kind === "linkedin_post" ? "kylo-study" : "r/EnglishLearning"}
               />
+              {kind === "linkedin_post" && (
+                <p className="text-xs text-muted-foreground">
+                  Automatikusan kitöltve — csak akkor írd át, ha máshova posztolnánk.
+                </p>
+              )}
             </div>
+
 
           </div>
           <div className="space-y-1">
