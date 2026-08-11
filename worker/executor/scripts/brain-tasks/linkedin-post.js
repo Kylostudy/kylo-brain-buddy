@@ -174,12 +174,12 @@ export async function runLinkedInPost(args) {
   await humanThink(page, 4000);
 
   // Ha van feltöltött melléklet (Tartalom Stúdió), hozzácsatoljuk.
-  if (brainTask.media?.value) {
+  if (bt.media?.value) {
     try {
       const filePath =
-        brainTask.media.kind === "url"
-          ? await downloadMediaToTemp(brainTask.media.value, brainTask.media.name, log)
-          : brainTask.media.value;
+        bt.media.kind === "url"
+          ? await downloadMediaToTemp(bt.media.value, bt.media.name, log)
+          : bt.media.value;
       const addMedia = await firstVisible(page, [
         'button[aria-label*="Add media" i]',
         'button[aria-label*="photo" i]',
