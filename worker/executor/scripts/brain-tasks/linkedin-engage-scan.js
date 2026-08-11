@@ -59,10 +59,14 @@ async function collectPosts(page, limit) {
 export async function runLinkedInEngageScan({ page, spec, brainTask, log }) {
   reseedHuman([spec?.workflow_id || "", "linkedin-engage-scan", Date.now()]);
 
-  const max = Math.max(5, Math.min(40, Number(brainTask?.max_items) || 20));
+  // A dispatcher a payload mezőket brain_task.payload alá csomagolja.
+  const bt = { ...(brainTask?.payload || {}), ...brainTask };
+  if (bt.payload) delete bt.payload;
+
+  const max = Math.max(5, Math.min(40, Number(bt?.max_items) || 20));
   const keywords =
-    Array.isArray(brainTask?.keywords) && brainTask.keywords.length
-      ? brainTask.keywords.slice(0, 6)
+    Array.isArray(bt?.keywords) && bt.keywords.length
+      ? bt.keywords.slice(0, 6)
       : DEFAULT_KEYWORDS;
 
   // Először a saját hírfolyam — természetes belépés.
