@@ -36,6 +36,10 @@ const KINDS = [
   { value: "generic_text", label: "Egyéb szöveg" },
 ];
 
+/** A LinkedIn céges oldal — beégetett alapérték, felülírható és megjegyezzük. */
+const DEFAULT_LINKEDIN_REF = "kylo-study";
+const LINKEDIN_REF_KEY = "kylo:linkedin-company-ref";
+
 
 export const Route = createFileRoute("/_authenticated/content")({
   component: ContentStudioPage,
@@ -96,6 +100,13 @@ function ContentStudioPage() {
     const best = recQ.data?.best;
     if (!workflowId && best?.workflow_id) setWorkflowId(best.workflow_id);
   }, [recQ.data, workflowId]);
+
+  // A LinkedIn céges oldalt megjegyezzük — nem kell mindig előkeresni.
+  useEffect(() => {
+    if (kind !== "linkedin_post") return;
+    const saved = localStorage.getItem(LINKEDIN_REF_KEY) ?? DEFAULT_LINKEDIN_REF;
+    setTargetRef((cur) => (cur ? cur : saved));
+  }, [kind]);
 
   async function uploadIfNeeded() {
     if (!file) return null;
