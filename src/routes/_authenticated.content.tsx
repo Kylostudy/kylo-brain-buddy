@@ -83,9 +83,10 @@ function ContentStudioPage() {
   const [workflowId, setWorkflowId] = useState<string>("");
   const [targetRef, setTargetRef] = useState("");
 
-  // Fájlfeltöltés állapota
+  // Fájlfeltöltés állapota (opcionális — alapból rejtve, a szöveg a fő)
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [showFile, setShowFile] = useState(false);
   const [mediaSlot, setMediaSlot] = useState<string>("linkedin_profile_photo");
   const [uploading, setUploading] = useState(false);
   const uploadUrlFn = useServerFn(createMediaUploadUrl);
@@ -137,6 +138,7 @@ function ContentStudioPage() {
       setBody("");
       setTargetRef("");
       setFile(null);
+      setShowFile(false);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["content-drafts"] });
     },
@@ -279,66 +281,93 @@ function ContentStudioPage() {
             <p className="text-xs text-muted-foreground">{body.length} karakter</p>
           </div>
 
-          <div className="rounded-md border border-dashed p-3 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Paperclip className="size-4 text-primary" /> Fájl feltöltése (kép / videó)
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1">
-                <Label>Fájl</Label>
-                <div className="flex gap-2">
-                  <Input
-                    readOnly
-                    value={file ? file.name : ""}
-                    placeholder="Nincs fájl kiválasztva"
-                    onClick={() => fileRef.current?.click()}
-                  />
-                  <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
-                    <Upload className="mr-2 size-4" /> Tallózás
-                  </Button>
-                  {file && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setFile(null);
-                        if (fileRef.current) fileRef.current.value = "";
-                      }}
-                    >
-                      <X className="size-4" />
+          {!showFile ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={() => setShowFile(true)}
+            >
+              <Paperclip className="mr-2 size-4" /> Fájl csatolása (nem kötelező)
+            </Button>
+          ) : (
+            <div className="rounded-md border border-dashed p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Paperclip className="size-4 text-primary" /> Fájl feltöltése (kép / videó) — opcionális
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowFile(false);
+                    setFile(null);
+                    if (fileRef.current) fileRef.current.value = "";
+                  }}
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Fájl</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={file ? file.name : ""}
+                      placeholder="Nincs fájl kiválasztva"
+                      onClick={() => fileRef.current?.click()}
+                    />
+                    <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
+                      <Upload className="mr-2 size-4" /> Tallózás
                     </Button>
+                    {file && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setFile(null);
+                          if (fileRef.current) fileRef.current.value = "";
+                        }}
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*,video/*"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  />
+                  {file && (
+                    <p className="text-xs text-muted-foreground">
+                      {(file.size / 1024 / 1024).toFixed(2)} MB · {file.type || "ismeretlen típus"}
+                    </p>
                   )}
                 </div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  className="hidden"
-                  accept="image/*,video/*"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                />
-                {file && (
+                <div className="space-y-1">
+                  <Label>Hova kerüljön?</Label>
+                  <Select value={mediaSlot} onValueChange={setMediaSlot}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MEDIA_SLOTS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB · {file.type || "ismeretlen típus"}
+                    A fenti „Cél workflow” dönti el, melyik fiók böngészője viszi ki.
                   </p>
-                )}
-              </div>
-              <div className="space-y-1">
-                <Label>Hova kerüljön?</Label>
-                <Select value={mediaSlot} onValueChange={setMediaSlot}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MEDIA_SLOTS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  A fenti „Cél workflow” dönti el, melyik fiók böngészője viszi ki.
-                </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
 
           <Button
             onClick={() => saveM.mutate()}
