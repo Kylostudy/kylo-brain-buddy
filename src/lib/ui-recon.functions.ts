@@ -2,6 +2,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export type ReconProposalRow = {
+  field: string;
+  selector: string | null;
+  confidence: number;
+  reason?: string;
+};
+
 export type ReconSnapshotRow = {
   id: string;
   platform: string;
@@ -10,7 +17,11 @@ export type ReconSnapshotRow = {
   changed: boolean;
   change_note: string | null;
   learned_fields: string[];
-  analysis: { layout_summary?: string; proposals?: unknown[]; error?: string | null } | null;
+  analysis: {
+    layout_summary?: string;
+    proposals?: ReconProposalRow[];
+    error?: string | null;
+  } | null;
   created_at: string;
   image_url: string | null;
 };
