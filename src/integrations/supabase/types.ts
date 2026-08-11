@@ -1485,6 +1485,8 @@ export type Database = {
           locale: string
           notes: string | null
           proxy_id: string | null
+          quarantine_reason: string | null
+          quarantined_until: string | null
           ready_at: string | null
           status: string
           subreddits_joined: Json
@@ -1507,6 +1509,8 @@ export type Database = {
           locale?: string
           notes?: string | null
           proxy_id?: string | null
+          quarantine_reason?: string | null
+          quarantined_until?: string | null
           ready_at?: string | null
           status?: string
           subreddits_joined?: Json
@@ -1529,6 +1533,8 @@ export type Database = {
           locale?: string
           notes?: string | null
           proxy_id?: string | null
+          quarantine_reason?: string | null
+          quarantined_until?: string | null
           ready_at?: string | null
           status?: string
           subreddits_joined?: Json
