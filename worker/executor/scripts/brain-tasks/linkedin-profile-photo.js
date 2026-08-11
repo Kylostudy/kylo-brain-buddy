@@ -83,42 +83,52 @@ export async function runLinkedInProfilePhoto(args) {
   await humanWait(page, 4000);
   await humanCasualScroll(page, { steps: 2 });
 
-  // Profilkép megnyitása (szerkesztés / hozzáadás).
-  // A LinkedIn DOM többször változott — sokféle szelektort próbálunk.
-  const photoBtn = await firstVisible(
+  // Profilkép megnyitása (szerkesztés / hozzáadás) — tanult először, aztán tartalék.
+  const photoBtn = await resolveTarget({
     page,
-    [
-      // 2024+ avatar overlay gomb
+    log,
+    platform: "linkedin",
+    pageType: "profile",
+    field: "profile_photo_button",
+    description:
+      "A profilképet szerkesztő gomb (avatar körül ceruza vagy 'Add photo' gomb)",
+    workflowId: args.spec?.workflow_id || null,
+    runId: args.spec?.run_id || null,
+    timeoutMs: 20000,
+    fallbacks: [
       '.pv-top-card-profile-picture__container',
       '.pv-top-card-profile-picture__container button',
       '.pv-top-card-profile-picture__container [role="button"]',
-      // Edit pencil az avataton
       'button[aria-label*="profile photo" i]',
       'button[aria-label*="Edit photo" i]',
       'button[aria-label*="profilkép" i]',
       'button[aria-label*="Profilkép" i]',
-      // Add photo gomb (üres profilnál)
       'button:has-text("Add photo")',
       'button:has-text("Add Photo")',
-      // Régebbi szelektorok
       ".pv-top-card__non-self-photo-wrapper button",
       '.pv-top-card__photo-wrapper button',
       'img.pv-top-card-profile-picture__image',
       '.global-nav__me-photo',
-      // Avatar kép maga (kattintható)
       'img.evi-image[alt*="photo" i]',
       '.profile-photo-edit__edit-btn',
     ],
-    20000,
-  );
+  });
   if (!photoBtn) throw new Error("Nem található a profilkép gomb a LinkedIn profilon (próbáld friss sütiikkel újra).");
   await humanClick(page, photoBtn);
   await humanWait(page, 3000);
 
-  // A megnyíló ablakban „Add photo” / „Change photo” / „Change”.
-  const changeBtn = await firstVisible(
+  // A megnyíló ablakban „Add photo” / „Change photo” / „Change” — tanult, aztán tartalék.
+  const changeBtn = await resolveTarget({
     page,
-    [
+    log,
+    platform: "linkedin",
+    pageType: "profile",
+    field: "profile_photo_change_button",
+    description: "A profilkép párbeszédablakban a 'Change photo' vagy 'Add photo' gomb",
+    workflowId: args.spec?.workflow_id || null,
+    runId: args.spec?.run_id || null,
+    timeoutMs: 8000,
+    fallbacks: [
       'button:has-text("Add photo")',
       'button:has-text("Add Photo")',
       'button:has-text("Change photo")',
@@ -130,8 +140,7 @@ export async function runLinkedInProfilePhoto(args) {
       '[aria-label*="Change photo" i]',
       'button.profile-photo-edit__edit-btn',
     ],
-    8000,
-  );
+  });
   if (changeBtn) {
     await humanClick(page, changeBtn);
     await humanWait(page, 2000);

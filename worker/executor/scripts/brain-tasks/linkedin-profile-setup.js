@@ -591,6 +591,10 @@ export async function runLinkedInProfileSetup(args) {
   const education = Array.isArray(brainTask.education) ? brainTask.education : [];
   const skills = Array.isArray(brainTask.skills) ? brainTask.skills : [];
   const submit = brainTask.submit !== false && !brainTask.dry_run;
+  const ctx = {
+    workflowId: args.spec?.workflow_id || null,
+    runId: args.spec?.run_id || null,
+  };
 
   if (!headline) throw new Error("Nincs headline a profil-kitöltéshez.");
 
@@ -618,32 +622,32 @@ export async function runLinkedInProfileSetup(args) {
 
   // 1. Headline
   if (headline) {
-    await editHeadline(page, headline, submit, log);
+    await editHeadline(page, headline, submit, log, ctx);
     await humanCasualScroll(page, { steps: 1 });
     await humanWait(page, 1500);
   }
 
   // 2. About
   if (about) {
-    await editAbout(page, about, submit, log);
+    await editAbout(page, about, submit, log, ctx);
     await humanWait(page, 1500);
   }
 
   // 3. Experience
   if (experience.length > 0) {
-    await addExperience(page, experience, submit, log);
+    await addExperience(page, experience, submit, log, ctx);
     await humanWait(page, 1500);
   }
 
   // 4. Education
   if (education.length > 0) {
-    await addEducation(page, education, submit, log);
+    await addEducation(page, education, submit, log, ctx);
     await humanWait(page, 1500);
   }
 
   // 5. Skills
   if (skills.length > 0) {
-    await addSkills(page, skills, submit, log);
+    await addSkills(page, skills, submit, log, ctx);
   }
 
   // Utána még egy kicsit böngészünk.
