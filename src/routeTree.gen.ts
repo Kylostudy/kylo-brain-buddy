@@ -17,6 +17,7 @@ import { Route as AuthenticatedDiscourseRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated.inbox'
 import { Route as AuthenticatedPatrolRouteImport } from './routes/_authenticated.patrol'
 import { Route as AuthenticatedProxiesRouteImport } from './routes/_authenticated.proxies'
+import { Route as AuthenticatedReconRouteImport } from './routes/_authenticated.recon'
 import { Route as AuthenticatedRedditScoutRouteImport } from './routes/_authenticated.reddit-scout'
 import { Route as AuthenticatedRedditWarmupRouteImport } from './routes/_authenticated.reddit-warmup'
 import { Route as AuthenticatedTelegramGuideRouteImport } from './routes/_authenticated.telegram-guide'
@@ -126,6 +127,11 @@ const AuthenticatedPatrolRoute = AuthenticatedPatrolRouteImport.update({
 const AuthenticatedProxiesRoute = AuthenticatedProxiesRouteImport.update({
   id: '/proxies',
   path: '/proxies',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedReconRoute = AuthenticatedReconRouteImport.update({
+  id: '/recon',
+  path: '/recon',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedRedditScoutRoute =
@@ -549,6 +555,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof AuthenticatedInboxRoute
   '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
+  '/recon': typeof AuthenticatedReconRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
   '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
@@ -628,6 +635,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof AuthenticatedInboxRoute
   '/patrol': typeof AuthenticatedPatrolRoute
   '/proxies': typeof AuthenticatedProxiesRoute
+  '/recon': typeof AuthenticatedReconRoute
   '/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
   '/telegram-guide': typeof AuthenticatedTelegramGuideRoute
@@ -710,6 +718,7 @@ export interface FileRoutesById {
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/patrol': typeof AuthenticatedPatrolRoute
   '/_authenticated/proxies': typeof AuthenticatedProxiesRoute
+  '/_authenticated/recon': typeof AuthenticatedReconRoute
   '/_authenticated/reddit-scout': typeof AuthenticatedRedditScoutRoute
   '/_authenticated/reddit-warmup': typeof AuthenticatedRedditWarmupRoute
   '/_authenticated/telegram-guide': typeof AuthenticatedTelegramGuideRoute
@@ -793,6 +802,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/patrol'
     | '/proxies'
+    | '/recon'
     | '/reddit-scout'
     | '/reddit-warmup'
     | '/telegram-guide'
@@ -872,6 +882,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/patrol'
     | '/proxies'
+    | '/recon'
     | '/reddit-scout'
     | '/reddit-warmup'
     | '/telegram-guide'
@@ -953,6 +964,7 @@ export interface FileRouteTypes {
     | '/_authenticated/inbox'
     | '/_authenticated/patrol'
     | '/_authenticated/proxies'
+    | '/_authenticated/recon'
     | '/_authenticated/reddit-scout'
     | '/_authenticated/reddit-warmup'
     | '/_authenticated/telegram-guide'
@@ -1149,6 +1161,13 @@ declare module '@tanstack/react-router' {
       path: '/proxies'
       fullPath: '/proxies'
       preLoaderRoute: typeof AuthenticatedProxiesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/recon': {
+      id: '/_authenticated/recon'
+      path: '/recon'
+      fullPath: '/recon'
+      preLoaderRoute: typeof AuthenticatedReconRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/reddit-scout': {
@@ -1657,6 +1676,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedPatrolRoute: typeof AuthenticatedPatrolRoute
   AuthenticatedProxiesRoute: typeof AuthenticatedProxiesRoute
+  AuthenticatedReconRoute: typeof AuthenticatedReconRoute
   AuthenticatedRedditScoutRoute: typeof AuthenticatedRedditScoutRoute
   AuthenticatedRedditWarmupRoute: typeof AuthenticatedRedditWarmupRoute
   AuthenticatedTelegramGuideRoute: typeof AuthenticatedTelegramGuideRoute
@@ -1674,6 +1694,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedPatrolRoute: AuthenticatedPatrolRoute,
   AuthenticatedProxiesRoute: AuthenticatedProxiesRoute,
+  AuthenticatedReconRoute: AuthenticatedReconRoute,
   AuthenticatedRedditScoutRoute: AuthenticatedRedditScoutRoute,
   AuthenticatedRedditWarmupRoute: AuthenticatedRedditWarmupRoute,
   AuthenticatedTelegramGuideRoute: AuthenticatedTelegramGuideRoute,
