@@ -32,6 +32,7 @@ import { runLinkedInProfilePhoto } from "./linkedin-profile-photo.js";
 import { runLinkedInProfileSetup } from "./linkedin-profile-setup.js";
 import { runLinkedInEngageScan } from "./linkedin-engage-scan.js";
 import { runLinkedInCommentPost } from "./linkedin-comment-post.js";
+import { runUiRecon } from "./ui-recon.js";
 
 
 
