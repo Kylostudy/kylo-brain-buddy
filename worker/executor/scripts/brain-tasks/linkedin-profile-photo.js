@@ -83,32 +83,53 @@ export async function runLinkedInProfilePhoto(args) {
   await humanCasualScroll(page, { steps: 2 });
 
   // Profilkép megnyitása (szerkesztés / hozzáadás).
+  // A LinkedIn DOM többször változott — sokféle szelektort próbálunk.
   const photoBtn = await firstVisible(
     page,
     [
+      // 2024+ avatar overlay gomb
+      '.pv-top-card-profile-picture__container',
+      '.pv-top-card-profile-picture__container button',
+      '.pv-top-card-profile-picture__container [role="button"]',
+      // Edit pencil az avataton
       'button[aria-label*="profile photo" i]',
+      'button[aria-label*="Edit photo" i]',
       'button[aria-label*="profilkép" i]',
+      'button[aria-label*="Profilkép" i]',
+      // Add photo gomb (üres profilnál)
       'button:has-text("Add photo")',
-      "button.pv-top-card-profile-picture__container",
+      'button:has-text("Add Photo")',
+      // Régebbi szelektorok
       ".pv-top-card__non-self-photo-wrapper button",
+      '.pv-top-card__photo-wrapper button',
       'img.pv-top-card-profile-picture__image',
+      '.global-nav__me-photo',
+      // Avatar kép maga (kattintható)
+      'img.evi-image[alt*="photo" i]',
+      '.profile-photo-edit__edit-btn',
     ],
-    15000,
+    20000,
   );
-  if (!photoBtn) throw new Error("Nem található a profilkép gomb a LinkedIn profilon.");
+  if (!photoBtn) throw new Error("Nem található a profilkép gomb a LinkedIn profilon (próbáld friss sütiikkel újra).");
   await humanClick(page, photoBtn);
   await humanWait(page, 3000);
 
-  // A megnyíló ablakban „Add photo” / „Change photo”.
+  // A megnyíló ablakban „Add photo” / „Change photo” / „Change”.
   const changeBtn = await firstVisible(
     page,
     [
       'button:has-text("Add photo")',
+      'button:has-text("Add Photo")',
       'button:has-text("Change photo")',
+      'button:has-text("Change Photo")',
+      'button:has-text("Change")',
       'button:has-text("Fénykép hozzáadása")',
+      'button:has-text("Fénykép módosítása")',
       '[aria-label*="Edit photo" i]',
+      '[aria-label*="Change photo" i]',
+      'button.profile-photo-edit__edit-btn',
     ],
-    6000,
+    8000,
   );
   if (changeBtn) {
     await humanClick(page, changeBtn);
