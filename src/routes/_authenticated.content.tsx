@@ -175,8 +175,20 @@ function ContentStudioPage() {
   const schedM = useMutation({
     mutationFn: (v: { id: string; scheduled_for: string | null }) =>
       schedFn({ data: { id: v.id, scheduled_for: v.scheduled_for } }),
-    onSuccess: (_r, v) => {
-      toast.success(v.scheduled_for ? "Időzítve." : "Időzítés törölve.");
+    onSuccess: (r, v) => {
+      if (!v.scheduled_for) toast.success("Időzítés törölve.");
+      else {
+        const res = r as { scheduled_for?: string | null; shifted_minutes?: number };
+        const t = res?.scheduled_for
+          ? new Date(res.scheduled_for).toLocaleString("hu-HU", {
+              dateStyle: "short",
+              timeStyle: "short",
+            })
+          : "";
+        toast.success(
+          `Időzítve: ${t}${res?.shifted_minutes ? ` (${res.shifted_minutes > 0 ? "+" : ""}${res.shifted_minutes} perc szórás)` : ""}`,
+        );
+      }
       qc.invalidateQueries({ queryKey: ["content-drafts"] });
     },
     onError: (e: Error) => toast.error(e.message),
