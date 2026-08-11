@@ -209,12 +209,23 @@ export async function runLinkedInPost(args) {
   }
 
 
-  const postBtn = await firstVisible(page, [
-    'button.share-actions__primary-action',
-    'button:has-text("Post")',
-    'button:has-text("Közzététel")',
-    '[aria-label="Post"]',
-  ], 10000);
+  const postBtn = await resolveTarget({
+    page,
+    log,
+    platform: "linkedin",
+    pageType: "post_editor",
+    field: "post_button",
+    description: "A közzétételt indító gomb a poszt-szerkesztő jobb alsó sarkában (Post)",
+    workflowId: args.spec?.workflow_id || null,
+    runId: args.spec?.run_id || null,
+    timeoutMs: 12000,
+    fallbacks: [
+      'button.share-actions__primary-action',
+      'button:has-text("Post")',
+      'button:has-text("Közzététel")',
+      '[aria-label="Post"]',
+    ],
+  });
   if (!postBtn) throw new Error("Nem található a LinkedIn „Post” gomb.");
 
   await humanClick(page, postBtn);
