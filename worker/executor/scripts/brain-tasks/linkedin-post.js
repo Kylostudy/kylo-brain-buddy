@@ -24,6 +24,7 @@ import {
   humanWait,
   reseedHuman,
 } from "../humanize.js";
+import { resolveTarget } from "./resolve-selector.js";
 
 async function downloadMediaToTemp(url, name, log) {
   const dir = await mkdtemp(join(tmpdir(), "kylo-li-media-"));
