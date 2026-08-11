@@ -199,6 +199,17 @@ export async function processReconSnapshot(
     tenantId = (data?.tenant_id as string | undefined) ?? null;
     workflowId = workflowId ?? ((data?.workflow_id as string | undefined) ?? null);
   }
+  // Tartalék 3: ha csak egyetlen tenant létezik, az egyértelmű.
+  if (!tenantId) {
+    const { data } = await supabaseAdmin
+      .from("brain_task_queue")
+      .select("tenant_id")
+      .eq("task_type", "ui_recon")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    tenantId = (data?.tenant_id as string | undefined) ?? null;
+  }
   if (!tenantId) throw new Error("Nem sikerült tenantot feloldani a workflow alapján.");
 
   // 1. Fotó feltöltése
