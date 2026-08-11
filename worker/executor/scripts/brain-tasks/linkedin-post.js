@@ -121,15 +121,12 @@ export async function runLinkedInPost(args) {
     await humanWait(page, 2500);
   }
 
-
-  await humanClick(page, startBtn);
-  await humanWait(page, 2500);
-
   const editor = await firstVisible(page, [
     'div.ql-editor[contenteditable="true"]',
     'div[role="textbox"][contenteditable="true"]',
     '[data-placeholder*="What do you want to talk about" i]',
-  ], 15000);
+  ], 20000);
+
   if (!editor) throw new Error("Nem található a LinkedIn szövegszerkesztő mező.");
 
   await humanClick(page, editor);
