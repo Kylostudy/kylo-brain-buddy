@@ -169,13 +169,34 @@ export async function processReconSnapshot(
 
   // Tenant feloldás a workflow alapján (a worker mindig küld workflow_id-t).
   let tenantId: string | null = null;
-  if (input.workflowId) {
+  let workflowId: string | null = input.workflowId ?? null;
+  if (workflowId) {
     const { data } = await supabaseAdmin
       .from("workflows")
       .select("tenant_id")
-      .eq("id", input.workflowId)
+      .eq("id", workflowId)
       .maybeSingle();
     tenantId = (data?.tenant_id as string | undefined) ?? null;
+  }
+  // Tartalék: a feladat azonosítójából (a worker spec-je nem mindig hoz workflow_id-t).
+  if (!tenantId && input.taskId) {
+    const { data } = await supabaseAdmin
+      .from("brain_task_queue")
+      .select("tenant_id, workflow_id")
+      .eq("id", input.taskId)
+      .maybeSingle();
+    tenantId = (data?.tenant_id as string | undefined) ?? null;
+    workflowId = workflowId ?? ((data?.workflow_id as string | undefined) ?? null);
+  }
+  // Tartalék 2: a futás rekordjából.
+  if (!tenantId && input.runId) {
+    const { data } = await supabaseAdmin
+      .from("brain_workflow_runs")
+      .select("tenant_id, workflow_id")
+      .eq("id", input.runId)
+      .maybeSingle();
+    tenantId = (data?.tenant_id as string | undefined) ?? null;
+    workflowId = workflowId ?? ((data?.workflow_id as string | undefined) ?? null);
   }
   if (!tenantId) throw new Error("Nem sikerült tenantot feloldani a workflow alapján.");
 
