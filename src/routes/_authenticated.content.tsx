@@ -389,10 +389,21 @@ function ContentStudioPage() {
                       ? "fut"
                       : d.status === "queued"
                         ? "sorban áll"
-                        : d.status === "failed"
-                          ? "hibázott"
-                          : d.status}
+                        : d.status === "scheduled"
+                          ? "időzítve"
+                          : d.status === "failed"
+                            ? "hibázott"
+                            : d.status}
                 </Badge>
+                {(d as { scheduled_for?: string | null }).scheduled_for && (
+                  <Badge variant="outline" className="gap-1">
+                    <Clock className="size-3" />
+                    {new Date(
+                      (d as { scheduled_for?: string | null }).scheduled_for as string,
+                    ).toLocaleString("hu-HU", { dateStyle: "short", timeStyle: "short" })}
+                  </Badge>
+                )}
+
                 <span className="text-xs text-muted-foreground">
                   {workflows.find((w) => w.id === d.target_workflow_id)?.name ?? "nincs workflow"}
                 </span>
