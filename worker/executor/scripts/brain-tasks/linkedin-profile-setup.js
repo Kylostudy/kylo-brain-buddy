@@ -99,13 +99,21 @@ async function fillField(page, selector, text, log, label) {
 // ── szakasz-kitöltők ─────────────────────────────────────────────
 
 /** 1. Headline (intro szakasz ceruza gomb). */
-async function editHeadline(page, headline, submit, log) {
+async function editHeadline(page, headline, submit, log, ctx) {
   log("info", "Headline szerkesztése…");
 
-  // A felső intro szakasz ceruza gombja.
-  const opened = await clickAny(
+  // A felső intro szakasz ceruza gombja — először tanult, aztán tartalék.
+  const introBtn = await resolveTarget({
     page,
-    [
+    log,
+    platform: "linkedin",
+    pageType: "profile",
+    field: "intro_edit_button",
+    description: "A profil felső intro szakaszának ceruza gombja (Edit intro)",
+    workflowId: ctx.workflowId,
+    runId: ctx.runId,
+    timeoutMs: 12000,
+    fallbacks: [
       'button[aria-label*="Edit intro" i]',
       'button[aria-label*="Profil szerkesztése" i]',
       'button[aria-label*="Edit" i][aria-label*="intro" i]',
@@ -113,34 +121,45 @@ async function editHeadline(page, headline, submit, log) {
       '.pv-top-card--inline-info button[aria-label*="Edit" i]',
       'button:has-text("Edit intro")',
     ],
-    "Intro ceruza gomb",
-    log,
-    12000,
-  );
-  if (!opened) {
+  });
+  if (!introBtn) {
     log("warn", "Nem nyílt az intro szerkesztő — headline kihagyva.");
     return;
   }
-  await humanWait(page, 2000);
+  await humanThink(page, 1500);
+  await humanClick(page, introBtn);
+  await humanWait(page, 2500);
 
-  // Headline mező a dialogban.
-  const filled = await fillField(
+  // Headline mező a dialogban (nem tanult — csak menet közbeni Vision).
+  const headlineField = await resolveTarget({
     page,
-    [
+    log,
+    platform: "linkedin",
+    pageType: "profile",
+    field: "headline_input",
+    description: "A headline (címsor) szövegmező az intro szerkesztő panelben",
+    workflowId: ctx.workflowId,
+    runId: ctx.runId,
+    timeoutMs: 8000,
+    fallbacks: [
       'input[name="headline"]',
       "#headline",
       'input[aria-label*="Headline" i]',
       'input[aria-label*="Címsor" i]',
       'input.pv-profile-section__headline',
-    ].join(", "),
-    headline,
-    log,
-    "Headline",
-  );
-
-  if (!filled) {
-    // Próbáljuk textareaként is.
-    await fillField(page, 'textarea[name="headline"]', headline, log, "Headline (textarea)");
+      'textarea[name="headline"]',
+    ],
+  });
+  if (headlineField) {
+    await humanClick(page, headlineField);
+    await humanThink(page, 500);
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Delete");
+    await humanWait(page, 300);
+    await humanType(page, headline);
+    await humanThink(page, 800);
+  } else {
+    log("warn", "Headline mező nem található.");
   }
 
   if (submit) await savePanel(page, log, "Headline");
