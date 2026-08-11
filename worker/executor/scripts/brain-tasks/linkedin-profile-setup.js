@@ -25,6 +25,7 @@ import {
   humanWait,
   reseedHuman,
 } from "../humanize.js";
+import { resolveTarget } from "./resolve-selector.js";
 
 // ── segédfüggvények ──────────────────────────────────────────────
 
@@ -98,13 +99,21 @@ async function fillField(page, selector, text, log, label) {
 // ── szakasz-kitöltők ─────────────────────────────────────────────
 
 /** 1. Headline (intro szakasz ceruza gomb). */
-async function editHeadline(page, headline, submit, log) {
+async function editHeadline(page, headline, submit, log, ctx) {
   log("info", "Headline szerkesztése…");
 
-  // A felső intro szakasz ceruza gombja.
-  const opened = await clickAny(
+  // A felső intro szakasz ceruza gombja — először tanult, aztán tartalék.
+  const introBtn = await resolveTarget({
     page,
-    [
+    log,
+    platform: "linkedin",
+    pageType: "profile",
+    field: "intro_edit_button",
+    description: "A profil felső intro szakaszának ceruza gombja (Edit intro)",
+    workflowId: ctx.workflowId,
+    runId: ctx.runId,
+    timeoutMs: 12000,
+    fallbacks: [
       'button[aria-label*="Edit intro" i]',
       'button[aria-label*="Profil szerkesztése" i]',
       'button[aria-label*="Edit" i][aria-label*="intro" i]',
@@ -112,34 +121,45 @@ async function editHeadline(page, headline, submit, log) {
       '.pv-top-card--inline-info button[aria-label*="Edit" i]',
       'button:has-text("Edit intro")',
     ],
-    "Intro ceruza gomb",
-    log,
-    12000,
-  );
-  if (!opened) {
+  });
+  if (!introBtn) {
     log("warn", "Nem nyílt az intro szerkesztő — headline kihagyva.");
     return;
   }
-  await humanWait(page, 2000);
+  await humanThink(page, 1500);
+  await humanClick(page, introBtn);
+  await humanWait(page, 2500);
 
-  // Headline mező a dialogban.
-  const filled = await fillField(
+  // Headline mező a dialogban (nem tanult — csak menet közbeni Vision).
+  const headlineField = await resolveTarget({
     page,
-    [
+    log,
+    platform: "linkedin",
+    pageType: "profile",
+    field: "headline_input",
+    description: "A headline (címsor) szövegmező az intro szerkesztő panelben",
+    workflowId: ctx.workflowId,
+    runId: ctx.runId,
+    timeoutMs: 8000,
+    fallbacks: [
       'input[name="headline"]',
       "#headline",
       'input[aria-label*="Headline" i]',
       'input[aria-label*="Címsor" i]',
       'input.pv-profile-section__headline',
-    ].join(", "),
-    headline,
-    log,
-    "Headline",
-  );
-
-  if (!filled) {
-    // Próbáljuk textareaként is.
-    await fillField(page, 'textarea[name="headline"]', headline, log, "Headline (textarea)");
+      'textarea[name="headline"]',
+    ],
+  });
+  if (headlineField) {
+    await humanClick(page, headlineField);
+    await humanThink(page, 500);
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Delete");
+    await humanWait(page, 300);
+    await humanType(page, headline);
+    await humanThink(page, 800);
+  } else {
+    log("warn", "Headline mező nem található.");
   }
 
   if (submit) await savePanel(page, log, "Headline");
@@ -147,17 +167,25 @@ async function editHeadline(page, headline, submit, log) {
 }
 
 /** 2. About (bemutatkozás) szakasz. */
-async function editAbout(page, about, submit, log) {
+async function editAbout(page, about, submit, log, ctx) {
   log("info", "About szakasz szerkesztése…");
 
   // Görgetünk az about szakaszhoz.
   await humanCasualScroll(page, { steps: 3 });
   await humanWait(page, 1500);
 
-  // Ha már van about → ceruza; ha nincs → "Add about" gomb.
-  const opened = await clickAny(
+  // Ha már van about → ceruza; ha nincs → "Add about" gomb — tanult először.
+  const aboutBtn = await resolveTarget({
     page,
-    [
+    log,
+    platform: "linkedin",
+    pageType: "profile",
+    field: "about_edit_button",
+    description: "A bemutatkozás (About) szakasz szerkesztőgombja vagy 'Add about' gomb",
+    workflowId: ctx.workflowId,
+    runId: ctx.runId,
+    timeoutMs: 10000,
+    fallbacks: [
       'button[aria-label*="Edit about" i]',
       'button[aria-label*="About" i][aria-label*="Edit" i]',
       'button:has-text("Edit about")',
@@ -165,36 +193,51 @@ async function editAbout(page, about, submit, log) {
       'a:has-text("Add about")',
       'button[aria-label*="Bemutatkozás" i]',
     ],
-    "About gomb",
-    log,
-    10000,
-  );
-  if (!opened) {
+  });
+  if (!aboutBtn) {
     log("warn", "Nem található az About gomb — kihagyva.");
     return;
   }
-  await humanWait(page, 2000);
+  await humanThink(page, 1500);
+  await humanClick(page, aboutBtn);
+  await humanWait(page, 2500);
 
-  const filled = await fillField(
+  const aboutField = await resolveTarget({
     page,
-    [
+    log,
+    platform: "linkedin",
+    pageType: "profile",
+    field: "about_textarea",
+    description: "A bemutatkozás (About) szövegdoboza a szerkesztő panelben",
+    workflowId: ctx.workflowId,
+    runId: ctx.runId,
+    timeoutMs: 8000,
+    fallbacks: [
       'textarea[name="about"]',
       'textarea[aria-label*="about" i]',
       'textarea[aria-label*="About" i]',
       "textarea.edit-content__textarea",
       ".pv-about__summary-text textarea",
-    ].join(", "),
-    about,
-    log,
-    "About",
-  );
+    ],
+  });
+  if (aboutField) {
+    await humanClick(page, aboutField);
+    await humanThink(page, 500);
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Delete");
+    await humanWait(page, 300);
+    await humanType(page, about);
+    await humanThink(page, 800);
+  } else {
+    log("warn", "About mező nem található.");
+  }
 
   if (submit) await savePanel(page, log, "About");
   await humanWait(page, 2000);
 }
 
 /** 3. Munkatapasztalat bejegyzések hozzáadása. */
-async function addExperience(page, entries, submit, log) {
+async function addExperience(page, entries, submit, log, ctx) {
   for (const [i, exp] of entries.entries()) {
     log("info", `Tapasztalat hozzáadása (${i + 1}/${entries.length}): ${exp.title} @ ${exp.company}`);
 
@@ -202,10 +245,18 @@ async function addExperience(page, entries, submit, log) {
     await humanCasualScroll(page, { steps: 2 });
     await humanWait(page, 1000);
 
-    // "+" gomb vagy "Add experience" gomb.
-    const opened = await clickAny(
+    // "+" gomb vagy "Add experience" gomb — tanult először.
+    const expBtn = await resolveTarget({
       page,
-      [
+      log,
+      platform: "linkedin",
+      pageType: "profile",
+      field: "experience_add_button",
+      description: "A munkatapasztalat (Experience) szakasz '+' vagy 'Add experience' gombja",
+      workflowId: ctx.workflowId,
+      runId: ctx.runId,
+      timeoutMs: 10000,
+      fallbacks: [
         'button[aria-label*="Add experience" i]',
         'button[aria-label*="Tapasztalat hozzáadása" i]',
         'button:has-text("Add experience")',
@@ -213,15 +264,14 @@ async function addExperience(page, entries, submit, log) {
         '.pv-profile-section__add-button',
         'section[id*="experience"] button[aria-label*="Add" i]',
       ],
-      "Experience + gomb",
-      log,
-      10000,
-    );
-    if (!opened) {
+    });
+    if (!expBtn) {
       log("warn", `Nem nyílik az experience szerkesztő (${exp.title}) — kihagyva.`);
       continue;
     }
-    await humanWait(page, 2000);
+    await humanThink(page, 1500);
+    await humanClick(page, expBtn);
+    await humanWait(page, 2500);
 
     // Title
     await fillField(
@@ -355,31 +405,38 @@ async function selectMonthYear(page, which, yearStr, log) {
 }
 
 /** 4. Végzettség hozzáadása. */
-async function addEducation(page, entries, submit, log) {
+async function addEducation(page, entries, submit, log, ctx) {
   for (const [i, edu] of entries.entries()) {
     log("info", `Végzettség hozzáadása (${i + 1}/${entries.length}): ${edu.school}`);
 
     await humanCasualScroll(page, { steps: 3 });
     await humanWait(page, 1000);
 
-    const opened = await clickAny(
+    const eduBtn = await resolveTarget({
       page,
-      [
+      log,
+      platform: "linkedin",
+      pageType: "profile",
+      field: "education_add_button",
+      description: "A végzettség (Education) szakasz '+' vagy 'Add education' gombja",
+      workflowId: ctx.workflowId,
+      runId: ctx.runId,
+      timeoutMs: 10000,
+      fallbacks: [
         'button[aria-label*="Add education" i]',
         'button[aria-label*="Tanulmányok hozzáadása" i]',
         'button:has-text("Add education")',
         'button:has-text("Add school")',
         'section[id*="education"] button[aria-label*="Add" i]',
       ],
-      "Education + gomb",
-      log,
-      10000,
-    );
-    if (!opened) {
+    });
+    if (!eduBtn) {
       log("warn", `Nem nyílik az education szerkesztő (${edu.school}) — kihagyva.`);
       continue;
     }
-    await humanWait(page, 2000);
+    await humanThink(page, 1500);
+    await humanClick(page, eduBtn);
+    await humanWait(page, 2500);
 
     // School
     await fillField(
@@ -422,30 +479,37 @@ async function addEducation(page, entries, submit, log) {
 }
 
 /** 5. Készségek hozzáadása. */
-async function addSkills(page, skills, submit, log) {
+async function addSkills(page, skills, submit, log, ctx) {
   log("info", `${skills.length} készség hozzáadása…`);
 
   await humanCasualScroll(page, { steps: 4 });
   await humanWait(page, 1500);
 
-  const opened = await clickAny(
+  const skillBtn = await resolveTarget({
     page,
-    [
+    log,
+    platform: "linkedin",
+    pageType: "profile",
+    field: "skills_add_button",
+    description: "A készségek (Skills) szakasz '+' vagy 'Add skill' gombja",
+    workflowId: ctx.workflowId,
+    runId: ctx.runId,
+    timeoutMs: 10000,
+    fallbacks: [
       'button[aria-label*="Add skill" i]',
       'button[aria-label*="Készség hozzáadása" i]',
       'button:has-text("Add skills")',
       'button:has-text("Add skill")',
       'section[id*="skill"] button[aria-label*="Add" i]',
     ],
-    "Skills + gomb",
-    log,
-    10000,
-  );
-  if (!opened) {
+  });
+  if (!skillBtn) {
     log("warn", "Nem nyílik a skills szerkesztő — kihagyva.");
     return;
   }
-  await humanWait(page, 2000);
+  await humanThink(page, 1500);
+  await humanClick(page, skillBtn);
+  await humanWait(page, 2500);
 
   for (const [i, skill] of skills.entries()) {
     log("info", `Készség (${i + 1}/${skills.length}): ${skill}`);
@@ -527,6 +591,10 @@ export async function runLinkedInProfileSetup(args) {
   const education = Array.isArray(brainTask.education) ? brainTask.education : [];
   const skills = Array.isArray(brainTask.skills) ? brainTask.skills : [];
   const submit = brainTask.submit !== false && !brainTask.dry_run;
+  const ctx = {
+    workflowId: args.spec?.workflow_id || null,
+    runId: args.spec?.run_id || null,
+  };
 
   if (!headline) throw new Error("Nincs headline a profil-kitöltéshez.");
 
@@ -554,32 +622,32 @@ export async function runLinkedInProfileSetup(args) {
 
   // 1. Headline
   if (headline) {
-    await editHeadline(page, headline, submit, log);
+    await editHeadline(page, headline, submit, log, ctx);
     await humanCasualScroll(page, { steps: 1 });
     await humanWait(page, 1500);
   }
 
   // 2. About
   if (about) {
-    await editAbout(page, about, submit, log);
+    await editAbout(page, about, submit, log, ctx);
     await humanWait(page, 1500);
   }
 
   // 3. Experience
   if (experience.length > 0) {
-    await addExperience(page, experience, submit, log);
+    await addExperience(page, experience, submit, log, ctx);
     await humanWait(page, 1500);
   }
 
   // 4. Education
   if (education.length > 0) {
-    await addEducation(page, education, submit, log);
+    await addEducation(page, education, submit, log, ctx);
     await humanWait(page, 1500);
   }
 
   // 5. Skills
   if (skills.length > 0) {
-    await addSkills(page, skills, submit, log);
+    await addSkills(page, skills, submit, log, ctx);
   }
 
   // Utána még egy kicsit böngészünk.
