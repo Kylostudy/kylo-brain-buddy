@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-karma")({
         const { data: accounts, error: accErr } = await supabaseAdmin
           .from("reddit_accounts")
           .select(
-            "id, tenant_id, workflow_id, username, language, locale, proxy_id, target_subreddits, status, warmup_days_completed, warmup_status",
+            "id, tenant_id, workflow_id, username, language, locale, proxy_id, target_subreddits, status, warmup_days_completed, warmup_status, quarantined_until",
           )
           .eq("status", "active");
 
@@ -55,6 +55,10 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-karma")({
           if (enqueued.length >= MAX_ENQUEUE_PER_TICK) break;
           if (!acc.workflow_id) {
             skipped.push({ account_id: acc.id, reason: "nincs workflow" });
+            continue;
+          }
+          if (acc.quarantined_until && new Date(acc.quarantined_until) > new Date()) {
+            skipped.push({ account_id: acc.id, reason: "karanténban" });
             continue;
           }
           const days = acc.warmup_days_completed ?? 0;

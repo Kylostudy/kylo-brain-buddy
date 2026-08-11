@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Flame, UserPlus, Upload } from "lucide-react";
+import { Flame, UserPlus, Upload, ShieldAlert, ShieldCheck } from "lucide-react";
 
 import {
   listRedditWorkflows,
   importRedditAccounts,
   startRedditTask,
+  setRedditQuarantine,
 } from "@/lib/reddit-accounts.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +25,7 @@ export function RedditAccountsPanel() {
   const listFn = useServerFn(listRedditWorkflows);
   const importFn = useServerFn(importRedditAccounts);
   const taskFn = useServerFn(startRedditTask);
+  const quarantineFn = useServerFn(setRedditQuarantine);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["reddit-workflows"],
@@ -54,6 +56,29 @@ export function RedditAccountsPanel() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const quarantineMut = useMutation({
+    mutationFn: (vars: { days: number }) =>
+      quarantineFn({
+        data: {
+          workflow_ids: selected,
+          days: vars.days,
+          reason: vars.days > 0 ? "gyanús platform-jelzés (kézi karantén)" : undefined,
+        },
+      }),
+    onSuccess: (res) => {
+      toast.success(
+        res.until
+          ? `${res.updated} fiók karanténba került eddig: ${new Date(res.until).toLocaleDateString("hu-HU")}`
+          : `${res.updated} fiók karanténja feloldva.`,
+      );
+      qc.invalidateQueries({ queryKey: ["reddit-workflows"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const isQuarantined = (until: string | null) =>
+    !!until && new Date(until) > new Date();
 
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -124,6 +149,12 @@ export function RedditAccountsPanel() {
                 <Badge variant={r.username ? "default" : "secondary"}>
                   {r.username ? r.username : "nincs fiók"}
                 </Badge>
+                {isQuarantined(r.quarantined_until) && (
+                  <Badge variant="destructive" title={r.quarantine_reason ?? ""}>
+                    karantén ·{" "}
+                    {new Date(r.quarantined_until!).toLocaleDateString("hu-HU")}
+                  </Badge>
+                )}
                 {r.warmup_status && (
                   <Badge variant="outline">
                     {r.warmup_status} · {r.warmup_days_completed} nap
@@ -154,6 +185,20 @@ export function RedditAccountsPanel() {
               disabled={selected.length === 0 || taskMut.isPending}
             >
               <Flame className="mr-2 h-4 w-4" /> Fiók-melegítés indítása (30 perc)
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => quarantineMut.mutate({ days: 14 })}
+              disabled={selected.length === 0 || quarantineMut.isPending}
+            >
+              <ShieldAlert className="mr-2 h-4 w-4" /> Karantén 14 napra
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => quarantineMut.mutate({ days: 0 })}
+              disabled={selected.length === 0 || quarantineMut.isPending}
+            >
+              <ShieldCheck className="mr-2 h-4 w-4" /> Karantén feloldása
             </Button>
           </div>
         </CardContent>
