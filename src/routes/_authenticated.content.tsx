@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ClipboardPaste, Paperclip, Send, Trash2, Trophy, Upload, X } from "lucide-react";
+import { ClipboardPaste, Clock, Paperclip, Send, Trash2, Trophy, Upload, X } from "lucide-react";
 
 import {
   listContentDrafts,
