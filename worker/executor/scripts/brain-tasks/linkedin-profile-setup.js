@@ -25,6 +25,7 @@ import {
   humanWait,
   reseedHuman,
 } from "../humanize.js";
+import { resolveTarget } from "./resolve-selector.js";
 
 // ── segédfüggvények ──────────────────────────────────────────────
 
