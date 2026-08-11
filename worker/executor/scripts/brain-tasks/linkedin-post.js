@@ -91,25 +91,42 @@ export async function runLinkedInPost(args) {
     await humanCasualScroll(page, { steps: 2 });
   }
 
-  // „Start a post" gomb megnyitása
+  // „Start a post" gomb megnyitása (a LinkedIn sokféle jelölést használ)
   const startBtn = await firstVisible(page, [
     'button.share-box-feed-entry__trigger',
+    '.share-box-feed-entry__top-bar button',
+    '.share-box-feed-entry button',
     'button:has-text("Start a post")',
     'button:has-text("Create a post")',
     'button:has-text("Beszélgetés indítása")',
+    'button:has-text("Bericht starten")',
+    'button:has-text("Start een bericht")',
     '[aria-label*="Start a post" i]',
     '[aria-label*="Create a post" i]',
-  ], 15000);
-  if (!startBtn) throw new Error("Nem található a „Start a post” gomb (lehet, hogy nem vagyunk bejelentkezve).");
-
-  await humanClick(page, startBtn);
-  await humanWait(page, 2500);
+    '[aria-label*="post" i][role="button"]',
+    'button:has-text("What do you want to talk about")',
+    'p:has-text("Start a post")',
+    'span:has-text("Start a post")',
+  ], 25000);
+  if (!startBtn) {
+    // Végső mentsvár: közvetlenül a poszt-szerkesztő URL-je.
+    log("warn", "Nem találtam a „Start a post” gombot — közvetlen szerkesztő URL-lel próbálom.");
+    await page.goto("https://www.linkedin.com/feed/?shareActive=true", {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
+    await humanWait(page, 4000);
+  } else {
+    await humanClick(page, startBtn);
+    await humanWait(page, 2500);
+  }
 
   const editor = await firstVisible(page, [
     'div.ql-editor[contenteditable="true"]',
     'div[role="textbox"][contenteditable="true"]',
     '[data-placeholder*="What do you want to talk about" i]',
-  ], 15000);
+  ], 20000);
+
   if (!editor) throw new Error("Nem található a LinkedIn szövegszerkesztő mező.");
 
   await humanClick(page, editor);
