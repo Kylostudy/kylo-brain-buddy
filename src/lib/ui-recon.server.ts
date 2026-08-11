@@ -22,6 +22,7 @@ export type ReconIngestInput = {
   fields: ReconField[];
   workflowId?: string | null;
   runId?: string | null;
+  taskId?: string | null;
 };
 
 export type ReconProposal = {
@@ -169,11 +170,43 @@ export async function processReconSnapshot(
 
   // Tenant feloldás a workflow alapján (a worker mindig küld workflow_id-t).
   let tenantId: string | null = null;
-  if (input.workflowId) {
+  let workflowId: string | null = input.workflowId ?? null;
+  if (workflowId) {
     const { data } = await supabaseAdmin
       .from("workflows")
       .select("tenant_id")
-      .eq("id", input.workflowId)
+      .eq("id", workflowId)
+      .maybeSingle();
+    tenantId = (data?.tenant_id as string | undefined) ?? null;
+  }
+  // Tartalék: a feladat azonosítójából (a worker spec-je nem mindig hoz workflow_id-t).
+  if (!tenantId && input.taskId) {
+    const { data } = await supabaseAdmin
+      .from("brain_task_queue")
+      .select("tenant_id, workflow_id")
+      .eq("id", input.taskId)
+      .maybeSingle();
+    tenantId = (data?.tenant_id as string | undefined) ?? null;
+    workflowId = workflowId ?? ((data?.workflow_id as string | undefined) ?? null);
+  }
+  // Tartalék 2: a futás rekordjából.
+  if (!tenantId && input.runId) {
+    const { data } = await supabaseAdmin
+      .from("brain_workflow_runs")
+      .select("tenant_id, workflow_id")
+      .eq("id", input.runId)
+      .maybeSingle();
+    tenantId = (data?.tenant_id as string | undefined) ?? null;
+    workflowId = workflowId ?? ((data?.workflow_id as string | undefined) ?? null);
+  }
+  // Tartalék 3: ha csak egyetlen tenant létezik, az egyértelmű.
+  if (!tenantId) {
+    const { data } = await supabaseAdmin
+      .from("brain_task_queue")
+      .select("tenant_id")
+      .eq("task_type", "ui_recon")
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     tenantId = (data?.tenant_id as string | undefined) ?? null;
   }
@@ -275,7 +308,7 @@ export async function processReconSnapshot(
     .from("ui_recon_snapshots")
     .insert({
       tenant_id: tenantId,
-      workflow_id: input.workflowId ?? null,
+      workflow_id: workflowId,
       run_id: input.runId ?? null,
       platform: input.platform,
       page_type: input.pageType,

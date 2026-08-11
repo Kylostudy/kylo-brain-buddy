@@ -36,6 +36,7 @@ export async function sendRecon({
   fields,
   workflowId,
   runId,
+  taskId = null,
   log = () => {},
 }) {
   const domDigest = await collectDomDigest(page);
@@ -53,6 +54,7 @@ export async function sendRecon({
       fields,
       workflow_id: workflowId ?? null,
       run_id: runId ?? null,
+      task_id: taskId ?? null,
     },
     timeoutMs: 90000,
   });

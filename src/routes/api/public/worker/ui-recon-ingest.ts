@@ -21,6 +21,7 @@ const BodySchema = z.object({
     .default([]),
   workflow_id: z.string().uuid().nullable().optional(),
   run_id: z.string().uuid().nullable().optional(),
+  task_id: z.string().uuid().nullable().optional(),
 });
 
 function tokenOk(request: Request): boolean {
@@ -67,6 +68,7 @@ export const Route = createFileRoute("/api/public/worker/ui-recon-ingest")({
             fields: d.fields,
             workflowId: d.workflow_id ?? null,
             runId: d.run_id ?? null,
+            taskId: d.task_id ?? null,
           });
           return Response.json({
             ok: true,

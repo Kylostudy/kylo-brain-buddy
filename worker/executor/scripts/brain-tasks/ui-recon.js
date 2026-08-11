@@ -61,6 +61,7 @@ export async function runUiRecon({ page, spec, brainTask, log }) {
   if (!preset) throw new Error(`Felderítő járat: a(z) "${platform}" platform még nincs beállítva.`);
 
   const workflowId = spec?.workflow_id || null;
+  const taskId = brainTask?.task_id || null;
   const runId = spec?.run_id || null;
   const stops = Array.isArray(brainTask?.stops) && brainTask.stops.length
     ? brainTask.stops
@@ -100,6 +101,7 @@ export async function runUiRecon({ page, spec, brainTask, log }) {
         fields: stop.fields || [],
         workflowId,
         runId,
+        taskId,
         log,
       });
       changedAnywhere = changedAnywhere || !!res?.changed;
@@ -130,6 +132,7 @@ export async function runUiRecon({ page, spec, brainTask, log }) {
         fields: preset.composer.fields,
         workflowId,
         runId,
+        taskId,
         log,
       });
       changedAnywhere = changedAnywhere || !!res?.changed;
