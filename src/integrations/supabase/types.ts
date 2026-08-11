@@ -781,6 +781,8 @@ export type Database = {
           media_path: string | null
           media_size: number | null
           media_slot: string | null
+          scheduled_for: string | null
+          scheduled_submit: boolean
           status: string
           submitted_at: string | null
           target_ref: string | null
@@ -800,6 +802,8 @@ export type Database = {
           media_path?: string | null
           media_size?: number | null
           media_slot?: string | null
+          scheduled_for?: string | null
+          scheduled_submit?: boolean
           status?: string
           submitted_at?: string | null
           target_ref?: string | null
@@ -819,6 +823,8 @@ export type Database = {
           media_path?: string | null
           media_size?: number | null
           media_slot?: string | null
+          scheduled_for?: string | null
+          scheduled_submit?: boolean
           status?: string
           submitted_at?: string | null
           target_ref?: string | null

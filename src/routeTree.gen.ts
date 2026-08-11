@@ -38,6 +38,7 @@ import { Route as ApiPublicCronLeadRadarRouteImport } from './routes/api/public/
 import { Route as ApiPublicCronLinkedinCommentScanRouteImport } from './routes/api/public/cron/linkedin-comment-scan'
 import { Route as ApiPublicCronLinkedinEngageRouteImport } from './routes/api/public/cron/linkedin-engage'
 import { Route as ApiPublicCronLinkedinMetricsRouteImport } from './routes/api/public/cron/linkedin-metrics'
+import { Route as ApiPublicCronPublishScheduledDraftsRouteImport } from './routes/api/public/cron/publish-scheduled-drafts'
 import { Route as ApiPublicCronRedditDiscourseRouteImport } from './routes/api/public/cron/reddit-discourse'
 import { Route as ApiPublicCronRedditPostPatrolRouteImport } from './routes/api/public/cron/reddit-post-patrol'
 import { Route as ApiPublicCronScheduleRedditKarmaRouteImport } from './routes/api/public/cron/schedule-reddit-karma'
@@ -244,6 +245,12 @@ const ApiPublicCronLinkedinMetricsRoute =
   ApiPublicCronLinkedinMetricsRouteImport.update({
     id: '/api/public/cron/linkedin-metrics',
     path: '/api/public/cron/linkedin-metrics',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronPublishScheduledDraftsRoute =
+  ApiPublicCronPublishScheduledDraftsRouteImport.update({
+    id: '/api/public/cron/publish-scheduled-drafts',
+    path: '/api/public/cron/publish-scheduled-drafts',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCronRedditDiscourseRoute =
@@ -556,6 +563,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/linkedin-comment-scan': typeof ApiPublicCronLinkedinCommentScanRoute
   '/api/public/cron/linkedin-engage': typeof ApiPublicCronLinkedinEngageRoute
   '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
+  '/api/public/cron/publish-scheduled-drafts': typeof ApiPublicCronPublishScheduledDraftsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
@@ -634,6 +642,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/linkedin-comment-scan': typeof ApiPublicCronLinkedinCommentScanRoute
   '/api/public/cron/linkedin-engage': typeof ApiPublicCronLinkedinEngageRoute
   '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
+  '/api/public/cron/publish-scheduled-drafts': typeof ApiPublicCronPublishScheduledDraftsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
@@ -714,6 +723,7 @@ export interface FileRoutesById {
   '/api/public/cron/linkedin-comment-scan': typeof ApiPublicCronLinkedinCommentScanRoute
   '/api/public/cron/linkedin-engage': typeof ApiPublicCronLinkedinEngageRoute
   '/api/public/cron/linkedin-metrics': typeof ApiPublicCronLinkedinMetricsRoute
+  '/api/public/cron/publish-scheduled-drafts': typeof ApiPublicCronPublishScheduledDraftsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
@@ -794,6 +804,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/linkedin-comment-scan'
     | '/api/public/cron/linkedin-engage'
     | '/api/public/cron/linkedin-metrics'
+    | '/api/public/cron/publish-scheduled-drafts'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-karma'
@@ -872,6 +883,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/linkedin-comment-scan'
     | '/api/public/cron/linkedin-engage'
     | '/api/public/cron/linkedin-metrics'
+    | '/api/public/cron/publish-scheduled-drafts'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-karma'
@@ -951,6 +963,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/linkedin-comment-scan'
     | '/api/public/cron/linkedin-engage'
     | '/api/public/cron/linkedin-metrics'
+    | '/api/public/cron/publish-scheduled-drafts'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
     | '/api/public/cron/schedule-reddit-karma'
@@ -1017,6 +1030,7 @@ export interface RootRouteChildren {
   ApiPublicCronLinkedinCommentScanRoute: typeof ApiPublicCronLinkedinCommentScanRoute
   ApiPublicCronLinkedinEngageRoute: typeof ApiPublicCronLinkedinEngageRoute
   ApiPublicCronLinkedinMetricsRoute: typeof ApiPublicCronLinkedinMetricsRoute
+  ApiPublicCronPublishScheduledDraftsRoute: typeof ApiPublicCronPublishScheduledDraftsRoute
   ApiPublicCronRedditDiscourseRoute: typeof ApiPublicCronRedditDiscourseRoute
   ApiPublicCronRedditPostPatrolRoute: typeof ApiPublicCronRedditPostPatrolRoute
   ApiPublicCronScheduleRedditKarmaRoute: typeof ApiPublicCronScheduleRedditKarmaRoute
@@ -1268,6 +1282,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/linkedin-metrics'
       fullPath: '/api/public/cron/linkedin-metrics'
       preLoaderRoute: typeof ApiPublicCronLinkedinMetricsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/publish-scheduled-drafts': {
+      id: '/api/public/cron/publish-scheduled-drafts'
+      path: '/api/public/cron/publish-scheduled-drafts'
+      fullPath: '/api/public/cron/publish-scheduled-drafts'
+      preLoaderRoute: typeof ApiPublicCronPublishScheduledDraftsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cron/reddit-discourse': {
@@ -1690,6 +1711,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronLinkedinCommentScanRoute: ApiPublicCronLinkedinCommentScanRoute,
   ApiPublicCronLinkedinEngageRoute: ApiPublicCronLinkedinEngageRoute,
   ApiPublicCronLinkedinMetricsRoute: ApiPublicCronLinkedinMetricsRoute,
+  ApiPublicCronPublishScheduledDraftsRoute:
+    ApiPublicCronPublishScheduledDraftsRoute,
   ApiPublicCronRedditDiscourseRoute: ApiPublicCronRedditDiscourseRoute,
   ApiPublicCronRedditPostPatrolRoute: ApiPublicCronRedditPostPatrolRoute,
   ApiPublicCronScheduleRedditKarmaRoute: ApiPublicCronScheduleRedditKarmaRoute,
@@ -1748,13 +1771,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

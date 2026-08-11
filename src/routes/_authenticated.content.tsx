@@ -3,13 +3,15 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ClipboardPaste, Paperclip, Send, Trash2, Trophy, Upload, X } from "lucide-react";
+import { ClipboardPaste, Clock, Paperclip, Send, Trash2, Trophy, Upload, X } from "lucide-react";
 
 import {
   listContentDrafts,
   saveContentDraft,
   deleteContentDraft,
   queueContentDraft,
+  scheduleContentDraft,
+
   recommendMatureRedditAccount,
 } from "@/lib/content-drafts.functions";
 import { createMediaUploadUrl } from "@/lib/content-media.functions";
@@ -62,6 +64,8 @@ function ContentStudioPage() {
   const saveFn = useServerFn(saveContentDraft);
   const delFn = useServerFn(deleteContentDraft);
   const queueFn = useServerFn(queueContentDraft);
+  const schedFn = useServerFn(scheduleContentDraft);
+
   const wfFn = useServerFn(listBrainWorkflowsForWarmup);
   const recFn = useServerFn(recommendMatureRedditAccount);
 
@@ -150,6 +154,16 @@ function ContentStudioPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const schedM = useMutation({
+    mutationFn: (v: { id: string; scheduled_for: string | null }) =>
+      schedFn({ data: { id: v.id, scheduled_for: v.scheduled_for } }),
+    onSuccess: (_r, v) => {
+      toast.success(v.scheduled_for ? "Időzítve." : "Időzítés törölve.");
+      qc.invalidateQueries({ queryKey: ["content-drafts"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const delM = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
     onSuccess: () => {
@@ -158,6 +172,7 @@ function ContentStudioPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const workflows = wfQ.data ?? [];
   const best = recQ.data?.best;
@@ -374,10 +389,21 @@ function ContentStudioPage() {
                       ? "fut"
                       : d.status === "queued"
                         ? "sorban áll"
-                        : d.status === "failed"
-                          ? "hibázott"
-                          : d.status}
+                        : d.status === "scheduled"
+                          ? "időzítve"
+                          : d.status === "failed"
+                            ? "hibázott"
+                            : d.status}
                 </Badge>
+                {(d as { scheduled_for?: string | null }).scheduled_for && (
+                  <Badge variant="outline" className="gap-1">
+                    <Clock className="size-3" />
+                    {new Date(
+                      (d as { scheduled_for?: string | null }).scheduled_for as string,
+                    ).toLocaleString("hu-HU", { dateStyle: "short", timeStyle: "short" })}
+                  </Badge>
+                )}
+
                 <span className="text-xs text-muted-foreground">
                   {workflows.find((w) => w.id === d.target_workflow_id)?.name ?? "nincs workflow"}
                 </span>
@@ -417,9 +443,15 @@ function ContentStudioPage() {
                     >
                       <Trash2 className="size-4" />
                     </Button>
+                    <ScheduleControl
+                      current={(d as { scheduled_for?: string | null }).scheduled_for ?? null}
+                      busy={schedM.isPending && schedM.variables?.id === d.id}
+                      onSet={(iso) => schedM.mutate({ id: d.id, scheduled_for: iso })}
+                    />
                   </div>
                 );
               })()}
+
             </div>
           ))}
         </CardContent>
@@ -427,3 +459,48 @@ function ContentStudioPage() {
     </div>
   );
 }
+
+/** Kis időzítő mező: helyi idő szerinti dátum+óra, egy gombbal beállítva/törölve. */
+function ScheduleControl({
+  current,
+  busy,
+  onSet,
+}: {
+  current: string | null;
+  busy: boolean;
+  onSet: (iso: string | null) => void;
+}) {
+  const toLocal = (iso: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  const [value, setValue] = useState(toLocal(current));
+
+  return (
+    <div className="flex items-center gap-1">
+      <Input
+        type="datetime-local"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="h-8 w-[200px] text-xs"
+      />
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={busy || !value}
+        onClick={() => onSet(new Date(value).toISOString())}
+      >
+        <Clock className="mr-1 size-3.5" />
+        {busy ? "…" : "Időzítés"}
+      </Button>
+      {current && (
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => onSet(null)}>
+          Törlés
+        </Button>
+      )}
+    </div>
+  );
+}
+
