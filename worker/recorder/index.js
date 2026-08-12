@@ -1275,6 +1275,124 @@ async function runSession(payload) {
     }
   });
 
+  // Hosszú szöveg EMBERI tempóban való begépelése a kijelölt távoli mezőbe.
+  // A felhasználó kézzel belép, rákattint a szövegmezőre, és a worker onnantól
+  // úgy gépel, mint egy ember: változó ütem, gondolkodási szünetek, ritka
+  // elgépelés azonnali javítással.
+  let humanTypeBusy = false;
+  let humanTypeCancelled = false;
+
+  const TYPO_KEYS = {
+    a: "s", s: "a", d: "f", f: "d", g: "h", h: "g", j: "k", k: "j",
+    l: "k", q: "w", w: "q", e: "r", r: "e", t: "y", y: "t", u: "i",
+    i: "u", o: "p", p: "o", z: "x", x: "z", c: "v", v: "c", b: "n", n: "b", m: "n",
+  };
+
+  channel.on("broadcast", { event: "humanTypeCancel" }, async () => {
+    if (humanTypeBusy) humanTypeCancelled = true;
+  });
+
+  channel.on("broadcast", { event: "humanTypeAt" }, async ({ payload }) => {
+    const text = typeof payload?.text === "string" ? payload.text : "";
+    const ack = (status, target, extra = {}) =>
+      channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "humanType", status, target, ...extra },
+      }).catch(() => {});
+
+    try {
+      if (!text.trim()) throw new Error("üres szöveg érkezett");
+      if (humanTypeBusy) throw new Error("Már fut egy gépelés. Várd meg a végét, vagy állítsd le.");
+      humanTypeBusy = true;
+      humanTypeCancelled = false;
+
+      await ack("received", "A worker átvette a szöveget, kezdem a gépelést…");
+
+      const vs = page.viewportSize() || { width: viewportW, height: viewportH };
+      const x = Math.max(0, Math.min(vs.width - 1, Number(payload?.x) * vs.width));
+      const y = Math.max(0, Math.min(vs.height - 1, Number(payload?.y) * vs.height));
+      if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("érvénytelen kattintási hely");
+
+      lastClickPoint = { x, y, t: Date.now() };
+      await page.mouse.click(x, y);
+      await sleep(400);
+      const focusResult = await focusEditableAt(x, y);
+      let focused = Boolean(focusResult?.focused) && await hasEditableFocus();
+      if (!focused) focused = await hasEditableFocus();
+      if (!focused) {
+        throw new Error("A kijelölt ponton nincs szövegmező. Kattints a mező közepére, majd próbáld újra.");
+      }
+
+      // Rövid „gondolkodás”, mielőtt elkezdünk írni.
+      await sleep(900 + Math.random() * 1600);
+
+      const paragraphs = text.replace(/\r\n/g, "\n").split(/\n{2,}/);
+      let done = 0;
+      let lastReport = Date.now();
+
+      for (let p = 0; p < paragraphs.length; p += 1) {
+        const lines = paragraphs[p].split("\n");
+        for (let li = 0; li < lines.length; li += 1) {
+          const line = lines[li];
+          for (const ch of line) {
+            if (humanTypeCancelled) throw new Error("A gépelést leállítottad.");
+
+            // Ritka elgépelés, azonnali javítással (kb. 1,5%).
+            const lower = ch.toLowerCase();
+            if (TYPO_KEYS[lower] && Math.random() < 0.015) {
+              const wrong = ch === lower ? TYPO_KEYS[lower] : TYPO_KEYS[lower].toUpperCase();
+              await page.keyboard.type(wrong, { delay: 0 });
+              await sleep(220 + Math.random() * 380);
+              await page.keyboard.press("Backspace");
+              await sleep(120 + Math.random() * 200);
+            }
+
+            await page.keyboard.type(ch, { delay: 0 });
+            done += 1;
+
+            // Változó ütem: alap 45–140 ms, szóköz után néha hosszabb szünet.
+            let wait = 45 + Math.random() * 95;
+            if (/[.,!?;:]/.test(ch)) wait += 180 + Math.random() * 420;
+            if (ch === " " && Math.random() < 0.06) wait += 400 + Math.random() * 900;
+            await sleep(wait);
+
+            if (Date.now() - lastReport > 2500) {
+              lastReport = Date.now();
+              await ack("progress", `Gépelés folyamatban… ${done}/${text.length} karakter`, {
+                done,
+                total: text.length,
+              });
+            }
+          }
+          if (li < lines.length - 1) {
+            await page.keyboard.press("Enter");
+            await sleep(250 + Math.random() * 450);
+          }
+        }
+        if (p < paragraphs.length - 1) {
+          await page.keyboard.press("Enter");
+          await page.keyboard.press("Enter");
+          // Bekezdések között hosszabb „átgondolás”.
+          await sleep(1200 + Math.random() * 2600);
+        }
+      }
+
+      await ack("done", `Kész: ${done} karakter begépelve. A közzétételt te indítsd el.`, {
+        done,
+        total: text.length,
+      });
+    } catch (e) {
+      console.error(`[session ${session.id}] human type error:`, e?.message || e);
+      await ack("error", e?.message || "sikertelen gépelés");
+    } finally {
+      humanTypeBusy = false;
+      humanTypeCancelled = false;
+    }
+  });
+
+
+
 
   channel.on("broadcast", { event: "key" }, async ({ payload }) => {
     try {

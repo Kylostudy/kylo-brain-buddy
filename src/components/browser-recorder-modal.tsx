@@ -30,6 +30,8 @@ import {
   Check,
   Copy,
   KeyRound,
+  Keyboard,
+
   Loader2,
   MailCheck,
   Maximize2,
@@ -104,6 +106,12 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [secretOpen, setSecretOpen] = useState(false);
   const [secretValue, setSecretValue] = useState("");
   const [secretBusy, setSecretBusy] = useState(false);
+  // Hosszú szöveg (pl. LinkedIn poszt) emberi tempójú begépelése: te kézzel
+  // belépsz, rákattintasz a szerkesztőmezőre, a worker onnantól gépel.
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [storyValue, setStoryValue] = useState("");
+  const [storyBusy, setStoryBusy] = useState(false);
+
   const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
   const [lockedFrameSize, setLockedFrameSize] = useState<{ w: number; h: number } | null>(null);
@@ -178,7 +186,24 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     });
     ch.on("broadcast", { event: "inputAck" }, ({ payload }) => {
       const p = payload as { kind?: string; status?: string; x?: number; y?: number; target?: string };
+      if (p.kind === "humanType") {
+        if (p.status === "received" || p.status === "progress") {
+          setStoryBusy(true);
+          setInputStatus(p.target ?? "Gépelés folyamatban…");
+          return;
+        }
+        setStoryBusy(false);
+        if (p.status === "done") {
+          setInputStatus(`✓ ${p.target ?? "A szöveg begépelve."}`);
+          toast.success("A szöveg be van gépelve. Nézd át, és te nyomd meg a Közzététel gombot.");
+        } else {
+          setInputStatus(`Gépelési hiba: ${p.target ?? "ismeretlen hiba"}`);
+          toast.error(p.target ?? "A gépelés nem sikerült.");
+        }
+        return;
+      }
       if (p.kind === "secret") {
+
         if (p.status === "received") {
           setInputStatus(p.target ?? "A worker átvette a jelszót, beillesztés folyamatban…");
           // A kézbesítés megtörtént: az első időkorlát helyett innentől a
@@ -600,6 +625,27 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       return;
     }
 
+    // Ha a szöveg-panelen van begépelendő szöveg, a következő képkattintás
+    // jelöli ki a célmezőt, és a worker ott kezd emberi tempóban gépelni.
+    if (storyOpen && storyValue.trim() && !storyBusy) {
+      setStoryBusy(true);
+      setInputStatus("Szövegmező kijelölése, gépelés indul…");
+      const sentStory = sendToWorker("humanTypeAt", {
+        text: storyValue,
+        x,
+        y,
+        frameW: frame?.w,
+        frameH: frame?.h,
+      });
+      if (!sentStory) {
+        setStoryBusy(false);
+        setInputStatus("Nincs aktív kapcsolat a workerhez.");
+      }
+      return;
+    }
+
+
+
     clickInFlightRef.current = true;
     if (clickTimeoutRef.current !== null) window.clearTimeout(clickTimeoutRef.current);
     clickTimeoutRef.current = window.setTimeout(() => {
@@ -968,6 +1014,21 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           <span className="ml-1 hidden lg:inline">Jelszó</span>
         </Button>
 
+        <Button
+          size="sm"
+          variant="secondary"
+          className="bg-sky-700 text-white hover:bg-sky-600"
+          onClick={() => setStoryOpen((v) => !v)}
+          disabled={status !== "active"}
+          aria-label="Hosszú szöveg emberi tempóban való begépelése"
+          title="Hosszú szöveg (pl. poszt) begépelése emberi tempóban a kijelölt mezőbe"
+        >
+          <Keyboard className="size-4" />
+          <span className="ml-1 hidden lg:inline">Szöveg gépelése</span>
+        </Button>
+
+
+
 
         <Button
           size="sm"
@@ -1049,6 +1110,50 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           </Button>
         </div>
       )}
+
+      {storyOpen && (
+        <div className="flex items-start gap-2 border-b border-white/10 bg-neutral-900 px-3 py-2">
+          <Keyboard className="mt-2 size-4 shrink-0 text-sky-400" />
+          <textarea
+            value={storyValue}
+            onChange={(e) => setStoryValue(e.target.value)}
+            rows={4}
+            placeholder="Illeszd be ide a poszt szövegét, majd kattints a távoli szerkesztőmezőre — onnantól a rendszer emberi tempóban begépeli."
+            className="min-h-[72px] flex-1 rounded-md border border-white/20 bg-black/40 px-2 py-1 text-sm text-white placeholder:text-white/40"
+          />
+          <div className="flex flex-col gap-2">
+            <span className="text-xs text-white/60">{storyValue.length} karakter</span>
+            {storyBusy ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="bg-red-700 text-white hover:bg-red-600"
+                onClick={() => {
+                  sendToWorker("humanTypeCancel", {});
+                  setStoryBusy(false);
+                  setInputStatus("Gépelés leállítva.");
+                }}
+              >
+                <Loader2 className="mr-1 size-4 animate-spin" /> Leállítás
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10"
+                onClick={() => {
+                  setStoryValue("");
+                  setStoryOpen(false);
+                }}
+              >
+                Bezárás
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+
 
 
 
