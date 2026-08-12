@@ -184,7 +184,24 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     });
     ch.on("broadcast", { event: "inputAck" }, ({ payload }) => {
       const p = payload as { kind?: string; status?: string; x?: number; y?: number; target?: string };
+      if (p.kind === "humanType") {
+        if (p.status === "received" || p.status === "progress") {
+          setStoryBusy(true);
+          setInputStatus(p.target ?? "Gépelés folyamatban…");
+          return;
+        }
+        setStoryBusy(false);
+        if (p.status === "done") {
+          setInputStatus(`✓ ${p.target ?? "A szöveg begépelve."}`);
+          toast.success("A szöveg be van gépelve. Nézd át, és te nyomd meg a Közzététel gombot.");
+        } else {
+          setInputStatus(`Gépelési hiba: ${p.target ?? "ismeretlen hiba"}`);
+          toast.error(p.target ?? "A gépelés nem sikerült.");
+        }
+        return;
+      }
       if (p.kind === "secret") {
+
         if (p.status === "received") {
           setInputStatus(p.target ?? "A worker átvette a jelszót, beillesztés folyamatban…");
           // A kézbesítés megtörtént: az első időkorlát helyett innentől a
