@@ -623,6 +623,27 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       return;
     }
 
+    // Ha a szöveg-panelen van begépelendő szöveg, a következő képkattintás
+    // jelöli ki a célmezőt, és a worker ott kezd emberi tempóban gépelni.
+    if (storyOpen && storyValue.trim() && !storyBusy) {
+      setStoryBusy(true);
+      setInputStatus("Szövegmező kijelölése, gépelés indul…");
+      const sentStory = sendToWorker("humanTypeAt", {
+        text: storyValue,
+        x,
+        y,
+        frameW: frame?.w,
+        frameH: frame?.h,
+      });
+      if (!sentStory) {
+        setStoryBusy(false);
+        setInputStatus("Nincs aktív kapcsolat a workerhez.");
+      }
+      return;
+    }
+
+
+
     clickInFlightRef.current = true;
     if (clickTimeoutRef.current !== null) window.clearTimeout(clickTimeoutRef.current);
     clickTimeoutRef.current = window.setTimeout(() => {
