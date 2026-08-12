@@ -104,6 +104,12 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [secretOpen, setSecretOpen] = useState(false);
   const [secretValue, setSecretValue] = useState("");
   const [secretBusy, setSecretBusy] = useState(false);
+  // Hosszú szöveg (pl. LinkedIn poszt) emberi tempójú begépelése: te kézzel
+  // belépsz, rákattintasz a szerkesztőmezőre, a worker onnantól gépel.
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [storyValue, setStoryValue] = useState("");
+  const [storyBusy, setStoryBusy] = useState(false);
+
   const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
   const [lockedFrameSize, setLockedFrameSize] = useState<{ w: number; h: number } | null>(null);
