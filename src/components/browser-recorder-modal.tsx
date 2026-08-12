@@ -30,6 +30,8 @@ import {
   Check,
   Copy,
   KeyRound,
+  Keyboard,
+
   Loader2,
   MailCheck,
   Maximize2,
