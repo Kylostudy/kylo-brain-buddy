@@ -1014,6 +1014,21 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           <span className="ml-1 hidden lg:inline">Jelszó</span>
         </Button>
 
+        <Button
+          size="sm"
+          variant="secondary"
+          className="bg-sky-700 text-white hover:bg-sky-600"
+          onClick={() => setStoryOpen((v) => !v)}
+          disabled={status !== "active"}
+          aria-label="Hosszú szöveg emberi tempóban való begépelése"
+          title="Hosszú szöveg (pl. poszt) begépelése emberi tempóban a kijelölt mezőbe"
+        >
+          <Keyboard className="size-4" />
+          <span className="ml-1 hidden lg:inline">Szöveg gépelése</span>
+        </Button>
+
+
+
 
         <Button
           size="sm"
