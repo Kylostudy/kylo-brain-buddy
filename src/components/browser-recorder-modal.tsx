@@ -1111,6 +1111,50 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         </div>
       )}
 
+      {storyOpen && (
+        <div className="flex items-start gap-2 border-b border-white/10 bg-neutral-900 px-3 py-2">
+          <Keyboard className="mt-2 size-4 shrink-0 text-sky-400" />
+          <textarea
+            value={storyValue}
+            onChange={(e) => setStoryValue(e.target.value)}
+            rows={4}
+            placeholder="Illeszd be ide a poszt szövegét, majd kattints a távoli szerkesztőmezőre — onnantól a rendszer emberi tempóban begépeli."
+            className="min-h-[72px] flex-1 rounded-md border border-white/20 bg-black/40 px-2 py-1 text-sm text-white placeholder:text-white/40"
+          />
+          <div className="flex flex-col gap-2">
+            <span className="text-xs text-white/60">{storyValue.length} karakter</span>
+            {storyBusy ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="bg-red-700 text-white hover:bg-red-600"
+                onClick={() => {
+                  sendToWorker("humanTypeCancel", {});
+                  setStoryBusy(false);
+                  setInputStatus("Gépelés leállítva.");
+                }}
+              >
+                <Loader2 className="mr-1 size-4 animate-spin" /> Leállítás
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10"
+                onClick={() => {
+                  setStoryValue("");
+                  setStoryOpen(false);
+                }}
+              >
+                Bezárás
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+
+
 
 
       <div className="flex min-h-0 flex-1">
