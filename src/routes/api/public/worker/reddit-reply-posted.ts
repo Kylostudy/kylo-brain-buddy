@@ -42,11 +42,9 @@ export const Route = createFileRoute("/api/public/worker/reddit-reply-posted")({
 
         if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
 
-        const { sendTelegram } = await import("@/lib/reddit-post-patrol.server");
-        await sendTelegram(
-          ["✅ REDDIT · a jóváhagyott válaszod kiment.", permalink ?? ""].filter(Boolean).join("\n"),
-          { topic: "reddit_reply_ack", platform: "reddit", ref_table, ref_id },
-        );
+        // Nincs külön Telegram üzenet minden kiküldésről — csak napi összesítő
+        // megy ki (/api/public/cron/reddit-reply-digest).
+        void permalink;
         return Response.json({ ok: true });
       },
     },
