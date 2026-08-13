@@ -1110,7 +1110,18 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           <span className="ml-1 hidden lg:inline">Szöveg gépelése</span>
         </Button>
 
-
+        <Button
+          size="sm"
+          variant="secondary"
+          className="bg-fuchsia-700 text-white hover:bg-fuchsia-600"
+          onClick={() => setPhotoOpen((v) => !v)}
+          disabled={status !== "active"}
+          aria-label="Fotó vagy fájl feltöltése a távoli böngészőbe"
+          title="Fotó/fájl kiválasztása, majd a távoli „Fotó hozzáadása” gombra kattintva feltöltés"
+        >
+          <ImagePlus className="size-4" />
+          <span className="ml-1 hidden lg:inline">Fotó feltöltése</span>
+        </Button>
 
 
         <Button
