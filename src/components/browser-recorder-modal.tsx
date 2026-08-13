@@ -1247,8 +1247,56 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         </div>
       )}
 
-
-
+      {photoOpen && (
+        <div className="flex items-center gap-2 border-b border-white/10 bg-neutral-900 px-3 py-2">
+          <ImagePlus className="size-4 shrink-0 text-fuchsia-400" />
+          <input
+            ref={photoInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handlePhotoPick(f);
+              e.target.value = "";
+            }}
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-fuchsia-700 text-white hover:bg-fuchsia-600"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={photoPrepping || photoBusy}
+          >
+            {photoPrepping ? <Loader2 className="size-4 animate-spin" /> : "Fájl kiválasztása"}
+          </Button>
+          <Input
+            value={photoUrl}
+            onChange={(e) => {
+              setPhotoUrl(e.target.value);
+              if (!photoName) setPhotoName("kep.jpg");
+            }}
+            placeholder="…vagy illessz be ide egy nyilvános kép-linket"
+            className="h-8 flex-1 border-white/20 bg-black/40 text-white placeholder:text-white/40"
+          />
+          <span className="hidden text-xs text-white/60 lg:inline">
+            {photoUrl
+              ? `Kész: ${photoName || "fájl"} — kattints a távoli „Fotó hozzáadása” gombra`
+              : "Válassz fájlt, aztán kattints a képen a fotó-gombra"}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-white hover:bg-white/10"
+            onClick={() => {
+              setPhotoUrl("");
+              setPhotoName("");
+              setPhotoOpen(false);
+            }}
+          >
+            Bezárás
+          </Button>
+        </div>
+      )}
 
 
       <div className="flex min-h-0 flex-1">
