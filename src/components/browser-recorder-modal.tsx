@@ -219,6 +219,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         }
         return;
       }
+      if (p.kind === "upload") {
+        if (p.status === "received" || p.status === "progress") {
+          setPhotoBusy(true);
+          setInputStatus(p.target ?? "Fájl feltöltése folyamatban…");
+          return;
+        }
+        setPhotoBusy(false);
+        if (p.status === "done") {
+          setInputStatus(`✓ ${p.target ?? "A fájl bekerült a lapba."}`);
+          toast.success("A fotó bekerült a LinkedIn ablakába. A vágást/mentést te erősítsd meg.");
+        } else {
+          setInputStatus(`Fájlfeltöltési hiba: ${p.target ?? "ismeretlen hiba"}`);
+          toast.error(p.target ?? "A fájlfeltöltés nem sikerült.");
+        }
+        return;
+      }
+
       if (p.kind === "secret") {
 
         if (p.status === "received") {
