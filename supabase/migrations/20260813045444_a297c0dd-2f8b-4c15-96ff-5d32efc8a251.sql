@@ -1,0 +1,2 @@
+UPDATE public.lead_alerts SET status = 'approved' WHERE status = 'queued' AND posted_at IS NULL;
+UPDATE public.reddit_comments SET reply_status = 'approved' WHERE reply_status = 'queued' AND posted_at IS NULL;
