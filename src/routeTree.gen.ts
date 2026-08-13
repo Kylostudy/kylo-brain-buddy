@@ -42,6 +42,7 @@ import { Route as ApiPublicCronLinkedinMetricsRouteImport } from './routes/api/p
 import { Route as ApiPublicCronPublishScheduledDraftsRouteImport } from './routes/api/public/cron/publish-scheduled-drafts'
 import { Route as ApiPublicCronRedditDiscourseRouteImport } from './routes/api/public/cron/reddit-discourse'
 import { Route as ApiPublicCronRedditPostPatrolRouteImport } from './routes/api/public/cron/reddit-post-patrol'
+import { Route as ApiPublicCronRedditReplyDigestRouteImport } from './routes/api/public/cron/reddit-reply-digest'
 import { Route as ApiPublicCronRedditReplyDispatchRouteImport } from './routes/api/public/cron/reddit-reply-dispatch'
 import { Route as ApiPublicCronScheduleRedditKarmaRouteImport } from './routes/api/public/cron/schedule-reddit-karma'
 import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
@@ -272,6 +273,12 @@ const ApiPublicCronRedditPostPatrolRoute =
   ApiPublicCronRedditPostPatrolRouteImport.update({
     id: '/api/public/cron/reddit-post-patrol',
     path: '/api/public/cron/reddit-post-patrol',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronRedditReplyDigestRoute =
+  ApiPublicCronRedditReplyDigestRouteImport.update({
+    id: '/api/public/cron/reddit-reply-digest',
+    path: '/api/public/cron/reddit-reply-digest',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCronRedditReplyDispatchRoute =
@@ -594,6 +601,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/publish-scheduled-drafts': typeof ApiPublicCronPublishScheduledDraftsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
+  '/api/public/cron/reddit-reply-digest': typeof ApiPublicCronRedditReplyDigestRoute
   '/api/public/cron/reddit-reply-dispatch': typeof ApiPublicCronRedditReplyDispatchRoute
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
@@ -677,6 +685,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/publish-scheduled-drafts': typeof ApiPublicCronPublishScheduledDraftsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
+  '/api/public/cron/reddit-reply-digest': typeof ApiPublicCronRedditReplyDigestRoute
   '/api/public/cron/reddit-reply-dispatch': typeof ApiPublicCronRedditReplyDispatchRoute
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
@@ -762,6 +771,7 @@ export interface FileRoutesById {
   '/api/public/cron/publish-scheduled-drafts': typeof ApiPublicCronPublishScheduledDraftsRoute
   '/api/public/cron/reddit-discourse': typeof ApiPublicCronRedditDiscourseRoute
   '/api/public/cron/reddit-post-patrol': typeof ApiPublicCronRedditPostPatrolRoute
+  '/api/public/cron/reddit-reply-digest': typeof ApiPublicCronRedditReplyDigestRoute
   '/api/public/cron/reddit-reply-dispatch': typeof ApiPublicCronRedditReplyDispatchRoute
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
@@ -847,6 +857,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/publish-scheduled-drafts'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
+    | '/api/public/cron/reddit-reply-digest'
     | '/api/public/cron/reddit-reply-dispatch'
     | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
@@ -930,6 +941,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/publish-scheduled-drafts'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
+    | '/api/public/cron/reddit-reply-digest'
     | '/api/public/cron/reddit-reply-dispatch'
     | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
@@ -1014,6 +1026,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/publish-scheduled-drafts'
     | '/api/public/cron/reddit-discourse'
     | '/api/public/cron/reddit-post-patrol'
+    | '/api/public/cron/reddit-reply-digest'
     | '/api/public/cron/reddit-reply-dispatch'
     | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
@@ -1084,6 +1097,7 @@ export interface RootRouteChildren {
   ApiPublicCronPublishScheduledDraftsRoute: typeof ApiPublicCronPublishScheduledDraftsRoute
   ApiPublicCronRedditDiscourseRoute: typeof ApiPublicCronRedditDiscourseRoute
   ApiPublicCronRedditPostPatrolRoute: typeof ApiPublicCronRedditPostPatrolRoute
+  ApiPublicCronRedditReplyDigestRoute: typeof ApiPublicCronRedditReplyDigestRoute
   ApiPublicCronRedditReplyDispatchRoute: typeof ApiPublicCronRedditReplyDispatchRoute
   ApiPublicCronScheduleRedditKarmaRoute: typeof ApiPublicCronScheduleRedditKarmaRoute
   ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
@@ -1364,6 +1378,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/reddit-post-patrol'
       fullPath: '/api/public/cron/reddit-post-patrol'
       preLoaderRoute: typeof ApiPublicCronRedditPostPatrolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/reddit-reply-digest': {
+      id: '/api/public/cron/reddit-reply-digest'
+      path: '/api/public/cron/reddit-reply-digest'
+      fullPath: '/api/public/cron/reddit-reply-digest'
+      preLoaderRoute: typeof ApiPublicCronRedditReplyDigestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cron/reddit-reply-dispatch': {
@@ -1799,6 +1820,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicCronPublishScheduledDraftsRoute,
   ApiPublicCronRedditDiscourseRoute: ApiPublicCronRedditDiscourseRoute,
   ApiPublicCronRedditPostPatrolRoute: ApiPublicCronRedditPostPatrolRoute,
+  ApiPublicCronRedditReplyDigestRoute: ApiPublicCronRedditReplyDigestRoute,
   ApiPublicCronRedditReplyDispatchRoute: ApiPublicCronRedditReplyDispatchRoute,
   ApiPublicCronScheduleRedditKarmaRoute: ApiPublicCronScheduleRedditKarmaRoute,
   ApiPublicCronScheduleRedditWarmupsRoute:
