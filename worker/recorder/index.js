@@ -1320,6 +1320,23 @@ async function runSession(payload) {
       const focusResult = await focusEditableAt(x, y);
       let focused = Boolean(focusResult?.focused) && await hasEditableFocus();
       if (!focused) focused = await hasEditableFocus();
+      // A LinkedIn szerkesztője időnként egy belső <p>/<div> réteget ad vissza
+      // a képpontnál, miközben maga a contenteditable szülő nem kap fókuszt.
+      // Ha pontosan egy látható poszt-szerkesztő van, biztonságosan azt használjuk.
+      if (!focused) {
+        const editors = [];
+        for (const frame of page.frames()) {
+          const fields = frame.locator(
+            'div.ql-editor[contenteditable="true"]:visible, [role="textbox"][contenteditable="true"]:visible, textarea:visible:not([disabled]):not([readonly])',
+          );
+          const count = await fields.count().catch(() => 0);
+          for (let index = 0; index < count; index += 1) editors.push(fields.nth(index));
+        }
+        if (editors.length === 1) {
+          await editors[0].focus({ timeout: 2000 }).catch(() => {});
+          focused = true;
+        }
+      }
       if (!focused) {
         throw new Error("A kijelölt ponton nincs szövegmező. Kattints a mező közepére, majd próbáld újra.");
       }
@@ -1433,23 +1450,31 @@ async function runSession(payload) {
       let used = "";
       try {
         const [chooser] = await Promise.all([
-          page.waitForEvent("filechooser", { timeout: 12000 }),
+          page.waitForEvent("filechooser", { timeout: 3000 }),
           page.mouse.click(x, y),
         ]);
         await chooser.setFiles(filePath);
         used = "fájlválasztón keresztül";
       } catch {
         // Tartalék: a lapon (vagy iframe-ekben) lévő rejtett fájlmező.
-        const frames = [page, ...page.frames()];
+        // A LinkedIn gyakran előbb egy feltöltő panelt nyit, és csak abban
+        // hozza létre a rejtett fájlmezőt. Röviden megvárjuk ezt a panelt.
+        await sleep(800);
+        const frames = page.frames();
         let ok = false;
         for (const f of frames) {
           try {
-            const input = f.locator('input[type="file"]').last();
-            if (await input.count()) {
+            const inputs = f.locator('input[type="file"]');
+            const count = await inputs.count();
+            for (let index = count - 1; index >= 0; index -= 1) {
+              const input = inputs.nth(index);
+              const accept = String(await input.getAttribute("accept").catch(() => "") || "");
+              if (accept && !/image|jpg|jpeg|png|webp|\*/i.test(accept)) continue;
               await input.setInputFiles(filePath);
               ok = true;
               break;
             }
+            if (ok) break;
           } catch {}
         }
         if (!ok) throw new Error("Nem nyílt meg fájlválasztó a kijelölt ponton. Kattints pontosan a „Fotó hozzáadása” gombra.");

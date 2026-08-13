@@ -124,6 +124,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoPrepping, setPhotoPrepping] = useState(false);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const photoTimeoutRef = useRef<number | null>(null);
+  const storyTimeoutRef = useRef<number | null>(null);
   const getUploadUrl = useServerFn(createMediaUploadUrl);
   const getViewUrl = useServerFn(createMediaViewUrl);
 
@@ -210,6 +212,10 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           return;
         }
         setStoryBusy(false);
+        if (storyTimeoutRef.current !== null) {
+          window.clearTimeout(storyTimeoutRef.current);
+          storyTimeoutRef.current = null;
+        }
         if (p.status === "done") {
           setInputStatus(`✓ ${p.target ?? "A szöveg begépelve."}`);
           toast.success("A szöveg be van gépelve. Nézd át, és te nyomd meg a Közzététel gombot.");
@@ -226,6 +232,10 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           return;
         }
         setPhotoBusy(false);
+        if (photoTimeoutRef.current !== null) {
+          window.clearTimeout(photoTimeoutRef.current);
+          photoTimeoutRef.current = null;
+        }
         if (p.status === "done") {
           setInputStatus(`✓ ${p.target ?? "A fájl bekerült a lapba."}`);
           toast.success("A fotó bekerült a LinkedIn ablakába. A vágást/mentést te erősítsd meg.");
@@ -345,6 +355,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         window.clearTimeout(secretTimeoutRef.current);
         secretTimeoutRef.current = null;
       }
+      if (storyTimeoutRef.current !== null) window.clearTimeout(storyTimeoutRef.current);
+      if (photoTimeoutRef.current !== null) window.clearTimeout(photoTimeoutRef.current);
       ch.unsubscribe();
       void supabase.removeChannel(ch);
       channelRef.current = null;
@@ -392,6 +404,22 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     setSecretOpen(false);
     setSecretValue("");
     setSecretBusy(false);
+    setStoryOpen(false);
+    setStoryValue("");
+    setStoryBusy(false);
+    setPhotoOpen(false);
+    setPhotoUrl("");
+    setPhotoName("");
+    setPhotoBusy(false);
+    setPhotoPrepping(false);
+    if (storyTimeoutRef.current !== null) {
+      window.clearTimeout(storyTimeoutRef.current);
+      storyTimeoutRef.current = null;
+    }
+    if (photoTimeoutRef.current !== null) {
+      window.clearTimeout(photoTimeoutRef.current);
+      photoTimeoutRef.current = null;
+    }
     setGmailConfirmBusy(false);
     setKyloUnlockBusy(false);
     setFailureReason("");
@@ -664,6 +692,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     if (storyOpen && storyValue.trim() && !storyBusy) {
       setStoryBusy(true);
       setInputStatus("Szövegmező kijelölése, gépelés indul…");
+      storyTimeoutRef.current = window.setTimeout(() => {
+        storyTimeoutRef.current = null;
+        setStoryBusy(false);
+        setInputStatus("A gépelés nem indult el. A szöveg megmaradt, újra próbálhatod.");
+      }, 30000);
       const sentStory = sendToWorker("humanTypeAt", {
         text: storyValue,
         x,
@@ -672,8 +705,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         frameH: frame?.h,
       });
       if (!sentStory) {
+        if (storyTimeoutRef.current !== null) window.clearTimeout(storyTimeoutRef.current);
+        storyTimeoutRef.current = null;
         setStoryBusy(false);
         setInputStatus("Nincs aktív kapcsolat a workerhez.");
+      } else {
+        void Promise.resolve(sentStory).then((result) => {
+          if (result === "ok") return;
+          if (storyTimeoutRef.current !== null) window.clearTimeout(storyTimeoutRef.current);
+          storyTimeoutRef.current = null;
+          setStoryBusy(false);
+          setInputStatus("A szöveg nem jutott el a workerhez. Próbáld újra.");
+        }).catch(() => {
+          if (storyTimeoutRef.current !== null) window.clearTimeout(storyTimeoutRef.current);
+          storyTimeoutRef.current = null;
+          setStoryBusy(false);
+          setInputStatus("A szöveg nem jutott el a workerhez. Próbáld újra.");
+        });
       }
       return;
     }
@@ -683,6 +731,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     if (photoOpen && photoUrl && !photoBusy && !photoPrepping) {
       setPhotoBusy(true);
       setInputStatus("Fotó gomb kijelölése, feltöltés indul…");
+      photoTimeoutRef.current = window.setTimeout(() => {
+        photoTimeoutRef.current = null;
+        setPhotoBusy(false);
+        setInputStatus("A feltöltés nem indult el. A fotó megmaradt, újra próbálhatod.");
+      }, 30000);
       const sentPhoto = sendToWorker("uploadFileAt", {
         url: photoUrl,
         name: photoName || "kep.jpg",
@@ -692,8 +745,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         frameH: frame?.h,
       });
       if (!sentPhoto) {
+        if (photoTimeoutRef.current !== null) window.clearTimeout(photoTimeoutRef.current);
+        photoTimeoutRef.current = null;
         setPhotoBusy(false);
         setInputStatus("Nincs aktív kapcsolat a workerhez.");
+      } else {
+        void Promise.resolve(sentPhoto).then((result) => {
+          if (result === "ok") return;
+          if (photoTimeoutRef.current !== null) window.clearTimeout(photoTimeoutRef.current);
+          photoTimeoutRef.current = null;
+          setPhotoBusy(false);
+          setInputStatus("A fotó nem jutott el a workerhez. Próbáld újra.");
+        }).catch(() => {
+          if (photoTimeoutRef.current !== null) window.clearTimeout(photoTimeoutRef.current);
+          photoTimeoutRef.current = null;
+          setPhotoBusy(false);
+          setInputStatus("A fotó nem jutott el a workerhez. Próbáld újra.");
+        });
       }
       return;
     }
@@ -1088,7 +1156,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           size="sm"
           variant="secondary"
           className="bg-amber-700 text-white hover:bg-amber-600"
-          onClick={() => setSecretOpen((v) => !v)}
+          onClick={() => {
+            setSecretOpen((v) => !v);
+            setStoryOpen(false);
+            setPhotoOpen(false);
+          }}
           disabled={status !== "active"}
           aria-label="Jelszó beírása a távoli böngészőbe"
           title="Jelszó (vagy más hosszú szöveg) beírása a távoli böngésző fókuszált mezőjébe"
@@ -1101,7 +1173,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           size="sm"
           variant="secondary"
           className="bg-sky-700 text-white hover:bg-sky-600"
-          onClick={() => setStoryOpen((v) => !v)}
+          onClick={() => {
+            setStoryOpen((v) => !v);
+            setSecretOpen(false);
+            setPhotoOpen(false);
+          }}
           disabled={status !== "active"}
           aria-label="Hosszú szöveg emberi tempóban való begépelése"
           title="Hosszú szöveg (pl. poszt) begépelése emberi tempóban a kijelölt mezőbe"
@@ -1114,7 +1190,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           size="sm"
           variant="secondary"
           className="bg-fuchsia-700 text-white hover:bg-fuchsia-600"
-          onClick={() => setPhotoOpen((v) => !v)}
+          onClick={() => {
+            setPhotoOpen((v) => !v);
+            setSecretOpen(false);
+            setStoryOpen(false);
+          }}
           disabled={status !== "active"}
           aria-label="Fotó vagy fájl feltöltése a távoli böngészőbe"
           title="Fotó/fájl kiválasztása, majd a távoli „Fotó hozzáadása” gombra kattintva feltöltés"
@@ -1265,9 +1345,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
             variant="secondary"
             className="bg-fuchsia-700 text-white hover:bg-fuchsia-600"
             onClick={() => photoInputRef.current?.click()}
-            disabled={photoPrepping || photoBusy}
+            disabled={photoPrepping}
           >
-            {photoPrepping ? <Loader2 className="size-4 animate-spin" /> : "Fájl kiválasztása"}
+            {photoPrepping ? <Loader2 className="size-4 animate-spin" /> : photoBusy ? "Másik fájl kiválasztása" : "Fájl kiválasztása"}
           </Button>
           <Input
             value={photoUrl}
