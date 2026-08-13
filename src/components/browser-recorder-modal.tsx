@@ -31,6 +31,8 @@ import {
   Copy,
   KeyRound,
   Keyboard,
+  ImagePlus,
+
 
   Loader2,
   MailCheck,
