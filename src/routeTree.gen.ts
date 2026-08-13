@@ -64,6 +64,7 @@ import { Route as ApiPublicWorkerProgressRouteImport } from './routes/api/public
 import { Route as ApiPublicWorkerRecordClaimRouteImport } from './routes/api/public/worker/record-claim'
 import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/public/worker/record-status'
 import { Route as ApiPublicWorkerRedditCommentDraftRouteImport } from './routes/api/public/worker/reddit-comment-draft'
+import { Route as ApiPublicWorkerRedditReplyPostedRouteImport } from './routes/api/public/worker/reddit-reply-posted'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
 import { Route as ApiPublicWorkerUiReconIngestRouteImport } from './routes/api/public/worker/ui-recon-ingest'
 import { Route as ApiPublicWorkerVaultReportRouteImport } from './routes/api/public/worker/vault-report'
@@ -400,6 +401,12 @@ const ApiPublicWorkerRedditCommentDraftRoute =
     path: '/api/public/worker/reddit-comment-draft',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerRedditReplyPostedRoute =
+  ApiPublicWorkerRedditReplyPostedRouteImport.update({
+    id: '/api/public/worker/reddit-reply-posted',
+    path: '/api/public/worker/reddit-reply-posted',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerSaveCookiesRoute =
   ApiPublicWorkerSaveCookiesRouteImport.update({
     id: '/api/public/worker/save-cookies',
@@ -602,6 +609,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
+  '/api/public/worker/reddit-reply-posted': typeof ApiPublicWorkerRedditReplyPostedRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
@@ -683,6 +691,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
+  '/api/public/worker/reddit-reply-posted': typeof ApiPublicWorkerRedditReplyPostedRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
@@ -766,6 +775,7 @@ export interface FileRoutesById {
   '/api/public/worker/record-claim': typeof ApiPublicWorkerRecordClaimRoute
   '/api/public/worker/record-status': typeof ApiPublicWorkerRecordStatusRoute
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
+  '/api/public/worker/reddit-reply-posted': typeof ApiPublicWorkerRedditReplyPostedRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
   '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
@@ -849,6 +859,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
+    | '/api/public/worker/reddit-reply-posted'
     | '/api/public/worker/save-cookies'
     | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
@@ -930,6 +941,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
+    | '/api/public/worker/reddit-reply-posted'
     | '/api/public/worker/save-cookies'
     | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
@@ -1012,6 +1024,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/record-claim'
     | '/api/public/worker/record-status'
     | '/api/public/worker/reddit-comment-draft'
+    | '/api/public/worker/reddit-reply-posted'
     | '/api/public/worker/save-cookies'
     | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
@@ -1080,6 +1093,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerRecordClaimRoute: typeof ApiPublicWorkerRecordClaimRoute
   ApiPublicWorkerRecordStatusRoute: typeof ApiPublicWorkerRecordStatusRoute
   ApiPublicWorkerRedditCommentDraftRoute: typeof ApiPublicWorkerRedditCommentDraftRoute
+  ApiPublicWorkerRedditReplyPostedRoute: typeof ApiPublicWorkerRedditReplyPostedRoute
   ApiPublicWorkerSaveCookiesRoute: typeof ApiPublicWorkerSaveCookiesRoute
   ApiPublicWorkerUiReconIngestRoute: typeof ApiPublicWorkerUiReconIngestRoute
   ApiPublicWorkerVaultReportRoute: typeof ApiPublicWorkerVaultReportRoute
@@ -1492,6 +1506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerRedditCommentDraftRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/reddit-reply-posted': {
+      id: '/api/public/worker/reddit-reply-posted'
+      path: '/api/public/worker/reddit-reply-posted'
+      fullPath: '/api/public/worker/reddit-reply-posted'
+      preLoaderRoute: typeof ApiPublicWorkerRedditReplyPostedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/save-cookies': {
       id: '/api/public/worker/save-cookies'
       path: '/api/public/worker/save-cookies'
@@ -1785,6 +1806,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWorkerRecordStatusRoute: ApiPublicWorkerRecordStatusRoute,
   ApiPublicWorkerRedditCommentDraftRoute:
     ApiPublicWorkerRedditCommentDraftRoute,
+  ApiPublicWorkerRedditReplyPostedRoute: ApiPublicWorkerRedditReplyPostedRoute,
   ApiPublicWorkerSaveCookiesRoute: ApiPublicWorkerSaveCookiesRoute,
   ApiPublicWorkerUiReconIngestRoute: ApiPublicWorkerUiReconIngestRoute,
   ApiPublicWorkerVaultReportRoute: ApiPublicWorkerVaultReportRoute,
