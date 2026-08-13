@@ -19,6 +19,7 @@ import {
   reseedHuman,
 } from "../humanize.js";
 import { brainFetch } from "./brain-api.js";
+import { resolveTarget } from "./resolve-selector.js";
 
 async function firstVisible(page, selectors, timeoutMs = 12000) {
   const deadline = Date.now() + timeoutMs;
