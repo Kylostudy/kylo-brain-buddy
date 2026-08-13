@@ -34,11 +34,15 @@ async function getChromium() {
 
 // ---- Proxy pool (residential, támogatott formátumok: host:port:user:pass vagy user:pass:host:port) ----
 function parseProxy(raw, label) {
-  const parts = String(raw || "").trim().split(":");
+  const parts = String(raw || "")
+    .trim()
+    .split(":");
   const isPort = (value) => /^\d{2,5}$/.test(value || "");
 
   if (parts.length < 4) {
-    console.error(`[proxy] ${label} hibás formátum (vár: host:port:user:pass vagy user:pass:host:port)`);
+    console.error(
+      `[proxy] ${label} hibás formátum (vár: host:port:user:pass vagy user:pass:host:port)`,
+    );
     return null;
   }
 
@@ -166,11 +170,7 @@ async function humanMoveMouse(page, from, to) {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const distance = Math.hypot(dx, dy);
-  const steps = clamp(
-    Math.round(distance / 70) + Math.floor(randomBetween(3, 8)),
-    7,
-    28,
-  );
+  const steps = clamp(Math.round(distance / 70) + Math.floor(randomBetween(3, 8)), 7, 28);
   const curve = randomBetween(-0.22, 0.22);
   const jitter = Math.min(3.5, Math.max(0.8, distance / 280));
 
@@ -179,15 +179,9 @@ async function humanMoveMouse(page, from, to) {
     const ease = t * t * (3 - 2 * t);
     const bow = Math.sin(Math.PI * t) * curve * distance;
     const px =
-      from.x +
-      dx * ease +
-      (-dy / Math.max(distance, 1)) * bow +
-      randomBetween(-jitter, jitter);
+      from.x + dx * ease + (-dy / Math.max(distance, 1)) * bow + randomBetween(-jitter, jitter);
     const py =
-      from.y +
-      dy * ease +
-      (dx / Math.max(distance, 1)) * bow +
-      randomBetween(-jitter, jitter);
+      from.y + dy * ease + (dx / Math.max(distance, 1)) * bow + randomBetween(-jitter, jitter);
     await page.mouse.move(px, py);
     await humanPause(8, 26);
   }
@@ -221,7 +215,10 @@ function groupPreludeTyping(actions) {
     if (a.type === "type") {
       const v = a.value ?? a.text ?? "";
       if (!cur) cur = { start: i, end: i, text: v, selector: a.selector || null };
-      else { cur.end = i; cur.text += v; }
+      else {
+        cur.end = i;
+        cur.text += v;
+      }
     } else if (cur) {
       if (a.type === "click" && a.selector && cur.selector && a.selector === cur.selector) continue;
       groups.push(cur);
@@ -282,7 +279,6 @@ async function playPrelude(page, prelude, sessionId) {
   await page.waitForTimeout(1200);
 }
 
-
 function normalizeUrl(rawUrl) {
   const raw = String(rawUrl || "").trim();
   if (!raw) return null;
@@ -324,7 +320,6 @@ function normalizeUrl(rawUrl) {
     return pinterestish ? PINTEREST_LOGIN_URL : null;
   }
 }
-
 
 async function brainPost(path, body) {
   return fetch(`${BRAIN_URL}${path}`, {
@@ -656,7 +651,9 @@ async function runSession(payload) {
   // felület, elszórt képek, „word word word” jellegű fallback szöveg.
   const viewport = { width: VIEWPORT_W, height: VIEWPORT_H };
   const effectiveStartUrl = normalizeUrl(session.startUrl || "");
-  const isPinterestSession = /pinterest/i.test(String(effectiveStartUrl || session.startUrl || payload.platform || ""));
+  const isPinterestSession = /pinterest/i.test(
+    String(effectiveStartUrl || session.startUrl || payload.platform || ""),
+  );
   const recorderFingerprint =
     fp && !isPinterestSession
       ? {
@@ -675,9 +672,7 @@ async function runSession(payload) {
       `[session ${session.id}] using ${proxy.label} (${proxy.server}) · locale=${locale} · tz=${timezoneId} · fp=${fp ? `Chrome${fp.chromeMajor}/${fp.platform}` : "recorder-default"}`,
     );
   } else {
-    console.warn(
-      `[session ${session.id}] NINCS proxy — direkt IP-vel megy (nem javasolt)!`,
-    );
+    console.warn(`[session ${session.id}] NINCS proxy — direkt IP-vel megy (nem javasolt)!`);
   }
   const context = await br.newContext({
     viewport,
@@ -710,7 +705,9 @@ async function runSession(payload) {
       console.warn(`[session ${session.id}] fingerprint init-script hiba: ${e.message}`);
     }
   } else if (fp && isPinterestSession) {
-    console.log(`[session ${session.id}] Pinterest-safe recorder mód: mély fingerprint init-script kihagyva`);
+    console.log(
+      `[session ${session.id}] Pinterest-safe recorder mód: mély fingerprint init-script kihagyva`,
+    );
   }
   // Pinterestnél semmilyen init-scriptet nem futtatunk, mert már a legkisebb
   // navigator-patch is elég volt ahhoz, hogy az oldal stílus nélkül essen vissza.
@@ -759,7 +756,6 @@ async function runSession(payload) {
 
   const page = await context.newPage();
 
-
   let stopped = false;
   let viewportW = viewport.width;
   let viewportH = viewport.height;
@@ -777,9 +773,7 @@ async function runSession(payload) {
   });
   const pushAction = (a) => {
     actions.push(a);
-    channel
-      .send({ type: "broadcast", event: "action", payload: { action: a } })
-      .catch(() => {});
+    channel.send({ type: "broadcast", event: "action", payload: { action: a } }).catch(() => {});
   };
 
   async function describeAt(x, y) {
@@ -811,7 +805,11 @@ async function runSession(payload) {
     if (!/kylo\.study/i.test(page.url())) return false;
     const selector = String(desc?.selector || "");
     const text = String(desc?.text || "");
-    return /header/i.test(selector) && /button/i.test(selector) && (/img|logo|kylo|w-9\.h-9/i.test(selector) || /kylo/i.test(text));
+    return (
+      /header/i.test(selector) &&
+      /button/i.test(selector) &&
+      (/img|logo|kylo|w-9\.h-9/i.test(selector) || /kylo/i.test(text))
+    );
   }
 
   let lastClickPoint = null;
@@ -834,7 +832,9 @@ async function runSession(payload) {
     // felhasználónév-mező is sikeres célpontnak számított, ezért a worker kész
     // állapotot küldhetett úgy, hogy a látható jelszómező üres maradt.
     for (const frame of page.frames()) {
-      const focusedPassword = frame.locator('input[type="password"]:focus:not([disabled]):not([readonly])');
+      const focusedPassword = frame.locator(
+        'input[type="password"]:focus:not([disabled]):not([readonly])',
+      );
       if (await focusedPassword.count().catch(() => 0)) return focusedPassword.first();
     }
 
@@ -842,7 +842,9 @@ async function runSession(payload) {
     // másik, korábban fókuszált szövegmezővel szemben.
     const passwords = [];
     for (const frame of page.frames()) {
-      const fields = frame.locator('input[type="password"]:visible:not([disabled]):not([readonly])');
+      const fields = frame.locator(
+        'input[type="password"]:visible:not([disabled]):not([readonly])',
+      );
       const count = await fields.count().catch(() => 0);
       for (let index = 0; index < count; index += 1) passwords.push(fields.nth(index));
     }
@@ -862,15 +864,17 @@ async function runSession(payload) {
   async function targetContainsExactSecret(locator, text) {
     // Csak logikai eredményt hozunk ki az oldalból: a jelszó értéke nem kerül
     // sem worker-naplóba, sem Realtime üzenetbe.
-    return locator.evaluate((el, expected) => {
-      if (typeof el.value === "string") return el.value === expected;
-      if (el.isContentEditable) return (el.textContent || "") === expected;
-      return false;
-    }, text).catch(() => false);
+    return locator
+      .evaluate((el, expected) => {
+        if (typeof el.value === "string") return el.value === expected;
+        if (el.isContentEditable) return (el.textContent || "") === expected;
+        return false;
+      }, text)
+      .catch(() => false);
   }
 
   async function secretRemainsInTarget(locator, text) {
-    if (!await targetContainsExactSecret(locator, text)) return false;
+    if (!(await targetContainsExactSecret(locator, text))) return false;
     // A LinkedInhez hasonló, vezérelt mezők egy későbbi újrarajzoláskor
     // visszaállíthatják az értéket. Ne jelezzünk sikert egy pillanatnyi állapotra.
     await sleep(900);
@@ -911,14 +915,22 @@ async function runSession(payload) {
       if (el.isContentEditable) {
         el.textContent = value;
       } else {
-        const proto = el instanceof HTMLTextAreaElement
-          ? HTMLTextAreaElement.prototype
-          : HTMLInputElement.prototype;
+        const proto =
+          el instanceof HTMLTextAreaElement
+            ? HTMLTextAreaElement.prototype
+            : HTMLInputElement.prototype;
         const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
         if (setter) setter.call(el, value);
         else el.value = value;
       }
-      el.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: value }));
+      el.dispatchEvent(
+        new InputEvent("input", {
+          bubbles: true,
+          composed: true,
+          inputType: "insertText",
+          data: value,
+        }),
+      );
       el.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
     }, text);
     await sleep(120);
@@ -927,24 +939,25 @@ async function runSession(payload) {
     throw new Error("A jelszómező nem fogadta el a beillesztést.");
   }
 
-
   let clickBusy = false;
   channel.on("broadcast", { event: "click" }, async ({ payload }) => {
     if (clickBusy) {
       const vs = page.viewportSize() || { width: viewportW, height: viewportH };
       const x = Math.round((Number(payload?.x) || 0) * vs.width);
       const y = Math.round((Number(payload?.y) || 0) * vs.height);
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: {
-          kind: "click",
-          status: "busy",
-          x,
-          y,
-          target: "az előző kattintás még feldolgozás alatt van",
-        },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "click",
+            status: "busy",
+            x,
+            y,
+            target: "az előző kattintás még feldolgozás alatt van",
+          },
+        })
+        .catch(() => {});
       return;
     }
     clickBusy = true;
@@ -954,21 +967,24 @@ async function runSession(payload) {
       const y = payload.y * vs.height;
       lastClickPoint = { x, y, t: Date.now() };
       const desc = await describeAt(x, y);
-      lastClickSelector = desc?.selector || `point:${Math.round(payload.x * 10000)},${Math.round(payload.y * 10000)}`;
+      lastClickSelector =
+        desc?.selector || `point:${Math.round(payload.x * 10000)},${Math.round(payload.y * 10000)}`;
       const targetInfo = desc
         ? `${(desc.selector || "?").slice(0, 60)}${desc.text ? ` "${desc.text.slice(0, 30)}"` : ""}`
         : "nincs elem a pontnál";
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: {
-          kind: "click",
-          status: "received",
-          x: Math.round(x),
-          y: Math.round(y),
-          target: targetInfo,
-        },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "click",
+            status: "received",
+            x: Math.round(x),
+            y: Math.round(y),
+            target: targetInfo,
+          },
+        })
+        .catch(() => {});
       const kyloLogoClick = isLikelyKyloLogoClick(desc);
 
       // A Kylo.study rejtett logó-kapuja érzékeny arra, ha egy kattintásból
@@ -976,50 +992,72 @@ async function runSession(payload) {
       // egyetlen DOM click eventet küldünk, így 1 felhasználói kattintás = 1
       // Kylo számláló lépés.
       if (kyloLogoClick) {
-        const dispatched = await page.evaluate(`(${DISPATCH_SINGLE_CLICK_AT_FN})(${x}, ${y})`).catch(() => null);
+        const dispatched = await page
+          .evaluate(`(${DISPATCH_SINGLE_CLICK_AT_FN})(${x}, ${y})`)
+          .catch(() => null);
         if (!dispatched?.ok) {
           throw new Error(dispatched?.reason || "Kylo logó-kattintás nem sikerült");
         }
         cursorPoint = { x, y };
         await sleep(180);
       } else {
-      // A natív CDP kattintás előtt telepítünk egy egyszeri capture-fázisú
-      // listenert. Ha a natív down/up valóban click eventet szül az oldalon,
-      // `nativeClickFired` true lesz — ilyenkor NEM dispatchelünk semmit,
-      // hogy ne duplázzunk (ez okozta a Kylo.study 7→14 számláló bugot).
-      // Ha viszont a natív kattintás után NEM futott le click handler
-      // (pl. a Kylo coming-soon logó overlay-je elnyeli a pointer eventet),
-      // akkor egyetlen szintetikus MouseEvent-tel bepótoljuk.
-      await page.evaluate(() => {
-        window.__kyloClickFired = false;
-        const h = () => { window.__kyloClickFired = true; };
-        window.__kyloClickHandler = h;
-        document.addEventListener("click", h, true);
-      }).catch(() => {});
+        // A natív CDP kattintás előtt telepítünk egy egyszeri capture-fázisú
+        // listenert. Ha a natív down/up valóban click eventet szül az oldalon,
+        // `nativeClickFired` true lesz — ilyenkor NEM dispatchelünk semmit,
+        // hogy ne duplázzunk (ez okozta a Kylo.study 7→14 számláló bugot).
+        // Ha viszont a natív kattintás után NEM futott le click handler
+        // (pl. a Kylo coming-soon logó overlay-je elnyeli a pointer eventet),
+        // akkor egyetlen szintetikus MouseEvent-tel bepótoljuk.
+        await page
+          .evaluate(() => {
+            window.__kyloClickFired = false;
+            const h = () => {
+              window.__kyloClickFired = true;
+            };
+            window.__kyloClickHandler = h;
+            document.addEventListener("click", h, true);
+          })
+          .catch(() => {});
 
-      await humanClick(page, cursorPoint, { x, y });
-      cursorPoint = { x, y };
-      await focusEditableAt(x, y);
+        await humanClick(page, cursorPoint, { x, y });
+        cursorPoint = { x, y };
+        await focusEditableAt(x, y);
 
-      await sleep(140);
-      const nativeClickFired = await page.evaluate(() => {
-        const fired = window.__kyloClickFired === true;
-        try { document.removeEventListener("click", window.__kyloClickHandler, true); } catch {}
-        delete window.__kyloClickFired;
-        delete window.__kyloClickHandler;
-        return fired;
-      }).catch(() => true); // hibánál inkább ne dispatch-eljünk (biztonságosabb)
+        await sleep(140);
+        const nativeClickFired = await page
+          .evaluate(() => {
+            const fired = window.__kyloClickFired === true;
+            try {
+              document.removeEventListener("click", window.__kyloClickHandler, true);
+            } catch {}
+            delete window.__kyloClickFired;
+            delete window.__kyloClickHandler;
+            return fired;
+          })
+          .catch(() => true); // hibánál inkább ne dispatch-eljünk (biztonságosabb)
 
-      if (!nativeClickFired) {
-        await page.evaluate(([cx, cy]) => {
-          const el = document.elementFromPoint(cx, cy);
-          if (!el) return;
-          const opts = { bubbles: true, cancelable: true, clientX: cx, clientY: cy, button: 0, view: window };
-          el.dispatchEvent(new MouseEvent("mousedown", opts));
-          el.dispatchEvent(new MouseEvent("mouseup", opts));
-          el.dispatchEvent(new MouseEvent("click", opts));
-        }, [x, y]).catch(() => {});
-      }
+        if (!nativeClickFired) {
+          await page
+            .evaluate(
+              ([cx, cy]) => {
+                const el = document.elementFromPoint(cx, cy);
+                if (!el) return;
+                const opts = {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: cx,
+                  clientY: cy,
+                  button: 0,
+                  view: window,
+                };
+                el.dispatchEvent(new MouseEvent("mousedown", opts));
+                el.dispatchEvent(new MouseEvent("mouseup", opts));
+                el.dispatchEvent(new MouseEvent("click", opts));
+              },
+              [x, y],
+            )
+            .catch(() => {});
+        }
       }
 
       pushAction({
@@ -1030,24 +1068,28 @@ async function runSession(payload) {
         ...(typeof desc?.text === "string" && desc.text ? { text: desc.text } : {}),
         t: Date.now(),
       });
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: {
-          kind: "click",
-          status: "done",
-          x: Math.round(x),
-          y: Math.round(y),
-          target: targetInfo,
-        },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "click",
+            status: "done",
+            x: Math.round(x),
+            y: Math.round(y),
+            target: targetInfo,
+          },
+        })
+        .catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] click error`, e.message);
-      await channel.send({
-        type: "broadcast",
-        event: "inputError",
-        payload: { kind: "click", error: e.message },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputError",
+          payload: { kind: "click", error: e.message },
+        })
+        .catch(() => {});
     } finally {
       clickBusy = false;
     }
@@ -1065,28 +1107,34 @@ async function runSession(payload) {
         ...(typeof payload?.subject === "string" ? { subject: payload.subject } : {}),
         t: Date.now(),
       });
-      await channel.send({
-        type: "broadcast",
-        event: "gmailConfirmAck",
-        payload: { url: page.url(), subject: payload?.subject || null },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "gmailConfirmAck",
+          payload: { url: page.url(), subject: payload?.subject || null },
+        })
+        .catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] gmailConfirmLink error`, e.message);
-      await channel.send({
-        type: "broadcast",
-        event: "gmailConfirmError",
-        payload: { error: e.message },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "gmailConfirmError",
+          payload: { error: e.message },
+        })
+        .catch(() => {});
     }
   });
 
   channel.on("broadcast", { event: "kyloUnlock" }, async ({ payload }) => {
     if (clickBusy) {
-      await channel.send({
-        type: "broadcast",
-        event: "kyloUnlockError",
-        payload: { error: "az előző kattintás még feldolgozás alatt van" },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "kyloUnlockError",
+          payload: { error: "az előző kattintás még feldolgozás alatt van" },
+        })
+        .catch(() => {});
       return;
     }
     clickBusy = true;
@@ -1102,27 +1150,30 @@ async function runSession(payload) {
         url: result.url || page.url(),
         t: Date.now(),
       });
-      await channel.send({
-        type: "broadcast",
-        event: "kyloUnlockAck",
-        payload: {
-          clicks: result.clicks || clicks,
-          target: result.target || "Kylo logó",
-          url: result.url || page.url(),
-        },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "kyloUnlockAck",
+          payload: {
+            clicks: result.clicks || clicks,
+            target: result.target || "Kylo logó",
+            url: result.url || page.url(),
+          },
+        })
+        .catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] kyloUnlock error`, e.message);
-      await channel.send({
-        type: "broadcast",
-        event: "kyloUnlockError",
-        payload: { error: e.message },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "kyloUnlockError",
+          payload: { error: e.message },
+        })
+        .catch(() => {});
     } finally {
       clickBusy = false;
     }
   });
-
 
   channel.on("broadcast", { event: "type" }, async ({ payload }) => {
     const text = payload?.text || "";
@@ -1140,17 +1191,19 @@ async function runSession(payload) {
           ok = true;
         }
       }
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: {
-          kind: "type",
-          status: ok ? "received" : "error",
-          target: ok
-            ? `${text.length} karakter beírva`
-            : "nincs kijelölt beviteli mező — kattints a mezőbe a képen, majd küldd újra",
-        },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "type",
+            status: ok ? "received" : "error",
+            target: ok
+              ? `${text.length} karakter beírva`
+              : "nincs kijelölt beviteli mező — kattints a mezőbe a képen, majd küldd újra",
+          },
+        })
+        .catch(() => {});
       if (ok) {
         pushAction({
           type: "type",
@@ -1161,11 +1214,13 @@ async function runSession(payload) {
       }
     } catch (e) {
       console.error(`[session ${session.id}] type error`, e.message);
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: { kind: "type", status: "error", target: e.message },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: { kind: "type", status: "error", target: e.message },
+        })
+        .catch(() => {});
     }
   });
 
@@ -1177,34 +1232,57 @@ async function runSession(payload) {
     const text = typeof payload?.text === "string" ? payload.text : "";
     try {
       if (!text) throw new Error("üres jelszó érkezett");
-      if (secretPasteBusy) throw new Error("Az előző beillesztés még fut. Várj néhány másodpercet, majd próbáld újra.");
+      if (secretPasteBusy)
+        throw new Error(
+          "Az előző beillesztés még fut. Várj néhány másodpercet, majd próbáld újra.",
+        );
       secretPasteBusy = true;
 
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: { kind: "secret", status: "received", target: "A worker átvette a jelszót, beillesztés folyamatban…" },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "secret",
+            status: "received",
+            target: "A worker átvette a jelszót, beillesztés folyamatban…",
+          },
+        })
+        .catch(() => {});
 
       await ensureEditableFocusFromLastClick();
       const target = await findSecretTarget();
       if (!target) {
-        throw new Error("Nem található kijelölt jelszómező. Kattints rá a képen, majd próbáld újra.");
+        throw new Error(
+          "Nem található kijelölt jelszómező. Kattints rá a képen, majd próbáld újra.",
+        );
       }
       const method = await writeSecretToTarget(target, text);
 
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: { kind: "secret", status: "done", target: `${text.length} karakter ellenőrizve (${method})` },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "secret",
+            status: "done",
+            target: `${text.length} karakter ellenőrizve (${method})`,
+          },
+        })
+        .catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] secret paste error:`, e?.message || e);
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: { kind: "secret", status: "error", target: e?.message || "sikertelen beillesztés" },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "secret",
+            status: "error",
+            target: e?.message || "sikertelen beillesztés",
+          },
+        })
+        .catch(() => {});
     } finally {
       secretPasteBusy = false;
     }
@@ -1217,13 +1295,22 @@ async function runSession(payload) {
     const text = typeof payload?.text === "string" ? payload.text : "";
     try {
       if (!text) throw new Error("üres jelszó érkezett");
-      if (secretPasteBusy) throw new Error("Az előző beillesztés még fut. Várj néhány másodpercet, majd próbáld újra.");
+      if (secretPasteBusy)
+        throw new Error(
+          "Az előző beillesztés még fut. Várj néhány másodpercet, majd próbáld újra.",
+        );
       secretPasteBusy = true;
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: { kind: "secret", status: "received", target: "A worker átvette a célmezőt és a jelszót…" },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "secret",
+            status: "received",
+            target: "A worker átvette a célmezőt és a jelszót…",
+          },
+        })
+        .catch(() => {});
       const vs = page.viewportSize() || { width: viewportW, height: viewportH };
       const x = Math.max(0, Math.min(vs.width - 1, Number(payload?.x) * vs.width));
       const y = Math.max(0, Math.min(vs.height - 1, Number(payload?.y) * vs.height));
@@ -1233,43 +1320,59 @@ async function runSession(payload) {
 
       lastClickPoint = { x, y, t: Date.now() };
       const desc = await describeAt(x, y);
-      lastClickSelector = desc?.selector || `point:${Math.round(Number(payload?.x) * 10000)},${Math.round(Number(payload?.y) * 10000)}`;
+      lastClickSelector =
+        desc?.selector ||
+        `point:${Math.round(Number(payload?.x) * 10000)},${Math.round(Number(payload?.y) * 10000)}`;
 
       // Előbb valódi kattintást küldünk, utána explicit módon is megkeressük
       // és fókuszáljuk az alatta lévő inputot (label/overlay esetén is).
       await page.mouse.click(x, y);
       const focusResult = await focusEditableAt(x, y);
-      let focused = Boolean(focusResult?.focused) && await hasEditableFocus();
+      let focused = Boolean(focusResult?.focused) && (await hasEditableFocus());
 
       // LinkedIn belépésnél tipikusan pontosan egy látható password mező van.
       // Ez biztonságos tartalék, ha egy overlay miatt a képpont nem az inputot adja.
       if (!focused) {
         const visiblePasswords = page.locator('input[type="password"]:visible');
-        if (await visiblePasswords.count() === 1) {
+        if ((await visiblePasswords.count()) === 1) {
           await visiblePasswords.first().focus();
           focused = await hasEditableFocus();
         }
       }
       if (!focused) {
-        throw new Error("A kijelölt ponton nem található beviteli mező. Kattints közvetlenül a jelszómező közepére.");
+        throw new Error(
+          "A kijelölt ponton nem található beviteli mező. Kattints közvetlenül a jelszómező közepére.",
+        );
       }
 
       const target = await findSecretTarget();
       if (!target) throw new Error("A kijelölt jelszómező nem található.");
       const method = await writeSecretToTarget(target, text);
 
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: { kind: "secret", status: "done", target: `${text.length} karakter ellenőrizve (${method})` },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "secret",
+            status: "done",
+            target: `${text.length} karakter ellenőrizve (${method})`,
+          },
+        })
+        .catch(() => {});
     } catch (e) {
       console.error(`[session ${session.id}] coordinate secret paste error:`, e?.message || e);
-      await channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: { kind: "secret", status: "error", target: e?.message || "sikertelen beillesztés" },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: {
+            kind: "secret",
+            status: "error",
+            target: e?.message || "sikertelen beillesztés",
+          },
+        })
+        .catch(() => {});
     } finally {
       secretPasteBusy = false;
     }
@@ -1283,9 +1386,32 @@ async function runSession(payload) {
   let humanTypeCancelled = false;
 
   const TYPO_KEYS = {
-    a: "s", s: "a", d: "f", f: "d", g: "h", h: "g", j: "k", k: "j",
-    l: "k", q: "w", w: "q", e: "r", r: "e", t: "y", y: "t", u: "i",
-    i: "u", o: "p", p: "o", z: "x", x: "z", c: "v", v: "c", b: "n", n: "b", m: "n",
+    a: "s",
+    s: "a",
+    d: "f",
+    f: "d",
+    g: "h",
+    h: "g",
+    j: "k",
+    k: "j",
+    l: "k",
+    q: "w",
+    w: "q",
+    e: "r",
+    r: "e",
+    t: "y",
+    y: "t",
+    u: "i",
+    i: "u",
+    o: "p",
+    p: "o",
+    z: "x",
+    x: "z",
+    c: "v",
+    v: "c",
+    b: "n",
+    n: "b",
+    m: "n",
   };
 
   channel.on("broadcast", { event: "humanTypeCancel" }, async () => {
@@ -1295,11 +1421,13 @@ async function runSession(payload) {
   channel.on("broadcast", { event: "humanTypeAt" }, async ({ payload }) => {
     const text = typeof payload?.text === "string" ? payload.text : "";
     const ack = (status, target, extra = {}) =>
-      channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: { kind: "humanType", status, target, ...extra },
-      }).catch(() => {});
+      channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: { kind: "humanType", status, target, ...extra },
+        })
+        .catch(() => {});
 
     try {
       if (!text.trim()) throw new Error("üres szöveg érkezett");
@@ -1312,16 +1440,36 @@ async function runSession(payload) {
       const vs = page.viewportSize() || { width: viewportW, height: viewportH };
       const x = Math.max(0, Math.min(vs.width - 1, Number(payload?.x) * vs.width));
       const y = Math.max(0, Math.min(vs.height - 1, Number(payload?.y) * vs.height));
-      if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("érvénytelen kattintási hely");
+      if (!Number.isFinite(x) || !Number.isFinite(y))
+        throw new Error("érvénytelen kattintási hely");
 
       lastClickPoint = { x, y, t: Date.now() };
       await page.mouse.click(x, y);
       await sleep(400);
       const focusResult = await focusEditableAt(x, y);
-      let focused = Boolean(focusResult?.focused) && await hasEditableFocus();
+      let focused = Boolean(focusResult?.focused) && (await hasEditableFocus());
       if (!focused) focused = await hasEditableFocus();
+      // A LinkedIn szerkesztője időnként egy belső <p>/<div> réteget ad vissza
+      // a képpontnál, miközben maga a contenteditable szülő nem kap fókuszt.
+      // Ha pontosan egy látható poszt-szerkesztő van, biztonságosan azt használjuk.
       if (!focused) {
-        throw new Error("A kijelölt ponton nincs szövegmező. Kattints a mező közepére, majd próbáld újra.");
+        const editors = [];
+        for (const frame of page.frames()) {
+          const fields = frame.locator(
+            'div.ql-editor[contenteditable="true"]:visible, [role="textbox"][contenteditable="true"]:visible, textarea:visible:not([disabled]):not([readonly])',
+          );
+          const count = await fields.count().catch(() => 0);
+          for (let index = 0; index < count; index += 1) editors.push(fields.nth(index));
+        }
+        if (editors.length === 1) {
+          await editors[0].focus({ timeout: 2000 }).catch(() => {});
+          focused = true;
+        }
+      }
+      if (!focused) {
+        throw new Error(
+          "A kijelölt ponton nincs szövegmező. Kattints a mező közepére, majd próbáld újra.",
+        );
       }
 
       // Rövid „gondolkodás”, mielőtt elkezdünk írni.
@@ -1399,11 +1547,13 @@ async function runSession(payload) {
   let uploadBusy = false;
   channel.on("broadcast", { event: "uploadFileAt" }, async ({ payload }) => {
     const ack = (status, target) =>
-      channel.send({
-        type: "broadcast",
-        event: "inputAck",
-        payload: { kind: "upload", status, target },
-      }).catch(() => {});
+      channel
+        .send({
+          type: "broadcast",
+          event: "inputAck",
+          payload: { kind: "upload", status, target },
+        })
+        .catch(() => {});
 
     try {
       const url = typeof payload?.url === "string" ? payload.url : "";
@@ -1417,7 +1567,10 @@ async function runSession(payload) {
       const { tmpdir } = await import("node:os");
       const { join } = await import("node:path");
       const dir = await mkdtemp(join(tmpdir(), "kylo-live-upload-"));
-      const safe = String(name).replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "fajl";
+      const safe =
+        String(name)
+          .replace(/[^a-zA-Z0-9._-]/g, "_")
+          .slice(-120) || "fajl";
       const filePath = join(dir, safe);
       const res = await fetch(url);
       if (!res.ok) throw new Error(`a fájl letöltése nem sikerült (HTTP ${res.status})`);
@@ -1426,38 +1579,53 @@ async function runSession(payload) {
       const vs = page.viewportSize() || { width: viewportW, height: viewportH };
       const x = Math.max(0, Math.min(vs.width - 1, Number(payload?.x) * vs.width));
       const y = Math.max(0, Math.min(vs.height - 1, Number(payload?.y) * vs.height));
-      if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("érvénytelen kattintási hely");
+      if (!Number.isFinite(x) || !Number.isFinite(y))
+        throw new Error("érvénytelen kattintási hely");
 
       await ack("progress", "Fájl letöltve — a kijelölt gomb megnyitása…");
 
       let used = "";
       try {
         const [chooser] = await Promise.all([
-          page.waitForEvent("filechooser", { timeout: 12000 }),
+          page.waitForEvent("filechooser", { timeout: 3000 }),
           page.mouse.click(x, y),
         ]);
         await chooser.setFiles(filePath);
         used = "fájlválasztón keresztül";
       } catch {
         // Tartalék: a lapon (vagy iframe-ekben) lévő rejtett fájlmező.
-        const frames = [page, ...page.frames()];
+        // A LinkedIn gyakran előbb egy feltöltő panelt nyit, és csak abban
+        // hozza létre a rejtett fájlmezőt. Röviden megvárjuk ezt a panelt.
+        await sleep(800);
+        const frames = page.frames();
         let ok = false;
         for (const f of frames) {
           try {
-            const input = f.locator('input[type="file"]').last();
-            if (await input.count()) {
+            const inputs = f.locator('input[type="file"]');
+            const count = await inputs.count();
+            for (let index = count - 1; index >= 0; index -= 1) {
+              const input = inputs.nth(index);
+              const accept = String((await input.getAttribute("accept").catch(() => "")) || "");
+              if (accept && !/image|jpg|jpeg|png|webp|\*/i.test(accept)) continue;
               await input.setInputFiles(filePath);
               ok = true;
               break;
             }
+            if (ok) break;
           } catch {}
         }
-        if (!ok) throw new Error("Nem nyílt meg fájlválasztó a kijelölt ponton. Kattints pontosan a „Fotó hozzáadása” gombra.");
+        if (!ok)
+          throw new Error(
+            "Nem nyílt meg fájlválasztó a kijelölt ponton. Kattints pontosan a „Fotó hozzáadása” gombra.",
+          );
         used = "rejtett fájlmezőn keresztül";
       }
 
       await sleep(1500);
-      await ack("done", `A fájl bekerült a lapba (${used}). A vágást és a mentést te erősítsd meg.`);
+      await ack(
+        "done",
+        `A fájl bekerült a lapba (${used}). A vágást és a mentést te erősítsd meg.`,
+      );
     } catch (e) {
       console.error(`[session ${session.id}] upload error:`, e?.message || e);
       await ack("error", e?.message || "sikertelen fájlfeltöltés");
@@ -1465,11 +1633,6 @@ async function runSession(payload) {
       uploadBusy = false;
     }
   });
-
-
-
-
-
 
   channel.on("broadcast", { event: "key" }, async ({ payload }) => {
     try {
@@ -1510,7 +1673,6 @@ async function runSession(payload) {
         .catch(() => {});
     }
   });
-
 
   channel.on("broadcast", { event: "back" }, () => page.goBack().catch(() => {}));
   channel.on("broadcast", { event: "forward" }, () => page.goForward().catch(() => {}));
@@ -1560,22 +1722,26 @@ async function runSession(payload) {
       });
       await channel.send({ type: "broadcast", event: "pageText", payload: { text } });
     } catch (e) {
-      await channel.send({
-        type: "broadcast",
-        event: "pageText",
-        payload: { text: `Nem sikerült kiolvasni az oldalszöveget: ${e.message}` },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "pageText",
+          payload: { text: `Nem sikerült kiolvasni az oldalszöveget: ${e.message}` },
+        })
+        .catch(() => {});
     }
   });
 
   channel.on("broadcast", { event: "selectAll" }, async () => {
     console.log(`[session ${session.id}] selectAll fogadva, kijelölés + szövegkinyerés indul`);
     // Azonnali visszajelzés: "Folyamatban…" — így a kliens tudja, hogy a worker él
-    await channel.send({
-      type: "broadcast",
-      event: "pageText",
-      payload: { text: "Folyamatban: oldalszöveg kinyerése…" },
-    }).catch((e) => console.warn(`[session ${session.id}] ack send hiba:`, e?.message));
+    await channel
+      .send({
+        type: "broadcast",
+        event: "pageText",
+        payload: { text: "Folyamatban: oldalszöveg kinyerése…" },
+      })
+      .catch((e) => console.warn(`[session ${session.id}] ack send hiba:`, e?.message));
     try {
       await page.keyboard.press("Control+A").catch((e) => {
         console.warn(`[session ${session.id}] Control+A press hiba:`, e?.message);
@@ -1593,17 +1759,25 @@ async function runSession(payload) {
           .join("\n\n")
           .slice(0, 60000);
       });
-      console.log(`[session ${session.id}] szöveg kinyerve, hossz=${text.length}, küldés a kliensnek`);
-      const result = await channel.send({ type: "broadcast", event: "pageText", payload: { text } });
+      console.log(
+        `[session ${session.id}] szöveg kinyerve, hossz=${text.length}, küldés a kliensnek`,
+      );
+      const result = await channel.send({
+        type: "broadcast",
+        event: "pageText",
+        payload: { text },
+      });
       console.log(`[session ${session.id}] pageText send eredmény:`, result);
       pushAction({ type: "key", key: "Control+A", t: Date.now() });
     } catch (e) {
       console.error(`[session ${session.id}] selectAll hiba:`, e?.stack || e?.message || e);
-      await channel.send({
-        type: "broadcast",
-        event: "pageText",
-        payload: { text: `Nem sikerült kijelölni/kiolvasni az oldalt: ${e.message}` },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "pageText",
+          payload: { text: `Nem sikerült kijelölni/kiolvasni az oldalt: ${e.message}` },
+        })
+        .catch(() => {});
     }
   });
 
@@ -1710,13 +1884,20 @@ async function runSession(payload) {
   // Ha a Brain küldött belépés-kockát, azt ELŐBB automatikusan lejátsszuk egy
   // valódi teszt fiókkal, és csak utána navigálunk a felvétel kezdőoldalára.
   // Így a felhasználó már bejelentkezve kezdi a rögzítést.
-  if (!stopped && payload.prelude && Array.isArray(payload.prelude.actions) && payload.prelude.actions.length) {
+  if (
+    !stopped &&
+    payload.prelude &&
+    Array.isArray(payload.prelude.actions) &&
+    payload.prelude.actions.length
+  ) {
     try {
-      await channel.send({
-        type: "broadcast",
-        event: "status",
-        payload: { status: "running", note: "Automatikus belépés folyamatban…" },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "status",
+          payload: { status: "running", note: "Automatikus belépés folyamatban…" },
+        })
+        .catch(() => {});
       await playPrelude(page, payload.prelude, session.id);
       console.log(`[session ${session.id}] prelude done → ${page.url()}`);
     } catch (e) {
@@ -1731,11 +1912,13 @@ async function runSession(payload) {
       const friendlyError = friendlyInitialNavigationError(e, proxy);
       console.error(`[session ${session.id}] initial goto failed`, e.message);
       await fetchStatus(session.id, { error: friendlyError.slice(0, 500) });
-      await channel.send({
-        type: "broadcast",
-        event: "status",
-        payload: { status: "failed", error: friendlyError },
-      }).catch(() => {});
+      await channel
+        .send({
+          type: "broadcast",
+          event: "status",
+          payload: { status: "failed", error: friendlyError },
+        })
+        .catch(() => {});
       stopped = true;
     }
   }
@@ -1800,11 +1983,15 @@ async function runSession(payload) {
       const text = await res.text().catch(() => "");
       if (!res.ok) {
         let msg = text;
-        try { msg = JSON.parse(text).error || text; } catch {}
+        try {
+          msg = JSON.parse(text).error || text;
+        } catch {}
         console.error(`[session ${session.id}] auto cookieSave hiba: ${msg}`);
       } else {
         let data = null;
-        try { data = JSON.parse(text); } catch {}
+        try {
+          data = JSON.parse(text);
+        } catch {}
         console.log(
           `[session ${session.id}] auto cookieSave OK: ${data?.savedCount ?? payload.length} süti (session vége)`,
         );
@@ -1816,17 +2003,21 @@ async function runSession(payload) {
     console.error(`[session ${session.id}] auto cookieSave exception:`, e?.message ?? e);
   }
 
-  try { await channel.unsubscribe(); } catch {}
-  try { await sb.removeAllChannels(); } catch {}
-  try { await context.close(); } catch {}
+  try {
+    await channel.unsubscribe();
+  } catch {}
+  try {
+    await sb.removeAllChannels();
+  } catch {}
+  try {
+    await context.close();
+  } catch {}
 
   console.log(`[session ${session.id}] ended (${actions.length} actions)`);
 }
 
 async function loop() {
-  console.log(
-    `[${WORKER_ID}] recorder → ${BRAIN_URL} | max ${MAX_SESSIONS} párhuzamos session`,
-  );
+  console.log(`[${WORKER_ID}] recorder → ${BRAIN_URL} | max ${MAX_SESSIONS} párhuzamos session`);
   console.log(
     `[${WORKER_ID}] recording poll aktív: ${POLL_INTERVAL_MS}ms-onként nézem a /api/public/worker/record-claim végpontot`,
   );
@@ -1872,4 +2063,3 @@ loop().catch((e) => {
   console.error("[recorder] fatal", e);
   process.exit(1);
 });
-
