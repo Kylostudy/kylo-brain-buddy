@@ -50,6 +50,7 @@ export const Route = createFileRoute("/api/public/cron/reddit-reply-dispatch")({
           .eq("status", "approved")
           .is("posted_at", null)
           .not("permalink", "is", null)
+          .gte("approved_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
           .order("approved_at", { ascending: true })
           .limit(10);
 
@@ -71,6 +72,7 @@ export const Route = createFileRoute("/api/public/cron/reddit-reply-dispatch")({
           .eq("reply_status", "approved")
           .is("posted_at", null)
           .not("permalink", "is", null)
+          .gte("approved_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
           .order("approved_at", { ascending: true })
           .limit(10);
 
