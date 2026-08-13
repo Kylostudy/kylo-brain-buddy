@@ -115,6 +115,19 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [storyOpen, setStoryOpen] = useState(false);
   const [storyValue, setStoryValue] = useState("");
   const [storyBusy, setStoryBusy] = useState(false);
+  // Fotó / fájl feltöltése: kiválasztod a gépedről (vagy beillesztesz egy linket),
+  // majd a távoli képen a „Fotó hozzáadása” gombra kattintasz — a worker onnan
+  // teszi be a fájlt a LinkedIn (vagy bármely más) fájlválasztójába.
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoName, setPhotoName] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoPrepping, setPhotoPrepping] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const getUploadUrl = useServerFn(createMediaUploadUrl);
+  const getViewUrl = useServerFn(createMediaViewUrl);
+
+
 
   const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
