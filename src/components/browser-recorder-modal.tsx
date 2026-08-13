@@ -678,6 +678,25 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       return;
     }
 
+    // Ha a fotó-panelen készen áll egy fájl, a következő képkattintás a
+    // „Fotó hozzáadása” gombra megy, és a worker oda tölti be a fájlt.
+    if (photoOpen && photoUrl && !photoBusy && !photoPrepping) {
+      setPhotoBusy(true);
+      setInputStatus("Fotó gomb kijelölése, feltöltés indul…");
+      const sentPhoto = sendToWorker("uploadFileAt", {
+        url: photoUrl,
+        name: photoName || "kep.jpg",
+        x,
+        y,
+        frameW: frame?.w,
+        frameH: frame?.h,
+      });
+      if (!sentPhoto) {
+        setPhotoBusy(false);
+        setInputStatus("Nincs aktív kapcsolat a workerhez.");
+      }
+      return;
+    }
 
 
     clickInFlightRef.current = true;
