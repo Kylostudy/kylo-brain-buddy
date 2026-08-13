@@ -155,17 +155,27 @@ export async function runRedditComment(args) {
     return { reddit_comment: { posted: false, dry_run: true, chars: body.length } };
   }
 
-  const submit = await firstVisible(
+  const submit = await resolveTarget({
     page,
-    [
+    log,
+    platform: "reddit",
+    pageType: "post_comments",
+    field: "comment_submit_button",
+    description: "A komment elküldése gomb a válaszmező alatt",
+    fallbacks: [
       'button[slot="submit-button"]',
       'shreddit-composer button[type="submit"]',
+      'div.usertext-edit button[type="submit"]',
+      'button.save',
       'button:has-text("Comment")',
       'button:has-text("Reply")',
+      'button:has-text("Comentar")',
       'button:has-text("Küldés")',
     ],
-    10000,
-  );
+    workflowId: wfId,
+    runId,
+    timeoutMs: 10000,
+  });
   if (!submit) throw new Error("Nem találom a válasz elküldése gombot.");
   await humanClick(page, submit);
   await humanWait(page, 6000);
