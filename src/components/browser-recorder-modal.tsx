@@ -32,8 +32,6 @@ import {
   KeyRound,
   Keyboard,
   ImagePlus,
-
-
   Loader2,
   MailCheck,
   Maximize2,
@@ -51,10 +49,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  cancelRecording,
-  saveRecording,
-} from "@/lib/recording.functions";
+import { cancelRecording, saveRecording } from "@/lib/recording.functions";
 import { createMediaUploadUrl, createMediaViewUrl } from "@/lib/content-media.functions";
 import { findGmailConfirmationLink } from "@/lib/gmail.functions";
 
@@ -129,8 +124,6 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const getUploadUrl = useServerFn(createMediaUploadUrl);
   const getViewUrl = useServerFn(createMediaViewUrl);
 
-
-
   const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
   const [lockedFrameSize, setLockedFrameSize] = useState<{ w: number; h: number } | null>(null);
@@ -143,7 +136,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const clickTimeoutRef = useRef<number | null>(null);
   const secretTimeoutRef = useRef<number | null>(null);
   const statusRef = useRef(status);
-  useEffect(() => { statusRef.current = status; }, [status]);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   const clearClickInFlight = useCallback(() => {
     clickInFlightRef.current = false;
@@ -204,7 +199,13 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       setActions((prev) => [...prev, p.action]);
     });
     ch.on("broadcast", { event: "inputAck" }, ({ payload }) => {
-      const p = payload as { kind?: string; status?: string; x?: number; y?: number; target?: string };
+      const p = payload as {
+        kind?: string;
+        status?: string;
+        x?: number;
+        y?: number;
+        target?: string;
+      };
       if (p.kind === "humanType") {
         if (p.status === "received" || p.status === "progress") {
           setStoryBusy(true);
@@ -247,7 +248,6 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       }
 
       if (p.kind === "secret") {
-
         if (p.status === "received") {
           setInputStatus(p.target ?? "A worker átvette a jelszót, beillesztés folyamatban…");
           // A kézbesítés megtörtént: az első időkorlát helyett innentől a
@@ -257,7 +257,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
             secretTimeoutRef.current = null;
             setSecretBusy(false);
             setInputStatus("A worker átvette a jelszót, de a mező nem fejezte be a beillesztést.");
-            toast.error("A távoli mező nem fogadta el a jelszót. Kattints a mező közepére, majd próbáld újra.");
+            toast.error(
+              "A távoli mező nem fogadta el a jelszót. Kattints a mező közepére, majd próbáld újra.",
+            );
           }, 20000);
           return;
         }
@@ -284,8 +286,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           p.status === "done"
             ? `✓ Kattintva (${p.x ?? "?"}, ${p.y ?? "?"})${targetStr}`
             : p.status === "busy"
-            ? `Várj: az előző kattintás még fut (${p.x ?? "?"}, ${p.y ?? "?"})`
-            : `→ Worker fogadta (${p.x ?? "?"}, ${p.y ?? "?"})${targetStr}`,
+              ? `Várj: az előző kattintás még fut (${p.x ?? "?"}, ${p.y ?? "?"})`
+              : `→ Worker fogadta (${p.x ?? "?"}, ${p.y ?? "?"})${targetStr}`,
         );
       }
     });
@@ -509,7 +511,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
 
   useEffect(() => {
     if (!open) return;
-    const onFullscreenChange = () => setIsFullscreen(document.fullscreenElement === rootRef.current);
+    const onFullscreenChange = () =>
+      setIsFullscreen(document.fullscreenElement === rootRef.current);
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, [open]);
@@ -537,7 +540,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     secretTimeoutRef.current = window.setTimeout(() => {
       secretTimeoutRef.current = null;
       setSecretBusy(false);
-      setInputStatus("A worker nem válaszolt 25 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
+      setInputStatus(
+        "A worker nem válaszolt 25 másodpercen belül. A jelszó megmaradt, újra próbálhatod.",
+      );
       toast.error("A beillesztés nem fejeződött be. Próbáld újra a mezőre kattintás után.");
     }, 25000);
     const sent = sendToWorker("pasteSecret", { text });
@@ -564,7 +569,6 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       toast.error("A jelszó nem jutott el a workerhez. Próbáld újra.");
     }
   }
-
 
   function requestPageText() {
     setTextBusy(true);
@@ -615,21 +619,24 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     return tag === "input" || tag === "textarea" || tag === "select" || target.isContentEditable;
   }
 
-  const handleRemoteKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
-      e.preventDefault();
-      e.stopPropagation();
-      requestSelectAllAndText();
-      return;
-    }
-    const key = workerKeyFromEvent(e);
-    if (!key) return;
-    if (e.key.length > 1 || e.ctrlKey || e.metaKey || e.altKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      sendToWorker("key", { key });
-    }
-  }, [sendToWorker]);
+  const handleRemoteKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        e.stopPropagation();
+        requestSelectAllAndText();
+        return;
+      }
+      const key = workerKeyFromEvent(e);
+      if (!key) return;
+      if (e.key.length > 1 || e.ctrlKey || e.metaKey || e.altKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        sendToWorker("key", { key });
+      }
+    },
+    [sendToWorker],
+  );
 
   function handleFrameClick(e: React.MouseEvent<HTMLImageElement>) {
     if (clickInFlightRef.current) {
@@ -654,7 +661,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       secretTimeoutRef.current = window.setTimeout(() => {
         secretTimeoutRef.current = null;
         setSecretBusy(false);
-        setInputStatus("A worker nem válaszolt 25 másodpercen belül. A jelszó megmaradt, újra próbálhatod.");
+        setInputStatus(
+          "A worker nem válaszolt 25 másodpercen belül. A jelszó megmaradt, újra próbálhatod.",
+        );
       }, 25000);
       const sent = sendToWorker("pasteSecretAt", {
         text: secretValue,
@@ -682,7 +691,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           if (secretTimeoutRef.current !== null) window.clearTimeout(secretTimeoutRef.current);
           secretTimeoutRef.current = null;
           setSecretBusy(false);
-          setInputStatus(`Jelszó küldési hiba: ${err instanceof Error ? err.message : String(err)}`);
+          setInputStatus(
+            `Jelszó küldési hiba: ${err instanceof Error ? err.message : String(err)}`,
+          );
         });
       return;
     }
@@ -710,18 +721,20 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         setStoryBusy(false);
         setInputStatus("Nincs aktív kapcsolat a workerhez.");
       } else {
-        void Promise.resolve(sentStory).then((result) => {
-          if (result === "ok") return;
-          if (storyTimeoutRef.current !== null) window.clearTimeout(storyTimeoutRef.current);
-          storyTimeoutRef.current = null;
-          setStoryBusy(false);
-          setInputStatus("A szöveg nem jutott el a workerhez. Próbáld újra.");
-        }).catch(() => {
-          if (storyTimeoutRef.current !== null) window.clearTimeout(storyTimeoutRef.current);
-          storyTimeoutRef.current = null;
-          setStoryBusy(false);
-          setInputStatus("A szöveg nem jutott el a workerhez. Próbáld újra.");
-        });
+        void Promise.resolve(sentStory)
+          .then((result) => {
+            if (result === "ok") return;
+            if (storyTimeoutRef.current !== null) window.clearTimeout(storyTimeoutRef.current);
+            storyTimeoutRef.current = null;
+            setStoryBusy(false);
+            setInputStatus("A szöveg nem jutott el a workerhez. Próbáld újra.");
+          })
+          .catch(() => {
+            if (storyTimeoutRef.current !== null) window.clearTimeout(storyTimeoutRef.current);
+            storyTimeoutRef.current = null;
+            setStoryBusy(false);
+            setInputStatus("A szöveg nem jutott el a workerhez. Próbáld újra.");
+          });
       }
       return;
     }
@@ -750,22 +763,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         setPhotoBusy(false);
         setInputStatus("Nincs aktív kapcsolat a workerhez.");
       } else {
-        void Promise.resolve(sentPhoto).then((result) => {
-          if (result === "ok") return;
-          if (photoTimeoutRef.current !== null) window.clearTimeout(photoTimeoutRef.current);
-          photoTimeoutRef.current = null;
-          setPhotoBusy(false);
-          setInputStatus("A fotó nem jutott el a workerhez. Próbáld újra.");
-        }).catch(() => {
-          if (photoTimeoutRef.current !== null) window.clearTimeout(photoTimeoutRef.current);
-          photoTimeoutRef.current = null;
-          setPhotoBusy(false);
-          setInputStatus("A fotó nem jutott el a workerhez. Próbáld újra.");
-        });
+        void Promise.resolve(sentPhoto)
+          .then((result) => {
+            if (result === "ok") return;
+            if (photoTimeoutRef.current !== null) window.clearTimeout(photoTimeoutRef.current);
+            photoTimeoutRef.current = null;
+            setPhotoBusy(false);
+            setInputStatus("A fotó nem jutott el a workerhez. Próbáld újra.");
+          })
+          .catch(() => {
+            if (photoTimeoutRef.current !== null) window.clearTimeout(photoTimeoutRef.current);
+            photoTimeoutRef.current = null;
+            setPhotoBusy(false);
+            setInputStatus("A fotó nem jutott el a workerhez. Próbáld újra.");
+          });
       }
       return;
     }
-
 
     clickInFlightRef.current = true;
     if (clickTimeoutRef.current !== null) window.clearTimeout(clickTimeoutRef.current);
@@ -796,7 +810,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       })
       .catch((err) => {
         clearClickInFlight();
-        setInputStatus(`Kattintás küldési hiba: ${err instanceof Error ? err.message : String(err)}`);
+        setInputStatus(
+          `Kattintás küldési hiba: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
     // A kép csak egy kép — a gépeléshez a rejtett input kell hogy fókuszban legyen.
     window.setTimeout(() => typeInputRef.current?.focus(), 0);
@@ -830,8 +846,6 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     }
   }
 
-
-
   function handleKyloUnlock() {
     if (kyloUnlockBusy) return;
     setKyloUnlockBusy(true);
@@ -853,7 +867,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       })
       .catch((err) => {
         setKyloUnlockBusy(false);
-        setInputStatus(`Kylo 7 kattintás küldési hiba: ${err instanceof Error ? err.message : String(err)}`);
+        setInputStatus(
+          `Kylo 7 kattintás küldési hiba: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
   }
 
@@ -864,7 +880,9 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     try {
       const found = await callFindGmailConfirmationLink({ data: { sessionId } });
       if (!found.found || !found.link) {
-        setInputStatus("Még nem találtam friss megerősítő e-mailt. Várj pár másodpercet és próbáld újra.");
+        setInputStatus(
+          "Még nem találtam friss megerősítő e-mailt. Várj pár másodpercet és próbáld újra.",
+        );
         toast.error("Még nincs friss megerősítő e-mail a csatlakoztatott Gmailben.");
         return;
       }
@@ -884,12 +902,13 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       }
     } catch (err) {
       setInputStatus(`Gmail keresési hiba: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(err instanceof Error ? err.message : "Nem sikerült megkeresni a megerősítő e-mailt.");
+      toast.error(
+        err instanceof Error ? err.message : "Nem sikerült megkeresni a megerősítő e-mailt.",
+      );
     } finally {
       setGmailConfirmBusy(false);
     }
   }
-
 
   // Élő gépelés: minden karakter azonnal megy a workernek (nem várunk Enterre).
   // A rejtett input értékét kiürítjük, csak eseményforrásként használjuk.
@@ -897,9 +916,18 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     const target = e.target as HTMLInputElement;
     // Speciális billentyűk: preventDefault + key event a workernek
     const specialKeys = new Set([
-      "Backspace", "Delete", "Enter", "Tab",
-      "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
-      "Home", "End", "PageUp", "PageDown",
+      "Backspace",
+      "Delete",
+      "Enter",
+      "Tab",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Home",
+      "End",
+      "PageUp",
+      "PageDown",
     ]);
     if (specialKeys.has(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
       const key = workerKeyFromEvent(e);
@@ -1083,7 +1111,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           aria-label="Oldalszöveg megnyitása"
           title="Oldalszöveg megnyitása"
         >
-          {textBusy ? <Loader2 className="size-4 animate-spin" /> : <ScrollText className="size-4" />}
+          {textBusy ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <ScrollText className="size-4" />
+          )}
         </Button>
         <Button
           size="icon-sm"
@@ -1093,7 +1125,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           aria-label={textPanelOpen ? "Szövegpanel bezárása" : "Szövegpanel megnyitása"}
           title={textPanelOpen ? "Szövegpanel bezárása" : "Szövegpanel megnyitása"}
         >
-          {textPanelOpen ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}
+          {textPanelOpen ? (
+            <PanelRightClose className="size-4" />
+          ) : (
+            <PanelRightOpen className="size-4" />
+          )}
         </Button>
         <Button
           size="icon-sm"
@@ -1203,7 +1239,6 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           <span className="ml-1 hidden lg:inline">Fotó feltöltése</span>
         </Button>
 
-
         <Button
           size="sm"
           variant="secondary"
@@ -1213,11 +1248,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           aria-label="Sütik mentése a workflow-ba"
           title="Sütik mentése a workflow-ba (bejelentkezés után)"
         >
-          {cookieBusy ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Cookie className="size-4" />
-          )}
+          {cookieBusy ? <Loader2 className="size-4 animate-spin" /> : <Cookie className="size-4" />}
           <span className="ml-1 hidden md:inline">Sütik mentése</span>
         </Button>
         <Button
@@ -1269,7 +1300,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
             onClick={submitSecret}
             disabled={!secretValue || status !== "active" || secretBusy}
           >
-            {secretBusy ? <Loader2 className="size-4 animate-spin" /> : "Beillesztés a kijelölt mezőbe"}
+            {secretBusy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              "Beillesztés a kijelölt mezőbe"
+            )}
           </Button>
           <Button
             size="sm"
@@ -1347,7 +1382,13 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
             onClick={() => photoInputRef.current?.click()}
             disabled={photoPrepping}
           >
-            {photoPrepping ? <Loader2 className="size-4 animate-spin" /> : photoBusy ? "Másik fájl kiválasztása" : "Fájl kiválasztása"}
+            {photoPrepping ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : photoBusy ? (
+              "Másik fájl kiválasztása"
+            ) : (
+              "Fájl kiválasztása"
+            )}
           </Button>
           <Input
             value={photoUrl}
@@ -1378,7 +1419,6 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         </div>
       )}
 
-
       <div className="flex min-h-0 flex-1">
         {/* Böngésző-kép */}
         <div
@@ -1392,7 +1432,10 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
               className="flex shrink-0 items-center justify-center overflow-hidden"
               style={{
                 aspectRatio: `${lockedFrameSize?.w ?? frame.w} / ${lockedFrameSize?.h ?? frame.h}`,
-                width: zoom === 1 ? "min(100%, calc(100vh * 1.6))" : `${(lockedFrameSize?.w ?? frame.w) * zoom}px`,
+                width:
+                  zoom === 1
+                    ? "min(100%, calc(100vh * 1.6))"
+                    : `${(lockedFrameSize?.w ?? frame.w) * zoom}px`,
                 maxWidth: zoom === 1 ? "100%" : "none",
                 maxHeight: zoom === 1 ? "100%" : "none",
               }}
@@ -1412,8 +1455,8 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
                 {status === "failed"
                   ? "A Live Browse nem tudott elindulni."
                   : status === "requested"
-                  ? "Várjuk, hogy a worker felvegye a felvételt…"
-                  : "Még nem érkezett képkocka a workertől."}
+                    ? "Várjuk, hogy a worker felvegye a felvételt…"
+                    : "Még nem érkezett képkocka a workertől."}
               </div>
               {status === "failed" && failureReason && (
                 <div className="rounded border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-100">
@@ -1425,13 +1468,18 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
                   {workerTimeout ? (
                     <>
                       A VPS recorder nem vette fel ezt a felvételt. Ellenőrizd a szerveren:
-                      <code className="mx-1 rounded bg-white/10 px-1">docker compose logs recorder --tail=80</code>
+                      <code className="mx-1 rounded bg-white/10 px-1">
+                        docker compose logs recorder --tail=80
+                      </code>
                     </>
                   ) : (
                     <>
-                      Ha a worker (VPS Recorder konténer) nincs elindítva, ez az ablak sosem fog képet mutatni.
-                      Nyomj <kbd className="rounded bg-white/10 px-1">Esc</kbd>-et vagy kattints a jobb felső
-                      <span className="mx-1 inline-flex items-center rounded bg-white/10 px-1">Elvet</span>
+                      Ha a worker (VPS Recorder konténer) nincs elindítva, ez az ablak sosem fog
+                      képet mutatni. Nyomj <kbd className="rounded bg-white/10 px-1">Esc</kbd>-et
+                      vagy kattints a jobb felső
+                      <span className="mx-1 inline-flex items-center rounded bg-white/10 px-1">
+                        Elvet
+                      </span>
                       gombra a bezáráshoz.
                     </>
                   )}
@@ -1480,7 +1528,11 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
                 aria-label="Oldalszöveg frissítése"
                 title="Oldalszöveg frissítése"
               >
-                {textBusy ? <Loader2 className="size-4 animate-spin" /> : <RotateCw className="size-4" />}
+                {textBusy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RotateCw className="size-4" />
+                )}
               </Button>
               <Button
                 size="icon-sm"
