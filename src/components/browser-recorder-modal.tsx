@@ -734,6 +734,36 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     window.setTimeout(() => typeInputRef.current?.focus(), 0);
   }
 
+  // A gépedről kiválasztott fájlt a Brain privát tárhelyére töltjük fel, és
+  // csak egy rövid életű, aláírt linket adunk a workernek.
+  async function handlePhotoPick(file: File) {
+    setPhotoPrepping(true);
+    setPhotoUrl("");
+    setPhotoName(file.name);
+    setInputStatus(`Fájl előkészítése: ${file.name}…`);
+    try {
+      const up = await getUploadUrl({ data: { file_name: file.name } });
+      const { error } = await supabase.storage
+        .from(up.bucket)
+        .uploadToSignedUrl(up.path, up.token, file, {
+          contentType: file.type || "application/octet-stream",
+        });
+      if (error) throw new Error(error.message);
+      const view = await getViewUrl({ data: { path: up.path, expires_in: 3600 } });
+      setPhotoUrl(view.url);
+      setInputStatus("A fájl készen áll — kattints a távoli „Fotó hozzáadása” gombra.");
+      toast.success("Fájl feltöltve. Most kattints a képen a fotó-gombra.");
+    } catch (err) {
+      setPhotoName("");
+      setInputStatus(`Fájl előkészítési hiba: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error("Nem sikerült előkészíteni a fájlt.");
+    } finally {
+      setPhotoPrepping(false);
+    }
+  }
+
+
+
   function handleKyloUnlock() {
     if (kyloUnlockBusy) return;
     setKyloUnlockBusy(true);
