@@ -71,33 +71,69 @@ export async function runRedditComment(args) {
   await humanCasualScroll(page, { steps: 4, rounds: 2 }).catch(() => {});
   await humanThink(page, 5000);
 
+  const wfId = args.spec?.workflow_id || null;
+  const runId = args.spec?.run_id || null;
+
+  const OPENER_FALLBACKS = [
+    'button:has-text("Add a comment")',
+    'faceplate-tracker[noun="comment_composer"] button',
+    '[data-testid="trigger-button"]',
+    'shreddit-async-loader[bundlename="comment_composer"] button',
+    'comment-composer-host button',
+    'div[slot="comment-composer"] button',
+    'button[aria-label*="comment" i]',
+    'button:has-text("Hozzászólás")',
+    'button:has-text("Comentar")',
+    'button:has-text("Añadir un comentario")',
+  ];
+  const EDITOR_FALLBACKS = [
+    'shreddit-composer div[contenteditable="true"]',
+    'comment-composer-host div[contenteditable="true"]',
+    'div[contenteditable="true"][name="body"]',
+    'div[role="textbox"][contenteditable="true"]',
+    'textarea[name="text"]',
+    'textarea[placeholder*="thoughts" i]',
+    'textarea[placeholder*="comment" i]',
+    'textarea[placeholder*="comentario" i]',
+  ];
+
   // A válaszmező néha csak akkor jelenik meg, ha rákattintunk a „Add a comment” dobozra.
-  const opener = await firstVisible(
-    page,
-    [
-      'button:has-text("Add a comment")',
-      'faceplate-tracker[noun="comment_composer"] button',
-      '[data-testid="trigger-button"]',
-      'button:has-text("Hozzászólás")',
-    ],
-    6000,
-  );
-  if (opener) {
-    await humanClick(page, opener).catch(() => {});
-    await humanWait(page, 1500);
+  const openEditor = async () => {
+    const opener = await firstVisible(page, OPENER_FALLBACKS, 6000);
+    if (opener) {
+      await humanClick(page, opener).catch(() => {});
+      await humanWait(page, 1800);
+    }
+    return await resolveTarget({
+      page,
+      log,
+      platform: "reddit",
+      pageType: "post_comments",
+      field: "comment_editor",
+      description: "A poszt alatti válaszíró mező (komment szerkesztő)",
+      fallbacks: EDITOR_FALLBACKS,
+      workflowId: wfId,
+      runId,
+      timeoutMs: 15000,
+    });
+  };
+
+  let editor = await openEditor();
+
+  // Tartalék: ha az új felületen nem találjuk, próbáljuk a régi Redditet,
+  // ahol a válaszmező egyszerű <textarea>.
+  if (!editor) {
+    const oldUrl = url.replace("://www.reddit.com", "://old.reddit.com");
+    log("warn", "Az új felületen nincs válaszmező — átváltok a régi Reddit nézetre.");
+    await page.goto(oldUrl, { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+    await humanWait(page, 3000);
+    editor = await firstVisible(
+      page,
+      ['div.usertext-edit textarea', 'textarea[name="text"]'],
+      12000,
+    );
   }
 
-  const editor = await firstVisible(
-    page,
-    [
-      'shreddit-composer div[contenteditable="true"]',
-      'div[contenteditable="true"][name="body"]',
-      'div[role="textbox"][contenteditable="true"]',
-      'textarea[name="text"]',
-      'textarea[placeholder*="thoughts" i]',
-    ],
-    15000,
-  );
   if (!editor) throw new Error("Nem találom a válasz mezőt a poszt alatt.");
 
   await humanClick(page, editor).catch(() => {});
