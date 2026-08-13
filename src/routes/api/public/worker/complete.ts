@@ -385,6 +385,40 @@ export const Route = createFileRoute("/api/public/worker/complete")({
           }
         }
 
+        // ---- Sikertelen Reddit válasz visszatétele a sorba ----
+        // A kiküldő „queued”-re állítja a jóváhagyott választ. Ha a futás
+        // elbukott, ez örökre ott ragadna — ezért visszaállítjuk „approved”-ra,
+        // hogy a következő körben újra próbálkozzon.
+        try {
+          const bt =
+            specSnapshot.brain_task && typeof specSnapshot.brain_task === "object"
+              ? (specSnapshot.brain_task as Record<string, unknown>)
+              : null;
+          if (
+            bt?.["task_type"] === "reddit_comment" &&
+            finalStatus !== "succeeded" &&
+            typeof bt?.["ref_id"] === "string"
+          ) {
+            const refTable = String(bt["ref_table"] ?? "lead_alerts");
+            const refId = String(bt["ref_id"]);
+            if (refTable === "lead_alerts") {
+              await supabaseAdmin
+                .from("lead_alerts")
+                .update({ status: "approved" })
+                .eq("id", refId)
+                .eq("status", "queued");
+            } else {
+              await supabaseAdmin
+                .from("reddit_comments")
+                .update({ reply_status: "approved" })
+                .eq("id", refId)
+                .eq("reply_status", "queued");
+            }
+          }
+        } catch (e) {
+          console.error("[complete] Reddit válasz visszasorolása sikertelen:", e);
+        }
+
         // ---- Telegram visszaigazolás a kiküldött posztokról ----
         // Minden Tartalom Stúdióból indított poszt (Reddit / LinkedIn / stb.)
         // után azonnal jön értesítés, hogy sikerült-e. Így sosem marad néma
