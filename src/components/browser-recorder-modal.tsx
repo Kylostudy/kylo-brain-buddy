@@ -55,7 +55,9 @@ import {
   cancelRecording,
   saveRecording,
 } from "@/lib/recording.functions";
+import { createMediaUploadUrl, createMediaViewUrl } from "@/lib/content-media.functions";
 import { findGmailConfirmationLink } from "@/lib/gmail.functions";
+
 import { normalizeRecordingStartUrl } from "@/lib/recording-url";
 import type { RecordedAction } from "@/lib/chat.functions";
 
