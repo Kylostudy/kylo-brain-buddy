@@ -1042,6 +1042,8 @@ export type Database = {
           id: string
           permalink: string
           post_id: string
+          posted_at: string | null
+          posted_permalink: string | null
           reason_hu: string | null
           score: number
           source: string
@@ -1065,6 +1067,8 @@ export type Database = {
           id?: string
           permalink: string
           post_id: string
+          posted_at?: string | null
+          posted_permalink?: string | null
           reason_hu?: string | null
           score?: number
           source?: string
@@ -1088,6 +1092,8 @@ export type Database = {
           id?: string
           permalink?: string
           post_id?: string
+          posted_at?: string | null
+          posted_permalink?: string | null
           reason_hu?: string | null
           score?: number
           source?: string
