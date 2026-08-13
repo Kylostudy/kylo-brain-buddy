@@ -31,6 +31,8 @@ import {
   Copy,
   KeyRound,
   Keyboard,
+  ImagePlus,
+
 
   Loader2,
   MailCheck,
@@ -53,7 +55,9 @@ import {
   cancelRecording,
   saveRecording,
 } from "@/lib/recording.functions";
+import { createMediaUploadUrl, createMediaViewUrl } from "@/lib/content-media.functions";
 import { findGmailConfirmationLink } from "@/lib/gmail.functions";
+
 import { normalizeRecordingStartUrl } from "@/lib/recording-url";
 import type { RecordedAction } from "@/lib/chat.functions";
 
@@ -111,6 +115,19 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
   const [storyOpen, setStoryOpen] = useState(false);
   const [storyValue, setStoryValue] = useState("");
   const [storyBusy, setStoryBusy] = useState(false);
+  // Fotó / fájl feltöltése: kiválasztod a gépedről (vagy beillesztesz egy linket),
+  // majd a távoli képen a „Fotó hozzáadása” gombra kattintasz — a worker onnan
+  // teszi be a fájlt a LinkedIn (vagy bármely más) fájlválasztójába.
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoName, setPhotoName] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoPrepping, setPhotoPrepping] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const getUploadUrl = useServerFn(createMediaUploadUrl);
+  const getViewUrl = useServerFn(createMediaViewUrl);
+
+
 
   const [failureReason, setFailureReason] = useState("");
   const [workerTimeout, setWorkerTimeout] = useState(false);
@@ -202,6 +219,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         }
         return;
       }
+      if (p.kind === "upload") {
+        if (p.status === "received" || p.status === "progress") {
+          setPhotoBusy(true);
+          setInputStatus(p.target ?? "Fájl feltöltése folyamatban…");
+          return;
+        }
+        setPhotoBusy(false);
+        if (p.status === "done") {
+          setInputStatus(`✓ ${p.target ?? "A fájl bekerült a lapba."}`);
+          toast.success("A fotó bekerült a LinkedIn ablakába. A vágást/mentést te erősítsd meg.");
+        } else {
+          setInputStatus(`Fájlfeltöltési hiba: ${p.target ?? "ismeretlen hiba"}`);
+          toast.error(p.target ?? "A fájlfeltöltés nem sikerült.");
+        }
+        return;
+      }
+
       if (p.kind === "secret") {
 
         if (p.status === "received") {
@@ -644,6 +678,25 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       return;
     }
 
+    // Ha a fotó-panelen készen áll egy fájl, a következő képkattintás a
+    // „Fotó hozzáadása” gombra megy, és a worker oda tölti be a fájlt.
+    if (photoOpen && photoUrl && !photoBusy && !photoPrepping) {
+      setPhotoBusy(true);
+      setInputStatus("Fotó gomb kijelölése, feltöltés indul…");
+      const sentPhoto = sendToWorker("uploadFileAt", {
+        url: photoUrl,
+        name: photoName || "kep.jpg",
+        x,
+        y,
+        frameW: frame?.w,
+        frameH: frame?.h,
+      });
+      if (!sentPhoto) {
+        setPhotoBusy(false);
+        setInputStatus("Nincs aktív kapcsolat a workerhez.");
+      }
+      return;
+    }
 
 
     clickInFlightRef.current = true;
@@ -680,6 +733,36 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     // A kép csak egy kép — a gépeléshez a rejtett input kell hogy fókuszban legyen.
     window.setTimeout(() => typeInputRef.current?.focus(), 0);
   }
+
+  // A gépedről kiválasztott fájlt a Brain privát tárhelyére töltjük fel, és
+  // csak egy rövid életű, aláírt linket adunk a workernek.
+  async function handlePhotoPick(file: File) {
+    setPhotoPrepping(true);
+    setPhotoUrl("");
+    setPhotoName(file.name);
+    setInputStatus(`Fájl előkészítése: ${file.name}…`);
+    try {
+      const up = await getUploadUrl({ data: { file_name: file.name } });
+      const { error } = await supabase.storage
+        .from(up.bucket)
+        .uploadToSignedUrl(up.path, up.token, file, {
+          contentType: file.type || "application/octet-stream",
+        });
+      if (error) throw new Error(error.message);
+      const view = await getViewUrl({ data: { path: up.path, expires_in: 3600 } });
+      setPhotoUrl(view.url);
+      setInputStatus("A fájl készen áll — kattints a távoli „Fotó hozzáadása” gombra.");
+      toast.success("Fájl feltöltve. Most kattints a képen a fotó-gombra.");
+    } catch (err) {
+      setPhotoName("");
+      setInputStatus(`Fájl előkészítési hiba: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error("Nem sikerült előkészíteni a fájlt.");
+    } finally {
+      setPhotoPrepping(false);
+    }
+  }
+
+
 
   function handleKyloUnlock() {
     if (kyloUnlockBusy) return;
@@ -1027,7 +1110,18 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
           <span className="ml-1 hidden lg:inline">Szöveg gépelése</span>
         </Button>
 
-
+        <Button
+          size="sm"
+          variant="secondary"
+          className="bg-fuchsia-700 text-white hover:bg-fuchsia-600"
+          onClick={() => setPhotoOpen((v) => !v)}
+          disabled={status !== "active"}
+          aria-label="Fotó vagy fájl feltöltése a távoli böngészőbe"
+          title="Fotó/fájl kiválasztása, majd a távoli „Fotó hozzáadása” gombra kattintva feltöltés"
+        >
+          <ImagePlus className="size-4" />
+          <span className="ml-1 hidden lg:inline">Fotó feltöltése</span>
+        </Button>
 
 
         <Button
@@ -1153,8 +1247,56 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
         </div>
       )}
 
-
-
+      {photoOpen && (
+        <div className="flex items-center gap-2 border-b border-white/10 bg-neutral-900 px-3 py-2">
+          <ImagePlus className="size-4 shrink-0 text-fuchsia-400" />
+          <input
+            ref={photoInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handlePhotoPick(f);
+              e.target.value = "";
+            }}
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-fuchsia-700 text-white hover:bg-fuchsia-600"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={photoPrepping || photoBusy}
+          >
+            {photoPrepping ? <Loader2 className="size-4 animate-spin" /> : "Fájl kiválasztása"}
+          </Button>
+          <Input
+            value={photoUrl}
+            onChange={(e) => {
+              setPhotoUrl(e.target.value);
+              if (!photoName) setPhotoName("kep.jpg");
+            }}
+            placeholder="…vagy illessz be ide egy nyilvános kép-linket"
+            className="h-8 flex-1 border-white/20 bg-black/40 text-white placeholder:text-white/40"
+          />
+          <span className="hidden text-xs text-white/60 lg:inline">
+            {photoUrl
+              ? `Kész: ${photoName || "fájl"} — kattints a távoli „Fotó hozzáadása” gombra`
+              : "Válassz fájlt, aztán kattints a képen a fotó-gombra"}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-white hover:bg-white/10"
+            onClick={() => {
+              setPhotoUrl("");
+              setPhotoName("");
+              setPhotoOpen(false);
+            }}
+          >
+            Bezárás
+          </Button>
+        </div>
+      )}
 
 
       <div className="flex min-h-0 flex-1">
