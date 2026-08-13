@@ -1391,6 +1391,83 @@ async function runSession(payload) {
     }
   });
 
+  // FÁJL (fotó / dokumentum) feltöltése a távoli böngészőbe.
+  // A felület feltölti a fájlt a Brain tárhelyére, és csak egy aláírt linket
+  // küld ide. A worker letölti, majd a KIJELÖLT pontra kattint, és az ott
+  // megnyíló fájlválasztóba teszi be a fájlt (ha nincs fájlválasztó, akkor a
+  // lap rejtett input[type=file] mezőjébe).
+  let uploadBusy = false;
+  channel.on("broadcast", { event: "uploadFileAt" }, async ({ payload }) => {
+    const ack = (status, target) =>
+      channel.send({
+        type: "broadcast",
+        event: "inputAck",
+        payload: { kind: "upload", status, target },
+      }).catch(() => {});
+
+    try {
+      const url = typeof payload?.url === "string" ? payload.url : "";
+      const name = (typeof payload?.name === "string" && payload.name) || "kep.jpg";
+      if (!url) throw new Error("nem érkezett fájl-link");
+      if (uploadBusy) throw new Error("Az előző feltöltés még fut. Várj néhány másodpercet.");
+      uploadBusy = true;
+      await ack("received", "A worker átvette a fájlt, letöltés folyamatban…");
+
+      const { mkdtemp, writeFile } = await import("node:fs/promises");
+      const { tmpdir } = await import("node:os");
+      const { join } = await import("node:path");
+      const dir = await mkdtemp(join(tmpdir(), "kylo-live-upload-"));
+      const safe = String(name).replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "fajl";
+      const filePath = join(dir, safe);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`a fájl letöltése nem sikerült (HTTP ${res.status})`);
+      await writeFile(filePath, Buffer.from(await res.arrayBuffer()));
+
+      const vs = page.viewportSize() || { width: viewportW, height: viewportH };
+      const x = Math.max(0, Math.min(vs.width - 1, Number(payload?.x) * vs.width));
+      const y = Math.max(0, Math.min(vs.height - 1, Number(payload?.y) * vs.height));
+      if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("érvénytelen kattintási hely");
+
+      await ack("progress", "Fájl letöltve — a kijelölt gomb megnyitása…");
+
+      let used = "";
+      try {
+        const [chooser] = await Promise.all([
+          page.waitForEvent("filechooser", { timeout: 12000 }),
+          page.mouse.click(x, y),
+        ]);
+        await chooser.setFiles(filePath);
+        used = "fájlválasztón keresztül";
+      } catch {
+        // Tartalék: a lapon (vagy iframe-ekben) lévő rejtett fájlmező.
+        const frames = [page, ...page.frames()];
+        let ok = false;
+        for (const f of frames) {
+          try {
+            const input = f.locator('input[type="file"]').last();
+            if (await input.count()) {
+              await input.setInputFiles(filePath);
+              ok = true;
+              break;
+            }
+          } catch {}
+        }
+        if (!ok) throw new Error("Nem nyílt meg fájlválasztó a kijelölt ponton. Kattints pontosan a „Fotó hozzáadása” gombra.");
+        used = "rejtett fájlmezőn keresztül";
+      }
+
+      await sleep(1500);
+      await ack("done", `A fájl bekerült a lapba (${used}). A vágást és a mentést te erősítsd meg.`);
+    } catch (e) {
+      console.error(`[session ${session.id}] upload error:`, e?.message || e);
+      await ack("error", e?.message || "sikertelen fájlfeltöltés");
+    } finally {
+      uploadBusy = false;
+    }
+  });
+
+
+
 
 
 
