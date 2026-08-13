@@ -1,0 +1,2 @@
+update brain_workflow_runs set status='failed', error='Elavult sorban ragadt feladat — visszasorolva', finished_at=now() where id='d604a633-6e28-46cb-9815-dc967d8fa18c' and status='queued';
+update lead_alerts set status='approved' where status='queued';
