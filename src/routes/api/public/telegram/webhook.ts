@@ -75,6 +75,93 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+        // ---- Gépi parancsok (nem válaszvázlat): újraindítás / státusz ----
+        const cmd = text.toLowerCase().replace(/[.!?]+$/, "").trim();
+        const isRestart =
+          /^(\/restart|restart|[úu]jraind[íi]t[áa]s|ind[íi]tsd? [úu]jra|ind[íi]tsd [úu]jra a workert|reboot)$/i.test(
+            cmd,
+          );
+        const isStatus = /^(\/status|st[áa]tusz|status|hogy áll|hogy all)$/i.test(cmd);
+
+        if (isRestart || isStatus) {
+          const { sendTelegram: sendTg } = await import("@/lib/reddit-post-patrol.server");
+
+          const { data: hb } = await supabaseAdmin
+            .from("worker_heartbeats")
+            .select("created_at")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const ageMin = hb?.created_at
+            ? Math.round((Date.now() - new Date(hb.created_at).getTime()) / 60000)
+            : null;
+          const { count: queued } = await supabaseAdmin
+            .from("brain_task_queue")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "queued");
+
+          if (isStatus) {
+            await sendTg(
+              [
+                `📟 WORKER · státusz`,
+                ageMin === null ? `Életjel: nincs adat` : `Utolsó életjel: ${ageMin} perce`,
+                `Sorban álló feladat: ${queued ?? 0}`,
+                ``,
+                `Újraindításhoz írd: újraindítás`,
+              ].join("\n"),
+              { topic: "worker_status", platform: "worker" },
+            );
+            return Response.json({ ok: true, action: "status" });
+          }
+
+          const { data: active } = await supabaseAdmin
+            .from("worker_deploy_requests")
+            .select("id, status")
+            .in("status", ["pending", "running"])
+            .limit(1)
+            .maybeSingle();
+
+          if (active) {
+            await sendTg(
+              `⏳ Már fut egy újraindítási/frissítési kérés (${active.status}). Megvárom, hogy befejeződjön.`,
+              { topic: "worker_restart_ack", platform: "worker" },
+            );
+            return Response.json({ ok: true, action: "restart_already" });
+          }
+
+          const { error: insErr } = await supabaseAdmin
+            .from("worker_deploy_requests")
+            .insert({
+              worker_id: "worker-1",
+              note: "Telegram parancs: újraindítás",
+              status: "pending",
+            });
+
+          if (insErr) {
+            await sendTg(`⚠️ Nem tudtam beadni az újraindítást: ${insErr.message}`, {
+              topic: "worker_restart_ack",
+              platform: "worker",
+            });
+            return Response.json({ ok: false, error: insErr.message });
+          }
+
+          await sendTg(
+            [
+              `🔄 Újraindítást kértem a VPS-től.`,
+              `A gép percenként figyeli a kéréseket, tehát 1-2 percen belül elindul.`,
+              ageMin === null ? "" : `(Utolsó életjel: ${ageMin} perce.)`,
+              ``,
+              `Amint újra él, küldök egy visszajelzést.`,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            { topic: "worker_restart_ack", platform: "worker" },
+          );
+          return Response.json({ ok: true, action: "restart_requested" });
+        }
+
+
+
         // Ha NEM reply-ként írt (csak simán üzenetet küldött), akkor a legutóbbi
         // olyan értesítésre értjük, amire még nem válaszolt.
         let fellBack = false;
