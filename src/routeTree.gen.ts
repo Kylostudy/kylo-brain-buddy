@@ -47,6 +47,7 @@ import { Route as ApiPublicCronRedditReplyDispatchRouteImport } from './routes/a
 import { Route as ApiPublicCronScheduleRedditKarmaRouteImport } from './routes/api/public/cron/schedule-reddit-karma'
 import { Route as ApiPublicCronScheduleRedditWarmupsRouteImport } from './routes/api/public/cron/schedule-reddit-warmups'
 import { Route as ApiPublicCronScheduleWarmupsRouteImport } from './routes/api/public/cron/schedule-warmups'
+import { Route as ApiPublicCronWorkerHealthAlertRouteImport } from './routes/api/public/cron/worker-health-alert'
 import { Route as ApiPublicHooksQaSchedulerRouteImport } from './routes/api/public/hooks/qa-scheduler'
 import { Route as ApiPublicSTokenRouteImport } from './routes/api/public/s/$token'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
@@ -303,6 +304,12 @@ const ApiPublicCronScheduleWarmupsRoute =
   ApiPublicCronScheduleWarmupsRouteImport.update({
     id: '/api/public/cron/schedule-warmups',
     path: '/api/public/cron/schedule-warmups',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronWorkerHealthAlertRoute =
+  ApiPublicCronWorkerHealthAlertRouteImport.update({
+    id: '/api/public/cron/worker-health-alert',
+    path: '/api/public/cron/worker-health-alert',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksQaSchedulerRoute =
@@ -606,6 +613,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
+  '/api/public/cron/worker-health-alert': typeof ApiPublicCronWorkerHealthAlertRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
   '/api/public/s/$token': typeof ApiPublicSTokenRouteWithChildren
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -690,6 +698,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
+  '/api/public/cron/worker-health-alert': typeof ApiPublicCronWorkerHealthAlertRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
   '/api/public/s/$token': typeof ApiPublicSTokenRouteWithChildren
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -776,6 +785,7 @@ export interface FileRoutesById {
   '/api/public/cron/schedule-reddit-karma': typeof ApiPublicCronScheduleRedditKarmaRoute
   '/api/public/cron/schedule-reddit-warmups': typeof ApiPublicCronScheduleRedditWarmupsRoute
   '/api/public/cron/schedule-warmups': typeof ApiPublicCronScheduleWarmupsRoute
+  '/api/public/cron/worker-health-alert': typeof ApiPublicCronWorkerHealthAlertRoute
   '/api/public/hooks/qa-scheduler': typeof ApiPublicHooksQaSchedulerRoute
   '/api/public/s/$token': typeof ApiPublicSTokenRouteWithChildren
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -862,6 +872,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
+    | '/api/public/cron/worker-health-alert'
     | '/api/public/hooks/qa-scheduler'
     | '/api/public/s/$token'
     | '/api/public/telegram/webhook'
@@ -946,6 +957,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
+    | '/api/public/cron/worker-health-alert'
     | '/api/public/hooks/qa-scheduler'
     | '/api/public/s/$token'
     | '/api/public/telegram/webhook'
@@ -1031,6 +1043,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/schedule-reddit-karma'
     | '/api/public/cron/schedule-reddit-warmups'
     | '/api/public/cron/schedule-warmups'
+    | '/api/public/cron/worker-health-alert'
     | '/api/public/hooks/qa-scheduler'
     | '/api/public/s/$token'
     | '/api/public/telegram/webhook'
@@ -1102,6 +1115,7 @@ export interface RootRouteChildren {
   ApiPublicCronScheduleRedditKarmaRoute: typeof ApiPublicCronScheduleRedditKarmaRoute
   ApiPublicCronScheduleRedditWarmupsRoute: typeof ApiPublicCronScheduleRedditWarmupsRoute
   ApiPublicCronScheduleWarmupsRoute: typeof ApiPublicCronScheduleWarmupsRoute
+  ApiPublicCronWorkerHealthAlertRoute: typeof ApiPublicCronWorkerHealthAlertRoute
   ApiPublicHooksQaSchedulerRoute: typeof ApiPublicHooksQaSchedulerRoute
   ApiPublicSTokenRoute: typeof ApiPublicSTokenRouteWithChildren
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
@@ -1413,6 +1427,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/schedule-warmups'
       fullPath: '/api/public/cron/schedule-warmups'
       preLoaderRoute: typeof ApiPublicCronScheduleWarmupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/worker-health-alert': {
+      id: '/api/public/cron/worker-health-alert'
+      path: '/api/public/cron/worker-health-alert'
+      fullPath: '/api/public/cron/worker-health-alert'
+      preLoaderRoute: typeof ApiPublicCronWorkerHealthAlertRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/qa-scheduler': {
@@ -1826,6 +1847,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronScheduleRedditWarmupsRoute:
     ApiPublicCronScheduleRedditWarmupsRoute,
   ApiPublicCronScheduleWarmupsRoute: ApiPublicCronScheduleWarmupsRoute,
+  ApiPublicCronWorkerHealthAlertRoute: ApiPublicCronWorkerHealthAlertRoute,
   ApiPublicHooksQaSchedulerRoute: ApiPublicHooksQaSchedulerRoute,
   ApiPublicSTokenRoute: ApiPublicSTokenRouteWithChildren,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
