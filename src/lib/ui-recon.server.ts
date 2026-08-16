@@ -330,18 +330,36 @@ export async function processReconSnapshot(
 
   if (changed) {
     const ok = learned.length > 0;
-    await sendTelegram(
-      [
-        `🔵 ${input.platform} felület megváltozott (${input.pageType})`,
-        changeNote ?? "",
-        ok
-          ? `Az új fogódzókat megtanultam: ${learned.map((l) => l.field).join(", ")}`
-          : "Új fogódzót NEM sikerült megtanulni — érdemes ránézni.",
-      ]
-        .filter(Boolean)
-        .join("\n"),
-    );
+    // Csendesítés: ugyanarról a felületről ne jöjjön riasztás sűrűbben, mint
+    // 12 óránként (ha sikerült tanulni, akkor 24 óránként). A napi összesítő
+    // úgyis tartalmazza a részleteket.
+    const quietHours = ok ? 24 : 12;
+    const { data: recentAlert } = await supabaseAdmin
+      .from("ui_recon_snapshots")
+      .select("id")
+      .eq("platform", input.platform)
+      .eq("page_type", input.pageType)
+      .eq("changed", true)
+      .gte("created_at", new Date(Date.now() - quietHours * 3600_000).toISOString())
+      .neq("id", (inserted?.id as string | undefined) ?? "00000000-0000-0000-0000-000000000000")
+      .limit(1)
+      .maybeSingle();
+
+    if (!recentAlert) {
+      await sendTelegram(
+        [
+          `🔵 ${input.platform} felület megváltozott (${input.pageType})`,
+          changeNote ?? "",
+          ok
+            ? `Az új fogódzókat megtanultam: ${learned.map((l) => l.field).join(", ")}`
+            : "Új fogódzót NEM sikerült megtanulni — érdemes ránézni.",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      );
+    }
   }
+
 
   return {
     snapshotId: (inserted?.id as string | undefined) ?? null,
