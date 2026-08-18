@@ -511,7 +511,11 @@ const FOCUS_EDITABLE_AT_FN = `(x, y) => {
     return document.activeElement === el || el.matches(':focus');
   }
 
-  let target = editableFrom(document.elementFromPoint(x, y));
+  let target = null;
+  for (const el of deepElementFromPoint(x, y).reverse()) {
+    target = editableFrom(el);
+    if (target) break;
+  }
   if (!target && document.elementsFromPoint) {
     for (const el of document.elementsFromPoint(x, y)) {
       target = editableFrom(el);
@@ -522,7 +526,7 @@ const FOCUS_EDITABLE_AT_FN = `(x, y) => {
   // közeli látható inputot. Ez nem választ távoli mezőt, csak a kattintás
   // környezetében lévőt.
   if (!target) {
-    const candidates = Array.from(document.querySelectorAll('input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]'))
+    const candidates = allEditableNodes()
       .filter(isEditable)
       .map((el) => {
         const r = el.getBoundingClientRect();
@@ -532,7 +536,7 @@ const FOCUS_EDITABLE_AT_FN = `(x, y) => {
         const dy = Math.max(r.top - y, 0, y - r.bottom);
         return { el, r, edgeDistance: Math.hypot(dx, dy), centerDistance: Math.hypot(cx - x, cy - y) };
       })
-      .filter((c) => c.r.width > 8 && c.r.height > 8 && c.edgeDistance <= 48)
+      .filter((c) => c.r.width > 8 && c.r.height > 8 && c.edgeDistance <= 80)
       .sort((a, b) => a.edgeDistance - b.edgeDistance || a.centerDistance - b.centerDistance);
     target = candidates[0]?.el || null;
   }
@@ -547,7 +551,10 @@ const FOCUS_EDITABLE_AT_FN = `(x, y) => {
 }`;
 
 const ACTIVE_EDITABLE_FN = `() => {
-  const el = document.activeElement;
+  // Az árnyék-DOM-ban a document.activeElement csak a "gazda" elemet adja,
+  // ezért lépkedünk befelé, amíg valódi beviteli mezőt nem találunk.
+  let el = document.activeElement;
+  while (el && el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement;
   if (!el || !el.matches) return false;
   if (el.matches('textarea:not([disabled]):not([readonly])')) return true;
   if (el.matches('[contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]')) return true;
@@ -555,6 +562,7 @@ const ACTIVE_EDITABLE_FN = `() => {
   const type = String(el.getAttribute('type') || 'text').toLowerCase();
   return !['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(type);
 }`;
+
 
 const DISPATCH_SINGLE_CLICK_AT_FN = `(x, y) => {
   const direct = document.elementFromPoint(x, y);
