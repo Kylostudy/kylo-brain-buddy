@@ -445,6 +445,38 @@ const SELECTOR_FN = `(x, y) => {
 // password / 2FA mezőknél). Ez a segéd a kattintott pontnál megkeresi az
 // érdemi beviteli mezőt, és explicit fókuszt + kurzort tesz bele.
 const FOCUS_EDITABLE_AT_FN = `(x, y) => {
+  // A Reddit (és sok modern oldal) web-componentekbe, árnyék-DOM-ba rejti a
+  // beviteli mezőt. Ezért mindenhol átnézünk a shadow rootokon is.
+  function deepElementFromPoint(px, py) {
+    const chain = [];
+    let root = document;
+    let el = root.elementFromPoint(px, py);
+    while (el) {
+      chain.push(el);
+      if (el.shadowRoot && el.shadowRoot.elementFromPoint) {
+        const inner = el.shadowRoot.elementFromPoint(px, py);
+        if (!inner || inner === el || chain.includes(inner)) break;
+        el = inner;
+      } else break;
+    }
+    return chain;
+  }
+  function allEditableNodes() {
+    const sel = 'input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]';
+    const out = [];
+    const seenRoots = new Set();
+    function walk(root) {
+      if (!root || seenRoots.has(root)) return;
+      seenRoots.add(root);
+      try { out.push(...root.querySelectorAll(sel)); } catch {}
+      let hosts = [];
+      try { hosts = root.querySelectorAll('*'); } catch {}
+      for (const h of hosts) if (h.shadowRoot) walk(h.shadowRoot);
+    }
+    walk(document);
+    return out;
+  }
+
   function isEditable(el) {
     if (!el || !el.matches) return false;
     if (el.matches('textarea:not([disabled]):not([readonly])')) return true;
@@ -479,7 +511,11 @@ const FOCUS_EDITABLE_AT_FN = `(x, y) => {
     return document.activeElement === el || el.matches(':focus');
   }
 
-  let target = editableFrom(document.elementFromPoint(x, y));
+  let target = null;
+  for (const el of deepElementFromPoint(x, y).reverse()) {
+    target = editableFrom(el);
+    if (target) break;
+  }
   if (!target && document.elementsFromPoint) {
     for (const el of document.elementsFromPoint(x, y)) {
       target = editableFrom(el);
@@ -490,7 +526,7 @@ const FOCUS_EDITABLE_AT_FN = `(x, y) => {
   // közeli látható inputot. Ez nem választ távoli mezőt, csak a kattintás
   // környezetében lévőt.
   if (!target) {
-    const candidates = Array.from(document.querySelectorAll('input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]'))
+    const candidates = allEditableNodes()
       .filter(isEditable)
       .map((el) => {
         const r = el.getBoundingClientRect();
@@ -500,7 +536,7 @@ const FOCUS_EDITABLE_AT_FN = `(x, y) => {
         const dy = Math.max(r.top - y, 0, y - r.bottom);
         return { el, r, edgeDistance: Math.hypot(dx, dy), centerDistance: Math.hypot(cx - x, cy - y) };
       })
-      .filter((c) => c.r.width > 8 && c.r.height > 8 && c.edgeDistance <= 48)
+      .filter((c) => c.r.width > 8 && c.r.height > 8 && c.edgeDistance <= 80)
       .sort((a, b) => a.edgeDistance - b.edgeDistance || a.centerDistance - b.centerDistance);
     target = candidates[0]?.el || null;
   }
@@ -515,7 +551,10 @@ const FOCUS_EDITABLE_AT_FN = `(x, y) => {
 }`;
 
 const ACTIVE_EDITABLE_FN = `() => {
-  const el = document.activeElement;
+  // Az árnyék-DOM-ban a document.activeElement csak a "gazda" elemet adja,
+  // ezért lépkedünk befelé, amíg valódi beviteli mezőt nem találunk.
+  let el = document.activeElement;
+  while (el && el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement;
   if (!el || !el.matches) return false;
   if (el.matches('textarea:not([disabled]):not([readonly])')) return true;
   if (el.matches('[contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]')) return true;
@@ -523,6 +562,7 @@ const ACTIVE_EDITABLE_FN = `() => {
   const type = String(el.getAttribute('type') || 'text').toLowerCase();
   return !['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(type);
 }`;
+
 
 const DISPATCH_SINGLE_CLICK_AT_FN = `(x, y) => {
   const direct = document.elementFromPoint(x, y);
@@ -1330,23 +1370,38 @@ async function runSession(payload) {
       const focusResult = await focusEditableAt(x, y);
       let focused = Boolean(focusResult?.focused) && (await hasEditableFocus());
 
-      // LinkedIn belépésnél tipikusan pontosan egy látható password mező van.
-      // Ez biztonságos tartalék, ha egy overlay miatt a képpont nem az inputot adja.
+      // Tartalék 1: bármelyik keretben lévő látható jelszómező. Ha több van,
+      // a kattintáshoz legközelebbit választjuk.
       if (!focused) {
-        const visiblePasswords = page.locator('input[type="password"]:visible');
-        if ((await visiblePasswords.count()) === 1) {
-          await visiblePasswords.first().focus();
-          focused = await hasEditableFocus();
+        let best = null;
+        for (const frame of page.frames()) {
+          const fields = frame.locator('input[type="password"]:visible');
+          const count = await fields.count().catch(() => 0);
+          for (let i = 0; i < count; i += 1) {
+            const loc = fields.nth(i);
+            const box = await loc.boundingBox().catch(() => null);
+            const d = box
+              ? Math.hypot(box.x + box.width / 2 - x, box.y + box.height / 2 - y)
+              : Number.MAX_SAFE_INTEGER;
+            if (!best || d < best.d) best = { loc, d };
+          }
+        }
+        if (best) {
+          await best.loc.click({ timeout: 2000 }).catch(() => {});
+          await best.loc.focus({ timeout: 2000 }).catch(() => {});
+          focused = true;
         }
       }
-      if (!focused) {
+
+      // Tartalék 2: a kattintás után fókuszban maradt bármely szövegmező.
+      const target = (await findSecretTarget()) || null;
+      if (!focused && !target) {
         throw new Error(
           "A kijelölt ponton nem található beviteli mező. Kattints közvetlenül a jelszómező közepére.",
         );
       }
-
-      const target = await findSecretTarget();
       if (!target) throw new Error("A kijelölt jelszómező nem található.");
+
       const method = await writeSecretToTarget(target, text);
 
       await channel
