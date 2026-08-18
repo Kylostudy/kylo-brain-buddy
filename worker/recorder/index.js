@@ -445,6 +445,38 @@ const SELECTOR_FN = `(x, y) => {
 // password / 2FA mezőknél). Ez a segéd a kattintott pontnál megkeresi az
 // érdemi beviteli mezőt, és explicit fókuszt + kurzort tesz bele.
 const FOCUS_EDITABLE_AT_FN = `(x, y) => {
+  // A Reddit (és sok modern oldal) web-componentekbe, árnyék-DOM-ba rejti a
+  // beviteli mezőt. Ezért mindenhol átnézünk a shadow rootokon is.
+  function deepElementFromPoint(px, py) {
+    const chain = [];
+    let root = document;
+    let el = root.elementFromPoint(px, py);
+    while (el) {
+      chain.push(el);
+      if (el.shadowRoot && el.shadowRoot.elementFromPoint) {
+        const inner = el.shadowRoot.elementFromPoint(px, py);
+        if (!inner || inner === el || chain.includes(inner)) break;
+        el = inner;
+      } else break;
+    }
+    return chain;
+  }
+  function allEditableNodes() {
+    const sel = 'input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]';
+    const out = [];
+    const seenRoots = new Set();
+    function walk(root) {
+      if (!root || seenRoots.has(root)) return;
+      seenRoots.add(root);
+      try { out.push(...root.querySelectorAll(sel)); } catch {}
+      let hosts = [];
+      try { hosts = root.querySelectorAll('*'); } catch {}
+      for (const h of hosts) if (h.shadowRoot) walk(h.shadowRoot);
+    }
+    walk(document);
+    return out;
+  }
+
   function isEditable(el) {
     if (!el || !el.matches) return false;
     if (el.matches('textarea:not([disabled]):not([readonly])')) return true;
