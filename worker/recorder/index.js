@@ -1370,23 +1370,38 @@ async function runSession(payload) {
       const focusResult = await focusEditableAt(x, y);
       let focused = Boolean(focusResult?.focused) && (await hasEditableFocus());
 
-      // LinkedIn belépésnél tipikusan pontosan egy látható password mező van.
-      // Ez biztonságos tartalék, ha egy overlay miatt a képpont nem az inputot adja.
+      // Tartalék 1: bármelyik keretben lévő látható jelszómező. Ha több van,
+      // a kattintáshoz legközelebbit választjuk.
       if (!focused) {
-        const visiblePasswords = page.locator('input[type="password"]:visible');
-        if ((await visiblePasswords.count()) === 1) {
-          await visiblePasswords.first().focus();
-          focused = await hasEditableFocus();
+        let best = null;
+        for (const frame of page.frames()) {
+          const fields = frame.locator('input[type="password"]:visible');
+          const count = await fields.count().catch(() => 0);
+          for (let i = 0; i < count; i += 1) {
+            const loc = fields.nth(i);
+            const box = await loc.boundingBox().catch(() => null);
+            const d = box
+              ? Math.hypot(box.x + box.width / 2 - x, box.y + box.height / 2 - y)
+              : Number.MAX_SAFE_INTEGER;
+            if (!best || d < best.d) best = { loc, d };
+          }
+        }
+        if (best) {
+          await best.loc.click({ timeout: 2000 }).catch(() => {});
+          await best.loc.focus({ timeout: 2000 }).catch(() => {});
+          focused = true;
         }
       }
-      if (!focused) {
+
+      // Tartalék 2: a kattintás után fókuszban maradt bármely szövegmező.
+      const target = (await findSecretTarget()) || null;
+      if (!focused && !target) {
         throw new Error(
           "A kijelölt ponton nem található beviteli mező. Kattints közvetlenül a jelszómező közepére.",
         );
       }
-
-      const target = await findSecretTarget();
       if (!target) throw new Error("A kijelölt jelszómező nem található.");
+
       const method = await writeSecretToTarget(target, text);
 
       await channel
