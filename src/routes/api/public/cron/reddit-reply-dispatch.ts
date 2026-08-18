@@ -14,8 +14,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { isOwnerBlackout } from "@/lib/scheduling/quiet-windows";
 
-const MAX_PER_RUN = 2;
+const MAX_PER_RUN = 3;
 const MAX_PER_ACCOUNT_PER_DAY = 3;
+// Meddig „friss" egy jóváhagyott válasz. Korábban 48 óra volt, ezért a
+// régebbi jóváhagyások örökre a sorban ragadtak.
+const MAX_AGE_HOURS = 14 * 24;
 
 type Pending = {
   ref_table: "lead_alerts" | "reddit_comments";
@@ -50,7 +53,7 @@ export const Route = createFileRoute("/api/public/cron/reddit-reply-dispatch")({
           .eq("status", "approved")
           .is("posted_at", null)
           .not("permalink", "is", null)
-          .gte("approved_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+          .gte("approved_at", new Date(Date.now() - MAX_AGE_HOURS * 60 * 60 * 1000).toISOString())
           .order("approved_at", { ascending: true })
           .limit(10);
 
@@ -72,7 +75,7 @@ export const Route = createFileRoute("/api/public/cron/reddit-reply-dispatch")({
           .eq("reply_status", "approved")
           .is("posted_at", null)
           .not("permalink", "is", null)
-          .gte("approved_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+          .gte("approved_at", new Date(Date.now() - MAX_AGE_HOURS * 60 * 60 * 1000).toISOString())
           .order("approved_at", { ascending: true })
           .limit(10);
 
