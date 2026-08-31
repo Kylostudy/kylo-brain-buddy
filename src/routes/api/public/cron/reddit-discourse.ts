@@ -14,8 +14,10 @@ export const Route = createFileRoute("/api/public/cron/reddit-discourse")({
             headers: { "content-type": "application/json" },
           });
         }
-        // 2026-08-31: Diskurzus-elemzés kikapcsolva (IELTS/subreddit figyelés vége).
-        return Response.json({ ok: true, disabled: "discourse elemzés leállítva" });
+        // 2026-08-31: Diskurzus-elemzés kikapcsolva (IELTS/subreddit figyelés vége). Visszakapcsolás: REDDIT_MONITORING_DISABLED=0
+        if (process.env.REDDIT_MONITORING_DISABLED !== "0") {
+          return Response.json({ ok: true, disabled: "discourse elemzés leállítva" });
+        }
         try {
           const { runDiscourseAnalysis } = await import("@/lib/reddit-discourse.server");
           const result = await runDiscourseAnalysis();

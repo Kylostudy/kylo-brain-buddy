@@ -39,8 +39,10 @@ export const Route = createFileRoute("/api/public/cron/reddit-reply-dispatch")({
             status: 401,
           });
         }
-        // 2026-08-31: Válaszkiküldés leállítva — stratégia-váltás (béta tesztelők).
-        return Response.json({ ok: true, disabled: "reply dispatch leállítva" });
+        // 2026-08-31: Válaszkiküldés leállítva — stratégia-váltás (béta tesztelők). Visszakapcsolás: REDDIT_MONITORING_DISABLED=0
+        if (process.env.REDDIT_MONITORING_DISABLED !== "0") {
+          return Response.json({ ok: true, disabled: "reply dispatch leállítva" });
+        }
 
         if (isOwnerBlackout()) {
           return Response.json({ ok: true, skipped: "gazdi-ablak" });
