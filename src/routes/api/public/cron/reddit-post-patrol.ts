@@ -14,6 +14,8 @@ export const Route = createFileRoute("/api/public/cron/reddit-post-patrol")({
             headers: { "content-type": "application/json" },
           });
         }
+        // 2026-08-31: Poszt-őrjárat kikapcsolva (Telegram-üzenetek leállítva).
+        return Response.json({ ok: true, disabled: "post patrol leállítva" });
         try {
           const { patrolAllActive } = await import("@/lib/reddit-post-patrol.server");
           const result = await patrolAllActive();

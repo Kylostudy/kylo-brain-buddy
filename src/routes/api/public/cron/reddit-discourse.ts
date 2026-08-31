@@ -14,6 +14,8 @@ export const Route = createFileRoute("/api/public/cron/reddit-discourse")({
             headers: { "content-type": "application/json" },
           });
         }
+        // 2026-08-31: Diskurzus-elemzés kikapcsolva (IELTS/subreddit figyelés vége).
+        return Response.json({ ok: true, disabled: "discourse elemzés leállítva" });
         try {
           const { runDiscourseAnalysis } = await import("@/lib/reddit-discourse.server");
           const result = await runDiscourseAnalysis();

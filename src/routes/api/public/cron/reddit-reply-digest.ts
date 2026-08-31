@@ -11,6 +11,8 @@ export const Route = createFileRoute("/api/public/cron/reddit-reply-digest")({
         if (!expected || !provided || provided !== expected) {
           return Response.json({ error: "unauthorized" }, { status: 401 });
         }
+        // 2026-08-31: Napi Reddit összesítő kikapcsolva (Telegram-üzenetek leállítva).
+        return Response.json({ ok: true, disabled: "napi összesítő leállítva" });
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
