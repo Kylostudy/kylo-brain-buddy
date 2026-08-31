@@ -41,7 +41,6 @@ export const Route = createFileRoute("/api/public/cron/reddit-reply-dispatch")({
         }
         // 2026-08-31: Válaszkiküldés leállítva — stratégia-váltás (béta tesztelők).
         return Response.json({ ok: true, disabled: "reply dispatch leállítva" });
-        }
 
         if (isOwnerBlackout()) {
           return Response.json({ ok: true, skipped: "gazdi-ablak" });
