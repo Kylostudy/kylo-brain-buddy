@@ -9,3 +9,4 @@
 - [vault-ügynök](mem://features/vault-agent) — Vault Agent párosítás, manifeszt-különbözet, streamelt feltöltés a LUKS széfbe
 - [válaszjavaslat-stílus](mem://features/reply-style-rules) — AI válaszok rövidek (1-2 mondat), tükörözik a célszemély stílusát, HELYESÍRÁSI HIBA TILOS; LinkedIn szakmai marad, Reddit laza
 - [linkedin-poszt-sorozat](mem://features/linkedin-post-series) — 4 részes LinkedIn történetív; a 4. poszt nyitánya: érveléstechnika + vitaszimulátor + kritikai gondolkodás
+- [reddit-figyelés-leállítva](mem://features/reddit-monitoring-stopped) — 2026-08-31: Lead Radar/őrjárat/diskurzus/digest/dispatch kikapcsolva; új irány: magyar fiók + béta tesztelők holtnyelvekre
