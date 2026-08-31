@@ -35,7 +35,13 @@ export const Route = createFileRoute("/api/public/cron/reddit-reply-dispatch")({
         const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
         const provided = request.headers.get("apikey")?.trim();
         if (!expected || !provided || provided !== expected) {
-          return Response.json({ error: "unauthorized" }, { status: 401 });
+          return new Response(JSON.stringify({ error: "unauthorized" }), {
+            status: 401,
+          });
+        }
+        // 2026-08-31: Válaszkiküldés leállítva — stratégia-váltás (béta tesztelők). Visszakapcsolás: REDDIT_MONITORING_DISABLED=0
+        if (process.env.REDDIT_MONITORING_DISABLED !== "0") {
+          return Response.json({ ok: true, disabled: "reply dispatch leállítva" });
         }
 
         if (isOwnerBlackout()) {

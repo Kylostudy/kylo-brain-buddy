@@ -26,6 +26,12 @@ export const Route = createFileRoute("/api/public/cron/lead-radar")({
           });
         }
 
+        // 2026-08-31: Lead Radar kikapcsolva — új stratégia: magyar Reddit
+        // fiók + béta tesztelő toborzás. Visszakapcsolás: REDDIT_MONITORING_DISABLED=0
+        if (process.env.REDDIT_MONITORING_DISABLED !== "0") {
+          return Response.json({ ok: true, disabled: "lead radar leállítva (stratégia-váltás)" });
+        }
+
         if (isOwnerBlackout()) {
           return Response.json({ ok: true, skipped: "gazdi-ablak" });
         }
