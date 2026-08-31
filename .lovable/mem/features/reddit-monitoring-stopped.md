@@ -12,3 +12,4 @@ megmaradt, ne töröld és ne kapcsold vissza kérés nélkül.
 minden holtnyelvre és nagyon ritka nyelvre (összesen kb. 1600–2000 béta hely).
 Cél: blow-off marketinggel ~1000 fizető user. **Why:** gazdái döntés. **How to apply:**
 Reddit Telegram-riasztást vagy IELTS/subreddit figyelést ne indíts újra, csak ha kéri.
+Visszakapcsolás: REDDIT_MONITORING_DISABLED=0 környezeti változó (alapból ki van kapcsolva mind az 5 cron).
