@@ -148,7 +148,9 @@ export function verifyKylogicTaskRequest(
     }
   }
   for (const c of candidates) {
-    if (safeEqualHex(expected, c)) return { ok: true };
+    for (const expected of expectedList) {
+      if (safeEqualHex(expected, c)) return { ok: true };
+    }
   }
   // Reference unused-on-this-path locals to satisfy strict TS.
   void sigHex;
