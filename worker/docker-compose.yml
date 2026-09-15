@@ -59,6 +59,8 @@ x-orchestrator-env: &orchestrator-env
   LIVE_EXECUTOR_MIRROR: /live-executor
   LIVE_WINDOW: ${LIVE_WINDOW:-17:00-08:00}
   LIVE_TZ: ${LIVE_TZ:-Europe/Budapest}
+  # --- Videó-archívum (Kylogic archive_video) ---
+  ARCHIVE_HOST_DIR: ${ARCHIVE_HOST_DIR:-/var/brain/archive}
 
 x-recorder: &recorder
   build:
