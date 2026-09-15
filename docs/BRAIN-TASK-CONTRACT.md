@@ -247,3 +247,4 @@ Ez a lista a worker repóban végzendő munka — **a szerződés ezen felett m�
 6. Preflight (whoer + fingerprint audit) minden futás előtt (már működik a videó feltöltésnél, ugyanaz).
 
 Sorrend: **1 → 5 → 2 → 3 → 4**. Egyet befejezünk, teszteljük end-to-end, csak utána a következő.
+- Új taszk: archive_video — Kylogic videó archiválása a VPS /var/brain/archive alá (.part → végleges átnevezés, max 2 GB, 5 perc timeout, idempotens felülírás, worker eredmény: { ref_id, status, archive_path, bytes }).
