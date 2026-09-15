@@ -45,7 +45,7 @@ export function isBrainTask(spec) {
 
 /** Igaz → böngészőt kell nyitni a taszkhoz. */
 export function needsBrowser(brainTask) {
-  return !["ping", "stt_media_fetch"].includes(brainTask.task_type);
+  return !["ping", "stt_media_fetch", "archive_video"].includes(brainTask.task_type);
 }
 
 /**
