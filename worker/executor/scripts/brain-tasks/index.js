@@ -22,6 +22,7 @@ import { runRedditPost } from "./reddit-post.js";
 import { runRedditComment } from "./reddit-comment.js";
 import { runRedditKarmaBuild } from "./reddit-karma-build.js";
 import { runSttMediaFetch } from "./stt-media-fetch.js";
+import { runArchiveVideo } from "./archive-video.js";
 import { runLinkedInPost } from "./linkedin-post.js";
 import { runFacebookWarmup } from "./facebook-warmup.js";
 import { runInstagramWarmup } from "./instagram-warmup.js";
