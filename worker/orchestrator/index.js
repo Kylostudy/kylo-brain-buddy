@@ -266,6 +266,10 @@ function runContainer(job) {
       "-e", `LIVE_SCRIPTS=${liveState.active ? "1" : "0"}`,
       ];
       if (liveState.active) createArgs.push(...liveState.mounts);
+
+      // Videó-archívum: a VPS lemezén tartós könyvtár, a konténerben /archive.
+      const archiveHostDir = process.env.ARCHIVE_HOST_DIR || "/var/brain/archive";
+      createArgs.push("-v", `${archiveHostDir}:/archive`, "-e", "ARCHIVE_ROOT=/archive");
       if (process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN) {
         createArgs.push("-e", `BRAIN_KYLO_TEST_BYPASS_TOKEN=${process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN}`);
       }

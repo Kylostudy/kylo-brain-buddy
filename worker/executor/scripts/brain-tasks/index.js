@@ -22,6 +22,7 @@ import { runRedditPost } from "./reddit-post.js";
 import { runRedditComment } from "./reddit-comment.js";
 import { runRedditKarmaBuild } from "./reddit-karma-build.js";
 import { runSttMediaFetch } from "./stt-media-fetch.js";
+import { runArchiveVideo } from "./archive-video.js";
 import { runLinkedInPost } from "./linkedin-post.js";
 import { runFacebookWarmup } from "./facebook-warmup.js";
 import { runInstagramWarmup } from "./instagram-warmup.js";
@@ -44,7 +45,7 @@ export function isBrainTask(spec) {
 
 /** Igaz → böngészőt kell nyitni a taszkhoz. */
 export function needsBrowser(brainTask) {
-  return !["ping", "stt_media_fetch"].includes(brainTask.task_type);
+  return !["ping", "stt_media_fetch", "archive_video"].includes(brainTask.task_type);
 }
 
 /**
@@ -61,6 +62,9 @@ export async function runBrainTask(args) {
 
     case "stt_media_fetch":
       return await runSttMediaFetch({ brainTask, log: args.log });
+
+    case "archive_video":
+      return await runArchiveVideo({ brainTask, log: args.log });
 
     case "record_replay_login":
       return await runRecordReplay(args);
