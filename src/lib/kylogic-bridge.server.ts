@@ -70,10 +70,25 @@ export type VerifyResult =
 
 export function verifyKylogicTaskRequest(
   method: string,
-  pathWithQuery: string,
+  pathWithQuery: string | string[],
   rawBody: string,
   headers: Headers,
 ): VerifyResult {
+  // A hívó oldal apró útvonal-eltérései (záró perjel, query) ne bukjanak el:
+  // minden ésszerű változatra kiszámoljuk a várt aláírást.
+  const rawPaths = Array.isArray(pathWithQuery) ? pathWithQuery : [pathWithQuery];
+  const pathCandidates = Array.from(
+    new Set(
+      rawPaths.flatMap((p) => {
+        const noQuery = p.split("?")[0];
+        const variants = [p, noQuery];
+        for (const v of [p, noQuery]) {
+          variants.push(v.endsWith("/") ? v.replace(/\/+$/, "") : `${v}/`);
+        }
+        return variants.filter(Boolean);
+      }),
+    ),
+  );
   const mod = headers.get("x-kylo-module");
   const tsHeader = headers.get("x-kylo-timestamp");
   const sigHeader = headers.get("x-kylo-signature");
@@ -117,7 +132,10 @@ export function verifyKylogicTaskRequest(
     return { ok: false, status: 401, reason: "Timestamp outside tolerance" };
   }
 
-  const expected = sign(getTaskSecret(), method, pathWithQuery, rawBody, ts);
+  const secret = getTaskSecret();
+  const expectedList = pathCandidates.map((p) =>
+    sign(secret, method, p, rawBody, ts!),
+  );
 
   const candidates: string[] = [];
   if (/^[0-9a-fA-F]+$/.test(sigHeader.trim())) {
@@ -130,7 +148,9 @@ export function verifyKylogicTaskRequest(
     }
   }
   for (const c of candidates) {
-    if (safeEqualHex(expected, c)) return { ok: true };
+    for (const expected of expectedList) {
+      if (safeEqualHex(expected, c)) return { ok: true };
+    }
   }
   // Reference unused-on-this-path locals to satisfy strict TS.
   void sigHex;

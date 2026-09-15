@@ -51,9 +51,17 @@ export const Route = createFileRoute("/api/public/cross/kylogic/task")({
       POST: async ({ request }) => {
         const rawBody = await request.text();
 
+        let actualPath = "/api/public/cross/kylogic/task";
+        try {
+          const u = new URL(request.url);
+          actualPath = `${u.pathname}${u.search}`;
+        } catch {
+          /* keep canonical */
+        }
+
         const verify = verifyKylogicTaskRequest(
           "POST",
-          "/api/public/cross/kylogic/task",
+          ["/api/public/cross/kylogic/task", actualPath],
           rawBody,
           request.headers,
         );
