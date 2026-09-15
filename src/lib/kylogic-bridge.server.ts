@@ -132,7 +132,10 @@ export function verifyKylogicTaskRequest(
     return { ok: false, status: 401, reason: "Timestamp outside tolerance" };
   }
 
-  const expected = sign(getTaskSecret(), method, pathWithQuery, rawBody, ts);
+  const secret = getTaskSecret();
+  const expectedList = pathCandidates.map((p) =>
+    sign(secret, method, p, rawBody, ts!),
+  );
 
   const candidates: string[] = [];
   if (/^[0-9a-fA-F]+$/.test(sigHeader.trim())) {
