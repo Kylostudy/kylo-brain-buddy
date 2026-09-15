@@ -70,10 +70,25 @@ export type VerifyResult =
 
 export function verifyKylogicTaskRequest(
   method: string,
-  pathWithQuery: string,
+  pathWithQuery: string | string[],
   rawBody: string,
   headers: Headers,
 ): VerifyResult {
+  // A hívó oldal apró útvonal-eltérései (záró perjel, query) ne bukjanak el:
+  // minden ésszerű változatra kiszámoljuk a várt aláírást.
+  const rawPaths = Array.isArray(pathWithQuery) ? pathWithQuery : [pathWithQuery];
+  const pathCandidates = Array.from(
+    new Set(
+      rawPaths.flatMap((p) => {
+        const noQuery = p.split("?")[0];
+        const variants = [p, noQuery];
+        for (const v of [p, noQuery]) {
+          variants.push(v.endsWith("/") ? v.replace(/\/+$/, "") : `${v}/`);
+        }
+        return variants.filter(Boolean);
+      }),
+    ),
+  );
   const mod = headers.get("x-kylo-module");
   const tsHeader = headers.get("x-kylo-timestamp");
   const sigHeader = headers.get("x-kylo-signature");
