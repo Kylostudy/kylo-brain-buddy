@@ -63,6 +63,9 @@ export async function runBrainTask(args) {
     case "stt_media_fetch":
       return await runSttMediaFetch({ brainTask, log: args.log });
 
+    case "archive_video":
+      return await runArchiveVideo({ brainTask, log: args.log });
+
     case "record_replay_login":
       return await runRecordReplay(args);
 
