@@ -37,12 +37,20 @@ export const Route = createFileRoute("/api/public/worker/lead-radar-ingest")({
     handlers: {
       GET: async ({ request }) => {
         if (!tokenOk(request)) return new Response("unauthorized", { status: 401 });
+        // Érdeklődés-radar leállítva (stratégia-váltás). Vissza: REDDIT_MONITORING_DISABLED=0
+        if (process.env.REDDIT_MONITORING_DISABLED !== "0") {
+          return Response.json({ ok: true, subreddits: [], disabled: true });
+        }
         const { leadRadarSubreddits } = await import("@/lib/lead-radar.server");
         const { subreddits } = await leadRadarSubreddits();
         return Response.json({ ok: true, subreddits });
       },
       POST: async ({ request }) => {
         if (!tokenOk(request)) return new Response("unauthorized", { status: 401 });
+        if (process.env.REDDIT_MONITORING_DISABLED !== "0") {
+          return Response.json({ ok: true, alerted: 0, disabled: true });
+        }
+
         const parsed = BodySchema.safeParse(await request.json());
         if (!parsed.success) {
           return Response.json({ ok: false, error: "érvénytelen adat" }, { status: 400 });

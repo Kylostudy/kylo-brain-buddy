@@ -133,6 +133,12 @@ export async function sendTelegram(
   text: string,
   meta?: TelegramMeta,
 ): Promise<{ messageId: number | null; chatId: number | null }> {
+  // 2026-09-16: minden kimenő Telegram értesítés kikapcsolva (stratégia-váltás,
+  // költségcsökkentés). Visszakapcsolás: TELEGRAM_ALERTS_DISABLED=0
+  if (process.env.TELEGRAM_ALERTS_DISABLED !== "0") {
+    void meta;
+    return { messageId: null, chatId: null };
+  }
 
   const lovableKey = process.env.LOVABLE_API_KEY;
   const telegramKey = process.env.TELEGRAM_API_KEY;
@@ -141,6 +147,7 @@ export async function sendTelegram(
     console.warn("Poszt-őrjárat: Telegram nincs beállítva, értesítés kimarad.");
     return { messageId: null, chatId: null };
   }
+
   const res = await fetch(
     "https://connector-gateway.lovable.dev/telegram/sendMessage",
     {
