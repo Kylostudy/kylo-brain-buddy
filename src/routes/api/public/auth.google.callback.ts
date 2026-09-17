@@ -19,6 +19,15 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
         // aláírt érték), hogy pontosan egyezzen a Google által elvárttal —
         // ne a szerver url.origin-jából, ami proxy mögött eltérhet.
 
+        // Minden dinamikus érték HTML-escape-elve kerül az oldalra (XSS ellen).
+        const esc = (v: unknown) =>
+          String(v ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
         const htmlPage = (opts: {
           ok: boolean;
           title: string;
@@ -28,7 +37,7 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
           const color = opts.ok ? "#16a34a" : "#dc2626";
           const icon = opts.ok ? "✅" : "⚠️";
           const emailLine = opts.email
-            ? `<p style="color:#475569;font-size:14px;margin:8px 0 0">${opts.email}</p>`
+            ? `<p style="color:#475569;font-size:14px;margin:8px 0 0">${esc(opts.email)}</p>`
             : "";
           const body = `<!doctype html><html lang="hu"><head><meta charset="utf-8"/>
 <title>${opts.title}</title>
