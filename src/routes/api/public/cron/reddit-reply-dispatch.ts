@@ -12,6 +12,7 @@
 //
 // Auth: apikey header a publishable kulccsal.
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyCronRequest } from "@/lib/cron-auth.server";
 import { isOwnerBlackout } from "@/lib/scheduling/quiet-windows";
 
 const MAX_PER_RUN = 3;
@@ -32,9 +33,8 @@ export const Route = createFileRoute("/api/public/cron/reddit-reply-dispatch")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
-        const provided = request.headers.get("apikey")?.trim();
-        if (!expected || !provided || provided !== expected) {
+        const cronOk = await verifyCronRequest(request);
+        if (!cronOk) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
           });

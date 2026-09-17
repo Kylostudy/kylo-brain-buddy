@@ -3,6 +3,7 @@
 //  2) A Telegramon JÓVÁHAGYOTT hozzászólásokat sorba teszi kitevésre.
 // Auth: apikey header a Supabase publishable kulcsával.
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyCronRequest } from "@/lib/cron-auth.server";
 
 const SCAN_GAP_MS = 3 * 60 * 60 * 1000; // legfeljebb 3 óránként egy körbenézés
 const MAX_POSTS_PER_RUN = 2; // egy körben legfeljebb 2 hozzászólás megy ki
@@ -11,9 +12,8 @@ export const Route = createFileRoute("/api/public/cron/linkedin-engage")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
-        const provided = request.headers.get("apikey")?.trim();
-        if (!expected || !provided || provided !== expected) {
+        const cronOk = await verifyCronRequest(request);
+        if (!cronOk) {
           return Response.json({ error: "unauthorized" }, { status: 401 });
         }
 

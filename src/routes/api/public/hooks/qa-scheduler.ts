@@ -1,22 +1,17 @@
 // Publikus cron végpont — pg_cron percenként meghívja, és minden esedékes
 // audit_qa_schedules sorra sorba tesz egy új QA futást (diff-móddal, olcsón).
-// Auth: `apikey` header egyeznie kell a projekt publishable kulcsával.
+// Auth: `x-cron-secret` header — szerver-oldali közös titok (public.cron_auth).
 // Minden érdemi művelet supabaseAdmin-nal fut (a cron nem user, nincs RLS-kontextusa).
 import { createFileRoute } from "@tanstack/react-router";
 import { Cron } from "croner";
+import { verifyCronRequest } from "@/lib/cron-auth.server";
 
 export const Route = createFileRoute("/api/public/hooks/qa-scheduler")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const publishable = process.env.SUPABASE_PUBLISHABLE_KEY;
-        if (!supabaseUrl || !publishable) {
-          return Response.json({ error: "SUPABASE env hiányzik" }, { status: 500 });
-        }
-
-        const apikey = request.headers.get("apikey");
-        if (!apikey || apikey !== publishable) {
+        const cronOk = await verifyCronRequest(request);
+        if (!cronOk) {
           return Response.json({ error: "unauthorized" }, { status: 401 });
         }
 
