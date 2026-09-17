@@ -7,6 +7,7 @@
 // Auth: apikey header a Supabase publishable kulcsával.
 
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyCronRequest } from "@/lib/cron-auth.server";
 import { isLocalDaytime, isOwnerBlackout, resolveTimezone } from "@/lib/scheduling/quiet-windows";
 
 const MIN_WARMUP_DAYS = 5; // ennyi naplózott melegítési nap után kezdünk kommentelni
@@ -19,9 +20,8 @@ export const Route = createFileRoute("/api/public/cron/schedule-reddit-karma")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
-        const provided = request.headers.get("apikey")?.trim();
-        if (!expected || !provided || provided !== expected) {
+        const cronOk = await verifyCronRequest(request);
+        if (!cronOk) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "content-type": "application/json" },

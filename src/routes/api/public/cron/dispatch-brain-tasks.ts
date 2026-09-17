@@ -6,6 +6,7 @@
 // hogy idegenek ne triggerelhessék.
 
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyCronRequest } from "@/lib/cron-auth.server";
 import { isOwnerBlackout } from "@/lib/scheduling/quiet-windows";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -20,9 +21,8 @@ export const Route = createFileRoute("/api/public/cron/dispatch-brain-tasks")({
         // header (matches the pg_cron caller). This route lives under
         // /api/public/* so the platform bypasses its auth — we do the check
         // ourselves against a low-risk, non-secret key.
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
-        const provided = request.headers.get("apikey")?.trim();
-        if (!expected || !provided || provided !== expected) {
+        const cronOk = await verifyCronRequest(request);
+        if (!cronOk) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "content-type": "application/json" },

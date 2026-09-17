@@ -3,6 +3,7 @@
 // egyszer), és felajánlja, hogy egyetlen „újraindítás” válasszal újraindíthatod.
 // Amikor visszatér az életjel, küld egy megnyugtató üzenetet is.
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyCronRequest } from "@/lib/cron-auth.server";
 
 const STALE_MINUTES = 10;
 const REPEAT_MINUTES = 30;
@@ -11,9 +12,8 @@ export const Route = createFileRoute("/api/public/cron/worker-health-alert")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
-        const provided = request.headers.get("apikey")?.trim();
-        if (!expected || !provided || provided !== expected) {
+        const cronOk = await verifyCronRequest(request);
+        if (!cronOk) {
           return Response.json({ error: "unauthorized" }, { status: 401 });
         }
 

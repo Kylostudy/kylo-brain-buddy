@@ -14,6 +14,7 @@
 // minta, mint a többi cron endpointon.
 
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyCronRequest } from "@/lib/cron-auth.server";
 import {
   isLocalDaytime,
   isOwnerBlackout,
@@ -47,9 +48,8 @@ export const Route = createFileRoute("/api/public/cron/schedule-warmups")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
-        const provided = request.headers.get("apikey")?.trim();
-        if (!expected || !provided || provided !== expected) {
+        const cronOk = await verifyCronRequest(request);
+        if (!cronOk) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "content-type": "application/json" },

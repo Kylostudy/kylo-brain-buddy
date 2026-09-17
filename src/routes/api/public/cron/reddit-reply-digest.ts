@@ -1,14 +1,14 @@
 // Napi Reddit összesítő: egyetlen Telegram üzenet az aznap kiment válaszokról,
 // a régi "minden kiküldésről külön üzenet" helyett.
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyCronRequest } from "@/lib/cron-auth.server";
 
 export const Route = createFileRoute("/api/public/cron/reddit-reply-digest")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
-        const provided = request.headers.get("apikey")?.trim();
-        if (!expected || !provided || provided !== expected) {
+        const cronOk = await verifyCronRequest(request);
+        if (!cronOk) {
           return Response.json({ error: "unauthorized" }, { status: 401 });
         }
         // 2026-08-31: Napi Reddit összesítő kikapcsolva (Telegram-üzenetek leállítva). Visszakapcsolás: REDDIT_MONITORING_DISABLED=0

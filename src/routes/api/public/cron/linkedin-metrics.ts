@@ -2,6 +2,7 @@
 // megtekintés / reakció / komment / megosztás számait.
 // Auth: apikey header a Supabase publishable kulcsával.
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyCronRequest } from "@/lib/cron-auth.server";
 import { isOwnerBlackout } from "@/lib/scheduling/quiet-windows";
 
 const MIN_GAP_MS = 10 * 60 * 60 * 1000; // legfeljebb ~2× naponta
@@ -10,9 +11,8 @@ export const Route = createFileRoute("/api/public/cron/linkedin-metrics")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
-        const provided = request.headers.get("apikey")?.trim();
-        if (!expected || !provided || provided !== expected) {
+        const cronOk = await verifyCronRequest(request);
+        if (!cronOk) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "content-type": "application/json" },
