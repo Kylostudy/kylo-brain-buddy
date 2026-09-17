@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
             ? `<p style="color:#475569;font-size:14px;margin:8px 0 0">${esc(opts.email)}</p>`
             : "";
           const body = `<!doctype html><html lang="hu"><head><meta charset="utf-8"/>
-<title>${opts.title}</title>
+<title>${esc(opts.title)}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
   body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f8fafc;
@@ -55,8 +55,8 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
 </style></head><body>
 <div class="card">
   <div class="icon">${icon}</div>
-  <h1>${opts.title}</h1>
-  <p>${opts.message}</p>
+  <h1>${esc(opts.title)}</h1>
+  <p>${esc(opts.message)}</p>
   ${emailLine}
   <button onclick="window.close()">Bezárás</button>
 </div>
@@ -74,7 +74,27 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
         const fail = (msg: string) =>
           htmlPage({ ok: false, title: "Sikertelen csatlakozás", message: msg });
 
-        if (oauthError) return fail(oauthError);
+        if (oauthError) {
+          // Csak ismert Google hibakódokat jelenítünk meg, minden mást általánosítunk.
+          const known = new Set([
+            "access_denied",
+            "admin_policy_enforced",
+            "invalid_request",
+            "unauthorized_client",
+            "unsupported_response_type",
+            "invalid_scope",
+            "server_error",
+            "temporarily_unavailable",
+            "interaction_required",
+            "consent_required",
+            "login_required",
+          ]);
+          return fail(
+            known.has(oauthError)
+              ? `A Google elutasította a csatlakozást (${oauthError}).`
+              : "A Google elutasította a csatlakozást. Kérlek próbáld újra.",
+          );
+        }
         if (!code || !state) return fail("Hiányzó kód vagy state.");
 
         try {
