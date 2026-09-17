@@ -67,6 +67,10 @@ export async function handleRunCompletion(runId: string): Promise<void> {
 }
 
 async function sendTelegram(text: string): Promise<void> {
+  // 2026-09-16: minden kimenő Telegram értesítés kikapcsolva.
+  // Visszakapcsolás: TELEGRAM_ALERTS_DISABLED=0
+  if (process.env.TELEGRAM_ALERTS_DISABLED !== "0") return;
+
   const lovableKey = process.env.LOVABLE_API_KEY;
   const telegramKey = process.env.TELEGRAM_API_KEY;
   const chatId = process.env.TELEGRAM_CHAT_ID;
