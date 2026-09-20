@@ -14,6 +14,7 @@
 - [workflow-architektúra](mem://features/workflow-architecture) — 3 rétegű workflow rendszer: workflow, scheduled_runs, dispatcher
 - [proxy-szabályok](mem://features/proxy-rules) — Azonos IP-n azonos platform = csak 1 account egyszerre, különböző platformok mehetnek párhuzamosan
 - [proxy-nyelv-stratégia](mem://features/proxy-language-strategy) — VÉGLEGES 12 proxy → 28 nyelv/ország profil kiosztás, warmup+ütemterv
+- [pinterest-nyelvi-workflowk](mem://features/pinterest-language-workflows) — Pinterest könyvtár, nyelvenként 1 workflow (orosz kihagyva), legközelebbi IP-hez rendelve
 - [minta-elkerülés](mem://features/pattern-avoidance) — Ugyanaz az időpont nem ismétlődhet X napon belül (konkrét szám megbeszélés alatt)
 - [kylogic-integráció](mem://features/kylogic-integration) — Kylogic adja az időpontokat jitterrel, Brain csak végrehajt. Konkrét paraméterek még egyeztetés alatt.
 - [moduláris-architektúra](mem://features/modular-architecture) — Minden modul és workflow másolható más tenantnak, hogy ne kelljen újraépíteni
