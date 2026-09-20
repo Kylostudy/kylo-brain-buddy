@@ -387,7 +387,9 @@ async function main() {
   const contextOpts = {
     userAgent:
       fp.userAgent ||
-      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      // Fallback: Windows Chrome — a fingerprint-patch alapértelmezett platformja
+      // is Win32, a kettő nem térhet el (Linux UA + Win32 platform = botjel).
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
     viewport:
       fp.viewport && fp.viewport.width && fp.viewport.height
         ? { width: fp.viewport.width, height: fp.viewport.height }
