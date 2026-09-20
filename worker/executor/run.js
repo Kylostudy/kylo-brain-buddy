@@ -310,8 +310,24 @@ async function main() {
   const proxyUrl = proxyInfo?.url || creds?.proxy || null;
   const expectedCountry = proxyInfo?.expectedCountry || null;
 
+  // Headed Chromium virtuális kijelzőn: a headless mód a legerősebb botjel
+  // (CreepJS "headless 100%", Cloudflare/Pinterest loop). Ha az Xvfb valamiért
+  // nem indul, visszaesünk headlessre, hogy a futás ne haljon meg.
+  const wantHeadless = process.env.EXECUTOR_HEADLESS === "1";
+  let display = null;
+  if (!wantHeadless) {
+    display = await ensureVirtualDisplay(log);
+  }
+  const headless = wantHeadless || !display;
+  log(
+    "info",
+    headless
+      ? "Böngésző mód: headless (figyelem: erősebb botjel)"
+      : `Böngésző mód: headed (DISPLAY=${display})`,
+  );
+
   const launchOpts = {
-    headless: true,
+    headless,
     args: [
       "--disable-blink-features=AutomationControlled",
       "--no-sandbox",
@@ -325,8 +341,17 @@ async function main() {
       // amúgy default off, ami botjel.
       "--enable-unsafe-webgpu",
       "--enable-features=Vulkan,WebGPU",
+      // Automatizálás-specifikus jelek elhagyása headed módban.
+      "--disable-infobars",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-features=AutomationControlled,Translate",
     ],
   };
+  if (!headless) {
+    const w = fpViewportWidth(spec);
+    launchOpts.args.push(`--window-size=${w.width},${w.height}`);
+  }
   if (proxyUrl) {
     try {
       const u = new URL(proxyUrl);
