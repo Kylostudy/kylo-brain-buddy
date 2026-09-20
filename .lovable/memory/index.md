@@ -31,3 +31,4 @@
 - [reddit-diskurzus-elemzés](mem://features/reddit-discourse-analysis) — Roadmap: nyelvtanuló subredditek napi tartalomelemzése, pár nap után konkrét beszállási javaslatok magyar válaszvázlattal
 - [ig-tiktok-ütközés](mem://features/ig-tiktok-exclusion) — Instagram és TikTok sosem futhat egyszerre (bármely IP); minden kiküldött posztról Telegram visszaigazolás
 - [reddit-karma-építés](mem://features/reddit-karma-build) — reddit_karma_build feladattípus: 5+ melegítési nap után napi 1–3 AI-írt, reklámmentes komment, óránkénti cron
+- [facebook-fiókok](mem://features/facebook-accounts) — Facebook könyvtár: Facebook 1 (HU süti/IP) és Facebook 2 (PL süti/IP, cseh proxy híján), Brain-only profilok
