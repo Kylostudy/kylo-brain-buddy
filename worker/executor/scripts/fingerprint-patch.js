@@ -70,14 +70,10 @@ export function buildFingerprintInitScript(fp) {
     };
 
     const patchFunctionToString = (fn, name) => {
-      try {
-        Object.defineProperty(fn, "toString", {
-          value: () => "function " + name + "() { [native code] }",
-          configurable: true,
-        });
-      } catch (_) {}
+      try { NATIVE_NAMES.set(fn, name); } catch (_) {}
       return fn;
     };
+
 
     // A CreepJS és társai a getterek/függvények toString()-jét nézik: ha nem
     // "[native code]"-ot adnak vissza, azonnal hazugságnak (lie) számít.
