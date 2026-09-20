@@ -79,6 +79,41 @@ export function buildFingerprintInitScript(fp) {
       return fn;
     };
 
+    // A CreepJS és társai a getterek/függvények toString()-jét nézik: ha nem
+    // "[native code]"-ot adnak vissza, azonnal hazugságnak (lie) számít.
+    // Ezért globálisan lecseréljük a Function.prototype.toString-et, és a saját
+    // függvényeinket natívnak mutatjuk.
+    const NATIVE_NAMES = new WeakMap();
+    try {
+      const origToString = Function.prototype.toString;
+      const fakeToString = function () {
+        const name = NATIVE_NAMES.get(this);
+        if (name) return "function " + name + "() { [native code] }";
+        return origToString.call(this);
+      };
+      NATIVE_NAMES.set(fakeToString, "toString");
+      Object.defineProperty(Function.prototype, "toString", {
+        value: fakeToString,
+        writable: true,
+        configurable: true,
+      });
+    } catch (_) {}
+
+    const tagNative = (fn, name) => {
+      try { if (typeof fn === "function") NATIVE_NAMES.set(fn, name); } catch (_) {}
+      return fn;
+    };
+
+    // Getter definiálása úgy, hogy natívnak látsszon.
+    const defineNativeGetter = (target, prop, getter) => {
+      try {
+        tagNative(getter, "get " + prop);
+        Object.defineProperty(target, prop, { get: getter, configurable: true });
+        return true;
+      } catch (_) { return false; }
+    };
+
+
     // ---- 0. webdriver getter teljes eltüntetése ----------------------------
     try {
       const protoDescriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, "webdriver");
