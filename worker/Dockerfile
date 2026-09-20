@@ -9,6 +9,7 @@ WORKDIR /app
 # Média- és OCR eszközök az stt_media_fetch taszkhoz
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ffmpeg poppler-utils tesseract-ocr \
+      xvfb xauth x11-utils \
       tesseract-ocr-hun tesseract-ocr-deu tesseract-ocr-fra tesseract-ocr-spa \
       tesseract-ocr-ita tesseract-ocr-pol tesseract-ocr-por tesseract-ocr-nld \
       python3-minimal ca-certificates curl \
@@ -23,7 +24,8 @@ RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit
 COPY executor/ ./
 
 ENV NODE_ENV=production
-# Ne legyen X szerver — Playwright headless
+# Headed Chromium virtuális kijelzőn (Xvfb) — a headless mód erős botjel.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV DISPLAY=:99
 
 CMD ["node", "run.js"]
