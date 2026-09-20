@@ -34,6 +34,16 @@ import { runKyloSignup } from "./scripts/kylo-signup.js";
 import { runKyloPricing } from "./scripts/kylo-pricing.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 import { buildFingerprintInitScript } from "./scripts/fingerprint-patch.js";
+import { ensureVirtualDisplay } from "./scripts/display.js";
+
+// A headed ablak mérete a workflow fingerprintjéből (ha van), különben 1280x800.
+function fpViewportWidth(spec) {
+  const vp = spec?.fingerprint?.viewport;
+  return {
+    width: Number(vp?.width) > 0 ? Number(vp.width) : 1280,
+    height: Number(vp?.height) > 0 ? Number(vp.height) : 800,
+  };
+}
 import {
   classifyInfra,
   setProxyLatency,
@@ -310,8 +320,24 @@ async function main() {
   const proxyUrl = proxyInfo?.url || creds?.proxy || null;
   const expectedCountry = proxyInfo?.expectedCountry || null;
 
+  // Headed Chromium virtuális kijelzőn: a headless mód a legerősebb botjel
+  // (CreepJS "headless 100%", Cloudflare/Pinterest loop). Ha az Xvfb valamiért
+  // nem indul, visszaesünk headlessre, hogy a futás ne haljon meg.
+  const wantHeadless = process.env.EXECUTOR_HEADLESS === "1";
+  let display = null;
+  if (!wantHeadless) {
+    display = await ensureVirtualDisplay(log);
+  }
+  const headless = wantHeadless || !display;
+  log(
+    "info",
+    headless
+      ? "Böngésző mód: headless (figyelem: erősebb botjel)"
+      : `Böngésző mód: headed (DISPLAY=${display})`,
+  );
+
   const launchOpts = {
-    headless: true,
+    headless,
     args: [
       "--disable-blink-features=AutomationControlled",
       "--no-sandbox",
@@ -325,8 +351,17 @@ async function main() {
       // amúgy default off, ami botjel.
       "--enable-unsafe-webgpu",
       "--enable-features=Vulkan,WebGPU",
+      // Automatizálás-specifikus jelek elhagyása headed módban.
+      "--disable-infobars",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-features=AutomationControlled,Translate",
     ],
   };
+  if (!headless) {
+    const w = fpViewportWidth(spec);
+    launchOpts.args.push(`--window-size=${w.width},${w.height}`);
+  }
   if (proxyUrl) {
     try {
       const u = new URL(proxyUrl);
@@ -352,7 +387,9 @@ async function main() {
   const contextOpts = {
     userAgent:
       fp.userAgent ||
-      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      // Fallback: Windows Chrome — a fingerprint-patch alapértelmezett platformja
+      // is Win32, a kettő nem térhet el (Linux UA + Win32 platform = botjel).
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
     viewport:
       fp.viewport && fp.viewport.width && fp.viewport.height
         ? { width: fp.viewport.width, height: fp.viewport.height }

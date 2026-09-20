@@ -258,7 +258,10 @@ function runContainer(job) {
       const createArgs = [
       "create",
       "--network", "bridge",
+      // Headed Chromium virtuális kijelzőn: kell neki rendes /dev/shm.
+      "--shm-size", process.env.EXECUTOR_SHM_SIZE || "1g",
       "-e", `SPEC_FILE=/job/spec.json`,
+      "-e", `EXECUTOR_HEADLESS=${process.env.EXECUTOR_HEADLESS || "0"}`,
       "-e", `RUN_ID=${job.id}`,
       "-e", `WORKFLOW_ID=${job.workflowId}`,
       "-e", `BRAIN_URL=${BRAIN_URL}`,
