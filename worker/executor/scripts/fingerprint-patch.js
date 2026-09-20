@@ -70,14 +70,45 @@ export function buildFingerprintInitScript(fp) {
     };
 
     const patchFunctionToString = (fn, name) => {
-      try {
-        Object.defineProperty(fn, "toString", {
-          value: () => "function " + name + "() { [native code] }",
-          configurable: true,
-        });
-      } catch (_) {}
+      try { NATIVE_NAMES.set(fn, name); } catch (_) {}
       return fn;
     };
+
+
+    // A CreepJS és társai a getterek/függvények toString()-jét nézik: ha nem
+    // "[native code]"-ot adnak vissza, azonnal hazugságnak (lie) számít.
+    // Ezért globálisan lecseréljük a Function.prototype.toString-et, és a saját
+    // függvényeinket natívnak mutatjuk.
+    const NATIVE_NAMES = new WeakMap();
+    try {
+      const origToString = Function.prototype.toString;
+      const fakeToString = function () {
+        const name = NATIVE_NAMES.get(this);
+        if (name) return "function " + name + "() { [native code] }";
+        return origToString.call(this);
+      };
+      NATIVE_NAMES.set(fakeToString, "toString");
+      Object.defineProperty(Function.prototype, "toString", {
+        value: fakeToString,
+        writable: true,
+        configurable: true,
+      });
+    } catch (_) {}
+
+    const tagNative = (fn, name) => {
+      try { if (typeof fn === "function") NATIVE_NAMES.set(fn, name); } catch (_) {}
+      return fn;
+    };
+
+    // Getter definiálása úgy, hogy natívnak látsszon.
+    const defineNativeGetter = (target, prop, getter) => {
+      try {
+        tagNative(getter, "get " + prop);
+        Object.defineProperty(target, prop, { get: getter, configurable: true });
+        return true;
+      } catch (_) { return false; }
+    };
+
 
     // ---- 0. webdriver getter teljes eltüntetése ----------------------------
     try {
@@ -462,6 +493,83 @@ export function buildFingerprintInitScript(fp) {
         }, "getFloatFrequencyData");
       } catch (_) {}
     }
+
+    // ---- 8. Minden saját getterünk natívnak látsszon -----------------------
+    // (a fenti blokkok Object.defineProperty-vel dolgoznak; itt utólag
+    //  megjelöljük őket, hogy a toString "[native code]"-ot adjon)
+    try {
+      const targets = [
+        [Navigator.prototype, ["userAgentData", "languages", "language", "hardwareConcurrency", "deviceMemory", "platform", "plugins", "mimeTypes", "webdriver"]],
+        [Screen.prototype, ["width", "height", "availWidth", "availHeight", "colorDepth", "pixelDepth"]],
+        [window, ["outerWidth", "outerHeight", "devicePixelRatio"]],
+      ];
+      for (const [target, props] of targets) {
+        for (const prop of props) {
+          try {
+            const d = Object.getOwnPropertyDescriptor(target, prop);
+            if (d && typeof d.get === "function") NATIVE_NAMES.set(d.get, "get " + prop);
+            if (d && typeof d.set === "function") NATIVE_NAMES.set(d.set, "set " + prop);
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
+    // ---- 9. Notification / Permissions összhang ----------------------------
+    // Headless Chrome klasszikus árulója: a Notification.permission "denied",
+    // miközben a permissions.query "prompt"-ot mond. Valódi böngészőben mindkettő
+    // "default"/"prompt".
+    try {
+      if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+        defineNativeGetter(Notification, "permission", () => "default");
+      }
+    } catch (_) {}
+
+    // ---- 10. navigator.connection (valódi gépen mindig van) ----------------
+    try {
+      if (!navigator.connection) {
+        const conn = {
+          downlink: 10,
+          effectiveType: "4g",
+          rtt: 50,
+          saveData: false,
+          onchange: null,
+          addEventListener: tagNative(function () {}, "addEventListener"),
+          removeEventListener: tagNative(function () {}, "removeEventListener"),
+        };
+        defineNativeGetter(Navigator.prototype, "connection", () => conn);
+      }
+    } catch (_) {}
+
+    // ---- 11. iframe-ből ne lehessen "tiszta" natív objektumot kinyerni -----
+    // A CreepJS trükkje: létrehoz egy rejtett iframe-et, és annak a friss
+    // window-jából olvassa ki az eredeti értékeket. Ezt úgy kerüljük ki, hogy
+    // az iframe contentWindow navigátorának is ugyanazokat adjuk.
+    try {
+      const origContentWindow = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, "contentWindow");
+      if (origContentWindow && origContentWindow.get) {
+        const getter = function () {
+          const win = origContentWindow.get.call(this);
+          try {
+            if (win && win.Navigator && win.Navigator.prototype) {
+              const src = Object.getOwnPropertyDescriptor(Navigator.prototype, "platform");
+              if (src) Object.defineProperty(win.Navigator.prototype, "platform", src);
+              const langs = Object.getOwnPropertyDescriptor(Navigator.prototype, "languages");
+              if (langs) Object.defineProperty(win.Navigator.prototype, "languages", langs);
+              const hw = Object.getOwnPropertyDescriptor(Navigator.prototype, "hardwareConcurrency");
+              if (hw) Object.defineProperty(win.Navigator.prototype, "hardwareConcurrency", hw);
+              if (win.Navigator.prototype.webdriver) delete win.Navigator.prototype.webdriver;
+            }
+          } catch (_) {}
+          return win;
+        };
+        tagNative(getter, "get contentWindow");
+        Object.defineProperty(HTMLIFrameElement.prototype, "contentWindow", {
+          get: getter,
+          configurable: true,
+        });
+      }
+    } catch (_) {}
+
   } catch (e) {
     // Bármi hiba esetén ne törjük el az oldalt.
     console && console.warn && console.warn("fingerprint-patch failed", e);
