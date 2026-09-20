@@ -843,6 +843,24 @@ export type Database = {
           },
         ]
       }
+      cron_auth: {
+        Row: {
+          created_at: string
+          id: number
+          secret: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          secret: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          secret?: string
+        }
+        Relationships: []
+      }
       cross_module_tenant_cache: {
         Row: {
           cached_until: string
