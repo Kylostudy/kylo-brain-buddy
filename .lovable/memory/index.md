@@ -8,6 +8,7 @@
 - Reddit-olvasás CSAK a VPS workeren, lakossági proxy mögül — a szerver IP-jét a Reddit blokkolja.
 
 ## Memóriák
+- [headed-böngésző-mód](mem://features/headed-browser-mode) — Executor headed Chromium Xvfb-n; headless csak fallback. Bot smoke teszttel ellenőrizhető.
 - [reddit-szerver-blokk](mem://features/reddit-server-ip-blocked) — A Reddit HTML „Blocked" oldalt ad a Cloudflare szervernek; minden olvasás worker-feladatként fusson
 
 - [emberi-viselkedés](mem://features/human-behavior) — Poisson időzítés, véletlen kurzor overshoot+jitter, kötelező misclick+javítás. Brain ≠ Audit (Audit nyíltan bot lehet).
