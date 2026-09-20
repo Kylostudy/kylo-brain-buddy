@@ -155,32 +155,92 @@ export function buildFingerprintInitScript(fp) {
     } catch (_) {}
 
     try {
-      const fakePlugin = (name, filename, description) => ({
-        name,
-        filename,
-        description,
-        length: 1,
-        0: { type: "application/pdf", suffixes: "pdf", description },
-        item: function (i) { return this[i] || null; },
-        namedItem: function () { return this[0] || null; },
-      });
-      const plugins = [
-        fakePlugin("PDF Viewer", "internal-pdf-viewer", "Portable Document Format"),
-        fakePlugin("Chrome PDF Viewer", "internal-pdf-viewer", "Portable Document Format"),
-        fakePlugin("Chromium PDF Viewer", "internal-pdf-viewer", "Portable Document Format"),
-        fakePlugin("Microsoft Edge PDF Viewer", "internal-pdf-viewer", "Portable Document Format"),
-        fakePlugin("WebKit built-in PDF", "internal-pdf-viewer", "Portable Document Format"),
-      ];
-      plugins.item = function (i) { return this[i] || null; };
-      plugins.namedItem = function (name) { return Array.prototype.find.call(this, (p) => p.name === name) || null; };
-      Object.defineProperty(Navigator.prototype, "plugins", {
-        get: () => plugins,
-        configurable: true,
-      });
-      Object.defineProperty(Navigator.prototype, "mimeTypes", {
-        get: () => plugins.map((p) => p[0]),
-        configurable: true,
-      });
+      // Valódi (headed) Chrome-ban a PDF-pluginek natívan léteznek, és a
+      // navigator.plugins egy igazi PluginArray. Ilyenkor NEM nyúlunk hozzá:
+      // a sannysoft „Plugins is of type PluginArray" tesztje így zöld marad.
+      const nativePlugins = navigator.plugins;
+      const nativeOk =
+        typeof PluginArray !== "undefined" &&
+        nativePlugins instanceof PluginArray &&
+        nativePlugins.length > 0;
+
+      if (!nativeOk && typeof PluginArray !== "undefined" && typeof Plugin !== "undefined") {
+        // Fallback (headless): valódi prototípusú objektumokat építünk, hogy a
+        // típusellenőrzés (instanceof / toString) ne bukjon el.
+        const makeMimeType = (type, suffixes, description) => {
+          const mt = Object.create(MimeType.prototype);
+          Object.defineProperties(mt, {
+            type: { value: type, enumerable: true },
+            suffixes: { value: suffixes, enumerable: true },
+            description: { value: description, enumerable: true },
+          });
+          return mt;
+        };
+        const makePlugin = (name, filename, description, mimes) => {
+          const p = Object.create(Plugin.prototype);
+          Object.defineProperties(p, {
+            name: { value: name, enumerable: true },
+            filename: { value: filename, enumerable: true },
+            description: { value: description, enumerable: true },
+            length: { value: mimes.length, enumerable: true },
+          });
+          mimes.forEach((m, i) => {
+            Object.defineProperty(p, i, { value: m, enumerable: true });
+            Object.defineProperty(p, m.type, { value: m, enumerable: false });
+            Object.defineProperty(m, "enabledPlugin", { value: p, enumerable: true });
+          });
+          return p;
+        };
+
+        const mimePdf = makeMimeType("application/pdf", "pdf", "Portable Document Format");
+        const mimeXpdf = makeMimeType("text/pdf", "pdf", "Portable Document Format");
+        const names = [
+          ["PDF Viewer", "internal-pdf-viewer"],
+          ["Chrome PDF Viewer", "internal-pdf-viewer"],
+          ["Chromium PDF Viewer", "internal-pdf-viewer"],
+          ["Microsoft Edge PDF Viewer", "internal-pdf-viewer"],
+          ["WebKit built-in PDF", "internal-pdf-viewer"],
+        ];
+        const pluginList = names.map(([n, f]) =>
+          makePlugin(n, f, "Portable Document Format", [mimePdf, mimeXpdf]),
+        );
+
+        const pluginArray = Object.create(PluginArray.prototype);
+        pluginList.forEach((p, i) => {
+          Object.defineProperty(pluginArray, i, { value: p, enumerable: true });
+          Object.defineProperty(pluginArray, p.name, { value: p, enumerable: false });
+        });
+        Object.defineProperty(pluginArray, "length", { value: pluginList.length });
+        Object.defineProperty(pluginArray, "item", {
+          value: function (i) { return this[i] || null; },
+        });
+        Object.defineProperty(pluginArray, "namedItem", {
+          value: function (n) { return this[n] || null; },
+        });
+        Object.defineProperty(pluginArray, "refresh", { value: function () {} });
+
+        const mimeArray = Object.create(MimeTypeArray.prototype);
+        [mimePdf, mimeXpdf].forEach((m, i) => {
+          Object.defineProperty(mimeArray, i, { value: m, enumerable: true });
+          Object.defineProperty(mimeArray, m.type, { value: m, enumerable: false });
+        });
+        Object.defineProperty(mimeArray, "length", { value: 2 });
+        Object.defineProperty(mimeArray, "item", {
+          value: function (i) { return this[i] || null; },
+        });
+        Object.defineProperty(mimeArray, "namedItem", {
+          value: function (n) { return this[n] || null; },
+        });
+
+        Object.defineProperty(Navigator.prototype, "plugins", {
+          get: () => pluginArray,
+          configurable: true,
+        });
+        Object.defineProperty(Navigator.prototype, "mimeTypes", {
+          get: () => mimeArray,
+          configurable: true,
+        });
+      }
     } catch (_) {}
 
     // ---- 1-2. WebGL(2) getParameter override -------------------------------
