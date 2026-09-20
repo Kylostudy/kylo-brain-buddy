@@ -34,6 +34,16 @@ import { runKyloSignup } from "./scripts/kylo-signup.js";
 import { runKyloPricing } from "./scripts/kylo-pricing.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 import { buildFingerprintInitScript } from "./scripts/fingerprint-patch.js";
+import { ensureVirtualDisplay } from "./scripts/display.js";
+
+// A headed ablak mérete a workflow fingerprintjéből (ha van), különben 1280x800.
+function fpViewportWidth(spec) {
+  const vp = spec?.fingerprint?.viewport;
+  return {
+    width: Number(vp?.width) > 0 ? Number(vp.width) : 1280,
+    height: Number(vp?.height) > 0 ? Number(vp.height) : 800,
+  };
+}
 import {
   classifyInfra,
   setProxyLatency,
