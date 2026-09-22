@@ -218,7 +218,15 @@ export function buildFingerprintInitScript(fp) {
           mimes.forEach((m, i) => {
             Object.defineProperty(p, i, { value: m, enumerable: true });
             Object.defineProperty(p, m.type, { value: m, enumerable: false });
-            Object.defineProperty(m, "enabledPlugin", { value: p, enumerable: true });
+            // A mime objektumokat több plugin is megosztja, ezért újradefiniálhatónak
+            // kell maradniuk (configurable), különben a második plugin TypeError-t dob.
+            if (!Object.getOwnPropertyDescriptor(m, "enabledPlugin")) {
+              Object.defineProperty(m, "enabledPlugin", {
+                value: p,
+                enumerable: true,
+                configurable: true,
+              });
+            }
           });
           return p;
         };
