@@ -28,7 +28,7 @@ type: feature
 ## Szolgáltatói feltételek feldolgozása
 - A user minden szolgáltató ÁSZF-jét feltölti a Geminibe (vagy más feldolgozónak), és számonként rákérdez a lejárati dátumra és feltételekre.
 - User megadja egyenként a pontos szolgáltatókat, itt beszéljük meg mindet.
-- **Döntés kérdése (user felvetette)**: megéri-e az ÁSZF-et szolgáltatónként elmenteni, vagy elég a belőle kiírt adatok? — AI álláspontja: elég a kinyert adatok + rövid forráshivatkozás, a teljes ÁSZF-et nem kell tárolni (változhat, karbantartás nélkül félrevezet).
+- **Döntés (user jóváhagyta)**: a teljes ÁSZF-et NEM tároljuk szolgáltatónként — csak a belőle kinyert adatokat (lejárat, feltételek, korlátok) + rövid forráshivatkozást. A felállás véglegesíttetett.
 
 ## Nyitott kérdések
 - Melyik szolgáltató(k)től lesznek a számok? Ugyanaz minden számhoz, vagy országonként eltérő?
