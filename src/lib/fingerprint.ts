@@ -67,6 +67,12 @@ const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
   SG: { locale: "en-SG", tz: "Asia/Singapore" },
   BR: { locale: "pt-BR", tz: "America/Sao_Paulo" },
   MX: { locale: "es-MX", tz: "America/Mexico_City" },
+  CO: { locale: "es-CO", tz: "America/Bogota" },
+  TR: { locale: "tr-TR", tz: "Europe/Istanbul" },
+  AR: { locale: "es-AR", tz: "America/Argentina/Buenos_Aires" },
+  CL: { locale: "es-CL", tz: "America/Santiago" },
+  KR: { locale: "ko-KR", tz: "Asia/Seoul" },
+  IN: { locale: "en-IN", tz: "Asia/Kolkata" },
 };
 
 // Reális desktop viewport-ok (a leggyakoribbak a StatCounter szerint).
