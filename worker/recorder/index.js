@@ -690,7 +690,17 @@ async function runSession(payload) {
   // 1920×1080-at vagy DPR=2-t lát, a Pinterest oldala széttörik: nagy üres
   // felület, elszórt képek, „word word word” jellegű fallback szöveg.
   const viewport = { width: VIEWPORT_W, height: VIEWPORT_H };
-  const effectiveStartUrl = normalizeUrl(session.startUrl || "");
+  const requestedStartUrl = normalizeUrl(session.startUrl || "");
+  // A mail.google.com egy kijelentkezett, friss profilnál több átirányítást és
+  // háttérkérést indít. Egyes residential proxy + Chromium párosokon emiatt
+  // még a navigáció legelső `commit` eseménye sem érkezik meg, miközben a
+  // Google belépési oldal közvetlenül gond nélkül betölt. Új Gmail-fiók
+  // létrehozásához eleve a fiókoldal a helyes és könnyebb kezdőpont.
+  const effectiveStartUrl = /^https:\/\/mail\.google\.com(?:\/|$)/i.test(
+    requestedStartUrl || "",
+  )
+    ? "https://accounts.google.com/"
+    : requestedStartUrl;
   const isPinterestSession = /pinterest/i.test(
     String(effectiveStartUrl || session.startUrl || payload.platform || ""),
   );
@@ -732,6 +742,9 @@ async function runSession(payload) {
         }
       : {}),
   });
+  // Minden Live Browse navigáció ugyanazt a residential-proxybarát keretet
+  // kapja, akkor is, ha egy későbbi kódút nem ad meg külön timeoutot.
+  context.setDefaultNavigationTimeout(90000);
   // Fingerprint spoof (WebGL vendor/renderer, hardwareConcurrency,
   // deviceMemory, platform, WebRTC leak-védelem). Pinterest felvételnél ezt
   // szándékosan kihagyjuk: a mély navigator/screen/canvas override-ok a
@@ -1973,15 +1986,19 @@ async function runSession(payload) {
     } catch (e) {
       const friendlyError = friendlyInitialNavigationError(e, proxy);
       console.error(`[session ${session.id}] initial goto failed`, e.message);
-      await fetchStatus(session.id, { error: friendlyError.slice(0, 500) });
+      // A böngésző és a címsor maradjon használható. Korábban a sessiont itt
+      // azonnal lezártuk, így egyetlen problémás kezdőcím miatt kép sem érkezett,
+      // és a felhasználó nem tudott másik címre navigálni.
       await channel
         .send({
           type: "broadcast",
           event: "status",
-          payload: { status: "failed", error: friendlyError },
+          payload: {
+            status: "running",
+            note: `${friendlyError} Írj be másik webcímet a címsorba.`,
+          },
         })
         .catch(() => {});
-      stopped = true;
     }
   }
 
