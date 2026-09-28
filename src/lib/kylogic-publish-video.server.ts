@@ -198,9 +198,22 @@ export async function handlePublishVideo(args: {
     };
   }
 
-  // 2) Build fan-out rows with per-workflow jitter.
+  // 2) Build fan-out rows with per-workflow jitter + weekend behavior layer.
   const fanout: FanOutRow[] = [];
   const rowsToInsert: Array<Record<string, unknown>> = [];
+
+  const { adjustForBehavior } = await import("@/lib/scheduling/weekend-layer");
+  const since = new Date(Date.now() - 23 * 86400000).toISOString();
+  const { data: hist } = await supabaseAdmin
+    .from("brain_task_queue")
+    .select("workflow_id, scheduled_utc")
+    .eq("task_type", "publish_video")
+    .gte("scheduled_utc", since)
+    .neq("kylogic_task_id", args.kylogicTaskId)
+    .limit(5000);
+  const existing = (hist ?? [])
+    .filter((h) => h.workflow_id && h.scheduled_utc)
+    .map((h) => ({ workflow_id: h.workflow_id as string, utc: new Date(h.scheduled_utc as string) }));
 
   for (const wf of matched) {
     let scheduledUtc: Date;
@@ -209,8 +222,16 @@ export async function handlePublishVideo(args: {
         args.payload.scheduled_local,
         wf.timezone as string,
       );
-      const jitter = poissonJitterSeconds();
-      scheduledUtc = new Date(baseUtc.getTime() + jitter * 1000);
+      const jittered = new Date(baseUtc.getTime() + poissonJitterSeconds() * 1000);
+      const adj = adjustForBehavior({
+        workflowId: wf.id as string,
+        timezone: wf.timezone as string,
+        requested: jittered,
+        existing,
+      });
+      scheduledUtc = adj.utc;
+      existing.push({ workflow_id: wf.id as string, utc: scheduledUtc });
+      const jitter = Math.round((scheduledUtc.getTime() - baseUtc.getTime()) / 1000);
 
       const row: FanOutRow = {
         workflow_id: wf.id as string,
@@ -232,7 +253,10 @@ export async function handlePublishVideo(args: {
         platform: row.platform,
         language: row.language,
         region: row.region,
-        payload: args.payload as unknown as Record<string, unknown>,
+        payload: {
+          ...(args.payload as unknown as Record<string, unknown>),
+          _timing: { day_kind: adj.kind, notes: adj.notes, requested_local: args.payload.scheduled_local },
+        },
         scheduled_local: args.payload.scheduled_local,
         scheduled_utc: row.scheduled_utc,
         jitter_applied_seconds: row.jitter_applied_seconds,
