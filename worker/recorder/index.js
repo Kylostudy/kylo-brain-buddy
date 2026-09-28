@@ -346,6 +346,12 @@ async function getBrowser() {
     // Headed mód kell a Live Browse-hoz és a bot-védelem miatt, ezért indulás
     // előtt külön ellenőrizzük / elindítjuk az Xvfb virtuális kijelzőt.
     headless: false,
+    // Frissítéskor a Docker SIGTERM-et küld: ezt a recorder saját „leengedés"
+    // logikája kezeli (kivárja a futó Live Browse-t). A Playwright alapból
+    // ilyenkor azonnal bezárná a böngészőt — ezt kapcsoljuk ki.
+    handleSIGTERM: false,
+    handleSIGINT: false,
+    handleSIGHUP: false,
     args: [
       "--no-sandbox",
       "--disable-dev-shm-usage",
@@ -1814,6 +1820,26 @@ async function runSession(payload) {
         window.scrollBy(dx, dy);
         if (best) best.scrollBy(dx, dy);
       }, { dx, dy, before }).catch(() => {});
+      // Beágyazott keretek (pl. ellenőrző/captcha ablak, bejelentkező modál)
+      // görgetése is — ezeket a fő oldal görgetése nem éri el.
+      for (const fr of page.frames()) {
+        if (fr === page.mainFrame()) continue;
+        await fr.evaluate(({ dx, dy }) => {
+          const s = document.scrollingElement || document.documentElement;
+          if (s) s.scrollBy(dx, dy);
+          for (const el of document.querySelectorAll("body *")) {
+            const st = getComputedStyle(el);
+            if (/(auto|scroll|overlay)/.test(st.overflowY) && el.scrollHeight > el.clientHeight + 4) el.scrollBy(dx, dy);
+          }
+        }, { dx, dy }).catch(() => {});
+      }
+      const after = await page.evaluate(() => {
+        const s = document.scrollingElement || document.documentElement;
+        return s ? s.scrollTop : 0;
+      }).catch(() => null);
+      if (before !== null && after === before) {
+        await page.keyboard.press(dy > 0 ? "PageDown" : "PageUp").catch(() => {});
+      }
       pushAction({ type: "scroll", x: dx, y: dy, t: Date.now() });
     } catch {}
   });
