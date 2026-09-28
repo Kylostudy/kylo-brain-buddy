@@ -35,3 +35,4 @@
 - [facebook-fiókok](mem://features/facebook-accounts) — Facebook könyvtár: Facebook 1 (HU süti/IP) és Facebook 2 (PL süti/IP, cseh proxy híján), Brain-only profilok
 - [telefonszám-nyilvántartás](mem://features/phone-number-registry) — 12 PS Yugo szám: Brain menüpont, lejáratfigyelés, automatikus feltöltés 5 nappal előtte, kártyaadatok titkosítva; ÁSZF-ből elég a kinyert adatok, teljes ÁSZF nem kell; kidolgozás 2-3 napon belül
 - [facebook-fiókhálózat](mem://features/facebook-account-network) — 22/27 külön FB fiók IP-nként, Gmail csak öregedik (nem melegítjük), saját FB fiók leválasztva, Kylo oldalak
+- [usa-ip-csere](mem://features/usa-ip-replace) — IPRoyal USA IP (45.131.15.92) szerverhálózatnak látszik, cserélni valódi US ISP/mobil IP-re
