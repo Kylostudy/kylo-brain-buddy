@@ -745,6 +745,19 @@ async function runSession(payload) {
   // Minden Live Browse navigáció ugyanazt a residential-proxybarát keretet
   // kapja, akkor is, ha egy későbbi kódút nem ad meg külön timeoutot.
   context.setDefaultNavigationTimeout(90000);
+  // Chromium 1.57+ alatt a hitelesített proxy mögötti 302/303 átirányítások
+  // (különösen accounts.google.com) RouteImpl nélkül beragadhatnak. Egy
+  // változtatás nélküli route létrehozza a hiányzó belső kezelőt. Ezt csak
+  // proxys Google-sessionnél kapcsoljuk be, hogy más oldalakhoz ne nyúljunk.
+  const isGoogleSession = /^https:\/\/(?:accounts|mail)\.google\.com(?:\/|$)/i.test(
+    effectiveStartUrl || "",
+  );
+  if (proxy && isGoogleSession) {
+    await context.route("**/*", async (route) => {
+      await route.continue();
+    });
+    console.log(`[session ${session.id}] Google proxy redirect workaround aktív`);
+  }
   // Fingerprint spoof (WebGL vendor/renderer, hardwareConcurrency,
   // deviceMemory, platform, WebRTC leak-védelem). Pinterest felvételnél ezt
   // szándékosan kihagyjuk: a mély navigator/screen/canvas override-ok a
@@ -2031,12 +2044,33 @@ async function runSession(payload) {
   }
 
   // Várjuk meg a stop-ot vagy a Brain felől érkező cancel-t
+  let consecutiveStatusFailures = 0;
+  let statusFailureReason = "";
   while (!stopped) {
     await sleep(POLL_INTERVAL_MS);
     const st = await fetchStatus(session.id);
-    if (!st || ["cancelled", "completed", "failed", "missing"].includes(st)) {
+    if (!st) {
+      consecutiveStatusFailures += 1;
+      console.warn(
+        `[session ${session.id}] status lekérés sikertelen (${consecutiveStatusFailures}/5)`,
+      );
+      if (consecutiveStatusFailures < 5) continue;
+      statusFailureReason =
+        "A felvevő elvesztette a kapcsolatot a Brainnel öt egymást követő ellenőrzésnél.";
+      stopped = true;
+      break;
+    }
+    consecutiveStatusFailures = 0;
+    if (["cancelled", "completed", "failed", "missing"].includes(st)) {
       stopped = true;
     }
+  }
+
+  // Korábban egyetlen átmeneti status-hiba csendben bezárta a böngészőt, a
+  // munkamenet viszont active maradt. Most csak tartós kapcsolatvesztés állítja
+  // le, és az okot vissza is írjuk, így nem marad elárvult nyitott session.
+  if (statusFailureReason) {
+    await fetchStatus(session.id, { error: statusFailureReason }).catch(() => null);
   }
 
   // Automatikus cookie-mentés a session lezárása ELŐTT.
