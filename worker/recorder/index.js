@@ -1962,7 +1962,14 @@ async function runSession(payload) {
 
   if (effectiveStartUrl) {
     try {
-      await page.goto(effectiveStartUrl, { waitUntil: "domcontentloaded" });
+      // Lassú residential proxyn (pl. USA ~12 s átlag) a 30 s kevés — 90 s + egy újrapróbálás.
+      try {
+        await page.goto(effectiveStartUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
+      } catch (first) {
+        if (!/timeout/i.test(String(first?.message ?? ""))) throw first;
+        console.warn(`[session ${session.id}] initial goto timeout, újrapróbálom`);
+        await page.goto(effectiveStartUrl, { waitUntil: "commit", timeout: 90000 });
+      }
     } catch (e) {
       const friendlyError = friendlyInitialNavigationError(e, proxy);
       console.error(`[session ${session.id}] initial goto failed`, e.message);
