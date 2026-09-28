@@ -173,6 +173,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     ch.on("broadcast", { event: "ready" }, ({ payload }) => {
       const p = payload as { w?: number; h?: number };
       setStatus("active");
+      setWorkerTimeout(false);
       if (p.w && p.h) setFrame((prev) => (prev ? { ...prev, w: p.w!, h: p.h! } : prev));
     });
     ch.on("broadcast", { event: "nav" }, ({ payload }) => {
