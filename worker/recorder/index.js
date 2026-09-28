@@ -1948,6 +1948,34 @@ async function runSession(payload) {
     payload: { w: viewportW, h: viewportH },
   });
 
+  // A képküldésnek a kezdőoldal megnyitása ELŐTT el kell indulnia. Egy lassú
+  // vagy blokkolt oldal navigációja akár percekig tarthat; ha addig nincs frame,
+  // a felhasználó csak fekete képet lát, pedig a böngésző már működik.
+  const frameDelay = Math.max(50, Math.floor(1000 / FRAME_FPS));
+  (async () => {
+    while (!stopped) {
+      try {
+        const size = page.viewportSize() || { width: viewportW, height: viewportH };
+        viewportW = size.width;
+        viewportH = size.height;
+        const buf = await page.screenshot({ type: "jpeg", quality: 60, fullPage: false });
+        await channel.send({
+          type: "broadcast",
+          event: "frame",
+          payload: {
+            dataUrl: "data:image/jpeg;base64," + buf.toString("base64"),
+            w: viewportW,
+            h: viewportH,
+            ts: Date.now(),
+          },
+        });
+      } catch {
+        // Navigálás közben átmenetileg sikertelen lehet a képernyőkép.
+      }
+      await sleep(frameDelay);
+    }
+  })().catch((e) => console.error(`[session ${session.id}] frame loop`, e.message));
+
   // ---- Belépés-előjáték (prelude) ----
   // Ha a Brain küldött belépés-kockát, azt ELŐBB automatikusan lejátsszuk egy
   // valódi teszt fiókkal, és csak utána navigálunk a felvétel kezdőoldalára.
@@ -2001,32 +2029,6 @@ async function runSession(payload) {
         .catch(() => {});
     }
   }
-
-  // Frame loop
-  const frameDelay = Math.max(50, Math.floor(1000 / FRAME_FPS));
-  (async () => {
-    while (!stopped) {
-      try {
-        const size = page.viewportSize() || { width: viewportW, height: viewportH };
-        viewportW = size.width;
-        viewportH = size.height;
-        const buf = await page.screenshot({ type: "jpeg", quality: 60, fullPage: false });
-        await channel.send({
-          type: "broadcast",
-          event: "frame",
-          payload: {
-            dataUrl: "data:image/jpeg;base64," + buf.toString("base64"),
-            w: viewportW,
-            h: viewportH,
-            ts: Date.now(),
-          },
-        });
-      } catch {
-        // navigálás közben ok, megyünk tovább
-      }
-      await sleep(frameDelay);
-    }
-  })().catch((e) => console.error(`[session ${session.id}] frame loop`, e.message));
 
   // Várjuk meg a stop-ot vagy a Brain felől érkező cancel-t
   while (!stopped) {
