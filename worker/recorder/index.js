@@ -1780,9 +1780,41 @@ async function runSession(payload) {
   });
 
   channel.on("broadcast", { event: "scroll" }, async ({ payload }) => {
+    const dx = Number(payload?.dx) || 0;
+    const dy = Number(payload?.dy) || 0;
     try {
-      await page.mouse.wheel(payload.dx || 0, payload.dy || 0);
-      pushAction({ type: "scroll", x: payload.dx || 0, y: payload.dy || 0, t: Date.now() });
+      // A görgő a kurzor alatti elemet görgeti — ha a kurzor sosem mozdult,
+      // (0,0)-n áll, ahol sokszor nincs görgethető elem. Középre visszük.
+      const vp = page.viewportSize() || { width: 1280, height: 800 };
+      await page.mouse.move(vp.width / 2, vp.height / 2).catch(() => {});
+      const before = await page.evaluate(() => {
+        const s = document.scrollingElement || document.documentElement;
+        return s ? s.scrollTop : 0;
+      }).catch(() => null);
+      await page.mouse.wheel(dx, dy).catch(() => {});
+      await page.waitForTimeout(120);
+      // Tartalék: ha a görgő nem mozdított semmit, közvetlenül görgetünk
+      // (dokumentum + a legnagyobb görgethető belső doboz).
+      await page.evaluate(({ dx, dy, before }) => {
+        const s = document.scrollingElement || document.documentElement;
+        if (s && before !== null && s.scrollTop !== before) return;
+        const canScroll = (el) => {
+          const st = getComputedStyle(el);
+          return /(auto|scroll|overlay)/.test(st.overflowY) && el.scrollHeight > el.clientHeight + 4;
+        };
+        let best = null;
+        let bestArea = 0;
+        for (const el of document.querySelectorAll("body *")) {
+          if (!canScroll(el)) continue;
+          const r = el.getBoundingClientRect();
+          const area = r.width * r.height;
+          if (area > bestArea) { best = el; bestArea = area; }
+        }
+        if (s) s.scrollBy(dx, dy);
+        window.scrollBy(dx, dy);
+        if (best) best.scrollBy(dx, dy);
+      }, { dx, dy, before }).catch(() => {});
+      pushAction({ type: "scroll", x: dx, y: dy, t: Date.now() });
     } catch {}
   });
 

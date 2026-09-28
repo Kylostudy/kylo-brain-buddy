@@ -508,7 +508,7 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [open]);
+  }, [open, !!frame]);
 
   useEffect(() => {
     if (!open) return;
