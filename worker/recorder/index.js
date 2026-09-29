@@ -15,9 +15,30 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { spawn, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
 import ws from "ws";
 import { buildFingerprintInitScript } from "./fingerprint-patch.js";
 import { createHealth, installGracefulShutdown, installCrashGuards } from "./health.js";
+
+// Google Fordító (hivatalos Chrome-kiegészítő, unpacked formában) — Pinterest
+// Live Browse sessioneknél töltődik be, hogy idegen nyelvű (pl. japán) oldal
+// angolra fordítható legyen. A kiegészítő csak launchPersistentContext-tel
+// tölthető be, ezért az ilyen session külön böngésző-példányt kap.
+const TRANSLATE_EXT_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "extensions",
+  "google-translate",
+);
+function translateExtensionAvailable() {
+  try {
+    return fs.existsSync(path.join(TRANSLATE_EXT_DIR, "manifest.json"));
+  } catch {
+    return false;
+  }
+}
 
 let chromium = null;
 async function getChromium() {
