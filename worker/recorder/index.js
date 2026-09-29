@@ -889,6 +889,15 @@ async function runSession(payload) {
   }
 
   const page = await context.newPage();
+  // A persistent context (Fordítós Pinterest session) induláskor hoz egy üres
+  // kezdőlapot — azt becsukjuk, hogy a stream mindig a valódi munkalapot mutassa.
+  for (const extraPage of context.pages()) {
+    if (extraPage !== page && (extraPage.url() === "about:blank" || extraPage.url() === "")) {
+      try {
+        await extraPage.close();
+      } catch {}
+    }
+  }
 
   let stopped = false;
   let viewportW = viewport.width;
