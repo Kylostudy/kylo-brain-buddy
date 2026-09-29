@@ -15,9 +15,30 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { spawn, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
 import ws from "ws";
 import { buildFingerprintInitScript } from "./fingerprint-patch.js";
 import { createHealth, installGracefulShutdown, installCrashGuards } from "./health.js";
+
+// Google Fordító (hivatalos Chrome-kiegészítő, unpacked formában) — Pinterest
+// Live Browse sessioneknél töltődik be, hogy idegen nyelvű (pl. japán) oldal
+// angolra fordítható legyen. A kiegészítő csak launchPersistentContext-tel
+// tölthető be, ezért az ilyen session külön böngésző-példányt kap.
+const TRANSLATE_EXT_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "extensions",
+  "google-translate",
+);
+function translateExtensionAvailable() {
+  try {
+    return fs.existsSync(path.join(TRANSLATE_EXT_DIR, "manifest.json"));
+  } catch {
+    return false;
+  }
+}
 
 let chromium = null;
 async function getChromium() {
@@ -730,24 +751,65 @@ async function runSession(payload) {
   } else {
     console.warn(`[session ${session.id}] NINCS proxy — direkt IP-vel megy (nem javasolt)!`);
   }
-  const context = await br.newContext({
-    viewport,
-    userAgent,
-    locale,
-    timezoneId,
-    deviceScaleFactor: 1,
-    isMobile: false,
-    hasTouch: false,
-    ...(proxy
-      ? {
-          proxy: {
-            server: proxy.server,
-            username: proxy.username,
-            password: proxy.password,
-          },
-        }
-      : {}),
-  });
+  // Google Fordító kiegészítő: Pinterest sessioneknél bekapcsolva (a felhasználó
+  // így tud angolra fordítani egy japán/német stb. Pinterestet). TRANSLATE_EXTENSION=off
+  // környezeti változóval bármikor kikapcsolható.
+  const useTranslateExtension =
+    isPinterestSession &&
+    process.env.TRANSLATE_EXTENSION !== "off" &&
+    translateExtensionAvailable();
+  let context;
+  if (useTranslateExtension) {
+    const chromium = await getChromium();
+    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "rec-ext-"));
+    context = await chromium.launchPersistentContext(userDataDir, {
+      headless: false,
+      viewport,
+      userAgent,
+      locale,
+      timezoneId,
+      deviceScaleFactor: 1,
+      isMobile: false,
+      hasTouch: false,
+      ...(proxy
+        ? {
+            proxy: {
+              server: proxy.server,
+              username: proxy.username,
+              password: proxy.password,
+            },
+          }
+        : {}),
+      args: [
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        `--disable-extensions-except=${TRANSLATE_EXT_DIR}`,
+        `--load-extension=${TRANSLATE_EXT_DIR}`,
+        "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+        "--webrtc-ip-handling-policy=disable_non_proxied_udp",
+      ],
+    });
+    console.log(`[session ${session.id}] Google Fordító kiegészítő betöltve (Pinterest session)`);
+  } else {
+    context = await br.newContext({
+      viewport,
+      userAgent,
+      locale,
+      timezoneId,
+      deviceScaleFactor: 1,
+      isMobile: false,
+      hasTouch: false,
+      ...(proxy
+        ? {
+            proxy: {
+              server: proxy.server,
+              username: proxy.username,
+              password: proxy.password,
+            },
+          }
+        : {}),
+    });
+  }
   // Minden Live Browse navigáció ugyanazt a residential-proxybarát keretet
   // kapja, akkor is, ha egy későbbi kódút nem ad meg külön timeoutot.
   context.setDefaultNavigationTimeout(90000);
@@ -827,6 +889,15 @@ async function runSession(payload) {
   }
 
   const page = await context.newPage();
+  // A persistent context (Fordítós Pinterest session) induláskor hoz egy üres
+  // kezdőlapot — azt becsukjuk, hogy a stream mindig a valódi munkalapot mutassa.
+  for (const extraPage of context.pages()) {
+    if (extraPage !== page && (extraPage.url() === "about:blank" || extraPage.url() === "")) {
+      try {
+        await extraPage.close();
+      } catch {}
+    }
+  }
 
   let stopped = false;
   let viewportW = viewport.width;
