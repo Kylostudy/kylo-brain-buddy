@@ -330,11 +330,23 @@ export function BrowserRecorderModal({ open, sessionId, onClose, mode = "record"
       setInputStatus(`E-mail megerősítés hiba: ${p.error ?? "ismeretlen"}`);
     });
     ch.on("broadcast", { event: "status" }, ({ payload }) => {
-      const p = payload as { status: typeof status; error?: string };
-      setStatus(p.status);
+      const p = payload as {
+        status?: typeof status;
+        error?: string;
+        note?: string;
+      };
+      // Csak ismert státuszt fogadunk el — az ismeretlen (pl. a worker
+      // átmeneti "running" jelzése) felülírná az "active" állapotot, és
+      // letiltaná az összes vezérlőt (címsor, kattintás, sütimentés).
+      const known = ["requested", "active", "completed", "cancelled", "failed"];
+      if (p.status && known.includes(p.status)) {
+        setStatus(p.status);
+      }
       if (p.error) {
         setFailureReason(p.error);
         toast.error(p.error);
+      } else if (p.note) {
+        toast.info(p.note, { duration: 10000 });
       }
     });
     ch.on("broadcast", { event: "cookiesSaved" }, ({ payload }) => {
