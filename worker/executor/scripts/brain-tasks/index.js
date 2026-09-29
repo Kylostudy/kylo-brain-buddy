@@ -103,6 +103,9 @@ export async function runBrainTask(args) {
     case "linkedin_warmup":
       return await runLinkedInWarmup(args);
 
+    case "pinterest_warmup":
+      return await runPinterestWarmup(args);
+
     case "linkedin_comment_scan":
       return await runLinkedInCommentScan(args);
 
