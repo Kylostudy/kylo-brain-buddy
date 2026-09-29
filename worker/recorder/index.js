@@ -2062,7 +2062,9 @@ async function runSession(payload) {
         .send({
           type: "broadcast",
           event: "status",
-          payload: { status: "running", note: "Automatikus belépés folyamatban…" },
+          // "active" marad: a session él, csak automatikus belépés fut.
+          // Idegen státusz (pl. "running") a kliensen letiltaná a vezérlőket.
+          payload: { status: "active", note: "Automatikus belépés folyamatban…" },
         })
         .catch(() => {});
       await playPrelude(page, payload.prelude, session.id);
