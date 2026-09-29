@@ -751,24 +751,65 @@ async function runSession(payload) {
   } else {
     console.warn(`[session ${session.id}] NINCS proxy — direkt IP-vel megy (nem javasolt)!`);
   }
-  const context = await br.newContext({
-    viewport,
-    userAgent,
-    locale,
-    timezoneId,
-    deviceScaleFactor: 1,
-    isMobile: false,
-    hasTouch: false,
-    ...(proxy
-      ? {
-          proxy: {
-            server: proxy.server,
-            username: proxy.username,
-            password: proxy.password,
-          },
-        }
-      : {}),
-  });
+  // Google Fordító kiegészítő: Pinterest sessioneknél bekapcsolva (a felhasználó
+  // így tud angolra fordítani egy japán/német stb. Pinterestet). TRANSLATE_EXTENSION=off
+  // környezeti változóval bármikor kikapcsolható.
+  const useTranslateExtension =
+    isPinterestSession &&
+    process.env.TRANSLATE_EXTENSION !== "off" &&
+    translateExtensionAvailable();
+  let context;
+  if (useTranslateExtension) {
+    const chromium = await getChromium();
+    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "rec-ext-"));
+    context = await chromium.launchPersistentContext(userDataDir, {
+      headless: false,
+      viewport,
+      userAgent,
+      locale,
+      timezoneId,
+      deviceScaleFactor: 1,
+      isMobile: false,
+      hasTouch: false,
+      ...(proxy
+        ? {
+            proxy: {
+              server: proxy.server,
+              username: proxy.username,
+              password: proxy.password,
+            },
+          }
+        : {}),
+      args: [
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        `--disable-extensions-except=${TRANSLATE_EXT_DIR}`,
+        `--load-extension=${TRANSLATE_EXT_DIR}`,
+        "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+        "--webrtc-ip-handling-policy=disable_non_proxied_udp",
+      ],
+    });
+    console.log(`[session ${session.id}] Google Fordító kiegészítő betöltve (Pinterest session)`);
+  } else {
+    context = await br.newContext({
+      viewport,
+      userAgent,
+      locale,
+      timezoneId,
+      deviceScaleFactor: 1,
+      isMobile: false,
+      hasTouch: false,
+      ...(proxy
+        ? {
+            proxy: {
+              server: proxy.server,
+              username: proxy.username,
+              password: proxy.password,
+            },
+          }
+        : {}),
+    });
+  }
   // Minden Live Browse navigáció ugyanazt a residential-proxybarát keretet
   // kapja, akkor is, ha egy későbbi kódút nem ad meg külön timeoutot.
   context.setDefaultNavigationTimeout(90000);
