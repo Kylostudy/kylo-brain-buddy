@@ -133,7 +133,7 @@ async function doSearch(page, stats, log) {
       .first();
     if ((await box.count().catch(() => 0)) === 0) return;
     await humanClick(page, box, { timeout: 5000 });
-    await humanType(page, box, q);
+    await humanType(page, q);
     await page.keyboard.press("Enter");
     await page.waitForLoadState("domcontentloaded", { timeout: 30000 }).catch(() => {});
     stats.searches++;
