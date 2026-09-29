@@ -11,3 +11,13 @@
 - A felhasználó saját Facebook fiókja (kovacs.netgpesz) TILOS bármelyik oldalhoz kötni — a Facebook összekötné a teljes hálózatot. Meglévő oldalai törlésre kerülnek.
 - Márkanév eddig: "Kylo – Your AI Tutor" (sosem Kailo). 2026-09-28-án a felhasználó "Hailuo Global"-t említett — tisztázás alatt, hogy új márkanév-e vagy elírás.
 - Ha egy fiók "elkopik", a többi érintetlen marad, másikkal folytatjuk.
+
+## Alvó Facebook-fiókok bekötése (2026-09-29 egyeztetés)
+- Egy magyar IP-re LEGFELJEBB 2-3 Facebook-fiók (nem 5) — a FB-nél egy háztartásban 2-4 ember természetes.
+- Az IP-hez tartozó fiókok SOHA nem futnak egyszerre: más napszak, más böngészési stílus (Poisson, véletlen kurzor, misclick).
+- Ugyanarra az IP-re különböző device + fingerprint + süticsomag — "ugyanazon a háztartáson belül különböző gépek".
+- Admin jog fokozatosan: soha nem egyszerre lesznek adminok, nyelvi oldalanként hetek eltolással.
+- Első hét MINDEN fióknál (Kylo automatizációs fiók és alvó fiókok egyaránt): CSAK görgetés, lájkolás, tétlenkedés — semmi poszt, admin, feltöltés. Ez az eddigi Reddit/TikTok/Insta/Pinterest rend is.
+- Az alvó, régi fiókok first login: a tulajdonos egyszer belép a SAJÁT gépéről (vagy odadja a sütijét) — idegen helyről való első belépés gyanús. Utána csak a Brain kezeli őket.
+- A felhasználó a meglévő alvó fiókokat svájci fiókokként kötné be (svájci IP), ha a magyar IP-keret betelik.
+- A Kylo automatizációs fiókba e-mailből kimásolt belépési linkkel lép be; a Brain csak utána veszi át sütivel.
