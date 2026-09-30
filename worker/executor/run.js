@@ -443,6 +443,7 @@ async function main() {
     log("error", preflight.error || "Preflight sikertelen.");
     log("warn", `Infrastruktúra-hiba (proxy): ${INFRA_LABELS[infraCode]}`);
     await context.close().catch(() => {});
+    await browser?.close().catch(() => {});
     return finish(
       "failed",
       infraResult(null, infraCode, preflight.error),
@@ -599,10 +600,12 @@ async function main() {
     result = { ...(result || {}), proxy_profile: getProxyProfile() };
 
     await context.close();
+    await browser?.close().catch(() => {});
     finish("succeeded", result);
   } catch (e) {
     log("error", `Futtatás hibára futott: ${e.message}`);
     await context.close().catch(() => {});
+    await browser?.close().catch(() => {});
     // Ha a script részeredményt (screenshotok, nyelvi ellenőrzések) csatolt a
     // hibához, azt megtartjuk, hogy a riportban látszódjon, meddig jutott.
     const partial = { ...(e.partialResult ?? {}), proxy_profile: getProxyProfile() };

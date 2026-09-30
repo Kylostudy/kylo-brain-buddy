@@ -71,6 +71,26 @@ function hasRequiredCookies(platform: string | null, cookies: { name: string }[]
   return req.some((r) => names.has(r));
 }
 
+const PLATFORM_DOMAINS: Record<string, string[]> = {
+  linkedin: ["linkedin.com"],
+  tiktok: ["tiktok.com"],
+  pinterest: ["pinterest.com"],
+  instagram: ["instagram.com"],
+  facebook: ["facebook.com"],
+  reddit: ["reddit.com"],
+  x: ["x.com", "twitter.com"],
+  twitter: ["x.com", "twitter.com"],
+};
+
+function cookiesForPlatform<T extends { domain?: string }>(platform: string, cookies: T[]): T[] {
+  const allowed = PLATFORM_DOMAINS[platform];
+  if (!allowed) return cookies;
+  return cookies.filter((cookie) => {
+    const domain = String(cookie.domain || "").replace(/^\./, "").toLowerCase();
+    return allowed.some((suffix) => domain === suffix || domain.endsWith(`.${suffix}`));
+  });
+}
+
 export const Route = createFileRoute("/api/public/worker/save-cookies")({
   server: {
     handlers: {
@@ -140,8 +160,9 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
             ? String((wf.spec as Record<string, unknown>).platform ?? "")
             : "";
         const resolvedPlatform = (wf.platform || specPlatform || "unknown").toLowerCase();
+        const platformCookies = cookiesForPlatform(resolvedPlatform, cookies);
 
-        if (!hasRequiredCookies(resolvedPlatform, cookies)) {
+        if (!hasRequiredCookies(resolvedPlatform, platformCookies)) {
           const req = REQUIRED_COOKIES[resolvedPlatform] || [];
           return new Response(
             JSON.stringify({
@@ -153,7 +174,7 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
 
         // Titkosítás
         const { encryptString } = await import("@/lib/credentials/crypto.server");
-        const cookiesJson = JSON.stringify(cookies);
+        const cookiesJson = JSON.stringify(platformCookies);
         const { ciphertext, nonce } = await encryptString(cookiesJson);
 
         // Upsert workflow_credentials — platformonként külön sor.
@@ -204,7 +225,7 @@ export const Route = createFileRoute("/api/public/worker/save-cookies")({
         return new Response(
           JSON.stringify({
             ok: true,
-            savedCount: cookies.length,
+            savedCount: platformCookies.length,
             platform: platformKey,
             workflowId: wf.id,
           }),
