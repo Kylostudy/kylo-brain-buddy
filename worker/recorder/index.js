@@ -777,8 +777,16 @@ async function runSession(payload) {
     const chromium = await getChromium();
     const userDataDir = workflowProfileDir(session.workflowId);
     fs.mkdirSync(userDataDir, { recursive: true });
+    // Régi, beragadt Chromium profilzárak eltávolítása (előző, félbeszakadt futásból).
+    for (const lock of ["SingletonLock", "SingletonSocket", "SingletonCookie"]) {
+      try { fs.rmSync(path.join(userDataDir, lock), { force: true }); } catch {}
+    }
     context = await chromium.launchPersistentContext(userDataDir, {
       headless: false,
+      // Blue-green drain: a Docker SIGTERM ne zárja be azonnal az élő munkamenetet.
+      handleSIGTERM: false,
+      handleSIGINT: false,
+      handleSIGHUP: false,
       viewport,
       userAgent,
       locale,
