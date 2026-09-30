@@ -15,14 +15,19 @@ export const getCookieJarStatus = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: row } = await supabase
       .from("workflows")
-      .select("cookie_jar_country, cookie_jar_locked, cookie_jar_updated_at, cookie_jar_stats")
+      .select("cookie_jar_country, cookie_jar_locked, cookie_jar_updated_at, cookie_jar_stats, platform, spec")
       .eq("id", data.workflowId)
       .maybeSingle();
 
+    const spec = row?.spec && typeof row.spec === "object"
+      ? (row.spec as Record<string, unknown>)
+      : {};
+    const platform = String(row?.platform || spec.platform || "unknown").toLowerCase();
     const { data: cred } = await supabase
       .from("workflow_credentials")
       .select("cookie_ciphertext")
       .eq("workflow_id", data.workflowId)
+      .eq("platform", platform)
       .maybeSingle();
 
     const hasCookies = !!cred?.cookie_ciphertext;
@@ -53,6 +58,15 @@ export const setCookieJarLocked = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { data: workflow } = await supabase
+      .from("workflows")
+      .select("platform, spec")
+      .eq("id", data.workflowId)
+      .maybeSingle();
+    const spec = workflow?.spec && typeof workflow.spec === "object"
+      ? (workflow.spec as Record<string, unknown>)
+      : {};
+    const platform = String(workflow?.platform || spec.platform || "unknown").toLowerCase();
     const { error } = await supabase
       .from("workflows")
       .update({ cookie_jar_locked: data.locked } as never)
@@ -72,6 +86,15 @@ export const clearCookieJar = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { data: workflow } = await supabase
+      .from("workflows")
+      .select("platform, spec")
+      .eq("id", data.workflowId)
+      .maybeSingle();
+    const spec = workflow?.spec && typeof workflow.spec === "object"
+      ? (workflow.spec as Record<string, unknown>)
+      : {};
+    const platform = String(workflow?.platform || spec.platform || "unknown").toLowerCase();
     // A workflow_credentials sor létezhet más mezőkkel (jelszó, TOTP) —
     // csak a cookie részt nulláznunk kell, nem törölni a sort.
     const { error: credErr } = await supabase
@@ -80,7 +103,8 @@ export const clearCookieJar = createServerFn({ method: "POST" })
         cookie_ciphertext: null,
         cookie_nonce: null,
       } as never)
-      .eq("workflow_id", data.workflowId);
+      .eq("workflow_id", data.workflowId)
+      .eq("platform", platform);
     if (credErr) throw new Error(credErr.message);
 
     const { error: wfErr } = await supabase

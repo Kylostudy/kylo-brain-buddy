@@ -61,6 +61,7 @@ x-orchestrator-env: &orchestrator-env
   LIVE_TZ: ${LIVE_TZ:-Europe/Budapest}
   # --- Videó-archívum (Kylogic archive_video) ---
   ARCHIVE_HOST_DIR: ${ARCHIVE_HOST_DIR:-/var/brain/archive}
+  EXECUTOR_PROFILES_DIR: ${EXECUTOR_PROFILES_DIR:-/srv/kylo-executor-profiles}
 
 x-recorder: &recorder
   build:
@@ -70,6 +71,8 @@ x-recorder: &recorder
   shm_size: "1gb"
   restart: always
   stop_grace_period: 1200s
+  volumes:
+    - ${RECORDER_PROFILES_DIR:-/srv/kylo-recorder-profiles}:/profiles
   labels:
     - autoheal=true
   healthcheck:
@@ -90,6 +93,7 @@ x-recorder-env: &recorder-env
   HEALTH_PORT: "9091"
   HEALTH_STALL_MS: ${HEALTH_STALL_MS:-120000}
   RECORDER_DRAIN_TIMEOUT_MS: ${RECORDER_DRAIN_TIMEOUT_MS:-1200000}
+  RECORDER_PROFILES_DIR: /profiles
   PROXY_1: ${PROXY_1:-}
   PROXY_2: ${PROXY_2:-}
 

@@ -273,6 +273,14 @@ function runContainer(job) {
       // Videó-archívum: a VPS lemezén tartós könyvtár, a konténerben /archive.
       const archiveHostDir = process.env.ARCHIVE_HOST_DIR || "/var/brain/archive";
       createArgs.push("-v", `${archiveHostDir}:/archive`, "-e", "ARCHIVE_ROOT=/archive");
+      // Minden workflow saját, tartós böngészőprofilt kap. Ugyanez a könyvtár
+      // marad meg worker-frissítés után is, és nem keveredik más fiókkal.
+      const profilesHostDir = process.env.EXECUTOR_PROFILES_DIR || "/srv/kylo-executor-profiles";
+      const safeWorkflowId = String(job.workflowId || "unknown").replace(/[^a-zA-Z0-9_-]/g, "_");
+      createArgs.push(
+        "-v", `${profilesHostDir}/${safeWorkflowId}:/browser-profile`,
+        "-e", "BROWSER_PROFILE_DIR=/browser-profile",
+      );
       if (process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN) {
         createArgs.push("-e", `BRAIN_KYLO_TEST_BYPASS_TOKEN=${process.env.BRAIN_KYLO_TEST_BYPASS_TOKEN}`);
       }

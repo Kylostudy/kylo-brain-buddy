@@ -84,7 +84,7 @@ async function loadWorkflowProxy(
   // Workflow → language/region/timezone (a Playwright locale-hez)
   const { data: wf } = await sb
     .from("workflows")
-    .select("language, region, timezone, module, tenant_id")
+    .select("language, region, timezone, module, tenant_id, platform, spec")
     .eq("id", workflowId)
     .maybeSingle();
 
@@ -92,6 +92,11 @@ async function loadWorkflowProxy(
   // háttér-workflow-nál nincs kifejezett nyelv, magyarra esünk vissza
   // (és lentebb magyar proxyra is), nem valami véletlen külföldi IP-re.
   const isAudit = String(wf?.module || "") === "audit";
+  const specPlatform =
+    wf?.spec && typeof wf.spec === "object" && !Array.isArray(wf.spec)
+      ? String((wf.spec as Record<string, unknown>).platform ?? "")
+      : "";
+  const platform = String(wf?.platform || specPlatform || "unknown").toLowerCase();
   const language = wf?.language || (isAudit ? "hu" : null);
   const region = wf?.region || (isAudit ? "HU" : null);
   const timezone = wf?.timezone || (isAudit ? "Europe/Budapest" : null);
@@ -103,13 +108,13 @@ async function loadWorkflowProxy(
         ? language
         : null;
 
-  // workflow_credentials → proxy_id → proxies row + minden mentett cookie
-  // (bármelyik platform során, hogy a korábban felvett Pinterest / LinkedIn
-  // sütik automatikusan betöltődjenek — így nem kell újra bejelentkezni).
+  // Egy munkafolyamat kizárólag a saját platformjához mentett proxyját és
+  // sütijeit kaphatja meg. Más platform adatait soha nem keverjük hozzá.
   const { data: creds } = await sb
     .from("workflow_credentials")
     .select("proxy_id, cookie_ciphertext, cookie_nonce")
-    .eq("workflow_id", workflowId);
+    .eq("workflow_id", workflowId)
+    .eq("platform", platform);
 
   let proxyId = creds?.find((c) => c.proxy_id)?.proxy_id || null;
 
@@ -141,9 +146,6 @@ async function loadWorkflowProxy(
   };
 
   // Cookie-k összegyűjtése + de-duplikálás (name+domain+path kulcs).
-  // Először a workflow saját sütijeit töltjük be. Ha ilyen nincs (pl. frissen
-  // létrehozott Reddit workflow csak proxyval), később ország alapján
-  // visszaesünk a megfelelő warm-up cookie jar-ra.
   const cookieMap = new Map<string, CookieOut>();
   const addCookiesFromRows = async (
     rows: Array<{ cookie_ciphertext: string | null; cookie_nonce: string | null }> | null | undefined,
@@ -209,30 +211,6 @@ async function loadWorkflowProxy(
   const password = await safeDec(pRow.password_ciphertext, pRow.password_nonce);
   const server = `${pRow.protocol || "http"}://${pRow.host}:${pRow.port}`;
   const proxyCountry = normalizeCountryCode(pRow.country);
-
-  // Kritikus Reddit/Live Browse eset: ha a cél workflow még szűz, de ugyanarra
-  // az országra már van 45 perces warm-up csomag, azt automatikusan betöltjük.
-  // Így nem nulláról megyünk Redditre, hanem ugyanazzal az országos sütialappal,
-  // amit a többi workflow is használ.
-  if (cookieMap.size === 0 && proxyCountry) {
-    const { data: warmupWorkflow } = await sb
-      .from("workflows")
-      .select("id")
-      .eq("cookie_jar_country", proxyCountry)
-      .not("cookie_jar_updated_at", "is", null)
-      .order("cookie_jar_updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (warmupWorkflow?.id && warmupWorkflow.id !== workflowId) {
-      const { data: warmupCreds } = await sb
-        .from("workflow_credentials")
-        .select("cookie_ciphertext, cookie_nonce")
-        .eq("workflow_id", warmupWorkflow.id)
-        .not("cookie_ciphertext", "is", null);
-      await addCookiesFromRows(warmupCreds);
-    }
-  }
 
   return {
     proxy: {
@@ -369,7 +347,7 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
         // mindig ugyanarról az IP-ről lépünk be). Az Audit / saját oldal
         // felvételeknél (pl. kylo.study "Belépés" kocka) nincs rá szükség,
         // ott proxy nélkül is elindul a felvétel.
-        const PROXY_REQUIRED = ["pinterest", "reddit", "linkedin", "tiktok", "instagram", "x", "twitter"];
+        const PROXY_REQUIRED = ["pinterest", "reddit", "linkedin", "tiktok", "instagram", "facebook", "x", "twitter"];
         const proxyRequired = PROXY_REQUIRED.includes(platform);
 
         if (proxyErr && proxyRequired) {
@@ -429,6 +407,7 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
             session: {
               id: claimed.id,
               workflowId: claimed.workflow_id,
+              platform,
               startUrl,
               channel: `record:${claimed.id}`,
               startedAt: claimed.started_at,

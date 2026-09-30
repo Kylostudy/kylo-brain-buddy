@@ -32,6 +32,13 @@ const TRANSLATE_EXT_DIR = path.join(
   "extensions",
   "google-translate",
 );
+const RECORDER_PROFILES_DIR = process.env.RECORDER_PROFILES_DIR || "/profiles";
+try { fs.mkdirSync(RECORDER_PROFILES_DIR, { recursive: true }); } catch {}
+
+function workflowProfileDir(workflowId) {
+  const safeId = String(workflowId || "unknown").replace(/[^a-zA-Z0-9_-]/g, "_");
+  return path.join(RECORDER_PROFILES_DIR, safeId);
+}
 function translateExtensionAvailable() {
   try {
     return fs.existsSync(path.join(TRANSLATE_EXT_DIR, "manifest.json"));
@@ -766,9 +773,10 @@ async function runSession(payload) {
     process.env.TRANSLATE_EXTENSION !== "off" &&
     translateExtensionAvailable();
   let context;
-  if (useTranslateExtension) {
+  {
     const chromium = await getChromium();
-    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "rec-ext-"));
+    const userDataDir = workflowProfileDir(session.workflowId);
+    fs.mkdirSync(userDataDir, { recursive: true });
     context = await chromium.launchPersistentContext(userDataDir, {
       headless: false,
       viewport,
@@ -790,32 +798,20 @@ async function runSession(payload) {
       args: [
         "--no-sandbox",
         "--disable-dev-shm-usage",
-        `--disable-extensions-except=${TRANSLATE_EXT_DIR}`,
-        `--load-extension=${TRANSLATE_EXT_DIR}`,
         "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
         "--webrtc-ip-handling-policy=disable_non_proxied_udp",
+        ...(useTranslateExtension
+          ? [
+              `--disable-extensions-except=${TRANSLATE_EXT_DIR}`,
+              `--load-extension=${TRANSLATE_EXT_DIR}`,
+            ]
+          : []),
       ],
     });
-    console.log(`[session ${session.id}] Google Fordító kiegészítő betöltve (Pinterest session)`);
-  } else {
-    context = await br.newContext({
-      viewport,
-      userAgent,
-      locale,
-      timezoneId,
-      deviceScaleFactor: 1,
-      isMobile: false,
-      hasTouch: false,
-      ...(proxy
-        ? {
-            proxy: {
-              server: proxy.server,
-              username: proxy.username,
-              password: proxy.password,
-            },
-          }
-        : {}),
-    });
+    console.log(`[session ${session.id}] tartós, saját böngészőprofil: ${session.workflowId}`);
+    if (useTranslateExtension) {
+      console.log(`[session ${session.id}] Google Fordító kiegészítő betöltve (Pinterest session)`);
+    }
   }
   // Minden Live Browse navigáció ugyanazt a residential-proxybarát keretet
   // kapja, akkor is, ha egy későbbi kódút nem ad meg külön timeoutot.

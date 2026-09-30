@@ -12,7 +12,7 @@ export interface WorkflowFingerprint {
   viewport: { width: number; height: number };
   locale: string;
   timezoneId: string;
-  platform: "Win32" | "MacIntel" | "Linux x86_64";
+  platform: "Linux x86_64";
   deviceScaleFactor: number;
   chromeMajor: number;
   // ---- Extra spoof mezők (a worker init-script-ben injektálódnak) ----
@@ -38,7 +38,7 @@ const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
   HU: { locale: "hu-HU", tz: "Europe/Budapest" },
   DE: { locale: "de-DE", tz: "Europe/Berlin" },
   AT: { locale: "de-AT", tz: "Europe/Vienna" },
-  NL: { locale: "en-US", tz: "Europe/Amsterdam" }, // NL proxy + EN böngésző (Dolphin mintája)
+  NL: { locale: "en-GB", tz: "Europe/Amsterdam" },
   FR: { locale: "fr-FR", tz: "Europe/Paris" },
   IT: { locale: "it-IT", tz: "Europe/Rome" },
   ES: { locale: "es-ES", tz: "Europe/Madrid" },
@@ -57,7 +57,7 @@ const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
   SE: { locale: "sv-SE", tz: "Europe/Stockholm" },
   DK: { locale: "da-DK", tz: "Europe/Copenhagen" },
   NO: { locale: "nb-NO", tz: "Europe/Oslo" },
-  FI: { locale: "fi-FI", tz: "Europe/Helsinki" },
+  FI: { locale: "en-GB", tz: "Europe/Helsinki" },
   PT: { locale: "pt-PT", tz: "Europe/Lisbon" },
   GR: { locale: "el-GR", tz: "Europe/Athens" },
   IL: { locale: "en-US", tz: "Asia/Jerusalem" },
@@ -186,44 +186,29 @@ export function generateWorkflowFingerprint(
   const cc = (country || "").toUpperCase();
   const geo = COUNTRY_LOCALE[cc] || COUNTRY_LOCALE.HU;
 
-  // Platform: 65% Windows, 25% Mac, 10% Linux — a workflowId-ból stabilan.
-  const platformRoll = fnv1a(workflowId + ":platform") % 100;
-  let platform: WorkflowFingerprint["platform"];
-  if (platformRoll < 65) platform = "Win32";
-  else if (platformRoll < 90) platform = "MacIntel";
-  else platform = "Linux x86_64";
+  // A worker Linuxon fut: nem állítjuk Windowsnak vagy Macnek, mert az operációs
+  // rendszerre utaló mélyebb jelekkel ellentmondásba kerülne.
+  const platform: WorkflowFingerprint["platform"] = "Linux x86_64";
 
-  // Viewport — Mac esetén a Retina-arányos viewportokat preferáljuk (dsf=2).
-  const eligibleVps =
-    platform === "MacIntel"
-      ? VIEWPORTS.filter((v) => v.dsf >= 2)
-      : VIEWPORTS.filter((v) => v.dsf < 2);
+  const eligibleVps = VIEWPORTS.filter((v) => v.dsf < 2);
   const vp = pick(eligibleVps.length ? eligibleVps : VIEWPORTS, seed, "viewport");
 
   const chromeMajor = pick(CHROME_MAJORS, seed, "chrome");
   const chromeVersion = `${chromeMajor}.0.7827.55`;
 
-  const osPart =
-    platform === "Win32"
-      ? "Windows NT 10.0; Win64; x64"
-      : platform === "MacIntel"
-        ? "Macintosh; Intel Mac OS X 10_15_7"
-        : "X11; Linux x86_64";
+  const osPart = "X11; Linux x86_64";
 
   const userAgent = `Mozilla/5.0 (${osPart}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
 
   // WebGL vendor + renderer platformhoz igazítva.
-  const webglPool =
-    platform === "Win32" ? WEBGL_WIN : platform === "MacIntel" ? WEBGL_MAC : WEBGL_LINUX;
-  const webgl = pick(webglPool, seed, "webgl");
+  const webgl = pick(WEBGL_LINUX, seed, "webgl");
 
   // Hardware concurrency: 4/6/8/12/16 (reális asztali CPU-k).
   const hardwareConcurrency = pick([4, 6, 8, 8, 12, 16], seed, "cores");
   // Device memory (GB): a Chrome csak 0.25/0.5/1/2/4/8-at ad vissza.
   const deviceMemory = pick([4, 8, 8, 8], seed, "ram");
 
-  const fonts =
-    platform === "Win32" ? FONTS_WIN : platform === "MacIntel" ? FONTS_MAC : FONTS_LINUX;
+  const fonts = FONTS_LINUX;
 
   return {
     userAgent,

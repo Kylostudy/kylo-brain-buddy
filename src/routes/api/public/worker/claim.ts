@@ -189,16 +189,21 @@ export const Route = createFileRoute("/api/public/worker/claim")({
             : null;
         const preferredPlatform = taskPlatform || specPlatform;
         const credentialCandidates = credRows ?? [];
-        const credRow =
-          (preferredPlatform
-            ? credentialCandidates.find(
-                (row) => row.platform?.toLowerCase() === preferredPlatform,
-              )
-            : null) ||
-          credentialCandidates.find(
-            (row) => row.cookie_ciphertext || row.password_ciphertext,
-          ) ||
-          credentialCandidates[0];
+        const socialPlatforms = new Set([
+          "facebook", "instagram", "linkedin", "pinterest", "reddit", "tiktok", "x", "twitter",
+        ]);
+        const credRow = preferredPlatform
+          ? credentialCandidates.find(
+              (row) => row.platform?.toLowerCase() === preferredPlatform,
+            )
+          : credentialCandidates.find(
+              (row) => row.cookie_ciphertext || row.password_ciphertext,
+            ) || credentialCandidates[0];
+        if (preferredPlatform && socialPlatforms.has(preferredPlatform) && !credRow) {
+          console.warn(
+            `[claim] ${claimed.workflow_id}: nincs ${preferredPlatform} platformhoz tartozó credential; más platform adatait nem adjuk át`,
+          );
+        }
         if (credRow) {
           credentials = {
             platform: credRow.platform,
