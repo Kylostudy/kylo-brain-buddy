@@ -135,6 +135,13 @@ if (!BRAIN_URL || !WORKER_API_TOKEN) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Lezárási lépések (cookies, close, unsubscribe) beragadhatnak; ilyenkor a
+// session örökre foglalja a helyet és a recorder nem vesz fel újat.
+const withTimeout = (p, ms, label) =>
+  Promise.race([
+    Promise.resolve(p),
+    new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timeout ${ms}ms`)), ms)),
+  ]);
 const PINTEREST_LOGIN_URL = "https://www.pinterest.com/login/";
 
 let xvfbProcess = null;
@@ -2213,7 +2220,7 @@ async function runSession(payload) {
   // átkerülnek a workflow_credentials-be. Csak akkor futtatjuk, ha érdemi süti
   // van, hogy ne írjuk felül az esetleges korábbi mentést üres listával.
   try {
-    const cookies = await context.cookies();
+    const cookies = await withTimeout(context.cookies(), 10_000, "context.cookies");
     if (Array.isArray(cookies) && cookies.length > 0) {
       const payload = cookies.map((c) => ({
         name: c.name,
@@ -2225,10 +2232,14 @@ async function runSession(payload) {
         secure: c.secure,
         sameSite: c.sameSite,
       }));
-      const res = await brainPost("/api/public/worker/save-cookies", {
-        sessionId: session.id,
-        cookies: payload,
-      });
+      const res = await withTimeout(
+        brainPost("/api/public/worker/save-cookies", {
+          sessionId: session.id,
+          cookies: payload,
+        }),
+        20_000,
+        "save-cookies",
+      );
       const text = await res.text().catch(() => "");
       if (!res.ok) {
         let msg = text;
@@ -2253,14 +2264,19 @@ async function runSession(payload) {
   }
 
   try {
-    await channel.unsubscribe();
+    await withTimeout(channel.unsubscribe(), 5_000, "unsubscribe");
   } catch {}
   try {
-    await sb.removeAllChannels();
+    await withTimeout(sb.removeAllChannels(), 5_000, "removeAllChannels");
   } catch {}
   try {
-    await context.close();
-  } catch {}
+    await withTimeout(context.close(), 15_000, "context.close");
+  } catch (e) {
+    console.error(`[session ${session.id}] context.close hiba:`, e?.message ?? e);
+    try {
+      await withTimeout(context.browser()?.close(), 10_000, "browser.close");
+    } catch {}
+  }
 
   console.log(`[session ${session.id}] ended (${actions.length} actions)`);
 }
