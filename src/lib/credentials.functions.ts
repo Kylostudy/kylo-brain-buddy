@@ -15,6 +15,24 @@ function serverSupabase() {
   );
 }
 
+async function resolveWorkflowPlatform(
+  supabase: ReturnType<typeof serverSupabase>,
+  workflowId: string,
+): Promise<{ platform: string; tenantId: string | null }> {
+  const { data: workflow } = await supabase
+    .from("workflows")
+    .select("platform, spec, tenant_id")
+    .eq("id", workflowId)
+    .maybeSingle();
+  const spec = workflow?.spec && typeof workflow.spec === "object"
+    ? (workflow.spec as Record<string, unknown>)
+    : {};
+  return {
+    platform: String(workflow?.platform || spec.platform || "unknown").toLowerCase(),
+    tenantId: workflow?.tenant_id ?? null,
+  };
+}
+
 /**
  * Visszaadja, hogy egy workflow-hoz van-e mentve credential, és melyik mezők ki vannak töltve.
  * SOHA nem ad vissza nyers jelszót vagy cookie-t. Maszkolva mutatja a usernevet.
@@ -26,12 +44,17 @@ export const getCredentialsStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { platform } = await resolveWorkflowPlatform(
+      supabase as ReturnType<typeof serverSupabase>,
+      data.workflowId,
+    );
     const { data: row } = await supabase
       .from("workflow_credentials")
       .select(
         "platform, username, password_ciphertext, cookie_ciphertext, totp_secret_ciphertext, proxy_ciphertext, proxy_id, updated_at",
       )
       .eq("workflow_id", data.workflowId)
+      .eq("platform", platform)
       .maybeSingle();
 
     if (!row) {
@@ -112,18 +135,26 @@ export const saveCredentials = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // encryptString → server-only import a fájl tetején
     const { supabase } = context;
+    const resolved = await resolveWorkflowPlatform(
+      supabase as ReturnType<typeof serverSupabase>,
+      data.workflowId,
+    );
+    const platformKey = resolved.platform !== "unknown"
+      ? resolved.platform
+      : String(data.platform || "unknown").trim().toLowerCase();
 
     // Olvassuk be a meglévőt (ha van) — hogy a nem érintett mezőket megtartsuk.
     const { data: existing } = await supabase
       .from("workflow_credentials")
       .select("*")
       .eq("workflow_id", data.workflowId)
+      .eq("platform", platformKey)
       .maybeSingle();
 
     const payload: Record<string, unknown> = {
       workflow_id: data.workflowId,
-      // platform/username mostantól opcionális — csak-proxy mentésnél üresen maradhat
-      platform: data.platform ? data.platform.trim().toLowerCase() : (existing?.platform ?? null),
+      tenant_id: resolved.tenantId,
+      platform: platformKey,
       username: data.username ? data.username.trim() : (existing?.username ?? null),
     };
 
@@ -184,7 +215,7 @@ export const saveCredentials = createServerFn({ method: "POST" })
 
     const { error } = await supabase
       .from("workflow_credentials")
-      .upsert(payload as never, { onConflict: "workflow_id" });
+      .upsert(payload as never, { onConflict: "workflow_id,platform" });
     if (error) throw new Error(error.message);
 
     return { ok: true };
@@ -197,10 +228,15 @@ export const deleteCredentials = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { platform } = await resolveWorkflowPlatform(
+      supabase as ReturnType<typeof serverSupabase>,
+      data.workflowId,
+    );
     const { error } = await supabase
       .from("workflow_credentials")
       .delete()
-      .eq("workflow_id", data.workflowId);
+      .eq("workflow_id", data.workflowId)
+      .eq("platform", platform);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -209,13 +245,15 @@ export const deleteCredentials = createServerFn({ method: "POST" })
  * SZERVER-OLDALI segédfüggvény: futtatáskor visszafejti és visszaadja a teljes credentialt.
  * Soha ne hívd kliensből — ez nem egy server function, csak `*.server.ts`-ből importálható.
  */
-export async function loadDecryptedCredentialsServer(workflowId: string) {
+export async function loadDecryptedCredentialsServer(workflowId: string, platform?: string) {
   // decryptString → server-only import a fájl tetején
   const supabase = serverSupabase();
+  const resolved = platform?.toLowerCase() || (await resolveWorkflowPlatform(supabase, workflowId)).platform;
   const { data: row, error } = await supabase
     .from("workflow_credentials")
     .select("*")
     .eq("workflow_id", workflowId)
+    .eq("platform", resolved)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!row) return null;

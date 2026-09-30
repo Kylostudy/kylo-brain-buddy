@@ -14,10 +14,20 @@ export const previewTotp = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { data: workflow } = await supabase
+      .from("workflows")
+      .select("platform, spec")
+      .eq("id", data.workflowId)
+      .maybeSingle();
+    const spec = workflow?.spec && typeof workflow.spec === "object"
+      ? (workflow.spec as Record<string, unknown>)
+      : {};
+    const platform = String(workflow?.platform || spec.platform || "unknown").toLowerCase();
     const { data: row } = await supabase
       .from("workflow_credentials")
       .select("totp_secret_ciphertext, totp_nonce")
       .eq("workflow_id", data.workflowId)
+      .eq("platform", platform)
       .maybeSingle();
     if (!row?.totp_secret_ciphertext || !row.totp_nonce) {
       return { hasTotp: false as const };

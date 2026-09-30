@@ -47,11 +47,12 @@ export const startRun = createServerFn({ method: "POST" })
     // 1) Spec snapshot + tenant_id a workflow-ból (RLS-hez kötelező)
     const { data: wf, error: wfErr } = await supabase
       .from("workflows")
-      .select("spec, tenant_id, module")
+      .select("spec, tenant_id, module, platform")
       .eq("id", data.workflowId)
       .single();
     if (wfErr) throw new Error(wfErr.message);
     const spec = (wf?.spec as WorkflowSpec | null) ?? {};
+    const workflowPlatform = String(wf?.platform || spec.platform || "unknown").toLowerCase();
 
     // 2) Run sor létrehozása
     const startedAt = new Date().toISOString();
@@ -89,6 +90,7 @@ export const startRun = createServerFn({ method: "POST" })
       .from("workflow_credentials")
       .select("platform, username, password_ciphertext, cookie_ciphertext, proxy_ciphertext")
       .eq("workflow_id", data.workflowId)
+      .eq("platform", workflowPlatform)
       .maybeSingle();
     const credStatus = credRow
       ? `${credRow.platform}/${credRow.username} (${credRow.password_ciphertext ? "jelszó✓" : "jelszó✗"}, ${credRow.cookie_ciphertext ? "cookie✓" : "cookie✗"}, ${credRow.proxy_ciphertext ? "proxy✓" : "proxy✗"})`

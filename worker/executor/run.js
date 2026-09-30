@@ -378,8 +378,6 @@ async function main() {
     log("warn", "NINCS proxy — direkt IP-vel megy. TikTok/FB esetén ez tiltást okozhat!");
   }
 
-  const browser = await chromium.launch(launchOpts);
-
   // Per-workflow fingerprint: a claim endpoint determinisztikusan generálja
   // (workflow id + proxy ország alapján). Ha valamiért nem jött, biztonságos
   // fallback értékek.
@@ -398,7 +396,15 @@ async function main() {
   };
   if (fp.timezoneId) contextOpts.timezoneId = fp.timezoneId;
   if (fp.deviceScaleFactor) contextOpts.deviceScaleFactor = fp.deviceScaleFactor;
-  const context = await browser.newContext(contextOpts);
+  const profileDir = process.env.BROWSER_PROFILE_DIR || null;
+  const context = profileDir
+    ? await chromium.launchPersistentContext(profileDir, {
+        ...launchOpts,
+        ...contextOpts,
+      })
+    : await (await chromium.launch(launchOpts)).newContext(contextOpts);
+  const browser = context.browser();
+  if (profileDir) log("info", "Saját, tartós böngészőprofil aktív ehhez a workflow-hoz.");
 
   // Fingerprint init-script: WebGL vendor/renderer, hardwareConcurrency,
   // deviceMemory, platform és WebRTC leak-védelem a böngészőben. Minden page
@@ -436,7 +442,7 @@ async function main() {
     const infraCode = cls.infra ? cls.code : "proxy_connection";
     log("error", preflight.error || "Preflight sikertelen.");
     log("warn", `Infrastruktúra-hiba (proxy): ${INFRA_LABELS[infraCode]}`);
-    await browser.close().catch(() => {});
+    await context.close().catch(() => {});
     return finish(
       "failed",
       infraResult(null, infraCode, preflight.error),
@@ -592,11 +598,11 @@ async function main() {
     }
     result = { ...(result || {}), proxy_profile: getProxyProfile() };
 
-    await browser.close();
+    await context.close();
     finish("succeeded", result);
   } catch (e) {
     log("error", `Futtatás hibára futott: ${e.message}`);
-    await browser.close().catch(() => {});
+    await context.close().catch(() => {});
     // Ha a script részeredményt (screenshotok, nyelvi ellenőrzések) csatolt a
     // hibához, azt megtartjuk, hogy a riportban látszódjon, meddig jutott.
     const partial = { ...(e.partialResult ?? {}), proxy_profile: getProxyProfile() };
