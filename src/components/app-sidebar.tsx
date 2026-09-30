@@ -645,7 +645,7 @@ export function AppSidebar() {
 
               {searchResults === null && folders.map((folder) => {
                 const items = grouped.byFolder.get(folder.id) ?? [];
-                const isOpen = !collapsed[folder.id];
+                const isOpen = collapsed[folder.id] === true;
                 return (
                   <SidebarMenuItem key={folder.id} className="flex-col items-stretch">
                     <div className="group/folder flex items-center gap-1">
