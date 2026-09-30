@@ -190,37 +190,25 @@ export function generateWorkflowFingerprint(
   // rendszerre utaló mélyebb jelekkel ellentmondásba kerülne.
   const platform: WorkflowFingerprint["platform"] = "Linux x86_64";
 
-  // Viewport — Mac esetén a Retina-arányos viewportokat preferáljuk (dsf=2).
-  const eligibleVps =
-    platform === "MacIntel"
-      ? VIEWPORTS.filter((v) => v.dsf >= 2)
-      : VIEWPORTS.filter((v) => v.dsf < 2);
+  const eligibleVps = VIEWPORTS.filter((v) => v.dsf < 2);
   const vp = pick(eligibleVps.length ? eligibleVps : VIEWPORTS, seed, "viewport");
 
   const chromeMajor = pick(CHROME_MAJORS, seed, "chrome");
   const chromeVersion = `${chromeMajor}.0.7827.55`;
 
-  const osPart =
-    platform === "Win32"
-      ? "Windows NT 10.0; Win64; x64"
-      : platform === "MacIntel"
-        ? "Macintosh; Intel Mac OS X 10_15_7"
-        : "X11; Linux x86_64";
+  const osPart = "X11; Linux x86_64";
 
   const userAgent = `Mozilla/5.0 (${osPart}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
 
   // WebGL vendor + renderer platformhoz igazítva.
-  const webglPool =
-    platform === "Win32" ? WEBGL_WIN : platform === "MacIntel" ? WEBGL_MAC : WEBGL_LINUX;
-  const webgl = pick(webglPool, seed, "webgl");
+  const webgl = pick(WEBGL_LINUX, seed, "webgl");
 
   // Hardware concurrency: 4/6/8/12/16 (reális asztali CPU-k).
   const hardwareConcurrency = pick([4, 6, 8, 8, 12, 16], seed, "cores");
   // Device memory (GB): a Chrome csak 0.25/0.5/1/2/4/8-at ad vissza.
   const deviceMemory = pick([4, 8, 8, 8], seed, "ram");
 
-  const fonts =
-    platform === "Win32" ? FONTS_WIN : platform === "MacIntel" ? FONTS_MAC : FONTS_LINUX;
+  const fonts = FONTS_LINUX;
 
   return {
     userAgent,
