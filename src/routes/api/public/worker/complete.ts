@@ -543,15 +543,29 @@ export const Route = createFileRoute("/api/public/worker/complete")({
               );
               const { ciphertext, nonce } = await encryptString(cookiesExport);
 
+              const { data: workflowForPlatform } = await sb
+                .from("workflows")
+                .select("platform, spec")
+                .eq("id", runFull.workflow_id)
+                .maybeSingle();
+              const workflowSpec =
+                workflowForPlatform?.spec && typeof workflowForPlatform.spec === "object"
+                  ? (workflowForPlatform.spec as Record<string, unknown>)
+                  : {};
+              const resolvedPlatform = String(
+                workflowForPlatform?.platform || workflowSpec.platform || "warmup",
+              ).toLowerCase();
+
               const { data: existing } = await sb
                 .from("workflow_credentials")
                 .select("id, platform, username")
                 .eq("workflow_id", runFull.workflow_id)
+                .eq("platform", resolvedPlatform)
                 .maybeSingle();
 
               const payload = {
                 tenant_id: runFull.tenant_id,
-                platform: existing?.platform ?? "warmup",
+                platform: resolvedPlatform,
                 username: existing?.username ?? "warmup-jar",
                 cookie_ciphertext: ciphertext,
                 cookie_nonce: nonce,
@@ -622,44 +636,6 @@ export const Route = createFileRoute("/api/public/worker/complete")({
                 .update(workflowUpdate as never)
                 .eq("id", runFull.workflow_id);
 
-              // Ugyanaz a proxy-ország cookie-csomag használható a hozzá kötött
-              // Reddit / cél workflow-knál is. Korábban a warmup sikerült, de a
-              // Reddit workflow üres maradt, ezért úgy tűnt, mintha újra és újra
-              // külön Reddit warmup kellene. Itt átmásoljuk a friss süti-csomagot
-              // minden ugyanarra a proxyra kötött workflow credential sorba.
-              if (runFull.proxy_id) {
-                const { data: siblingCreds } = await sb
-                  .from("workflow_credentials")
-                  .select("id, workflow_id, platform, username")
-                  .eq("proxy_id", runFull.proxy_id)
-                  .neq("workflow_id", runFull.workflow_id)
-                  .is("cookie_ciphertext", null);
-
-                const siblingIds = (siblingCreds ?? [])
-                  .map((row) => row.workflow_id)
-                  .filter(Boolean);
-                const siblingCredentialIds = (siblingCreds ?? [])
-                  .map((row) => row.id)
-                  .filter(Boolean);
-
-                if (siblingCredentialIds.length > 0) {
-                  await sb
-                    .from("workflow_credentials")
-                    .update({
-                      proxy_id: runFull.proxy_id,
-                      cookie_ciphertext: ciphertext,
-                      cookie_nonce: nonce,
-                    } as never)
-                    .in("id", siblingCredentialIds);
-                }
-
-                if (siblingIds.length > 0) {
-                  await sb
-                    .from("workflows")
-                    .update(workflowUpdate as never)
-                    .in("id", siblingIds);
-                }
-              }
             }
           }
         } catch (e) {

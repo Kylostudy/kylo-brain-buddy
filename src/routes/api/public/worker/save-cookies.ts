@@ -63,6 +63,11 @@ function hasRequiredCookies(platform: string | null, cookies: { name: string }[]
   const req = REQUIRED_COOKIES[(platform || "").toLowerCase()];
   if (!req || req.length === 0) return true; // ismeretlen platform: engedjük
   const names = new Set(cookies.map((c) => c.name));
+  // A Facebook csak a felhasználóazonosító és a session-token együttes
+  // meglétével tekinthető teljesen bejelentkezettnek.
+  if ((platform || "").toLowerCase() === "facebook") {
+    return req.every((r) => names.has(r));
+  }
   return req.some((r) => names.has(r));
 }
 

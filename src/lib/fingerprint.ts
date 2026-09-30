@@ -12,7 +12,7 @@ export interface WorkflowFingerprint {
   viewport: { width: number; height: number };
   locale: string;
   timezoneId: string;
-  platform: "Win32" | "MacIntel" | "Linux x86_64";
+  platform: "Linux x86_64";
   deviceScaleFactor: number;
   chromeMajor: number;
   // ---- Extra spoof mezők (a worker init-script-ben injektálódnak) ----
@@ -38,7 +38,7 @@ const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
   HU: { locale: "hu-HU", tz: "Europe/Budapest" },
   DE: { locale: "de-DE", tz: "Europe/Berlin" },
   AT: { locale: "de-AT", tz: "Europe/Vienna" },
-  NL: { locale: "en-US", tz: "Europe/Amsterdam" }, // NL proxy + EN böngésző (Dolphin mintája)
+  NL: { locale: "en-GB", tz: "Europe/Amsterdam" },
   FR: { locale: "fr-FR", tz: "Europe/Paris" },
   IT: { locale: "it-IT", tz: "Europe/Rome" },
   ES: { locale: "es-ES", tz: "Europe/Madrid" },
@@ -57,7 +57,7 @@ const COUNTRY_LOCALE: Record<string, { locale: string; tz: string }> = {
   SE: { locale: "sv-SE", tz: "Europe/Stockholm" },
   DK: { locale: "da-DK", tz: "Europe/Copenhagen" },
   NO: { locale: "nb-NO", tz: "Europe/Oslo" },
-  FI: { locale: "fi-FI", tz: "Europe/Helsinki" },
+  FI: { locale: "en-GB", tz: "Europe/Helsinki" },
   PT: { locale: "pt-PT", tz: "Europe/Lisbon" },
   GR: { locale: "el-GR", tz: "Europe/Athens" },
   IL: { locale: "en-US", tz: "Asia/Jerusalem" },
@@ -186,12 +186,9 @@ export function generateWorkflowFingerprint(
   const cc = (country || "").toUpperCase();
   const geo = COUNTRY_LOCALE[cc] || COUNTRY_LOCALE.HU;
 
-  // Platform: 65% Windows, 25% Mac, 10% Linux — a workflowId-ból stabilan.
-  const platformRoll = fnv1a(workflowId + ":platform") % 100;
-  let platform: WorkflowFingerprint["platform"];
-  if (platformRoll < 65) platform = "Win32";
-  else if (platformRoll < 90) platform = "MacIntel";
-  else platform = "Linux x86_64";
+  // A worker Linuxon fut: nem állítjuk Windowsnak vagy Macnek, mert az operációs
+  // rendszerre utaló mélyebb jelekkel ellentmondásba kerülne.
+  const platform: WorkflowFingerprint["platform"] = "Linux x86_64";
 
   // Viewport — Mac esetén a Retina-arányos viewportokat preferáljuk (dsf=2).
   const eligibleVps =
