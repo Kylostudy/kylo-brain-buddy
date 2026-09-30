@@ -110,13 +110,21 @@ async function loadWorkflowProxy(
 
   // Egy munkafolyamat kizárólag a saját platformjához mentett proxyját és
   // sütijeit kaphatja meg. Más platform adatait soha nem keverjük hozzá.
-  const { data: creds } = await sb
+  // Régi (platform nélkül / "warmup" néven mentett) sorok UGYANEHHEZ a
+  // munkafolyamathoz tartalékként használhatók, ha a platform-sor hiányos.
+  const { data: allCreds } = await sb
     .from("workflow_credentials")
-    .select("proxy_id, cookie_ciphertext, cookie_nonce")
-    .eq("workflow_id", workflowId)
-    .eq("platform", platform);
+    .select("platform, proxy_id, cookie_ciphertext, cookie_nonce")
+    .eq("workflow_id", workflowId);
+  const LEGACY = new Set(["", "warmup", "unknown", "recorder"]);
+  const own = (allCreds ?? []).filter((c) => c.platform === platform);
+  const legacy = (allCreds ?? []).filter((c) => LEGACY.has(c.platform ?? ""));
+  const creds = own.some((c) => c.cookie_ciphertext) ? own : [...own, ...legacy];
 
-  let proxyId = creds?.find((c) => c.proxy_id)?.proxy_id || null;
+  let proxyId =
+    own.find((c) => c.proxy_id)?.proxy_id ||
+    legacy.find((c) => c.proxy_id)?.proxy_id ||
+    null;
 
   // Audit felvétel proxy nélkül: magyar IP-t választunk, hogy a kylo.study
   // magyarul jöjjön be, ne egy véletlen külföldi kimenő IP nyelvén.
