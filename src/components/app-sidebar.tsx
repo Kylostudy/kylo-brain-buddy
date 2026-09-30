@@ -667,7 +667,7 @@ export function AppSidebar() {
                           <SidebarMenuButton
                             className="flex-1"
                             onClick={() =>
-                              setCollapsed((c) => ({ ...c, [folder.id]: isOpen }))
+                              setCollapsed((c) => ({ ...c, [folder.id]: !isOpen }))
                             }
                             onDoubleClick={() => {
                               setFolderDraft(folder.name);
