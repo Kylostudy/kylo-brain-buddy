@@ -37,6 +37,7 @@ const SYSTEM_WORKFLOW_NAME = "STT media fetch";
 
 export function validateSttMediaPayload(
   raw: unknown,
+  taskType: string = "stt_media_fetch",
 ): { ok: true; payload: SttMediaPayload } | { ok: false; error: string } {
   if (!raw || typeof raw !== "object") {
     return { ok: false, error: "stt_media_fetch payload must be an object" };
@@ -48,6 +49,9 @@ export function validateSttMediaPayload(
   }
   if (typeof p.language !== "string" || !p.language.trim()) {
     return { ok: false, error: "language required" };
+  }
+  if (taskType === "stt_calibrate") {
+    return { ok: true, payload: { ...(p as Record<string, unknown>), source_id: p.source_id, language: p.language, want: [] } as SttMediaPayload };
   }
   const want = Array.isArray(p.want)
     ? p.want.filter((w): w is "audio" | "transcript" => w === "audio" || w === "transcript")
@@ -121,6 +125,7 @@ export async function handleSttMediaFetch(args: {
   tenantId: string;
   kylogicCallbackUrl: string;
   payload: SttMediaPayload;
+  taskType?: "stt_media_fetch" | "stt_calibrate";
 }): Promise<SttMediaResult> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -137,7 +142,7 @@ export async function handleSttMediaFetch(args: {
       kylogic_task_id: args.kylogicTaskId,
       tenant_id: args.tenantId,
       workflow_id: workflowId,
-      task_type: "stt_media_fetch",
+      task_type: args.taskType ?? "stt_media_fetch",
       platform: "system",
       language: args.payload.language,
       region: null,

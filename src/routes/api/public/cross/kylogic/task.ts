@@ -236,12 +236,12 @@ export const Route = createFileRoute("/api/public/cross/kylogic/task")({
         }
 
         // stt_media_fetch — Kylo.study STT labor: hang + átirat letöltés.
-        if (body.task_type === "stt_media_fetch") {
+        if (body.task_type === "stt_media_fetch" || body.task_type === "stt_calibrate") {
           const { handleSttMediaFetch, validateSttMediaPayload } = await import(
             "@/lib/kylogic-stt-media.server"
           );
 
-          const validated = validateSttMediaPayload(body.payload);
+          const validated = validateSttMediaPayload(body.payload, body.task_type);
           if (!validated.ok) {
             await supabaseAdmin
               .from("kylogic_incoming_tasks")
@@ -261,6 +261,7 @@ export const Route = createFileRoute("/api/public/cross/kylogic/task")({
             tenantId: body.tenant_id,
             kylogicCallbackUrl: body.kylogic_callback_url,
             payload: validated.payload,
+            taskType: body.task_type as "stt_media_fetch" | "stt_calibrate",
           });
 
           if (!result.ok) {

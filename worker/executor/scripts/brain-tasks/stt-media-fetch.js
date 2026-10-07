@@ -259,14 +259,36 @@ async function putToSignedUrl(url, file, contentType, log) {
   return url.split("?")[0];
 }
 
+// Helyi korpusz a VPS lemezén (host: /opt/brain/stt-corpus → konténer: /stt-corpus).
+// A nyers hang SOHA nem megy felhőbe ebben a módban.
+const CORPUS_ROOT = process.env.STT_CORPUS_ROOT || "/stt-corpus";
+const BLOCKED_LANGS = new Set(["he", "iw", "uk"]); // héber, ukrán: kizárva
+
+function safeSeg(s) {
+  return String(s || "").trim().replace(/[^a-zA-Z0-9_.-]/g, "_").slice(0, 120) || "x";
+}
+
 export async function runSttMediaFetch({ brainTask, log }) {
   const payload = brainTask.payload || {};
   const want = Array.isArray(payload.want) ? payload.want : ["audio", "transcript"];
   const maxBytes = Number(payload.max_bytes) > 0 ? Number(payload.max_bytes) : DEFAULT_MAX_BYTES;
+  const lang2 = String(payload.language || "").slice(0, 2).toLowerCase();
+  // Alapértelmezés: helyi tárolás. Felhős feltöltés csak kifejezett storage:"upload" esetén.
+  const local = payload.storage !== "upload";
+
+  if (BLOCKED_LANGS.has(lang2)) {
+    return { source_id: payload.source_id, audio: null, transcript: null, notes: "kizárt nyelv (héber/ukrán) — nem töltöttük le" };
+  }
+
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "stt-"));
+  const langDir = path.join(CORPUS_ROOT, safeSeg(lang2 || payload.language));
+  const base = safeSeg(payload.source_id);
+  if (local) await fs.mkdir(langDir, { recursive: true });
 
   const out = {
     source_id: payload.source_id,
+    language: payload.language,
+    storage: local ? "local" : "upload",
     audio: null,
     transcript: null,
     notes: "",
@@ -282,7 +304,6 @@ export async function runSttMediaFetch({ brainTask, log }) {
         const duration = await probeDuration(mp3);
         const size = (await fs.stat(mp3)).size;
 
-        // Épség-ellenőrzés: egy vizsgahang sosem pár másodperces töredék.
         const minSec = Number(payload.min_duration_sec) > 0 ? Number(payload.min_duration_sec) : 20;
         if (!duration || duration < minSec || size < 20000) {
           throw new Error(
@@ -291,22 +312,25 @@ export async function runSttMediaFetch({ brainTask, log }) {
           );
         }
 
-
-
         let url = null;
-        if (payload.audio_upload_url) {
+        let localRef = null;
+        if (local) {
+          await fs.copyFile(mp3, path.join(langDir, `${base}.mp3`));
+          localRef = `${path.basename(langDir)}/${base}.mp3`;
+          log("info", `Hang a VPS-en tárolva: ${localRef}`);
+        } else if (payload.audio_upload_url) {
           url = await putToSignedUrl(payload.audio_upload_url, mp3, "audio/mpeg", log);
         } else {
-          notes.push("audio_upload_url hiányzott — a hang a workeren maradt, adj aláírt PUT URL-t");
+          notes.push("storage=upload, de nincs audio_upload_url");
         }
         out.audio = {
-          ok: !!url,
+          ok: !!(url || localRef),
           url,
+          local_ref: localRef,
           duration_sec: duration,
           bytes: size,
           format: "mp3/16kHz/mono",
           method: got.method,
-          ...(url ? {} : { error: "nincs feltöltési cél (audio_upload_url)" }),
         };
       } catch (e) {
         log("warn", `Hang hiba: ${e.message}`);
@@ -318,10 +342,14 @@ export async function runSttMediaFetch({ brainTask, log }) {
       try {
         const t = await fetchTranscript(payload, dir, maxBytes, log);
         let url = null;
-        if (payload.transcript_upload_url) {
-          const file = t.text
-            ? path.join(dir, "transcript-final.txt")
-            : t.pdfPath;
+        let localRef = null;
+        if (local) {
+          if (t.text) {
+            await fs.writeFile(path.join(langDir, `${base}.txt`), t.text, "utf8");
+            localRef = `${path.basename(langDir)}/${base}.txt`;
+          }
+        } else if (payload.transcript_upload_url) {
+          const file = t.text ? path.join(dir, "transcript-final.txt") : t.pdfPath;
           if (t.text) await fs.writeFile(file, t.text, "utf8");
           url = await putToSignedUrl(
             payload.transcript_upload_url,
@@ -332,9 +360,11 @@ export async function runSttMediaFetch({ brainTask, log }) {
         }
         if (t.note) notes.push(t.note);
         out.transcript = {
-          ok: !!(t.text || url),
-          text: t.text ? t.text.slice(0, 400000) : null,
+          ok: !!(localRef || url || (!local && t.text)),
+          // Helyi módban a szöveget sem küldjük vissza — csak a méretét.
+          text: !local && t.text ? t.text.slice(0, 400000) : null,
           url,
+          local_ref: localRef,
           method: t.method,
           chars: t.text ? t.text.length : 0,
           ...(t.text || url ? {} : { error: "nem sikerült szöveget kinyerni" }),
@@ -348,9 +378,7 @@ export async function runSttMediaFetch({ brainTask, log }) {
     out.notes = notes.join(" | ");
     return out;
   } finally {
-    // Feltöltés után nem tartjuk meg a nyers fájlokat.
-    if (payload.audio_upload_url && payload.transcript_upload_url) {
-      await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
-    }
+    // Az ideiglenes munkamappát mindig töröljük (a tartós példány a korpuszban van).
+    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
   }
 }

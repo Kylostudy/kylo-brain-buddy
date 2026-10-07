@@ -273,6 +273,9 @@ function runContainer(job) {
       // Videó-archívum: a VPS lemezén tartós könyvtár, a konténerben /archive.
       const archiveHostDir = process.env.ARCHIVE_HOST_DIR || "/var/brain/archive";
       createArgs.push("-v", `${archiveHostDir}:/archive`, "-e", "ARCHIVE_ROOT=/archive");
+      // STT-korpusz: nyers hang csak a VPS lemezén, soha nem megy felhőbe.
+      const sttHostDir = process.env.STT_CORPUS_HOST_DIR || "/opt/brain/stt-corpus";
+      createArgs.push("-v", `${sttHostDir}:/stt-corpus`, "-e", "STT_CORPUS_ROOT=/stt-corpus");
       // Minden workflow saját, tartós böngészőprofilt kap. Ugyanez a könyvtár
       // marad meg worker-frissítés után is, és nem keveredik más fiókkal.
       const profilesHostDir = process.env.EXECUTOR_PROFILES_DIR || "/srv/kylo-executor-profiles";
