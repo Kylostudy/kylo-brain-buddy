@@ -6,3 +6,4 @@
 - Pinterest Live Browse sessions load the official Google Translate extension via launchPersistentContext (--load-extension, worker/recorder/extensions/google-translate) because extensions cannot load in ephemeral browser contexts; TRANSLATE_EXTENSION=off disables it.
 - Social credentials, cookies, and persistent browser profiles are isolated by workflow account and platform; never inherit or copy them by country, proxy, tenant, or sibling workflow, because that creates cross-account identity conflicts.
 - Recorder and executor profiles live on host-backed persistent volumes and use the real Linux browser identity; locale and timezone follow proxy geography, preventing a fresh-device signal and OS contradictions.
+- STT raw audio and reference texts stay on the VPS corpus volume (STT_CORPUS_HOST_DIR → /stt-corpus); stt_media_fetch defaults to local storage and stt_calibrate returns only small accuracy results, because cloud storage of the corpus is too costly.
