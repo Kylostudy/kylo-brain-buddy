@@ -12,10 +12,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       xvfb xauth x11-utils \
       tesseract-ocr-hun tesseract-ocr-deu tesseract-ocr-fra tesseract-ocr-spa \
       tesseract-ocr-ita tesseract-ocr-pol tesseract-ocr-por tesseract-ocr-nld \
-      python3-minimal ca-certificates curl \
+      python3 python3-venv ca-certificates curl \
  && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
  && chmod a+rx /usr/local/bin/yt-dlp \
  && rm -rf /var/lib/apt/lists/*
+
+# Helyi Whisper (stt_calibrate) — CPU, int8. Modellek a /stt-corpus/_models alatt.
+RUN python3 -m venv /opt/whisper && /opt/whisper/bin/pip install --no-cache-dir faster-whisper==1.1.1
 
 # Csak az executor + spec runtime deps
 COPY executor/package.json executor/package-lock.json* ./
