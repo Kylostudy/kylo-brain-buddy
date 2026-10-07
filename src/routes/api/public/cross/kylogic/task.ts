@@ -175,7 +175,6 @@ export const Route = createFileRoute("/api/public/cross/kylogic/task")({
             tenantId: body.tenant_id,
             kylogicCallbackUrl: body.kylogic_callback_url,
             payload: validated.payload,
-            taskType: body.task_type as "stt_media_fetch" | "stt_calibrate",
           });
 
           if (!result.ok) {
@@ -262,6 +261,7 @@ export const Route = createFileRoute("/api/public/cross/kylogic/task")({
             tenantId: body.tenant_id,
             kylogicCallbackUrl: body.kylogic_callback_url,
             payload: validated.payload,
+            taskType: body.task_type as "stt_media_fetch" | "stt_calibrate",
           });
 
           if (!result.ok) {
