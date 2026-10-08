@@ -18,7 +18,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 # Helyi Whisper (stt_calibrate) — CPU, int8. Modellek a /stt-corpus/_models alatt.
-RUN python3 -m venv /opt/whisper && /opt/whisper/bin/pip install --no-cache-dir faster-whisper==1.1.1
+# Rögzített, egymással kompatibilis verziók; a build végén próbaimport, hogy
+# hibás telepítés esetén már az image építése bukjon el, ne a mérés.
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/* \
+ && python3 -m venv /opt/whisper \
+ && /opt/whisper/bin/pip install --no-cache-dir --upgrade pip setuptools wheel \
+ && /opt/whisper/bin/pip install --no-cache-dir \
+      "numpy<2.1" "ctranslate2==4.5.0" "av==13.1.0" "onnxruntime==1.20.1" \
+      "tokenizers>=0.13,<1" "huggingface_hub>=0.13" faster-whisper==1.1.1 \
+ && /opt/whisper/bin/python -c "import av, ctranslate2; from faster_whisper import WhisperModel; print('faster-whisper OK')"
 
 # Csak az executor + spec runtime deps
 COPY executor/package.json executor/package-lock.json* ./

@@ -46,6 +46,6 @@ export async function runSttCalibrate({ brainTask, log }) {
     log(parsed.ok ? "info" : "warn", `Eredmény: ${last}`);
     return parsed;
   } catch {
-    return { ok: false, language: lang, error: `kalibráló hiba (kód ${res.code}): ${res.err.slice(-500)}` };
+    return { ok: false, language: lang, error: `kalibráló hiba (kód ${res.code}): ${res.err.slice(-1500)}` };
   }
 }
