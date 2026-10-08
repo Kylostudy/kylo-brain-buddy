@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm 
  && /opt/whisper/bin/pip install --no-cache-dir --upgrade pip setuptools wheel \
  && /opt/whisper/bin/pip install --no-cache-dir \
       "numpy<2.1" "ctranslate2==4.5.0" "av==13.1.0" "onnxruntime==1.20.1" \
-      "tokenizers>=0.13,<1" "huggingface_hub>=0.13" faster-whisper==1.1.1 \
+      "tokenizers>=0.13,<1" "huggingface_hub>=0.13,<1" requests tqdm faster-whisper==1.1.1 \
  && /opt/whisper/bin/python -c "import av, ctranslate2; from faster_whisper import WhisperModel; print('faster-whisper OK')"
 
 # Csak az executor + spec runtime deps
