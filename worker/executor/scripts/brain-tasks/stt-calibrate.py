@@ -28,17 +28,43 @@ def main():
     cfg = json.loads(sys.argv[1])
     lang = cfg["language"][:2].lower()
     root = cfg.get("corpus_root", "/stt-corpus")
-    d = os.path.join(root, lang)
-    if not os.path.isdir(d):
-        print(json.dumps({"ok": False, "language": lang, "error": "nincs helyi korpusz ehhez a nyelvhez"}))
+    # A letöltő <root>/<lang>/<id>.mp3 + <id>.txt párokat ment. Tűrjük a
+    # "de-DE"/"de_DE"/"DE" mappaneveket és az almappákat is.
+    dirs = []
+    if os.path.isdir(root):
+        for name in os.listdir(root):
+            n = name.lower().replace("_", "-")
+            if n == lang or n.startswith(lang + "-"):
+                full = os.path.join(root, name)
+                if os.path.isdir(full):
+                    dirs.append(full)
+    if not dirs:
+        seen = sorted(x for x in os.listdir(root) if not x.startswith("_")) if os.path.isdir(root) else []
+        print(json.dumps({"ok": False, "language": lang, "error": "nincs helyi korpusz ehhez a nyelvhez", "corpus_root": root, "root_exists": os.path.isdir(root), "dirs_seen": seen[:40]}))
         return
-    ids = sorted(f[:-4] for f in os.listdir(d) if f.endswith(".mp3") and os.path.exists(os.path.join(d, f[:-4] + ".txt")))
-    ids = ids[: int(cfg.get("max_samples") or 300)]
-    if not ids:
-        print(json.dumps({"ok": False, "language": lang, "error": "nincs hang+szöveg pár"}))
+    audio, texts = {}, {}
+    for dd in dirs:
+        for cur, _, files in os.walk(dd):
+            for f in files:
+                stem, ext = os.path.splitext(f)
+                ext = ext.lower()
+                fp = os.path.join(cur, f)
+                if ext in (".mp3", ".wav", ".flac", ".ogg", ".m4a", ".opus"):
+                    audio.setdefault(stem, fp)
+                elif ext == ".txt" and os.path.getsize(fp) > 0:
+                    texts.setdefault(stem, fp)
+    pairs = sorted((k, audio[k], texts[k]) for k in audio if k in texts)
+    pairs = pairs[: int(cfg.get("max_samples") or 300)]
+    if not pairs:
+        print(json.dumps({"ok": False, "language": lang, "error": "nincs hang+szöveg pár", "audio_files": len(audio), "text_files": len(texts), "audio_without_text": sorted(set(audio) - set(texts))[:10], "text_without_audio": sorted(set(texts) - set(audio))[:10]}))
         return
 
-    from faster_whisper import WhisperModel
+    try:
+        from faster_whisper import WhisperModel
+    except Exception as e:
+        import traceback
+        print(json.dumps({"ok": False, "language": lang, "error": "faster-whisper import hiba: " + repr(e), "trace": traceback.format_exc()[-1500:]}))
+        return
     model_name = cfg.get("model") or "small"
     model = WhisperModel(model_name, device="cpu", compute_type="int8",
                          download_root=os.path.join(root, "_models"))
@@ -47,9 +73,9 @@ def main():
     audio_sec = 0.0
     done = []
     t0 = time.time()
-    for i in ids:
-        ref = open(os.path.join(d, i + ".txt"), encoding="utf-8").read()
-        segs, info = model.transcribe(os.path.join(d, i + ".mp3"), language=lang, beam_size=1, vad_filter=True)
+    for i, ap, tp in pairs:
+        ref = open(tp, encoding="utf-8", errors="ignore").read()
+        segs, info = model.transcribe(ap, language=lang, beam_size=1, vad_filter=True)
         hyp = " ".join(s.text for s in segs)
         audio_sec += float(getattr(info, "duration", 0) or 0)
         if lang in CHAR_LANGS:
@@ -60,12 +86,12 @@ def main():
             continue
         errs += edit_distance(r, h)
         total += len(r)
-        done.append(i)
+        done.append((ap, tp))
 
     if cfg.get("delete_after", True):
-        for i in done:
-            for ext in (".mp3", ".txt"):
-                try: os.remove(os.path.join(d, i + ext))
+        for ap, tp in done:
+            for fp in (ap, tp):
+                try: os.remove(fp)
                 except OSError: pass
 
     err_rate = errs / total if total else 1.0
