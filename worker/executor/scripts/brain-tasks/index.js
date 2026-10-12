@@ -37,6 +37,8 @@ import { runLinkedInProfileSetup } from "./linkedin-profile-setup.js";
 import { runLinkedInEngageScan } from "./linkedin-engage-scan.js";
 import { runLinkedInCommentPost } from "./linkedin-comment-post.js";
 import { runUiRecon } from "./ui-recon.js";
+import { runMembershipArchive } from "./membership-archive.js";
+import { runMembershipTranscribe } from "./membership-transcribe.js";
 
 
 
@@ -47,7 +49,7 @@ export function isBrainTask(spec) {
 
 /** Igaz → böngészőt kell nyitni a taszkhoz. */
 export function needsBrowser(brainTask) {
-  return !["ping", "stt_media_fetch", "stt_calibrate", "archive_video"].includes(brainTask.task_type);
+  return !["ping", "stt_media_fetch", "stt_calibrate", "archive_video", "membership_transcribe"].includes(brainTask.task_type);
 }
 
 /**
@@ -67,6 +69,12 @@ export async function runBrainTask(args) {
 
     case "stt_calibrate":
       return await runSttCalibrate({ brainTask, log: args.log });
+
+    case "membership_transcribe":
+      return await runMembershipTranscribe({ brainTask, log: args.log });
+
+    case "membership_archive":
+      return await runMembershipArchive(args);
 
     case "archive_video":
       return await runArchiveVideo({ brainTask, log: args.log });
