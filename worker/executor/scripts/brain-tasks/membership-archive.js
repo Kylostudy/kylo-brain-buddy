@@ -227,6 +227,9 @@ export async function runMembershipArchive({ brainTask, page, context, creds, lo
     }
   });
 
+  // Proxy mögötti átirányítások beragadása ellen (lásd recorder): no-op route.
+  await context.route("**/*", (route) => route.continue()).catch(() => {});
+
   await ensureLoggedIn(page, startUrl, creds, log);
 
   // ---- 2) bejárás ----
