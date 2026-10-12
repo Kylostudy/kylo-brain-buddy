@@ -828,7 +828,8 @@ async function runSession(payload) {
   // (különösen accounts.google.com) RouteImpl nélkül beragadhatnak. Egy
   // változtatás nélküli route létrehozza a hiányzó belső kezelőt. Ezt csak
   // proxys Google-sessionnél kapcsoljuk be, hogy más oldalakhoz ne nyúljunk.
-  const isGoogleSession = /^https:\/\/(?:accounts|mail)\.google\.com(?:\/|$)/i.test(
+  // A klub.meggyozes.hu is átirányít (belépő oldalra) — ugyanígy beragadt.
+  const isGoogleSession = /^https:\/\/(?:(?:accounts|mail)\.google\.com|klub\.meggyozes\.hu)(?:\/|$)/i.test(
     effectiveStartUrl || "",
   );
   if (proxy && isGoogleSession) {
