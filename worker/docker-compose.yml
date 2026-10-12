@@ -62,6 +62,7 @@ x-orchestrator-env: &orchestrator-env
   # --- Videó-archívum (Kylogic archive_video) ---
   ARCHIVE_HOST_DIR: ${ARCHIVE_HOST_DIR:-/var/brain/archive}
   STT_CORPUS_HOST_DIR: ${STT_CORPUS_HOST_DIR:-/opt/brain/stt-corpus}
+  MEMBERSHIP_HOST_DIR: ${MEMBERSHIP_HOST_DIR:-/opt/brain/membership}
   EXECUTOR_PROFILES_DIR: ${EXECUTOR_PROFILES_DIR:-/srv/kylo-executor-profiles}
 
 x-recorder: &recorder

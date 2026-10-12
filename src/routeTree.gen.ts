@@ -69,6 +69,7 @@ import { Route as ApiPublicWorkerRecordStatusRouteImport } from './routes/api/pu
 import { Route as ApiPublicWorkerRedditCommentDraftRouteImport } from './routes/api/public/worker/reddit-comment-draft'
 import { Route as ApiPublicWorkerRedditReplyPostedRouteImport } from './routes/api/public/worker/reddit-reply-posted'
 import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/public/worker/save-cookies'
+import { Route as ApiPublicWorkerStructureTranscriptRouteImport } from './routes/api/public/worker/structure-transcript'
 import { Route as ApiPublicWorkerUiReconIngestRouteImport } from './routes/api/public/worker/ui-recon-ingest'
 import { Route as ApiPublicWorkerVaultReportRouteImport } from './routes/api/public/worker/vault-report'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
@@ -434,6 +435,12 @@ const ApiPublicWorkerSaveCookiesRoute =
     path: '/api/public/worker/save-cookies',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerStructureTranscriptRoute =
+  ApiPublicWorkerStructureTranscriptRouteImport.update({
+    id: '/api/public/worker/structure-transcript',
+    path: '/api/public/worker/structure-transcript',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerUiReconIngestRoute =
   ApiPublicWorkerUiReconIngestRouteImport.update({
     id: '/api/public/worker/ui-recon-ingest',
@@ -635,6 +642,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/reddit-reply-posted': typeof ApiPublicWorkerRedditReplyPostedRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/structure-transcript': typeof ApiPublicWorkerStructureTranscriptRoute
   '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
@@ -720,6 +728,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/reddit-reply-posted': typeof ApiPublicWorkerRedditReplyPostedRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/structure-transcript': typeof ApiPublicWorkerStructureTranscriptRoute
   '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
@@ -807,6 +816,7 @@ export interface FileRoutesById {
   '/api/public/worker/reddit-comment-draft': typeof ApiPublicWorkerRedditCommentDraftRoute
   '/api/public/worker/reddit-reply-posted': typeof ApiPublicWorkerRedditReplyPostedRoute
   '/api/public/worker/save-cookies': typeof ApiPublicWorkerSaveCookiesRoute
+  '/api/public/worker/structure-transcript': typeof ApiPublicWorkerStructureTranscriptRoute
   '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
@@ -894,6 +904,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/reddit-reply-posted'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/structure-transcript'
     | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
@@ -979,6 +990,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/reddit-reply-posted'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/structure-transcript'
     | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
@@ -1065,6 +1077,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/reddit-comment-draft'
     | '/api/public/worker/reddit-reply-posted'
     | '/api/public/worker/save-cookies'
+    | '/api/public/worker/structure-transcript'
     | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
     | '/api/public/worker/vision-extract'
@@ -1137,6 +1150,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerRedditCommentDraftRoute: typeof ApiPublicWorkerRedditCommentDraftRoute
   ApiPublicWorkerRedditReplyPostedRoute: typeof ApiPublicWorkerRedditReplyPostedRoute
   ApiPublicWorkerSaveCookiesRoute: typeof ApiPublicWorkerSaveCookiesRoute
+  ApiPublicWorkerStructureTranscriptRoute: typeof ApiPublicWorkerStructureTranscriptRoute
   ApiPublicWorkerUiReconIngestRoute: typeof ApiPublicWorkerUiReconIngestRoute
   ApiPublicWorkerVaultReportRoute: typeof ApiPublicWorkerVaultReportRoute
   ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
@@ -1583,6 +1597,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerSaveCookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/structure-transcript': {
+      id: '/api/public/worker/structure-transcript'
+      path: '/api/public/worker/structure-transcript'
+      fullPath: '/api/public/worker/structure-transcript'
+      preLoaderRoute: typeof ApiPublicWorkerStructureTranscriptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/ui-recon-ingest': {
       id: '/api/public/worker/ui-recon-ingest'
       path: '/api/public/worker/ui-recon-ingest'
@@ -1874,6 +1895,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicWorkerRedditCommentDraftRoute,
   ApiPublicWorkerRedditReplyPostedRoute: ApiPublicWorkerRedditReplyPostedRoute,
   ApiPublicWorkerSaveCookiesRoute: ApiPublicWorkerSaveCookiesRoute,
+  ApiPublicWorkerStructureTranscriptRoute:
+    ApiPublicWorkerStructureTranscriptRoute,
   ApiPublicWorkerUiReconIngestRoute: ApiPublicWorkerUiReconIngestRoute,
   ApiPublicWorkerVaultReportRoute: ApiPublicWorkerVaultReportRoute,
   ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
