@@ -23,7 +23,22 @@ function chunks(text) {
   const paras = text.split(/\n\n+/);
   const out = [];
   let cur = "";
+  // Túl hosszú bekezdést (szünet nélküli beszéd) mondatoknál, végső esetben
+  // fix hossznál vágunk, hogy egy darab se lépje túl a végpont korlátját.
+  const pieces = [];
   for (const p of paras) {
+    if (p.length <= CHUNK) { pieces.push(p); continue; }
+    let rest = p;
+    while (rest.length > CHUNK) {
+      let cut = rest.lastIndexOf(". ", CHUNK);
+      if (cut < CHUNK / 2) cut = rest.lastIndexOf(" ", CHUNK);
+      if (cut < CHUNK / 2) cut = CHUNK;
+      pieces.push(rest.slice(0, cut + 1).trim());
+      rest = rest.slice(cut + 1);
+    }
+    if (rest.trim()) pieces.push(rest.trim());
+  }
+  for (const p of pieces) {
     if (cur && cur.length + p.length > CHUNK) { out.push(cur); cur = ""; }
     cur += (cur ? "\n\n" : "") + p;
   }
@@ -83,7 +98,9 @@ export async function runMembershipTranscribe({ brainTask, log }) {
   await fs.mkdir(kdir, { recursive: true });
   let structured = 0, paused = null;
   for (const item of Object.values(m.media)) {
-    if (!item.raw_transcript || item.kylomind_file || paused) continue;
+    // Sikertelen tagolást a következő futás újrapróbálja (max 3-szor).
+    if (!item.raw_transcript || item.structured || paused) continue;
+    if (item.kylomind_file && (item.structure_attempts || 0) >= 3) continue;
     const raw = await fs.readFile(path.join(root, item.raw_transcript), "utf8");
     const base = path.basename(item.raw_transcript, ".txt");
     let body;
@@ -102,6 +119,7 @@ export async function runMembershipTranscribe({ brainTask, log }) {
     await fs.writeFile(file, head + (body || raw) + "\n");
     item.kylomind_file = path.relative(root, file);
     item.structured = !!body;
+    if (!body) item.structure_attempts = (item.structure_attempts || 0) + 1;
     structured++;
     await fs.writeFile(`${mf}.tmp`, JSON.stringify(m, null, 2));
     await fs.rename(`${mf}.tmp`, mf);
