@@ -127,6 +127,15 @@ fi
 # ---- 2. Friss kód -----------------------------------------------------------
 log "Kód frissítése GitHubról ($REPO_DIR)…"
 git -C "$REPO_DIR" pull --ff-only
+# A bash menet közben olvassa a szkriptet: ha a pull épp ezt a fájlt írta át,
+# a futó példány összekeveri a régit és az újat. Ezért egyszer újraindítjuk
+# magunkat a friss változattal. (Ez a blokk szándékosan közvetlenül a pull után
+# áll, hogy a régi változat is ide ugorjon.)
+if [ "${DEPLOY_REEXEC:-0}" != "1" ]; then
+  export DEPLOY_REEXEC=1 DEPLOY_FORCE_FULL=1
+  log "Friss deploy.sh betöltése…"
+  exec bash "$WORKER_DIR/deploy.sh"
+fi
 log "Verzió: $(git -C "$REPO_DIR" rev-parse --short HEAD) — $(git -C "$REPO_DIR" log -1 --pretty=%s)"
 
 # ---- 2b. Széf-fájlkiszolgáló frissítése (archívum olvasás is) -------------
@@ -145,6 +154,10 @@ WANT='[Service]
 Environment=ARCHIVE_ROOT=$ARCH_DIR
 ReadOnlyPaths=$ARCH_DIR'
 mkdir -p /opt/kylo-vault/fileserver /etc/systemd/system/kylo-vault-fileserver.service.d '$ARCH_DIR'
+echo \"ARCH: \$(ls -ld '$ARCH_DIR' 2>&1)\"
+echo \"ARCH: mp4 fájlok száma: \$(find '$ARCH_DIR' -name '*.mp4' 2>/dev/null | wc -l)\"
+echo \"ARCH: \$(ls -la '$ARCH_DIR/videos/remotion-szakmai/de/kozgaz-18.mp4' 2>&1)\"
+echo \"ARCH: \$(ls '$ARCH_DIR/videos/remotion-szakmai/de/' 2>&1 | head -5 | tr '\n' ' ')\"
 CHG=0
 if ! cmp -s '$FS_SRC' \$FS_DST; then cp '$FS_SRC' \$FS_DST; CHG=1; fi
 if [ \"\$(cat \$DROPIN 2>/dev/null)\" != \"\$WANT\" ]; then printf '%s\n' \"\$WANT\" > \$DROPIN; CHG=1; fi
@@ -162,6 +175,7 @@ if [ \$CHG = 1 ]; then systemctl daemon-reload; systemctl restart kylo-vault-fil
     *UNCHANGED*) log "Fájlkiszolgáló naprakész (archívum: $ARCH_DIR)." ;;
     *) log "FIGYELEM: fájlkiszolgáló frissítése nem sikerült: $(printf '%s' "$FS_OUT" | tail -3)" ;;
   esac
+  printf '%s\n' "$FS_OUT" | grep '^ARCH:' | while IFS= read -r l; do log "$l"; done || true
 fi
 
 # ---- 3. Építés (a futó színt ez nem érinti) --------------------------------

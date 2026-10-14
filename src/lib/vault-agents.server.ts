@@ -9,6 +9,7 @@
  */
 
 import { createHash, timingSafeEqual } from "node:crypto";
+import { vaultFileBaseUrl } from "@/lib/vault-file-base.server";
 
 export const AGENT_ONLINE_WINDOW_MS = 3 * 60 * 1000;
 export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB / fájl
@@ -207,7 +208,7 @@ export async function isRateLimited(
 // ---------------------------------------------------------------------------
 
 function fileServer(): { base: string; token: string } {
-  const base = process.env.VAULT_FILE_BASE_URL?.replace(/\/+$/, "");
+  const base = vaultFileBaseUrl();
   const token = (process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN)?.trim();
   if (!base) throw new Error("VAULT_FILE_BASE_URL nincs beállítva");
   if (!token) throw new Error("WORKER_API_TOKEN nincs beállítva");
