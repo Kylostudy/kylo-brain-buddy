@@ -129,6 +129,26 @@ log "Kód frissítése GitHubról ($REPO_DIR)…"
 git -C "$REPO_DIR" pull --ff-only
 log "Verzió: $(git -C "$REPO_DIR" rev-parse --short HEAD) — $(git -C "$REPO_DIR" log -1 --pretty=%s)"
 
+# ---- 2b. Széf-fájlkiszolgáló frissítése (archívum olvasás is) -------------
+FS_SRC="$REPO_DIR/infra/vault/fileserver/server.js"
+FS_DST="/opt/kylo-vault/fileserver/server.js"
+if [ -f "$FS_SRC" ] && command -v systemctl >/dev/null 2>&1; then
+  ARCH_DIR="$(grep -E '^ARCHIVE_HOST_DIR=' "$WORKER_DIR/.env" 2>/dev/null | tail -1 | cut -d= -f2- || true)"
+  ARCH_DIR="${ARCH_DIR:-/var/brain/archive}"
+  mkdir -p /opt/kylo-vault/fileserver /etc/systemd/system/kylo-vault-fileserver.service.d "$ARCH_DIR" || true
+  DROPIN="/etc/systemd/system/kylo-vault-fileserver.service.d/archive.conf"
+  WANT="[Service]
+Environment=ARCHIVE_ROOT=$ARCH_DIR
+ReadOnlyPaths=$ARCH_DIR"
+  CHG=0
+  if ! cmp -s "$FS_SRC" "$FS_DST"; then cp "$FS_SRC" "$FS_DST"; CHG=1; fi
+  if [ "$(cat "$DROPIN" 2>/dev/null)" != "$WANT" ]; then printf '%s\n' "$WANT" > "$DROPIN"; CHG=1; fi
+  if [ "$CHG" = "1" ]; then
+    systemctl daemon-reload || true
+    systemctl restart kylo-vault-fileserver && log "Fájlkiszolgáló frissítve (archívum: $ARCH_DIR)." || log "FIGYELEM: fájlkiszolgáló újraindítása nem sikerült."
+  fi
+fi
+
 # ---- 3. Építés (a futó színt ez nem érinti) --------------------------------
 log "Executor image építése…"
 docker compose build executor-image
