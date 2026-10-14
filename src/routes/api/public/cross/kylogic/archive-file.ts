@@ -2,6 +2,7 @@
 // HMAC v1 (BRAIN_KYLOGIC_TASK_SECRET), üres body. Soha nem ír, nem töröl.
 
 import { createFileRoute } from "@tanstack/react-router";
+import { vaultFileBaseUrl } from "@/lib/vault-file-base.server";
 
 import { verifyKylogicTaskRequest } from "@/lib/kylogic-bridge.server";
 import { normalizeArchivePath } from "@/lib/kylogic-archive-video.server";
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/api/public/cross/kylogic/archive-file")({
           return jsonError(400, "invalid path");
         }
 
-        const base = process.env.VAULT_FILE_BASE_URL?.replace(/\/+$/, "");
+        const base = vaultFileBaseUrl();
         const token = (process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN)?.trim();
         if (!base || !token) return jsonError(503, "archive server not configured");
 

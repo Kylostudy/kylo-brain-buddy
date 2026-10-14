@@ -7,6 +7,7 @@
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { vaultFileBaseUrl } from "@/lib/vault-file-base.server";
 
 export type ShareOutcome =
   | "ok"
@@ -141,7 +142,7 @@ export type VaultListing = {
 };
 
 function fileServer(): { base: string; token: string } {
-  const base = process.env.VAULT_FILE_BASE_URL?.replace(/\/+$/, "");
+  const base = vaultFileBaseUrl();
   const token = (process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN)?.trim();
   if (!base) throw new Error("VAULT_FILE_BASE_URL nincs beállítva");
   if (!token) throw new Error("WORKER_API_TOKEN nincs beállítva");
