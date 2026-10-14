@@ -127,6 +127,15 @@ fi
 # ---- 2. Friss kód -----------------------------------------------------------
 log "Kód frissítése GitHubról ($REPO_DIR)…"
 git -C "$REPO_DIR" pull --ff-only
+# A bash menet közben olvassa a szkriptet: ha a pull épp ezt a fájlt írta át,
+# a futó példány összekeveri a régit és az újat. Ezért egyszer újraindítjuk
+# magunkat a friss változattal. (Ez a blokk szándékosan közvetlenül a pull után
+# áll, hogy a régi változat is ide ugorjon.)
+if [ "${DEPLOY_REEXEC:-0}" != "1" ]; then
+  export DEPLOY_REEXEC=1 DEPLOY_FORCE_FULL=1
+  log "Friss deploy.sh betöltése…"
+  exec bash "$WORKER_DIR/deploy.sh"
+fi
 log "Verzió: $(git -C "$REPO_DIR" rev-parse --short HEAD) — $(git -C "$REPO_DIR" log -1 --pretty=%s)"
 
 # ---- 2b. Széf-fájlkiszolgáló frissítése (archívum olvasás is) -------------
