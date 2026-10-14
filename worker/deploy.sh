@@ -130,23 +130,38 @@ git -C "$REPO_DIR" pull --ff-only
 log "Verzió: $(git -C "$REPO_DIR" rev-parse --short HEAD) — $(git -C "$REPO_DIR" log -1 --pretty=%s)"
 
 # ---- 2b. Széf-fájlkiszolgáló frissítése (archívum olvasás is) -------------
+# A deploy a "kylo" userként fut (nincs root), ezért a rendszerfájlokat egy
+# rövid életű, a docker-csoporton át indított segédkonténer írja a host
+# névterében (nsenter). Ez a lépés SOHA nem buktathatja el a deployt.
 FS_SRC="$REPO_DIR/infra/vault/fileserver/server.js"
-FS_DST="/opt/kylo-vault/fileserver/server.js"
-if [ -f "$FS_SRC" ] && command -v systemctl >/dev/null 2>&1; then
+if [ -f "$FS_SRC" ]; then
   ARCH_DIR="$(grep -E '^ARCHIVE_HOST_DIR=' "$WORKER_DIR/.env" 2>/dev/null | tail -1 | cut -d= -f2- || true)"
   ARCH_DIR="${ARCH_DIR:-/var/brain/archive}"
-  mkdir -p /opt/kylo-vault/fileserver /etc/systemd/system/kylo-vault-fileserver.service.d "$ARCH_DIR" || true
-  DROPIN="/etc/systemd/system/kylo-vault-fileserver.service.d/archive.conf"
-  WANT="[Service]
+  FS_SCRIPT="
+set -e
+FS_DST=/opt/kylo-vault/fileserver/server.js
+DROPIN=/etc/systemd/system/kylo-vault-fileserver.service.d/archive.conf
+WANT='[Service]
 Environment=ARCHIVE_ROOT=$ARCH_DIR
-ReadOnlyPaths=$ARCH_DIR"
-  CHG=0
-  if ! cmp -s "$FS_SRC" "$FS_DST"; then cp "$FS_SRC" "$FS_DST"; CHG=1; fi
-  if [ "$(cat "$DROPIN" 2>/dev/null)" != "$WANT" ]; then printf '%s\n' "$WANT" > "$DROPIN"; CHG=1; fi
-  if [ "$CHG" = "1" ]; then
-    systemctl daemon-reload || true
-    systemctl restart kylo-vault-fileserver && log "Fájlkiszolgáló frissítve (archívum: $ARCH_DIR)." || log "FIGYELEM: fájlkiszolgáló újraindítása nem sikerült."
+ReadOnlyPaths=$ARCH_DIR'
+mkdir -p /opt/kylo-vault/fileserver /etc/systemd/system/kylo-vault-fileserver.service.d '$ARCH_DIR'
+CHG=0
+if ! cmp -s '$FS_SRC' \$FS_DST; then cp '$FS_SRC' \$FS_DST; CHG=1; fi
+if [ \"\$(cat \$DROPIN 2>/dev/null)\" != \"\$WANT\" ]; then printf '%s\n' \"\$WANT\" > \$DROPIN; CHG=1; fi
+if [ \$CHG = 1 ]; then systemctl daemon-reload; systemctl restart kylo-vault-fileserver; echo RESTARTED; else echo UNCHANGED; fi
+"
+  if [ "$(id -u)" = "0" ]; then
+    FS_OUT="$(sh -c "$FS_SCRIPT" 2>&1)" || true
+  else
+    FS_IMG="$(docker image inspect kylo-executor:latest >/dev/null 2>&1 && echo kylo-executor:latest || echo ubuntu:24.04)"
+    FS_OUT="$(timeout 120 docker run --rm --privileged --pid=host --net=host --entrypoint nsenter "$FS_IMG" \
+      -t 1 -m -u -i -n -p -- sh -c "$FS_SCRIPT" 2>&1)" || true
   fi
+  case "$FS_OUT" in
+    *RESTARTED*) log "Fájlkiszolgáló frissítve (archívum: $ARCH_DIR)." ;;
+    *UNCHANGED*) log "Fájlkiszolgáló naprakész (archívum: $ARCH_DIR)." ;;
+    *) log "FIGYELEM: fájlkiszolgáló frissítése nem sikerült: $(printf '%s' "$FS_OUT" | tail -3)" ;;
+  esac
 fi
 
 # ---- 3. Építés (a futó színt ez nem érinti) --------------------------------
