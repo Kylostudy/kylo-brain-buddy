@@ -28,6 +28,8 @@ const ROOT = path.resolve(process.env.VAULT_ROOT || "/srv/kylo-vault/data");
 const PORT = Number(process.env.VAULT_FS_PORT || 8079);
 const TOKEN = (process.env.WORKER_API_TOKEN || "").trim();
 const MAX_ENTRIES = 5000;
+// Kylogic videó-archívum (archive_video ide ment) — csak olvasás.
+const ARCHIVE_ROOT = path.resolve(process.env.ARCHIVE_ROOT || "/var/brain/archive");
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB / fájl
 
 
@@ -141,6 +143,29 @@ const server = http.createServer(async (req, res) => {
 
 
 
+
+    // ---- Archívum fájl (Kylogic YouTube-feltöltéshez), csak olvasás ----
+    if (url.pathname === "/archive-file") {
+      const rel = String(url.searchParams.get("path") || "").replace(/^\/+/, "");
+      if (!rel || rel.split("/").some((s) => s === ".." || s === "." || s.includes("\0"))) {
+        return json(res, { error: "bad path" }, 400);
+      }
+      const target = path.resolve(ARCHIVE_ROOT, rel);
+      if (!target.startsWith(ARCHIVE_ROOT + path.sep)) return json(res, { error: "bad path" }, 400);
+      let ast;
+      try {
+        ast = await fsp.stat(target);
+      } catch {
+        return json(res, { error: "not found" }, 404);
+      }
+      if (!ast.isFile() || target.endsWith(".part")) return json(res, { error: "not found" }, 404);
+      const ext = path.extname(target).toLowerCase();
+      const type = ext === ".mp4" ? "video/mp4" : ext === ".webm" ? "video/webm" : ext === ".mov" ? "video/quicktime" : "application/octet-stream";
+      res.writeHead(200, { "content-type": type, "content-length": ast.size });
+      const stream = fs.createReadStream(target);
+      stream.on("error", () => res.destroy());
+      return stream.pipe(res);
+    }
 
     const abs = safeResolve(url.searchParams.get("path"));
     if (!abs) return json(res, { error: "bad path" }, 400);
