@@ -17,8 +17,8 @@ import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const OBSERVER_MODEL = "google/gemini-2.5-flash";
-const JUDGE_MODEL = "google/gemini-2.5-pro";
+const OBSERVER_MODEL = "google/gemini-3.8-flash";
+const JUDGE_MODEL = "google/gemini-3.1-pro-preview";
 
 function json(o: unknown, status = 200) {
   return new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json" } });

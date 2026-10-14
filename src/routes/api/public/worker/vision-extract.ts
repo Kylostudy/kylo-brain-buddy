@@ -1,6 +1,6 @@
 // Gemini vision endpoint a workernek.
 // A worker screenshot base64-et küld + JSON schema-t, a Brain hívja a Lovable AI
-// gateway-t (google/gemini-2.5-flash), és visszaadja a strukturált eredményt.
+// gateway-t (google/gemini-3.8-flash), és visszaadja a strukturált eredményt.
 //
 // POST body { screenshot_b64, prompt, schema? }
 //   → 200 { data: <a schema szerinti JSON>, model, usage }
@@ -30,7 +30,7 @@ const BodySchema = z.object({
   screenshot_b64: z.string().min(100).max(20 * 1024 * 1024), // max ~15MB base64
   prompt: z.string().min(1).max(8000),
   schema: z.record(z.unknown()).optional(), // opcionális JSON schema a válasz strukturálásához
-  model: z.string().default("google/gemini-2.5-flash"),
+  model: z.string().default("google/gemini-3.8-flash"),
   mime_type: z.enum(["image/png", "image/jpeg"]).default("image/jpeg"),
 });
 

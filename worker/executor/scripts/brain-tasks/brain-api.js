@@ -124,7 +124,7 @@ export async function visionExtract({
   prompt,
   schema,
   mimeType = "image/jpeg",
-  model = "google/gemini-2.5-flash",
+  model = "google/gemini-3.8-flash",
 }) {
   return brainPost("/api/public/worker/vision-extract", {
     screenshot_b64: screenshotB64,
