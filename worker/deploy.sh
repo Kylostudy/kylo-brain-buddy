@@ -175,6 +175,7 @@ if [ \$CHG = 1 ]; then systemctl daemon-reload; systemctl restart kylo-vault-fil
     *UNCHANGED*) log "Fájlkiszolgáló naprakész (archívum: $ARCH_DIR)." ;;
     *) log "FIGYELEM: fájlkiszolgáló frissítése nem sikerült: $(printf '%s' "$FS_OUT" | tail -3)" ;;
   esac
+  printf '%s\n' "$FS_OUT" | grep '^ARCH:' | while IFS= read -r l; do log "$l"; done || true
 fi
 
 # ---- 3. Építés (a futó színt ez nem érinti) --------------------------------
