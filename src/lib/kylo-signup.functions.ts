@@ -1254,7 +1254,7 @@ export const explainKyloSignupRun = createServerFn({ method: "POST" })
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-3.6-flash",
+        model: "google/gemini-3.8-flash",
         messages: [
           {
             role: "system",

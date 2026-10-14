@@ -40,7 +40,7 @@ const Body = z.object({
     .array(z.object({ text: z.string(), selector: z.string().nullable().optional() }))
     .max(200)
     .default([]),
-  model: z.string().default("google/gemini-2.5-flash"),
+  model: z.string().default("google/gemini-3.8-flash"),
   mime_type: z.enum(["image/png", "image/jpeg"]).default("image/jpeg"),
   is_home_page: z.boolean().default(false),
 });

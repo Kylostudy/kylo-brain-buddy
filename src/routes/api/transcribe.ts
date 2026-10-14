@@ -36,7 +36,7 @@ export const Route = createFileRoute("/api/transcribe")({
         }
 
         const upstream = new FormData();
-        upstream.append("model", "openai/gpt-4o-mini-transcribe");
+        upstream.append("model", "openai/gpt-transcribe");
         upstream.append("file", file, file.name || "recording.webm");
         const lang = incoming.get("language");
         if (typeof lang === "string" && lang) upstream.append("language", lang);
