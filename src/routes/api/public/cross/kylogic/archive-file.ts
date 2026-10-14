@@ -50,7 +50,8 @@ export const Route = createFileRoute("/api/public/cross/kylogic/archive-file")({
         if (upstream.status === 404) return jsonError(404, "not found");
         if (upstream.status === 400) return jsonError(400, "invalid path");
         if (!upstream.ok || !upstream.body) {
-          console.error("[archive-file] upstream status", upstream.status);
+          const snippet = await upstream.text().catch(() => "");
+          console.error("[archive-file] upstream status", upstream.status, new URL(base).host, snippet.slice(0, 300));
           return jsonError(502, "archive server error");
         }
 
