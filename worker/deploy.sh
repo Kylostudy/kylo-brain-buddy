@@ -154,6 +154,10 @@ WANT='[Service]
 Environment=ARCHIVE_ROOT=$ARCH_DIR
 ReadOnlyPaths=$ARCH_DIR'
 mkdir -p /opt/kylo-vault/fileserver /etc/systemd/system/kylo-vault-fileserver.service.d '$ARCH_DIR'
+echo \"ARCH: \$(ls -ld '$ARCH_DIR' 2>&1)\"
+echo \"ARCH: mp4 fájlok száma: \$(find '$ARCH_DIR' -name '*.mp4' 2>/dev/null | wc -l)\"
+echo \"ARCH: \$(ls -la '$ARCH_DIR/videos/remotion-szakmai/de/kozgaz-18.mp4' 2>&1)\"
+echo \"ARCH: \$(ls '$ARCH_DIR/videos/remotion-szakmai/de/' 2>&1 | head -5 | tr '\n' ' ')\"
 CHG=0
 if ! cmp -s '$FS_SRC' \$FS_DST; then cp '$FS_SRC' \$FS_DST; CHG=1; fi
 if [ \"\$(cat \$DROPIN 2>/dev/null)\" != \"\$WANT\" ]; then printf '%s\n' \"\$WANT\" > \$DROPIN; CHG=1; fi
