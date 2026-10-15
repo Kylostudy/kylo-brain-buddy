@@ -1,0 +1,8 @@
+[Unit]
+Description=Kylo élő frissítés kiadása
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/kylo-updates/publish.sh
+TimeoutStartSec=1800

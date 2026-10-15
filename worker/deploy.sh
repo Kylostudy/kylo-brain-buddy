@@ -178,6 +178,35 @@ if [ \$CHG = 1 ]; then systemctl daemon-reload; systemctl restart kylo-vault-fil
   printf '%s\n' "$FS_OUT" | grep '^ARCH:' | while IFS= read -r l; do log "$l"; done || true
 fi
 
+# ---- 2c. Kylo élő frissítés (updates.kylo.study) — sosem buktatja a deployt --
+UP_SRC="$REPO_DIR/infra/kylo-updates"
+if [ -d "$UP_SRC" ]; then
+  UP_SCRIPT="
+set -e
+mkdir -p /opt/kylo-updates /var/www/updates/kylo/bundles
+cp '$UP_SRC/publish.sh' /opt/kylo-updates/publish.sh
+cp '$UP_SRC/kylo-live-update.service' '$UP_SRC/kylo-live-update.timer' /etc/systemd/system/
+if [ -d /etc/nginx/sites-available ]; then
+  cp '$UP_SRC/nginx-updates.conf' /etc/nginx/sites-available/kylo-updates
+  ln -sf /etc/nginx/sites-available/kylo-updates /etc/nginx/sites-enabled/kylo-updates
+  nginx -t && systemctl reload nginx && echo UP: nginx OK
+else echo UP: nincs host nginx; fi
+systemctl daemon-reload
+systemctl enable --now kylo-live-update.timer
+echo UP: timer \$(systemctl is-active kylo-live-update.timer)
+echo UP: utolsó napló: \$(tail -2 /var/log/kylo-live-update.log 2>/dev/null | tr '\n' ' ')
+"
+  if [ "$(id -u)" = "0" ]; then
+    UP_OUT="$(sh -c "$UP_SCRIPT" 2>&1)" || true
+  else
+    UP_IMG="$(docker image inspect kylo-executor:latest >/dev/null 2>&1 && echo kylo-executor:latest || echo ubuntu:24.04)"
+    UP_OUT="$(timeout 120 docker run --rm --privileged --pid=host --net=host --entrypoint nsenter "$UP_IMG" \
+      -t 1 -m -u -i -n -p -- sh -c "$UP_SCRIPT" 2>&1)" || true
+  fi
+  printf '%s\n' "$UP_OUT" | tail -8 | while IFS= read -r l; do log "UPDATES: $l"; done || true
+fi
+
+
 # ---- 3. Építés (a futó színt ez nem érinti) --------------------------------
 log "Executor image építése…"
 docker compose build executor-image
