@@ -1,0 +1,9 @@
+[Unit]
+Description=Kylo élő frissítés 10 percenként
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target
