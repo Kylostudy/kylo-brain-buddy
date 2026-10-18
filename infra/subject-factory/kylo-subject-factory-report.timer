@@ -1,0 +1,11 @@
+[Unit]
+Description=Report subject factory installation and production every minute
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=60
+AccuracySec=5
+Unit=kylo-subject-factory-report.service
+
+[Install]
+WantedBy=timers.target
