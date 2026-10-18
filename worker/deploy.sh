@@ -207,6 +207,35 @@ echo UP: utolsó napló: \$(tail -2 /var/log/kylo-live-update.log 2>/dev/null | 
 fi
 
 
+# ---- 2d. Szakmai videógyártó: ellenőrzött telepítés (tulajdonosi engedéllyel) --
+# A csomag install.sh-ját nem futtatja; a Brain safe-install.sh-ja fut a háttérben,
+# külön systemd egységben, hogy a hosszú docker build ne tartsa fel a deployt.
+SF_SRC="$REPO_DIR/infra/subject-factory"
+if [ -f "$SF_SRC/APPROVED_MANIFEST" ]; then
+  SF_SHA="$(tr -dc 'a-f0-9' < "$SF_SRC/APPROVED_MANIFEST" | head -c 64)"
+  SF_SCRIPT="
+mkdir -p /opt/kylo-subject-factory
+cp '$SF_SRC/safe-install.sh' /opt/kylo-subject-factory/safe-install.sh
+cp '$SF_SRC/kylo-subject-factory.service.reviewed' /opt/kylo-subject-factory/kylo-subject-factory.service.reviewed
+if systemctl is-active --quiet kylo-subject-factory; then echo SF: gyártás fut
+elif systemctl is-active --quiet kylo-subject-factory-install; then echo SF: telepítés folyamatban
+elif [ ! -f /opt/kylo-subject-factory/releases/${SF_SHA:0:12}/.installed ]; then
+  systemctl reset-failed kylo-subject-factory-install 2>/dev/null || true
+  systemd-run --unit=kylo-subject-factory-install --collect bash /opt/kylo-subject-factory/safe-install.sh '$SF_SHA' && echo SF: telepítés elindítva
+else echo SF: telepítve, a gyártó áll: \$(systemctl is-active kylo-subject-factory); fi
+echo SF: napló: \$(tail -4 /var/log/kylo-subject-factory-install.log 2>/dev/null | tr '\n' ' ')
+echo SF: status: \$(head -c 600 /opt/kylo-subject-factory/work/status.json 2>/dev/null | tr '\n' ' ')
+"
+  if [ "$(id -u)" = "0" ]; then
+    SF_OUT="$(sh -c "$SF_SCRIPT" 2>&1)" || true
+  else
+    SF_IMG="$(docker image inspect kylo-executor:latest >/dev/null 2>&1 && echo kylo-executor:latest || echo ubuntu:24.04)"
+    SF_OUT="$(timeout 120 docker run --rm --privileged --pid=host --net=host --entrypoint nsenter "$SF_IMG" \
+      -t 1 -m -u -i -n -p -- sh -c "$SF_SCRIPT" 2>&1)" || true
+  fi
+  printf '%s\n' "$SF_OUT" | tail -6 | while IFS= read -r l; do log "FACTORY: $l"; done || true
+fi
+
 # ---- 3. Építés (a futó színt ez nem érinti) --------------------------------
 log "Executor image építése…"
 docker compose build executor-image
