@@ -11,3 +11,4 @@
 - The Brain reaches the VPS file server only via its HTTPS hostname (vaultFileBaseUrl), never a bare IP, because Cloudflare Workers reject outbound fetches to raw IPs with 403.
 - worker/deploy.sh re-execs itself once right after git pull, because bash reads scripts lazily and a pull that rewrites deploy.sh corrupts the running instance.
 - Subject factory packages use a separate versioned HMAC-authorized task with a fixed tenant grant, host/file allowlists and exclusive checksum-verified finalization outside the archive; receipt never executes installers, because downloaded code requires independent review and deployment authorization.
+- Subject factory installs only via infra/subject-factory/safe-install.sh (pre-validated tar, new versioned release dir, reviewed unit) gated by APPROVED_MANIFEST; the package's own install.sh is never run, because it extracts unchecked as root.
