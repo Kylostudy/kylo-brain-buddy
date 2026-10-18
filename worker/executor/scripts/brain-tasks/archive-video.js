@@ -4,14 +4,16 @@
 // lemezére. Nem social taszk: nincs böngésző, nincs cookie, nincs proxy.
 //
 // Menet: HTTP GET (streamelve) → <base>/<target_path>.part → ellenőrzés
-// (méret > 0 + MP4 aláírás) → átnevezés a végleges névre (felülír).
-// A fájlt soha nem töröljük magunktól — a törlést a Kylogic kezeli.
+// (méret > 0 + MP4 aláírás) → kizárólagos véglegesítés (soha nem ír felül).
+// Végleges archív fájlt soha nem törlünk.
 
 import fs from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { randomUUID } from "node:crypto";
+import { digestFile, finalizeExclusive } from "./receive-subject-factory-package.js";
 
 const ARCHIVE_ROOT = process.env.ARCHIVE_ROOT || "/archive";
 const MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
@@ -23,7 +25,8 @@ function safeRelPath(raw) {
     .trim()
     .replace(/^\/+/, "")
     .split("/")
-    .filter((p) => p && p !== "." && p !== "..");
+    .filter(Boolean);
+  if (parts.some((p) => p === "." || p === ".." || p.includes("\0") || p.includes("\\"))) throw new Error("target_path érvénytelen");
   if (!parts.length) throw new Error("target_path érvénytelen");
   return parts.join("/");
 }
@@ -52,10 +55,10 @@ export async function runArchiveVideo({ brainTask, log }) {
 
   const rel = safeRelPath(payload.target_path);
   const finalPath = path.join(ARCHIVE_ROOT, rel);
-  const partPath = `${finalPath}.part`;
+  const partPath = `${finalPath}.${randomUUID()}.part`;
 
   await fs.mkdir(path.dirname(finalPath), { recursive: true });
-  await fs.rm(partPath, { force: true }).catch(() => {});
+  if (await fs.realpath(path.dirname(finalPath)) !== path.resolve(path.dirname(finalPath))) throw new Error("archív szimbolikus útvonal tiltva");
 
   log("info", `Archiválás indul: ${rel}`);
 
@@ -74,7 +77,7 @@ export async function runArchiveVideo({ brainTask, log }) {
       throw new Error(`a fájl túl nagy (${declared} bájt, limit 2 GB)`);
     }
 
-    const out = createWriteStream(partPath);
+    const out = createWriteStream(partPath, { flags: "wx" });
     const source = Readable.fromWeb(res.body);
     source.on("data", (chunk) => {
       bytes += chunk.length;
@@ -105,8 +108,10 @@ export async function runArchiveVideo({ brainTask, log }) {
     throw new Error("a letöltött fájl nem MP4 (hiányzó ftyp aláírás)");
   }
 
-  // Idempotens: ugyanarra a target_path-ra érkező ismételt feladat felülír.
-  await fs.rename(partPath, finalPath);
+  // Same bytes may be adopted; different bytes block, never overwrite.
+  const expected = await digestFile(partPath);
+  try { await finalizeExclusive(partPath, finalPath, expected); }
+  finally { await fs.rm(partPath, { force: true }); }
 
   log("info", `Archiválva: ${finalPath} (${stat.size} bájt)`);
 
@@ -115,6 +120,7 @@ export async function runArchiveVideo({ brainTask, log }) {
     status: "done",
     archive_path: finalPath,
     bytes: stat.size,
+    sha256: expected.sha256,
     kind: payload.kind || "poster_video",
     target_path: rel,
     archived_at: new Date().toISOString(),
