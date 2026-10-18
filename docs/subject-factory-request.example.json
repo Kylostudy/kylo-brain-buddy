@@ -1,0 +1,115 @@
+{
+  "task_id": "subject-20261018-v1-receipt-001",
+  "tenant_id": "14abbe6b-4781-4483-967f-84d87e0d2b05",
+  "kylogic_callback_url": "https://kylogic.lovable.app/api/public/REPLACE_WITH_ACTUAL_CALLBACK",
+  "task_type": "receive_subject_factory_package",
+  "payload": {
+    "version": 1,
+    "package_id": "subject-20261018-v1",
+    "manifest_sha256": "REPLACE_WITH_SHA256SUMS_SHA256",
+    "files": [
+      {
+        "name": "README.md",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "install.sh",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "SHA256SUMS",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-000",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-001",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-002",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-003",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-004",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-005",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-006",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-007",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-008",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-009",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-010",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-011",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-012",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      },
+      {
+        "name": "payload.part-013",
+        "bytes": "REPLACE_WITH_EXACT_BYTE_COUNT",
+        "sha256": "REPLACE_WITH_FILE_SHA256",
+        "url": "https://yqhipzwmgpopelfcenie.supabase.co/storage/v1/object/sign/vps-archive-files/REPLACE_WITH_OBJECT_PATH?token=REPLACE_WITH_SIGNED_TOKEN"
+      }
+    ]
+  }
+}
