@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { validatePackage, FILE_NAMES, MAX_FILE_BYTES, MAX_PACKAGE_BYTES } from "./subject-factory-contract.js";
-import { isPublicAddress, pinnedLookup, finalizeExclusive, verifyManifest, runReceiveSubjectFactoryPackage } from "./receive-subject-factory-package.js";
+import { isPublicAddress, pinnedLookup, finalizeExclusive, verifyManifest, runReceiveSubjectFactoryPackage, quarantineConflictingStaging } from "./receive-subject-factory-package.js";
 const hash = (text) => createHash("sha256").update(text).digest("hex");
 function fixture() {
   const content = new Map(FILE_NAMES.filter((n) => n !== "SHA256SUMS").map((n) => [n, `test-${n}`]));
@@ -90,4 +90,17 @@ test("real receiver adopts all 17 verified files, retries safely and never expos
     await assert.rejects(runReceiveSubjectFactoryPackage(args), /conflict/);
     assert.equal(await fs.readFile(path.join(dir, "README.md"), "utf8"), "corrupt");
   } finally { if (oldRoot === undefined) delete process.env.FACTORY_PACKAGES_ROOT; else process.env.FACTORY_PACKAGES_ROOT = oldRoot; await fs.rm(root, { recursive: true }); }
+});
+test("conflicting unverified staging folder is moved aside, not deleted; verified folder untouched", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "factory-quarantine-"));
+  try {
+    const { payload } = fixture(); const dir = path.join(root, payload.package_id);
+    await fs.mkdir(dir); await fs.writeFile(path.join(dir, "receipt-identity.json"), "old-identity");
+    const aside = await quarantineConflictingStaging(root, dir, "new-identity", payload.files);
+    assert.ok(aside);
+    assert.equal(await fs.readFile(path.join(aside, "receipt-identity.json"), "utf8"), "old-identity");
+    await fs.mkdir(dir); await fs.writeFile(path.join(dir, "receipt-identity.json"), "old"); await fs.writeFile(path.join(dir, "receipt.json"), "{}");
+    assert.equal(await quarantineConflictingStaging(root, dir, "new", payload.files), null);
+    assert.equal(await fs.readFile(path.join(dir, "receipt-identity.json"), "utf8"), "old");
+  } finally { await fs.rm(root, { recursive: true }); }
 });
