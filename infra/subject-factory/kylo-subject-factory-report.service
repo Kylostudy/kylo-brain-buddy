@@ -1,0 +1,13 @@
+[Unit]
+Description=Kylo subject factory read-only diagnostic heartbeat
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/kylo-subject-factory/report-status.py
+TimeoutStartSec=75
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true

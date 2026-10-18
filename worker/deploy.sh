@@ -217,6 +217,14 @@ if [ -f "$SF_SRC/APPROVED_MANIFEST" ]; then
 mkdir -p /opt/kylo-subject-factory
 cp '$SF_SRC/safe-install.sh' /opt/kylo-subject-factory/safe-install.sh
 cp '$SF_SRC/kylo-subject-factory.service.reviewed' /opt/kylo-subject-factory/kylo-subject-factory.service.reviewed
+cp '$SF_SRC/report-status.py' /opt/kylo-subject-factory/report-status.py
+cp '$SF_SRC/kylo-subject-factory-report.service' '$SF_SRC/kylo-subject-factory-report.timer' /etc/systemd/system/
+mkdir -p /etc/systemd/system/kylo-subject-factory-report.service.d
+printf '[Service]\nEnvironment=WORKER_ENV_FILE=$WORKER_DIR/.env\n' > /etc/systemd/system/kylo-subject-factory-report.service.d/worker.conf
+systemctl daemon-reload
+systemctl enable --now kylo-subject-factory-report.timer
+systemctl start --no-block kylo-subject-factory-report.service
+echo SF: védett diagnosztikai naplójelentés bekapcsolva
 if systemctl is-active --quiet kylo-subject-factory; then echo SF: gyártás fut
 elif systemctl is-active --quiet kylo-subject-factory-install; then echo SF: telepítés folyamatban
 elif [ ! -f /opt/kylo-subject-factory/releases/${SF_SHA:0:12}/.installed ]; then
