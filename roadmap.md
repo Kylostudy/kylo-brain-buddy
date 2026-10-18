@@ -6,9 +6,10 @@
 - [x] Subject factory: javított fogadó VPS-re juttatása és újrapróbálás (12:20-as frissítés sikeres; a 13:12-es új próba existing_file_conflict hibával megállt)
 - [x] Subject factory: ütköző, ellenőrizetlen csomagmappa automatikus félretétele (nem törlés), 11 teszt OK
 - [x] Subject factory: 17 fájl átvéve; saját ellenőrzött telepítő (safe-install.sh) a deployba kötve
-- [ ] Subject factory: telepítés lefutásának igazolása a szervernaplóból
+- [x] Subject factory: telepítés lefutásának igazolása a szervernaplóból
 - [x] Subject factory: korlátozott, kitakart telepítési napló és gyártóállapot jelentő elkészült; 5 teszt és 11 archívumvédelmi próba sikeres
-- [ ] Subject factory: VPS-es naplójelentés első beérkezésének igazolása (várakozás: automatikus szerverfrissítés)
+- [x] Subject factory: VPS-es naplójelentés első beérkezésének igazolása
+- [ ] Subject factory: hibás szlovén változat biztonságos kihagyása és a többi nyelv gyártásának újraindítása; valódi szerveres folytatás ellenőrzése
 - [ ] Subject factory: első új ötös adag, master-renderelés és szünet/újraindulás igazolása (várakozás: telepítés)
 
 - [x] Platformonként kizárni minden sütikeverést és hibás tartalék adatot
