@@ -84,26 +84,36 @@ export function verifyManifest(text, files) {
   const expected = files.filter((f) => f.name !== "SHA256SUMS");
   if (records.size !== 16 || expected.some((f) => records.get(f.name) !== f.sha256)) throw new Error("checksum_manifest_conflict");
 }
-// A failed (never verified) staging folder is moved aside, never deleted or
-// merged, so a fresh attempt can start. Verified packages are left untouched.
-export async function quarantineUnverifiedStaging(root, dir, log = () => {}) {
+// An unverified staging folder that conflicts with the new package is moved
+// aside (never deleted, never merged). Verified or matching folders stay.
+export async function quarantineConflictingStaging(root, dir, identityText, files, log = () => {}) {
   const stat = await fs.lstat(dir).catch((e) => { if (e.code === "ENOENT") return null; throw e; });
   if (!stat) return null;
   if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("unsafe_staging_path");
-  const verified = await fs.lstat(path.join(dir, "receipt.json")).then(() => true, () => false);
-  if (verified) return null;
+  if (await fs.lstat(path.join(dir, "receipt.json")).then(() => true, () => false)) return null;
+  let conflict = false;
+  const idText = await fs.readFile(path.join(dir, "receipt-identity.json"), "utf8").catch(() => null);
+  if (idText !== null && idText !== identityText) conflict = true;
+  for (const f of files) {
+    if (conflict) break;
+    const target = path.join(dir, f.name);
+    if (!(await fs.lstat(target).then(() => true, () => false))) continue;
+    const actual = await digestFile(target).catch(() => null);
+    if (!actual || actual.sha256 !== f.sha256 || actual.bytes !== f.bytes) conflict = true;
+  }
+  if (!conflict) return null;
   const aside = path.join(root, `.failed-${PACKAGE_ID}-${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID().slice(0, 8)}`);
   await fs.rename(dir, aside);
-  log("warn", `Unverified staging folder moved aside: ${path.basename(aside)}`);
+  log("warn", `Conflicting unverified staging folder moved aside: ${path.basename(aside)}`);
   return aside;
 }
 export async function runReceiveSubjectFactoryPackage({ brainTask, log }) {
   const p = validatePackage(brainTask.payload);
   const root = process.env.FACTORY_PACKAGES_ROOT || "/factory-packages";
   const dir = path.join(root, PACKAGE_ID);
-  await quarantineUnverifiedStaging(root, dir, log);
-  await ensureDirectory(dir);
   const identity = { version: 1, package_id: PACKAGE_ID, manifest_sha256: p.manifest_sha256, files: p.files.map(({ url, ...f }) => f).sort((a, b) => a.name.localeCompare(b.name)) };
+  await quarantineConflictingStaging(root, dir, JSON.stringify(identity), p.files, log);
+  await ensureDirectory(dir);
   const identityText = JSON.stringify(identity);
   const identityPart = path.join(dir, `.identity-${randomUUID()}.part`);
   await fs.writeFile(identityPart, identityText, { flag: "wx", mode: 0o600 });
