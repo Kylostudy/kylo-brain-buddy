@@ -15,6 +15,14 @@ export function isPublicAddress(ip) {
   const [a, b] = ip.split(".").map(Number);
   return !(a === 0 || a === 10 || a === 127 || a >= 224 || a === 169 && b === 254 || a === 172 && b >= 16 && b <= 31 || a === 192 && (b === 168 || b === 0 || b === 2) || a === 100 && b >= 64 && b <= 127 || a === 198 && (b === 18 || b === 19 || b === 51) || a === 203 && b === 0);
 }
+// Node's connection layer requests all addresses on recent Node versions.
+// Preserve the pinned address while honoring the resolver callback contract.
+export function pinnedLookup(address) {
+  return (_host, options, callback) => {
+    if (options?.all) callback(null, [{ address, family: 4 }]);
+    else callback(null, address, 4);
+  };
+}
 export async function digestFile(file) {
   const stat = await fs.lstat(file);
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("unsafe_existing_file");
@@ -46,7 +54,7 @@ async function download(f, part) {
     const res = await new Promise((resolve, reject) => {
       const req = https.get(u, {
         agent: false, signal: controller.signal,
-        lookup: (_host, _options, callback) => callback(null, pinned.address, 4),
+        lookup: pinnedLookup(pinned.address),
       }, resolve);
       req.on("error", reject);
     });
@@ -103,7 +111,9 @@ export async function runReceiveSubjectFactoryPackage({ brainTask, log }) {
       try { await download(f, part); await finalizeExclusive(part, target, f); }
       catch (e) {
         // Errors must never contain signed URLs or network request objects.
-        throw new Error(`package_file_failed:${f.name}:${/^[a-z0-9_]+$/.test(e.message || "") ? e.message : "download_failed"}`);
+        const reason = /^[a-z0-9_]+$/.test(e.message || "") ? e.message
+          : /^[A-Z0-9_]{1,80}$/.test(e.code || "") ? e.code.toLowerCase() : "download_failed";
+        throw new Error(`package_file_failed:${f.name}:${reason}`);
       } finally { await fs.rm(part, { force: true }); }
     }
     verified.push({ name: f.name, bytes: f.bytes, sha256: f.sha256 });

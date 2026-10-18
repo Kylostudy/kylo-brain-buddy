@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { validatePackage, FILE_NAMES, MAX_FILE_BYTES, MAX_PACKAGE_BYTES } from "./subject-factory-contract.js";
-import { isPublicAddress, finalizeExclusive, verifyManifest, runReceiveSubjectFactoryPackage } from "./receive-subject-factory-package.js";
+import { isPublicAddress, pinnedLookup, finalizeExclusive, verifyManifest, runReceiveSubjectFactoryPackage } from "./receive-subject-factory-package.js";
 const hash = (text) => createHash("sha256").update(text).digest("hex");
 function fixture() {
   const content = new Map(FILE_NAMES.filter((n) => n !== "SHA256SUMS").map((n) => [n, `test-${n}`]));
@@ -38,6 +38,18 @@ test("only HTTPS on the approved storage host is accepted", () => {
     const { payload } = fixture(); payload.files[0].url = url;
     assert.throws(() => validatePackage(payload), /source/);
   }
+});
+test("pinned DNS callback supports Node all-address and single-address connection modes", () => {
+  const lookup = pinnedLookup("8.8.8.8");
+  lookup("ignored", { all: true }, (error, addresses) => {
+    assert.equal(error, null);
+    assert.deepEqual(addresses, [{ address: "8.8.8.8", family: 4 }]);
+  });
+  lookup("ignored", { all: false }, (error, address, family) => {
+    assert.equal(error, null);
+    assert.equal(address, "8.8.8.8");
+    assert.equal(family, 4);
+  });
 });
 test("private, loopback, link-local and rebinding destinations are rejected", () => {
   for (const ip of ["127.0.0.1", "10.1.2.3", "172.16.1.1", "192.168.1.1", "169.254.169.254", "100.64.0.1", "::1", "::ffff:127.0.0.1"]) assert.equal(isPublicAddress(ip), false);
