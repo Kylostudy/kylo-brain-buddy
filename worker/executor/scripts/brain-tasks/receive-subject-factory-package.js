@@ -81,7 +81,7 @@ export async function runReceiveSubjectFactoryPackage({ brainTask, log }) {
   const root = process.env.FACTORY_PACKAGES_ROOT || "/factory-packages";
   const dir = path.join(root, PACKAGE_ID);
   await ensureDirectory(dir);
-  const identity = { version: 1, package_id: PACKAGE_ID, manifest_sha256: p.manifest_sha256, files: p.files.map(({ url, ...f }) => f) };
+  const identity = { version: 1, package_id: PACKAGE_ID, manifest_sha256: p.manifest_sha256, files: p.files.map(({ url, ...f }) => f).sort((a, b) => a.name.localeCompare(b.name)) };
   const identityText = JSON.stringify(identity);
   const identityPart = path.join(dir, `.identity-${randomUUID()}.part`);
   await fs.writeFile(identityPart, identityText, { flag: "wx", mode: 0o600 });

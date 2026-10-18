@@ -4,6 +4,8 @@
 
 A fogadó kódja és külön munkafolyamata elkészült. A tényleges csomag, az ellenőrzött manifest hash és a friss aláírt letöltőlinkek még nincsenek a Brainnél. A gyártó nincs telepítve, első VPS-es adag nem bizonyított. A meglévő Brain publikálását nem változtattuk meg; az új HTTP kapu élesítéshez külön publikálás szükséges. A worker telepítését csak sikeres frissítési napló és valódi csomagfogadási eredmény bizonyítja.
 
+2026-10-18 UTC ellenőrzés: 9 helyi csomagvédelmi teszt sikeres; az alkalmazás valódi HTTP kérésekkel 401-et adott aláírás nélkül, 403-at más tenantnak, 400-at hibás manifestre. Egy szerverfrissítés 11:54:30 UTC-kor sikerült (blue aktív), de ezt nem tekintjük az utána elkészült fogadó telepítési bizonyítékának. Az új fogadóhoz külön frissítési kérés készült: `18f3c22a-3fa0-4198-993c-f113e22feb23`; átvétele még nem bizonyított. Közvetlen VPS-es parancsvégrehajtási kapcsolat nincs igazolva; a meglévő, szűk frissítő és visszaküldött napló áll rendelkezésre. Root-telepítési végpontot nem nyitottunk.
+
 ## Kérés
 
 `POST https://brain.kylosystems.com/api/public/cross/kylogic/task`
