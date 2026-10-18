@@ -7,6 +7,7 @@
 - [x] Subject factory: ütköző, ellenőrizetlen csomagmappa automatikus félretétele (nem törlés), 11 teszt OK
 - [x] Subject factory: 17 fájl átvéve; saját ellenőrzött telepítő (safe-install.sh) a deployba kötve
 - [ ] Subject factory: telepítés lefutásának igazolása a szervernaplóból
+- [ ] Subject factory: korlátozott telepítési napló és gyártóállapot rendszeres visszaküldése a Brainnek
 - [ ] Subject factory: első új ötös adag, master-renderelés és szünet/újraindulás igazolása (várakozás: telepítés)
 
 - [x] Platformonként kizárni minden sütikeverést és hibás tartalék adatot
