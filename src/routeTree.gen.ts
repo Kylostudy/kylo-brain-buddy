@@ -78,6 +78,7 @@ import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/c
 import { Route as ApiPublicCrossKitVaultRouteImport } from './routes/api/public/cross/kit/vault'
 import { Route as ApiPublicCrossKylogicArchiveFileRouteImport } from './routes/api/public/cross/kylogic/archive-file'
 import { Route as ApiPublicCrossKylogicReplayCallbackRouteImport } from './routes/api/public/cross/kylogic/replay-callback'
+import { Route as ApiPublicCrossKylogicSubjectFactoryStatusRouteImport } from './routes/api/public/cross/kylogic/subject-factory-status'
 import { Route as ApiPublicCrossKylogicTaskRouteImport } from './routes/api/public/cross/kylogic/task'
 import { Route as ApiPublicCrossKylogicWorkflowsRouteImport } from './routes/api/public/cross/kylogic/workflows'
 import { Route as ApiPublicCrossProxiesListRouteImport } from './routes/api/public/cross/proxies/list'
@@ -488,6 +489,12 @@ const ApiPublicCrossKylogicReplayCallbackRoute =
     path: '/api/public/cross/kylogic/replay-callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCrossKylogicSubjectFactoryStatusRoute =
+  ApiPublicCrossKylogicSubjectFactoryStatusRouteImport.update({
+    id: '/api/public/cross/kylogic/subject-factory-status',
+    path: '/api/public/cross/kylogic/subject-factory-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCrossKylogicTaskRoute =
   ApiPublicCrossKylogicTaskRouteImport.update({
     id: '/api/public/cross/kylogic/task',
@@ -658,6 +665,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cross/kit/vault': typeof ApiPublicCrossKitVaultRoute
   '/api/public/cross/kylogic/archive-file': typeof ApiPublicCrossKylogicArchiveFileRoute
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
+  '/api/public/cross/kylogic/subject-factory-status': typeof ApiPublicCrossKylogicSubjectFactoryStatusRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
@@ -745,6 +753,7 @@ export interface FileRoutesByTo {
   '/api/public/cross/kit/vault': typeof ApiPublicCrossKitVaultRoute
   '/api/public/cross/kylogic/archive-file': typeof ApiPublicCrossKylogicArchiveFileRoute
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
+  '/api/public/cross/kylogic/subject-factory-status': typeof ApiPublicCrossKylogicSubjectFactoryStatusRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
@@ -834,6 +843,7 @@ export interface FileRoutesById {
   '/api/public/cross/kit/vault': typeof ApiPublicCrossKitVaultRoute
   '/api/public/cross/kylogic/archive-file': typeof ApiPublicCrossKylogicArchiveFileRoute
   '/api/public/cross/kylogic/replay-callback': typeof ApiPublicCrossKylogicReplayCallbackRoute
+  '/api/public/cross/kylogic/subject-factory-status': typeof ApiPublicCrossKylogicSubjectFactoryStatusRoute
   '/api/public/cross/kylogic/task': typeof ApiPublicCrossKylogicTaskRoute
   '/api/public/cross/kylogic/workflows': typeof ApiPublicCrossKylogicWorkflowsRoute
   '/api/public/cross/proxies/list': typeof ApiPublicCrossProxiesListRoute
@@ -923,6 +933,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kit/vault'
     | '/api/public/cross/kylogic/archive-file'
     | '/api/public/cross/kylogic/replay-callback'
+    | '/api/public/cross/kylogic/subject-factory-status'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
@@ -1010,6 +1021,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kit/vault'
     | '/api/public/cross/kylogic/archive-file'
     | '/api/public/cross/kylogic/replay-callback'
+    | '/api/public/cross/kylogic/subject-factory-status'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
@@ -1098,6 +1110,7 @@ export interface FileRouteTypes {
     | '/api/public/cross/kit/vault'
     | '/api/public/cross/kylogic/archive-file'
     | '/api/public/cross/kylogic/replay-callback'
+    | '/api/public/cross/kylogic/subject-factory-status'
     | '/api/public/cross/kylogic/task'
     | '/api/public/cross/kylogic/workflows'
     | '/api/public/cross/proxies/list'
@@ -1172,6 +1185,7 @@ export interface RootRouteChildren {
   ApiPublicCrossKitVaultRoute: typeof ApiPublicCrossKitVaultRoute
   ApiPublicCrossKylogicArchiveFileRoute: typeof ApiPublicCrossKylogicArchiveFileRoute
   ApiPublicCrossKylogicReplayCallbackRoute: typeof ApiPublicCrossKylogicReplayCallbackRoute
+  ApiPublicCrossKylogicSubjectFactoryStatusRoute: typeof ApiPublicCrossKylogicSubjectFactoryStatusRoute
   ApiPublicCrossKylogicTaskRoute: typeof ApiPublicCrossKylogicTaskRoute
   ApiPublicCrossKylogicWorkflowsRoute: typeof ApiPublicCrossKylogicWorkflowsRoute
   ApiPublicCrossProxiesListRoute: typeof ApiPublicCrossProxiesListRoute
@@ -1674,6 +1688,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCrossKylogicReplayCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cross/kylogic/subject-factory-status': {
+      id: '/api/public/cross/kylogic/subject-factory-status'
+      path: '/api/public/cross/kylogic/subject-factory-status'
+      fullPath: '/api/public/cross/kylogic/subject-factory-status'
+      preLoaderRoute: typeof ApiPublicCrossKylogicSubjectFactoryStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cross/kylogic/task': {
       id: '/api/public/cross/kylogic/task'
       path: '/api/public/cross/kylogic/task'
@@ -1927,6 +1948,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCrossKylogicArchiveFileRoute: ApiPublicCrossKylogicArchiveFileRoute,
   ApiPublicCrossKylogicReplayCallbackRoute:
     ApiPublicCrossKylogicReplayCallbackRoute,
+  ApiPublicCrossKylogicSubjectFactoryStatusRoute:
+    ApiPublicCrossKylogicSubjectFactoryStatusRoute,
   ApiPublicCrossKylogicTaskRoute: ApiPublicCrossKylogicTaskRoute,
   ApiPublicCrossKylogicWorkflowsRoute: ApiPublicCrossKylogicWorkflowsRoute,
   ApiPublicCrossProxiesListRoute: ApiPublicCrossProxiesListRoute,
