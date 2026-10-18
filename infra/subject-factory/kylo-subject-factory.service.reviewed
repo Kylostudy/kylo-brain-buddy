@@ -8,7 +8,7 @@ StartLimitBurst=3
 [Service]
 Type=simple
 ExecStartPre=-/usr/bin/docker rm -f kylo-subject-factory
-ExecStart=/usr/bin/docker run --rm --name kylo-subject-factory --network none --cpus 2 --memory 4g --memory-swap 4g --pids-limit 256 --shm-size 512m --read-only --tmpfs /tmp:rw,size=512m -v /opt/kylo-subject-factory/work:/work -v /var/brain/archive/videos/remotion-szakmai:/archive -v /var/brain/factory-staging:/archive-staging -v /opt/kylo-subject-factory/runtime-worker.py:/runtime-worker.py:ro kylo-subject-factory:20261018 python3 -u /runtime-worker.py
+ExecStart=/usr/bin/docker run --rm --name kylo-subject-factory --network none --cpus 2 --memory 4g --memory-swap 4g --pids-limit 256 --shm-size 512m --read-only --tmpfs /tmp:rw,size=512m -e KYLO_ARCHIVE_STAGING=/archive/.factory-staging -v /opt/kylo-subject-factory/work:/work -v /var/brain/archive/videos/remotion-szakmai:/archive -v /opt/kylo-subject-factory/runtime-worker.py:/runtime-worker.py:ro kylo-subject-factory:20261018 python3 -u /runtime-worker.py
 ExecStop=/usr/bin/docker stop -t 30 kylo-subject-factory
 Restart=on-failure
 RestartPreventExitStatus=2

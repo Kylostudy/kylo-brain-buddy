@@ -232,7 +232,8 @@ elif [ ! -f /opt/kylo-subject-factory/releases/${SF_SHA:0:12}/.installed ]; then
   systemctl reset-failed kylo-subject-factory-install 2>/dev/null || true
   systemd-run --unit=kylo-subject-factory-install --collect bash /opt/kylo-subject-factory/safe-install.sh '$SF_SHA' && echo SF: telepítés elindítva
 else
-  SF_FIX=/opt/kylo-subject-factory/.staging-correction-v1-resumed
+  # v2: a staging ugyanabban a csatolásban van, mint az archívum (os.link EXDEV miatt)
+  SF_FIX=/opt/kylo-subject-factory/.staging-correction-v2-resumed
   if [ ! -e \$SF_FIX ] && systemctl is-failed --quiet kylo-subject-factory; then
     install -m 644 '$SF_SRC/kylo-subject-factory.service.reviewed' /etc/systemd/system/kylo-subject-factory.service
     systemctl daemon-reload
