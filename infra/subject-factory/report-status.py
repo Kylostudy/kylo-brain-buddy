@@ -77,7 +77,9 @@ def main():
                "detail": {"subject_factory": collect()}}
     req = urllib.request.Request(base + "/api/public/worker/heartbeat",
                                  data=json.dumps(payload).encode(), method="POST",
-                                 headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"})
+                                 # Cloudflare blocks the default "Python-urllib" agent before the request reaches Brain.
+                                 headers={"Authorization": "Bearer " + token, "Content-Type": "application/json",
+                                          "User-Agent": "kylo-subject-factory-report/1.0"})
     # Do not follow redirects with the credential header.
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
