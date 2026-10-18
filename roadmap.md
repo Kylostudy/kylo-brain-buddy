@@ -5,7 +5,8 @@
 - [x] Subject factory: konkrét letöltési hiba reprodukálása (ERR_INVALID_IP_ADDRESS), javítása és 10 teszt
 - [x] Subject factory: javított fogadó VPS-re juttatása és újrapróbálás (12:20-as frissítés sikeres; a 13:12-es új próba existing_file_conflict hibával megállt)
 - [x] Subject factory: ütköző, ellenőrizetlen csomagmappa automatikus félretétele (nem törlés), 11 teszt OK
-- [ ] Subject factory: valódi 17 fájl ellenőrzött átvétele, forrásvizsgálat és engedélyezett telepítés (csomag elküldve; teljes átvétel még sikertelen)
+- [x] Subject factory: 17 fájl átvéve; saját ellenőrzött telepítő (safe-install.sh) a deployba kötve
+- [ ] Subject factory: telepítés lefutásának igazolása a szervernaplóból
 - [ ] Subject factory: első új ötös adag, master-renderelés és szünet/újraindulás igazolása (várakozás: telepítés)
 
 - [x] Platformonként kizárni minden sütikeverést és hibás tartalék adatot
