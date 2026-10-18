@@ -133,8 +133,9 @@ export function verifyKylogicTaskRequest(
   }
 
   const secret = getTaskSecret();
+  const timestamp = ts;
   const expectedList = pathCandidates.map((p) =>
-    sign(secret, method, p, rawBody, ts!),
+    sign(secret, method, p, rawBody, timestamp),
   );
 
   const candidates: string[] = [];

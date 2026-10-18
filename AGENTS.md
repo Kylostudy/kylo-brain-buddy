@@ -10,3 +10,4 @@
 - Membership archives (membership_archive / membership_transcribe) keep media, transcripts and manifest.json only on the VPS volume (MEMBERSHIP_HOST_DIR → /membership); only small status results and text chunks for structuring leave the VPS, because the content is the owner's private paid material.
 - The Brain reaches the VPS file server only via its HTTPS hostname (vaultFileBaseUrl), never a bare IP, because Cloudflare Workers reject outbound fetches to raw IPs with 403.
 - worker/deploy.sh re-execs itself once right after git pull, because bash reads scripts lazily and a pull that rewrites deploy.sh corrupts the running instance.
+- Subject factory packages use a separate versioned HMAC-authorized task with a fixed tenant grant, host/file allowlists and exclusive checksum-verified finalization outside the archive; receipt never executes installers, because downloaded code requires independent review and deployment authorization.

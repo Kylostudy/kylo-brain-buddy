@@ -80,6 +80,11 @@ export const Route = createFileRoute("/api/public/cross/kylogic/task")({
         }
         const body = parsed;
 
+        if (body.task_type === "receive_subject_factory_package") {
+          const { receiveFactoryTask } = await import("@/lib/subject-factory-package.server");
+          return receiveFactoryTask(request, body);
+        }
+
         const idemp = request.headers.get("idempotency-key");
         if (idemp && idemp !== body.task_id) {
           return jsonError(400, "Idempotency-Key does not match task_id");

@@ -24,6 +24,7 @@ import { runRedditKarmaBuild } from "./reddit-karma-build.js";
 import { runSttMediaFetch } from "./stt-media-fetch.js";
 import { runSttCalibrate } from "./stt-calibrate.js";
 import { runArchiveVideo } from "./archive-video.js";
+import { runReceiveSubjectFactoryPackage } from "./receive-subject-factory-package.js";
 import { runLinkedInPost } from "./linkedin-post.js";
 import { runFacebookWarmup } from "./facebook-warmup.js";
 import { runInstagramWarmup } from "./instagram-warmup.js";
@@ -49,7 +50,7 @@ export function isBrainTask(spec) {
 
 /** Igaz → böngészőt kell nyitni a taszkhoz. */
 export function needsBrowser(brainTask) {
-  return !["ping", "stt_media_fetch", "stt_calibrate", "archive_video", "membership_transcribe"].includes(brainTask.task_type);
+  return !["ping", "stt_media_fetch", "stt_calibrate", "archive_video", "membership_transcribe", "receive_subject_factory_package"].includes(brainTask.task_type);
 }
 
 /**
@@ -78,6 +79,9 @@ export async function runBrainTask(args) {
 
     case "archive_video":
       return await runArchiveVideo({ brainTask, log: args.log });
+
+    case "receive_subject_factory_package":
+      return await runReceiveSubjectFactoryPackage({ brainTask, log: args.log });
 
     case "record_replay_login":
       return await runRecordReplay(args);

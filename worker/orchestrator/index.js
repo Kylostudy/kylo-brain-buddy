@@ -272,7 +272,11 @@ function runContainer(job) {
 
       // Videó-archívum: a VPS lemezén tartós könyvtár, a konténerben /archive.
       const archiveHostDir = process.env.ARCHIVE_HOST_DIR || "/var/brain/archive";
-      createArgs.push("-v", `${archiveHostDir}:/archive`, "-e", "ARCHIVE_ROOT=/archive");
+      const isPackageReceiver = job.spec?.brain_task?.task_type === "receive_subject_factory_package";
+      createArgs.push("-v", `${archiveHostDir}:/archive${isPackageReceiver ? ":ro" : ""}`, "-e", "ARCHIVE_ROOT=/archive");
+      if (isPackageReceiver) {
+        createArgs.push("-v", "/var/brain/factory-packages:/factory-packages", "-e", "FACTORY_PACKAGES_ROOT=/factory-packages", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "512m", "--pids-limit", "64");
+      }
       // STT-korpusz: nyers hang csak a VPS lemezén, soha nem megy felhőbe.
       const sttHostDir = process.env.STT_CORPUS_HOST_DIR || "/opt/brain/stt-corpus";
       createArgs.push("-v", `${sttHostDir}:/stt-corpus`, "-e", "STT_CORPUS_ROOT=/stt-corpus");
