@@ -84,10 +84,24 @@ export function verifyManifest(text, files) {
   const expected = files.filter((f) => f.name !== "SHA256SUMS");
   if (records.size !== 16 || expected.some((f) => records.get(f.name) !== f.sha256)) throw new Error("checksum_manifest_conflict");
 }
+// A failed (never verified) staging folder is moved aside, never deleted or
+// merged, so a fresh attempt can start. Verified packages are left untouched.
+export async function quarantineUnverifiedStaging(root, dir, log = () => {}) {
+  const stat = await fs.lstat(dir).catch((e) => { if (e.code === "ENOENT") return null; throw e; });
+  if (!stat) return null;
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("unsafe_staging_path");
+  const verified = await fs.lstat(path.join(dir, "receipt.json")).then(() => true, () => false);
+  if (verified) return null;
+  const aside = path.join(root, `.failed-${PACKAGE_ID}-${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID().slice(0, 8)}`);
+  await fs.rename(dir, aside);
+  log("warn", `Unverified staging folder moved aside: ${path.basename(aside)}`);
+  return aside;
+}
 export async function runReceiveSubjectFactoryPackage({ brainTask, log }) {
   const p = validatePackage(brainTask.payload);
   const root = process.env.FACTORY_PACKAGES_ROOT || "/factory-packages";
   const dir = path.join(root, PACKAGE_ID);
+  await quarantineUnverifiedStaging(root, dir, log);
   await ensureDirectory(dir);
   const identity = { version: 1, package_id: PACKAGE_ID, manifest_sha256: p.manifest_sha256, files: p.files.map(({ url, ...f }) => f).sort((a, b) => a.name.localeCompare(b.name)) };
   const identityText = JSON.stringify(identity);
