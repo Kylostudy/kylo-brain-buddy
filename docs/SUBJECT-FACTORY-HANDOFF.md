@@ -6,6 +6,8 @@ A tényleges 17 fájlos csomag átadása megtörtént: `subject-package-15c8067f
 
 2026-10-18 UTC ellenőrzés: 9 helyi csomagvédelmi teszt sikeres; az alkalmazás valódi HTTP kérésekkel 401-et adott aláírás nélkül, 403-at más tenantnak, 400-at hibás manifestre. Egy szerverfrissítés 11:54:30 UTC-kor sikerült (blue aktív), de ezt nem tekintjük az utána elkészült fogadó telepítési bizonyítékának. Az új fogadóhoz külön frissítési kérés készült: `18f3c22a-3fa0-4198-993c-f113e22feb23`; átvétele még nem bizonyított. Közvetlen VPS-es parancsvégrehajtási kapcsolat nincs igazolva; a meglévő, szűk frissítő és visszaküldött napló áll rendelkezésre. Root-telepítési végpontot nem nyitottunk.
 
+2026-10-18 12:18 UTC: a kért frissítés succeeded, de a napló szerint ismét a régi `14f2444` verziót építette, nem a most javított fogadót. A meglévő feladat feltételes újrapróbálása megtörtént (attempt_count=1), a normál dispatcher új futást indított (`3153f650-e06f-4ccb-a2b4-8506b7ac628f`), amely azonos hibával leállt. Újabb átvételt csak a javított verzió tényleges átvételének bizonyítéka után szabad indítani. A teljes 17 fájlos átvétel, telepítés és öt új videó továbbra sem igazolt.
+
 ## Kérés
 
 `POST https://brain.kylosystems.com/api/public/cross/kylogic/task`
