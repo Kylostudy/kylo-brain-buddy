@@ -218,6 +218,7 @@ mkdir -p /opt/kylo-subject-factory
 cp '$SF_SRC/safe-install.sh' /opt/kylo-subject-factory/safe-install.sh
 cp '$SF_SRC/kylo-subject-factory.service.reviewed' /opt/kylo-subject-factory/kylo-subject-factory.service.reviewed
 cp '$SF_SRC/report-status.py' /opt/kylo-subject-factory/report-status.py
+cp '$SF_SRC/runtime-worker.py' /opt/kylo-subject-factory/runtime-worker.py
 cp '$SF_SRC/kylo-subject-factory-report.service' '$SF_SRC/kylo-subject-factory-report.timer' /etc/systemd/system/
 mkdir -p /etc/systemd/system/kylo-subject-factory-report.service.d
 printf '[Service]\nEnvironment=WORKER_ENV_FILE=$WORKER_DIR/.env\n' > /etc/systemd/system/kylo-subject-factory-report.service.d/worker.conf
@@ -230,7 +231,18 @@ elif systemctl is-active --quiet kylo-subject-factory-install; then echo SF: tel
 elif [ ! -f /opt/kylo-subject-factory/releases/${SF_SHA:0:12}/.installed ]; then
   systemctl reset-failed kylo-subject-factory-install 2>/dev/null || true
   systemd-run --unit=kylo-subject-factory-install --collect bash /opt/kylo-subject-factory/safe-install.sh '$SF_SHA' && echo SF: telepítés elindítva
-else echo SF: telepítve, a gyártó áll: \$(systemctl is-active kylo-subject-factory); fi
+else
+  SF_FIX=/opt/kylo-subject-factory/.staging-correction-v1-resumed
+  if [ ! -e \$SF_FIX ] && systemctl is-failed --quiet kylo-subject-factory; then
+    install -m 644 '$SF_SRC/kylo-subject-factory.service.reviewed' /etc/systemd/system/kylo-subject-factory.service
+    systemctl daemon-reload
+    systemctl reset-failed kylo-subject-factory
+    if systemctl start kylo-subject-factory; then
+      touch \$SF_FIX
+      echo SF: mentési javítással újraindítás kérve, meglévő állapotból folytatva
+    else echo SF: újraindítás sikertelen; fi
+  else echo SF: telepítve, a gyártó áll: \$(systemctl is-active kylo-subject-factory); fi
+fi
 echo SF: napló: \$(tail -4 /var/log/kylo-subject-factory-install.log 2>/dev/null | tr '\n' ' ')
 echo SF: status: \$(head -c 600 /opt/kylo-subject-factory/work/status.json 2>/dev/null | tr '\n' ' ')
 "

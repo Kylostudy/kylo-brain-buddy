@@ -6,9 +6,11 @@
 - [x] Subject factory: javított fogadó VPS-re juttatása és újrapróbálás (12:20-as frissítés sikeres; a 13:12-es új próba existing_file_conflict hibával megállt)
 - [x] Subject factory: ütköző, ellenőrizetlen csomagmappa automatikus félretétele (nem törlés), 11 teszt OK
 - [x] Subject factory: 17 fájl átvéve; saját ellenőrzött telepítő (safe-install.sh) a deployba kötve
-- [ ] Subject factory: telepítés lefutásának igazolása a szervernaplóból
+- [x] Subject factory: telepítés lefutásának igazolása a szervernaplóból
 - [x] Subject factory: korlátozott, kitakart telepítési napló és gyártóállapot jelentő elkészült; 5 teszt és 11 archívumvédelmi próba sikeres
-- [ ] Subject factory: VPS-es naplójelentés első beérkezésének igazolása (várakozás: automatikus szerverfrissítés)
+- [x] Subject factory: VPS-es naplójelentés első beérkezésének igazolása
+- [x] Subject factory: szlovénnél jelentkező IndexError(3) oka javítva (a mentési tartalékút hibás, az archívum változatlan); egyszeri újraindítás a szerverfrissítésbe kötve
+- [ ] Subject factory: javítás VPS-re jutásának és a gyártás tényleges folytatásának igazolása (várakozás: automatikus szerverfrissítés)
 - [ ] Subject factory: első új ötös adag, master-renderelés és szünet/újraindulás igazolása (várakozás: telepítés)
 
 - [x] Platformonként kizárni minden sütikeverést és hibás tartalék adatot
