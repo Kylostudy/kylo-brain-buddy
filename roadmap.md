@@ -10,8 +10,9 @@
 - [x] Subject factory: korlátozott, kitakart telepítési napló és gyártóállapot jelentő elkészült; 5 teszt és 11 archívumvédelmi próba sikeres
 - [x] Subject factory: VPS-es naplójelentés első beérkezésének igazolása
 - [x] Subject factory: szlovénnél jelentkező IndexError(3) oka javítva (a mentési tartalékút hibás, az archívum változatlan); egyszeri újraindítás a szerverfrissítésbe kötve
-- [ ] Subject factory: javítás VPS-re jutásának és a gyártás tényleges folytatásának igazolása (várakozás: automatikus szerverfrissítés)
-- [ ] Subject factory: első új ötös adag, master-renderelés és szünet/újraindulás igazolása (várakozás: telepítés)
+- [x] Subject factory: szlovén mentési javítás VPS-en igazolva; kozgaz-21 összesen 26 nyelven ellenőrzött, köztük SL/HR/RO/SV/NO
+- [x] Subject factory: következő master indítási hibája reprodukálva (Chromium crashpad, írhatatlan HOME); írható HOME/XDG javítás és egyszeri újraindítás előkészítve
+- [ ] Subject factory: javított indítás VPS-es igazolása és következő új ötös adag (blokkoló: a 15:59 UTC frissítés még a régi 33845d6 kódot vette át, a HOME/XDG v3 javítás még nem jutott a szerverre; gyártó továbbra is failed)
 
 - [x] Platformonként kizárni minden sütikeverést és hibás tartalék adatot
 - [x] Tartós, munkafolyamatonként külön böngészőprofilt használni Live Browse-ban és futtatáskor
