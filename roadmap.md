@@ -1,5 +1,10 @@
 # Roadmap
 
+- [x] Önálló VPS-videógyár: feltöltött követelmények és friss szerverjelentés felmérése (2026-10-24 13:54 UTC; 1274 ellenőrzött videó, completed, service failed a lezárás után)
+- [ ] Önálló VPS-videógyár: közvetlen KyLogic feladatsor és gépi hitelesítés (blokkoló: KyLogic-oldali kapcsolat még nincs megvalósítva)
+- [ ] Önálló VPS-videógyár: meglévő recept exportja, IELTS 27 nyelvi csomag, biztonságos kezelő és tárolási illesztések (blokkoló: jóváhagyott receptcsomagok és valós host-felmérés szükséges)
+- [ ] Önálló VPS-videógyár: telepítés és hét valódi elfogadási próba (blokkoló: új kezelő nincs telepítve, közvetlen VPS-hozzáférés nincs igazolva)
+
 - [x] Subject factory: külön hitelesített csomagfogadó és 9 teszt, helyi HTTP 401/403/400 ellenőrzés
 - [x] Subject factory: KyLogic átadási leírás és teljes 17 fájlos JSON-példa
 - [x] Subject factory: konkrét letöltési hiba reprodukálása (ERR_INVALID_IP_ADDRESS), javítása és 10 teszt
