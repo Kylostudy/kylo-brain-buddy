@@ -15,6 +15,9 @@ ARCHIVE_SHA = '17fa4917d8c6a846e4402fd53c1ca5684b82373979dafca4c4d5b9b4157c5f9e'
 
 
 def verify_members(archive):
+    names = [item.filename for item in archive.infolist()]
+    if len(names) != len(set(names)):
+        raise ValueError('duplicate_member')
     for item in archive.infolist():
         p = Path(item.filename)
         if p.is_absolute() or '..' in p.parts or '.git' in p.parts or (item.external_attr >> 16) & 0o170000 == 0o120000:
@@ -30,6 +33,9 @@ def verify_members(archive):
 
 
 def exclusive_file(target, data):
+    for parent in [target.parent, *target.parents]:
+        if parent.is_symlink():
+            raise ValueError('symlink_destination')
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.is_symlink():
         raise ValueError('symlink_destination')
@@ -89,6 +95,7 @@ def main():
             for directory in [root, *[p for p in root.rglob('*') if p.is_dir()]]:
                 os.chmod(directory, 0o755)
         print('IELTS Czech recipe media verified', flush=True)
+        subprocess.run(['sha256sum', '--strict', '-c', 'SHA256SUMS'], cwd=source / 'ielts-renderer', check=True)
         subprocess.run(['docker', 'build', '--tag', 'kylo-ielts-promo:reviewed-v1', str(source / 'ielts-renderer')], check=True, timeout=1800)
         image = subprocess.check_output(['docker', 'image', 'inspect', '--format', '{{.Id}}', 'kylo-ielts-promo:reviewed-v1'], text=True).strip()
         if not image.startswith('sha256:'):

@@ -36,3 +36,11 @@ class TrialTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'existing_recipe_conflict'):
                 module.exclusive_file(target, b'changed')
             self.assertEqual(target.read_bytes(), b'original')
+
+    def test_symlink_parent_rejected(self):
+        with tempfile.TemporaryDirectory() as root:
+            link = Path(root) / 'link'
+            link.symlink_to(root, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, 'symlink_destination'):
+                module.exclusive_file(link / 'outside', b'blocked')
+            self.assertFalse((Path(root) / 'outside').exists())
