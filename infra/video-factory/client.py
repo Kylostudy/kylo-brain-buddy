@@ -26,7 +26,8 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 class Client:
     def __init__(self, origin, agent_id, secret):
         parsed = urlsplit(origin)
-        if parsed.scheme != "https" or parsed.username or parsed.password or parsed.port or parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        # KyLogic endpoint base, e.g. https://<project>.supabase.co/functions/v1/video-factory
+        if parsed.scheme != "https" or parsed.username or parsed.password or parsed.port or parsed.query or parsed.fragment:
             raise ValueError("https_origin_required")
         if len(secret) < 32:
             raise ValueError("dedicated_machine_secret_required")
@@ -38,7 +39,7 @@ class Client:
         path = PREFIX + "/" + operation
         body = canonical(payload)
         nonce, timestamp = str(uuid.uuid4()), str(int(time.time()))
-        request = urllib.request.Request(self.origin + path, data=body, method="POST", headers={
+        request = urllib.request.Request(self.origin + "/" + operation, data=body, method="POST", headers={
             "Content-Type": "application/json", "User-Agent": "kylo-video-factory/1.0", "X-Factory-Agent": self.agent_id,
             "X-Factory-Timestamp": timestamp, "X-Factory-Nonce": nonce,
             "X-Factory-Signature": signature(self.secret, timestamp, nonce, "POST", path, body)})

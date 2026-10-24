@@ -4,7 +4,7 @@
 
 ## Gépi kapcsolat
 
-Csak a VPS kezdeményez HTTPS-t a konfigurált KyLogic origin felé. Fix prefix: `/api/public/video-factory/v1`. POST végpontok:
+Csak a VPS kezdeményez HTTPS-t a konfigurált KyLogic origin felé. A konfigurált origin tartalmazhat alapútvonalat is (jelenleg `https://yqhipzwmgpopelfcenie.supabase.co/functions/v1/video-factory`); a kérés az `origin + "/" + operation` címre megy. Az aláírt üzenetben a path továbbra is a fix logikai prefix: `/api/public/video-factory/v1/<operation>` — a KyLogic ezt ellenőrzi, függetlenül a tényleges URL-útvonaltól. POST végpontok:
 
 - `/claim`: `{schema_version:1, capabilities:["data-recipes-v1"],batch_size:5,concurrency:1}` → `{schema_version:1,command:null|Command}`.
 - `/events`: egy outbox Event → `{schema_version:1,acknowledged_event_id:UUID}`; csak tartós mentés után nyugtázható.
