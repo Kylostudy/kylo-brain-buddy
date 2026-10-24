@@ -2,7 +2,7 @@
 
 - [x] Önálló VPS-videógyár: feltöltött követelmények és friss szerverjelentés felmérése (2026-10-24 13:54 UTC; 1274 ellenőrzött videó, completed, service failed a lezárás után)
 - [ ] Önálló VPS-videógyár: közvetlen KyLogic feladatsor és gépi hitelesítés (blokkoló: KyLogic-oldali kapcsolat még nincs megvalósítva)
-- [x] Önálló VPS-videógyár: előkészítő kezelő, helyi tartós feladatsor, aláírt kifelé kapcsolódó kliens, recept-/jóváhagyási szabályok, helyi archívum, telepítő és kapcsolódási dokumentáció; 18 új szabályteszt sikeres
+- [x] Önálló VPS-videógyár: előkészítő kezelő, helyi tartós feladatsor, aláírt kifelé kapcsolódó kliens, recept-/jóváhagyási szabályok, helyi archívum, telepítő és kapcsolódási dokumentáció; 20 új szabályteszt és 13 meglévő/regressziós teszt sikeres; tiszta ZIP átadva
 - [x] Subject factory: completed nyugta megakadályozza az újraindítást, hiányzó auto-removed konténer normál lezárásnak számít; három regressziós teszt sikeres
 - [ ] Önálló VPS-videógyár: meglévő recept exportja és IELTS 27 nyelvi csomag (blokkoló: a jóváhagyott eredeti csomagok nem érkeztek meg)
 - [ ] Önálló VPS-videógyár: valódi host-felmérés, átvizsgált renderer, médiacsomag-transzfer, publikálási olvasás és Telegram-bekötés (blokkoló: védett KyLogic-kapcsolat, host-hozzáférés és jóváhagyott runtime szükséges)
