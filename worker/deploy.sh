@@ -290,6 +290,17 @@ fi
 echo VF: állapot: \$(ls /opt/kylo-video-factory/releases/ 2>/dev/null | tr '\n' ' ')
 python3 /opt/kylo-video-factory/provision-host.py '$WORKER_DIR/.env'
 echo VF: szolgáltatás: \$(systemctl is-active kylo-video-factory 2>&1 || true)
+if [ -f '$VF_SRC/prepare-ielts-trial.py' ]; then
+  if systemctl is-active --quiet kylo-ielts-trial-prepare.service || systemctl is-active --quiet kylo-ielts-trial.service; then
+    echo VF: cseh próba már folyamatban
+  else
+    systemd-run --unit=kylo-ielts-trial-prepare --collect --property=Type=exec --property=Restart=no \
+      --property=StandardOutput=append:/var/log/kylo-ielts-trial-install.log \
+      --property=StandardError=append:/var/log/kylo-ielts-trial-install.log \
+      /usr/bin/python3 -u '$VF_SRC/prepare-ielts-trial.py' '$VF_SRC' '$VF_VER'
+    echo VF: egyetlen cseh próbavideó előkészítése kérve
+  fi
+fi
 "
   if [ "$(id -u)" = "0" ]; then
     VF_OUT="$(sh -c "$VF_SCRIPT" 2>&1)" || true
