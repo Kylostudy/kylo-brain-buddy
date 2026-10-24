@@ -66,6 +66,8 @@ class State:
                 manifest = json.loads(recipe["manifest"])
                 mode = "trial" if op == "trial" else "series"
                 if mode == "series":
+                    if manifest["recipe_id"] == "ielts-cs-trial":
+                        raise ValueError("trial_only_recipe")
                     trial = db.execute("SELECT * FROM jobs WHERE recipe=? AND version=? AND mode='trial' AND status='completed'", (p["recipe_id"], p["version"])).fetchone()
                     approval = p["approval"]
                     if not trial or recipe["hash"] != approval["recipe_sha256"] or digest(json.loads(trial["trial_receipt"])) != approval["trial_receipt_sha256"]:

@@ -57,7 +57,10 @@ def validate_recipe(raw):
         raise ValueError("invalid_languages")
     for language in languages:
         identifier(language)
-    if raw["series"] == "ielts" and len(languages) != 27:
+    if raw["series"] == "ielts" and len(languages) != 27 and not (
+        raw["recipe_id"] == "ielts-cs-trial" and languages == ["cs"]
+        and isinstance(raw["videos"], list) and len(raw["videos"]) == 1
+    ):
         raise ValueError("ielts_requires_27_languages")
     files = raw["files"]
     if not isinstance(files, list) or not 1 <= len(files) <= 10000:

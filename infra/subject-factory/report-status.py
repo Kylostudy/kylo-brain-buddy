@@ -52,6 +52,10 @@ def collect():
         "install_journal": command(["journalctl", "-u", UNITS[0], "-n", "30", "--no-pager", "-o", "short-iso"]),
         "factory_journal": command(["journalctl", "-u", UNITS[1], "-n", "20", "--no-pager", "-o", "short-iso"]),
         "production_status": tail_file("/opt/kylo-subject-factory/work/status.json"),
+        "ielts_trial_install": tail_file("/var/log/kylo-ielts-trial-install.log"),
+        "ielts_trial_status": tail_file("/var/lib/kylo-video-factory/ielts-trial-status.json"),
+        "ielts_trial_unit": command(["systemctl", "show", "kylo-ielts-trial.service", "--no-pager", "--property=LoadState,ActiveState,SubState,Result,ExecMainStatus"]),
+        "ielts_trial_journal": command(["journalctl", "-u", "kylo-ielts-trial.service", "-n", "15", "--no-pager", "-o", "short-iso"]),
     }
 
 
