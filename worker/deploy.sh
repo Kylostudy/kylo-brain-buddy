@@ -219,6 +219,8 @@ cp '$SF_SRC/safe-install.sh' /opt/kylo-subject-factory/safe-install.sh
 cp '$SF_SRC/kylo-subject-factory.service.reviewed' /opt/kylo-subject-factory/kylo-subject-factory.service.reviewed
 cp '$SF_SRC/report-status.py' /opt/kylo-subject-factory/report-status.py
 cp '$SF_SRC/runtime-worker.py' /opt/kylo-subject-factory/runtime-worker.py
+cp '$SF_SRC/completion-state.py' /opt/kylo-subject-factory/completion-state.py
+cp '$SF_SRC/stop-container.py' /opt/kylo-subject-factory/stop-container.py
 cp '$SF_SRC/kylo-subject-factory-report.service' '$SF_SRC/kylo-subject-factory-report.timer' /etc/systemd/system/
 mkdir -p /etc/systemd/system/kylo-subject-factory-report.service.d
 printf '[Service]\nEnvironment=WORKER_ENV_FILE=$WORKER_DIR/.env\n' > /etc/systemd/system/kylo-subject-factory-report.service.d/worker.conf
@@ -231,6 +233,12 @@ elif systemctl is-active --quiet kylo-subject-factory-install; then echo SF: tel
 elif [ ! -f /opt/kylo-subject-factory/releases/${SF_SHA:0:12}/.installed ]; then
   systemctl reset-failed kylo-subject-factory-install 2>/dev/null || true
   systemd-run --unit=kylo-subject-factory-install --collect bash /opt/kylo-subject-factory/safe-install.sh '$SF_SHA' && echo SF: telepítés elindítva
+elif python3 /opt/kylo-subject-factory/completion-state.py; then
+  # Completed receipts are not permission to restart or regenerate the series.
+  install -m 644 '$SF_SRC/kylo-subject-factory.service.reviewed' /etc/systemd/system/kylo-subject-factory.service
+  systemctl daemon-reload
+  systemctl reset-failed kylo-subject-factory 2>/dev/null || true
+  echo SF: gyártási sor befejezve, nincs újraindítás vagy újragyártás
 else
   # v3: Chromium crashpad írható HOME/XDG könyvtárat kap a meglévő /tmp-ben.
   # A kész videók és a folytatáshoz használt nyilvántartás változatlan marad.

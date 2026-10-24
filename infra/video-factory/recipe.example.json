@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "recipe_id": "test-professional",
+  "version": "v1",
+  "renderer": "reviewed-renderer",
+  "series": "professional",
+  "languages": [
+    "en"
+  ],
+  "files": [
+    {
+      "key": "audio",
+      "bytes": 4,
+      "sha256": "3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7"
+    },
+    {
+      "key": "master",
+      "bytes": 4,
+      "sha256": "3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7"
+    }
+  ],
+  "videos": [
+    {
+      "video_id": "lesson-en",
+      "language": "en",
+      "width": 1080,
+      "height": 1920,
+      "duration_ms": 10000,
+      "scene": "approved-scene",
+      "text": "Example",
+      "subtitle": "Example",
+      "cta": "Example",
+      "audio": "audio",
+      "master": "master",
+      "timing": [
+        {
+          "start_ms": 0,
+          "end_ms": 10000
+        }
+      ]
+    }
+  ]
+}

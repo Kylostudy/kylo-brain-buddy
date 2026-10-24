@@ -29,6 +29,10 @@ export const Route = createFileRoute("/_authenticated/proxies")({
   head: () => ({
     meta: [
       { title: "Proxyk — Kylo Brain" },
+      { property: "og:title", content: "Proxyk — Kylo Brain" },
+      { property: "og:description", content: "A Kylo Brain munkafolyamatok proxykapcsolatainak kezelése." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:

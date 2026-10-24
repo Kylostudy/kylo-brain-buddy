@@ -22,6 +22,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/inbox")({
+  head: () => ({ meta: [
+    { title: "Reddit Inbox — Kylo Brain" },
+    { name: "description", content: "Reddit kommentek, fordítások és kézi válaszok kezelése a Kylo Brainben." },
+    { property: "og:title", content: "Reddit Inbox — Kylo Brain" },
+    { property: "og:description", content: "Reddit kommentek és kézi válaszok kezelése." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: InboxPage,
 });
 

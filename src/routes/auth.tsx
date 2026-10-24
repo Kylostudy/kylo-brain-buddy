@@ -18,7 +18,14 @@ import {
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
-    meta: [{ title: "Bejelentkezés — KyloBrain" }],
+    meta: [
+      { title: "Bejelentkezés — KyloBrain" },
+      { name: "description", content: "Bejelentkezés a KyloBrain munkafolyamat-kezelőbe." },
+      { property: "og:title", content: "Bejelentkezés — KyloBrain" },
+      { property: "og:description", content: "Bejelentkezés a KyloBrain munkafolyamat-kezelőbe." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
   }),
   component: AuthPage,
 });
