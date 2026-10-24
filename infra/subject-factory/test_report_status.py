@@ -33,7 +33,7 @@ class DiagnosticsTests(unittest.TestCase):
             result = report.collect()
             self.assertEqual(set(result["units"]), {"kylo-subject-factory-install.service", "kylo-subject-factory.service"})
             self.assertEqual([c.args[0] for c in files.call_args_list], ["/var/log/kylo-subject-factory-install.log", "/opt/kylo-subject-factory/work/status.json", "/var/log/kylo-ielts-trial-install.log", "/var/lib/kylo-video-factory/ielts-trial-status.json"])
-            self.assertEqual(len(commands.call_args_list), 6)
+            self.assertEqual(len(commands.call_args_list), 8)
             self.assertTrue(all(c.args[0][0] in ("systemctl", "journalctl") for c in commands.call_args_list))
 
     def test_config_is_data_not_shell(self):

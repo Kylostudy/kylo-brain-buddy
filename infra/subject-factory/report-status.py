@@ -56,6 +56,8 @@ def collect():
         "ielts_trial_status": tail_file("/var/lib/kylo-video-factory/ielts-trial-status.json"),
         "ielts_trial_unit": command(["systemctl", "show", "kylo-ielts-trial.service", "--no-pager", "--property=LoadState,ActiveState,SubState,Result,ExecMainStatus"]),
         "ielts_trial_journal": command(["journalctl", "-u", "kylo-ielts-trial.service", "-n", "15", "--no-pager", "-o", "short-iso"]),
+        "video_factory_unit": command(["systemctl", "show", "kylo-video-factory.service", "--no-pager", "--property=LoadState,ActiveState,SubState,Result,ExecMainStatus,UnitFileState"]),
+        "video_factory_journal": command(["journalctl", "-u", "kylo-video-factory.service", "-n", "30", "--no-pager", "-o", "short-iso"]),
     }
 
 

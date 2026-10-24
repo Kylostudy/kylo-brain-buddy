@@ -127,7 +127,13 @@ def main():
     secret_path = Path("/etc/kylo-video-factory/machine-secret")
     if secret_path.stat().st_mode & 0o077:
         raise RuntimeError("machine_secret_permissions")
-    client = Client(config["kylogic_origin"], config["agent_id"], secret_path.read_text().strip())
+    secret = secret_path.read_text().strip()
+    client = Client(config["kylogic_origin"], config["agent_id"], secret)
+    # Only a short one-way fingerprint and length are printed, never the secret itself.
+    import hashlib
+    print("manager start: agent_id=%s origin=%s secret_len=%d secret_sha256_8=%s takeover=%s renderers=%s" % (
+        config["agent_id"], config["kylogic_origin"], len(secret), hashlib.sha256(secret.encode()).hexdigest()[:8],
+        config.get("takeover_approved"), ",".join(sorted(config.get("renderers", {})))), flush=True)
     state = State(Path(config["work_root"]) / "state.sqlite3", LocalArchive(config["archive_root"]))
     runner = Runner(config, state)
     inputs = Inputs(config["recipe_root"], client, runner.archive)
@@ -152,9 +158,16 @@ def main():
                             inputs.prepare(command["payload"])
                         state.apply(command)
                     last_claim = time.time()
-            except Exception:
-                # Do not log remote payloads, URLs or exception details.
-                print("KyLogic connection or command unavailable; durable work preserved", flush=True)
+            except Exception as e:
+                # Only the error class / HTTP status / own error code; never payloads or bodies.
+                import urllib.error
+                if isinstance(e, urllib.error.HTTPError):
+                    reason = "http_%d" % e.code
+                elif isinstance(e, ValueError) and str(e).replace("_", "").isalnum() and len(str(e)) < 60:
+                    reason = str(e)
+                else:
+                    reason = type(e).__name__
+                print("KyLogic connection or command unavailable (%s); durable work preserved" % reason, flush=True)
             runner.run_one()
             time.sleep(random.uniform(5, 10))
 

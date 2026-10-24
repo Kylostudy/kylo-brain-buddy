@@ -12,7 +12,7 @@ VERSION="$(sha256sum SHA256SUMS | cut -c1-16)"
 REL="/opt/kylo-video-factory/releases/$VERSION"
 if [ ! -d "$REL" ]; then
   mkdir -p "$REL"
-  for file in contract.py storage.py verify.py state.py client.py agent.py inventory.py config.example.json kylo-video-factory.service SHA256SUMS; do
+  for file in contract.py storage.py verify.py state.py client.py agent.py inventory.py inputs.py config.example.json kylo-video-factory.service SHA256SUMS; do
     install -m 644 "$SRC/$file" "$REL/$file"
   done
 fi
