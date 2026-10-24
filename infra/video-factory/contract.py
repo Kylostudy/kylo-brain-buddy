@@ -80,6 +80,8 @@ def validate_recipe(raw):
             object_key(receipt.get("object_key"))
         if completed & set(languages) or completed | set(languages) != IELTS_LANGUAGES:
             raise ValueError("continuation_must_cover_27_without_repeats")
+        if set(languages) != CONTINUATION_LANGUAGES:
+            raise ValueError("continuation_languages_restricted")
     if raw["series"] == "ielts" and continuation is None and len(languages) != 27 and not (raw["recipe_id"] == "ielts-cs-trial" and languages == ["cs"] and len(raw["videos"]) == 1):
         raise ValueError("ielts_requires_27_languages")
     files = raw["files"]
