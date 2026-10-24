@@ -314,6 +314,9 @@ if [ -f '$VF_SRC/prepare-ielts-continuation.py' ]; then
     echo 'VF: IELTS folytatás előkészítése kérve - 4 kész videó archiválása, 11 hang'
   fi
 fi
+if [ -f '$VF_SRC/activate-manager.sh' ]; then
+  bash '$VF_SRC/activate-manager.sh' '$VF_VER' 2>&1 || echo VF-AKT: aktiválás megállt
+fi
 "
   if [ "$(id -u)" = "0" ]; then
     VF_OUT="$(sh -c "$VF_SCRIPT" 2>&1)" || true
