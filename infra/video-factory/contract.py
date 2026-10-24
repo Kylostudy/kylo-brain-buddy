@@ -14,6 +14,9 @@ OPERATIONS = {"register_recipe", "trial", "start_series", "status", "preview", "
 ID = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}\Z")
 SHA = re.compile(r"[a-f0-9]{64}\Z")
 IELTS_LANGUAGES = set("en de nl fr ja es pt it ko pl no sv cs tr sk sl da fi ar hi sr ru ro hr el hu zh".split())
+# Owner policy 2026-10-24: a continuation may only manufacture these 11 missing
+# languages; the other 16 must arrive as verified archive receipts, never re-rendered.
+CONTINUATION_LANGUAGES = set("ar da hi ja ko ru sk sl sr sv tr".split())
 
 
 def canonical(value):
