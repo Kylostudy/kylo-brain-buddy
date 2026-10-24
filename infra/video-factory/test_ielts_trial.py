@@ -57,9 +57,9 @@ def failed_trial(root):
     state = State(Path(root) / 'state.sqlite3')
     with state.transaction() as db:
         db.execute("INSERT INTO recipes VALUES('ielts-cs-trial','v1','h','{}')")
-        db.execute("INSERT INTO jobs(id,recipe,version,mode,status,attempts) VALUES('job-1','ielts-cs-trial','v1','trial','failed',1)")
-        state.emit(db, 'final_error', 'job-1', {'code': 'render_or_verification_failed'})
-    scratch = Path(root) / 'job-1' / '0'
+        db.execute("INSERT INTO jobs(id,recipe,version,mode,status,attempts) VALUES('0f1e2d3c-4b5a-4968-8776-655443322110','ielts-cs-trial','v1','trial','failed',1)")
+        state.emit(db, 'final_error', '0f1e2d3c-4b5a-4968-8776-655443322110', {'code': 'render_or_verification_failed'})
+    scratch = Path(root) / '0f1e2d3c-4b5a-4968-8776-655443322110' / '0'
     scratch.mkdir(parents=True)
     (scratch / 'output.mp4').write_bytes(b'stale-shortened-render')
     return state
@@ -70,7 +70,7 @@ class TrialRetryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             state = failed_trial(root)
             self.assertTrue(trial.retry_failed_trial(state, {'work_root': root}))
-            self.assertFalse((Path(root) / 'job-1').exists())
+            self.assertFalse((Path(root) / '0f1e2d3c-4b5a-4968-8776-655443322110').exists())
             with state.transaction() as db:
                 self.assertEqual(db.execute("SELECT status FROM jobs").fetchone()[0], 'queued')
                 db.execute("UPDATE jobs SET status='failed', attempts=2")
@@ -82,12 +82,12 @@ class TrialRetryTests(unittest.TestCase):
             with state.transaction() as db:
                 db.execute("INSERT INTO outputs VALUES('ielts-cs-trial/v1/ielts-cs','{}')")
             self.assertFalse(trial.retry_failed_trial(state, {'work_root': root}))
-            self.assertTrue((Path(root) / 'job-1' / '0' / 'output.mp4').exists())
+            self.assertTrue((Path(root) / '0f1e2d3c-4b5a-4968-8776-655443322110' / '0' / 'output.mp4').exists())
 
     def test_last_error_code_reported(self):
         with tempfile.TemporaryDirectory() as root:
             state = failed_trial(root)
-            self.assertEqual(trial.last_error(state, 'job-1'), 'render_or_verification_failed')
+            self.assertEqual(trial.last_error(state, '0f1e2d3c-4b5a-4968-8776-655443322110'), 'render_or_verification_failed')
 
 
 if __name__ == '__main__':
