@@ -15,6 +15,7 @@ from contract import canonical
 from state import State
 from storage import LocalArchive, checksum, safe_path
 from verify import verify_video
+from inputs import Inputs
 
 
 class Runner:
@@ -127,8 +128,9 @@ def main():
     if secret_path.stat().st_mode & 0o077:
         raise RuntimeError("machine_secret_permissions")
     client = Client(config["kylogic_origin"], config["agent_id"], secret_path.read_text().strip())
-    state = State(Path(config["work_root"]) / "state.sqlite3")
+    state = State(Path(config["work_root"]) / "state.sqlite3", LocalArchive(config["archive_root"]))
     runner = Runner(config, state)
+    inputs = Inputs(config["recipe_root"], client, runner.archive)
     # Exclusive manager lock persists across process life, including network outages.
     with open(Path(config["work_root"]) / "manager.lock", "a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -141,9 +143,13 @@ def main():
                         state.acknowledge(event["event_id"])
                 if time.time() - last_claim >= 20:
                     client.request("heartbeat", {"schema_version": 1, "agent_id": config["agent_id"], "takeover_approved": config["takeover_approved"], "pending_events": len(state.pending())})
-                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1"], "batch_size": 5, "concurrency": 1})
+                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")
                     if command is not None:
+                        from contract import validate_command
+                        validate_command(command)
+                        if command["operation"] == "register_recipe":
+                            inputs.prepare(command["payload"])
                         state.apply(command)
                     last_claim = time.time()
             except Exception:

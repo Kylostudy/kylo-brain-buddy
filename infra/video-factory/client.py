@@ -34,7 +34,7 @@ class Client:
         self.origin, self.agent_id, self.secret = origin.rstrip("/"), agent_id, secret
 
     def request(self, operation, payload):
-        if operation not in {"claim", "events", "heartbeat"}:
+        if operation not in {"claim", "events", "heartbeat", "assets"}:
             raise ValueError("endpoint_not_allowed")
         path = PREFIX + "/" + operation
         body = canonical(payload)

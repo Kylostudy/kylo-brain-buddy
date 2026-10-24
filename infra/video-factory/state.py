@@ -9,8 +9,9 @@ from contract import BATCH_SIZE, MAX_ATTEMPTS, canonical, digest, validate_comma
 
 
 class State:
-    def __init__(self, path):
+    def __init__(self, path, archive=None):
         self.path = str(path)
+        self.archive = archive
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         with self.transaction() as db:
             db.executescript("""
@@ -68,10 +69,22 @@ class State:
                 if mode == "series":
                     if manifest["recipe_id"] == "ielts-cs-trial":
                         raise ValueError("trial_only_recipe")
-                    trial = db.execute("SELECT * FROM jobs WHERE recipe=? AND version=? AND mode='trial' AND status='completed'", (p["recipe_id"], p["version"])).fetchone()
+                    continuation = manifest.get("continuation")
+                    source_id = continuation["trial_recipe_id"] if continuation else p["recipe_id"]
+                    source_version = continuation["trial_version"] if continuation else p["version"]
+                    source = db.execute("SELECT manifest FROM recipes WHERE id=? AND version=?", (source_id, source_version)).fetchone()
+                    if continuation:
+                        if self.archive is None or not all(self.archive.verify(item["receipt"]) for item in continuation["completed"]):
+                            raise ValueError("completed_archive_unverified")
+                        source_manifest = json.loads(source["manifest"]) if source else {}
+                        if source_manifest.get("renderer") != manifest["renderer"] or source_manifest.get("series") != manifest["series"] or {v["scene"] for v in source_manifest.get("videos", [])} != {v["scene"] for v in manifest["videos"]}:
+                            raise ValueError("continuation_renderer_mismatch")
+                    trial = db.execute("SELECT * FROM jobs WHERE recipe=? AND version=? AND mode='trial' AND status='completed'", (source_id, source_version)).fetchone()
                     approval = p["approval"]
                     if not trial or recipe["hash"] != approval["recipe_sha256"] or digest(json.loads(trial["trial_receipt"])) != approval["trial_receipt_sha256"]:
                         raise ValueError("verified_trial_approval_required")
+                    if continuation and not any(digest(item["receipt"]) == approval["trial_receipt_sha256"] for item in continuation["completed"]):
+                        raise ValueError("trial_receipt_not_preserved")
                     if not 0 < approval["approved_at"] <= int(time.time()) + 60:
                         raise ValueError("invalid_approval_time")
                     if manifest["series"] not in {"professional", "ielts"}:
