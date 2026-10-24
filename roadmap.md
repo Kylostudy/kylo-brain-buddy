@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Cseh IELTS próba: kizárólag egy VPS-es videó, ellenőrzött csomagátvétel, helyi képépítés, egyszeri indítás és archivált eredmény igazolása; nincs sorozat és publikálás.
+- [x] Cseh IELTS próba: ellenőrzött médiacsomag, átvizsgált gyártó, egyetlen videóra korlátozott indítás és védett jelentések előkészítve; 28 gyártóteszt és 5 jelentőteszt sikeres.
+- [ ] Cseh IELTS próba: VPS-es átvétel, indítás és archivált eredmény igazolása; blokkoló: a 16:59-es kért frissítés még a korábbi 0d8380f kódot vette át, az új indítási kód publikálása szükséges. Nincs sorozat vagy közösségi publikálás.
 
 - [x] Önálló VPS-videógyár: feltöltött követelmények és friss szerverjelentés felmérése (2026-10-24 13:54 UTC; 1274 ellenőrzött videó, completed, service failed a lezárás után)
 - [ ] Önálló VPS-videógyár: közvetlen KyLogic feladatsor és gépi hitelesítés (blokkoló: KyLogic-oldali kapcsolat még nincs megvalósítva)
