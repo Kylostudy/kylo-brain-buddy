@@ -82,10 +82,9 @@ class Runner:
         # Only the renderer's scratch directory is writable by its unprivileged UID.
         os.chown(work, 65532, 65532)
         os.chmod(work, 0o700)
-        request = work / "request.json"
+        request = work.parent / (str(job["cursor"]) + ".request.json")
         request.write_bytes(canonical({"manifest": manifest, "video": video}))
-        os.chown(request, 65532, 65532)
-        os.chmod(request, 0o600)
+        os.chmod(request, 0o644)
         # Recovered crash: verify existing output instead of re-rendering it.
         output = work / "output.mp4"
         if not output.exists():
@@ -94,7 +93,7 @@ class Runner:
                 "--memory-swap", self.config["memory"], "--pids-limit", "256", "--read-only", "--cap-drop", "ALL",
                 "--security-opt", "no-new-privileges", "--user", "65532:65532", "--shm-size", "512m",
                 "--tmpfs", "/tmp:rw,size=512m", "-e", "HOME=/tmp", "-e", "XDG_CONFIG_HOME=/tmp/.config", "-e", "XDG_CACHE_HOME=/tmp/.cache",
-                "-v", str(recipe_root) + ":/recipe:ro", "-v", str(work) + ":/work:rw",
+                "-v", str(recipe_root) + ":/recipe:ro", "-v", str(request) + ":/request.json:ro", "-v", str(work) + ":/work:rw",
                 renderer["image"]], check=True, timeout=7200, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # Renderer is gone; open without symlink following and copy to manager-only scratch.
         fd = os.open(output, os.O_RDONLY | os.O_NOFOLLOW)

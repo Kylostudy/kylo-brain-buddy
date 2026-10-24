@@ -16,7 +16,9 @@ A csomag SHA256SUMS állományát függetlenül ellenőrizni/jóváhagyni kell. 
 2. Hoston, jóváhagyott rendszergazdai lépéssel: `sudo bash install.sh`. Új release könyvtárba másol, inventory.json készül. **Nem aktivál, nem indít és nem állít le semmit.**
 3. A felmérés alapján állítsd be a tartalékot, CPU/memóriát és igazold a csatolásokat. A példában 20 GiB/80% és 2 CPU/4 GB csak előzetes, óvatos korlát, nem teljes host-felmérés eredménye.
 4. KyLogic védett végpontjai és külön titok: `/etc/kylo-video-factory/machine-secret`, 0600, minimum 32 karakter. A Brain worker/KyLogic közös titkát nem használjuk újra.
-5. A gyártóképet külön átvizsgálás és próbafuttatás után rögzítsd digesttel; `renderers` csak helyi, jóváhagyott konfiguráció. Szerződés: `/work/request.json`, `/recipe` csak olvasható média, `/work/output.mp4`; 65532:65532 felhasználó, hálózat nélkül. Nincs távoli entrypoint/shell/futtatható parancs.
+5. A gyártóképet külön átvizsgálás és próbafuttatás után rögzítsd digesttel; `renderers` csak helyi, jóváhagyott konfiguráció. Szerződés: csak olvasható `/request.json` és `/recipe`, írható `/work/output.mp4`; 65532:65532 felhasználó, hálózat nélkül. A kimenetet a kezelő symlink követése nélkül, saját mappába másolva ellenőrzi.
+
+**Tulajdonosi jóváhagyás blokkoló:** a VPS a recept/próbavideó kötését ellenőrzi, a webes tulajdonost nem tudja önállóan hitelesíteni. Éles sorozathoz igazolt KyLogic-oldali tulajdonosi ellenőrzés szükséges.
 6. Igazoltan lezárt/szünetelt régi gyártó; minden gyártó közös `/run/lock/kylo-video-production.lock` zárolást használjon. A régi recipe átadását és archívumát checksumokkal igazolni kell. `takeover_approved` addig false.
 7. Az aktiválási symlink és a systemd egység telepítése külön jóváhagyott hostművelet; előbb az elkülönített próbavideó és a kapcsolódás vizsgálata szükséges. A mellékelt installer szándékosan nem végzi el.
 
