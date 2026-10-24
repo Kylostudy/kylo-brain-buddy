@@ -76,6 +76,22 @@ class PolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "verified_trial_approval_required"):
             self.state.apply(command("start_series", {"recipe_id": self.recipe["recipe_id"], "version": "v1", "approval": approval}))
 
+    def test_expired_lease_cannot_commit_or_renew(self):
+        self.trial()
+        job = self.state.claim(now=100)
+        self.assertFalse(self.state.heartbeat(job["id"], job["lease"]))
+        with self.assertRaisesRegex(ValueError, "lease_lost"):
+            self.state.finish_video(job, "test/v1/video", {})
+
+    def test_repeated_crashes_stop_after_three_leases(self):
+        self.trial()
+        for now in (100, 281, 462):
+            self.assertIsNotNone(self.state.claim(now=now))
+        self.assertIsNone(self.state.claim(now=643))
+        with self.state.transaction() as db:
+            job = db.execute("SELECT status,attempts FROM jobs").fetchone()
+            self.assertEqual((job["status"], job["attempts"]), ("failed", 3))
+
     def test_approval_is_bound_to_completed_trial(self):
         self.trial()
         job = self.state.claim()

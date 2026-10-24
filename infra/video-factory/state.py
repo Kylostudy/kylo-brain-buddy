@@ -106,7 +106,12 @@ class State:
     def claim(self, now=None):
         now = int(time.time()) if now is None else now
         with self.transaction() as db:
-            db.execute("UPDATE jobs SET status=CASE WHEN status='paused' THEN 'paused' ELSE 'queued' END, lease=NULL,expires=NULL WHERE lease IS NOT NULL AND expires<?", (now,))
+            expired = db.execute("SELECT * FROM jobs WHERE lease IS NOT NULL AND expires<?", (now,)).fetchall()
+            for stale in expired:
+                attempts = stale["attempts"] + 1
+                status = "failed" if attempts >= MAX_ATTEMPTS else ("paused" if stale["status"] == "paused" else "queued")
+                db.execute("UPDATE jobs SET status=?,attempts=?,lease=NULL,expires=NULL WHERE id=?", (status, attempts, stale["id"]))
+                self.emit(db, "final_error" if status == "failed" else "lease_recovered", stale["id"], {"code": "lease_expired", "attempts": attempts})
             if db.execute("SELECT 1 FROM jobs WHERE lease IS NOT NULL").fetchone():
                 return None
             row = db.execute("SELECT j.*,r.manifest,r.hash FROM jobs j JOIN recipes r ON r.id=j.recipe AND r.version=j.version WHERE j.status='queued' ORDER BY j.rowid LIMIT 1").fetchone()
@@ -118,7 +123,8 @@ class State:
 
     def heartbeat(self, jid, lease):
         with self.transaction() as db:
-            return db.execute("UPDATE jobs SET expires=? WHERE id=? AND lease=?", (int(time.time()) + 180, jid, lease)).rowcount == 1
+            now = int(time.time())
+            return db.execute("UPDATE jobs SET expires=? WHERE id=? AND lease=? AND expires>=? AND status IN ('rendering','paused')", (now + 180, jid, lease, now)).rowcount == 1
 
     def output(self, video_id):
         with self.transaction() as db:
@@ -127,7 +133,7 @@ class State:
 
     def finish_video(self, job, video_id, receipt):
         with self.transaction() as db:
-            row = db.execute("SELECT * FROM jobs WHERE id=? AND lease=?", (job["id"], job["lease"])).fetchone()
+            row = db.execute("SELECT * FROM jobs WHERE id=? AND lease=? AND expires>=? AND status IN ('rendering','paused')", (job["id"], job["lease"], int(time.time()))).fetchone()
             if not row:
                 raise ValueError("lease_lost")
             encoded = canonical(receipt).decode()

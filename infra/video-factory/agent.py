@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import random
+import stat
 import shutil
 import subprocess
 import threading
@@ -46,9 +47,9 @@ class Runner:
             try:
                 self.render(job)
             except Exception as e:
-                allowed = {"low_disk", "archive_conflict", "media_checksum_failed", "one_time_extension_required", "archive_readback_failed"}
+                allowed = {"low_disk", "archive_conflict", "media_checksum_failed", "renderer_review_required", "archive_readback_failed", "unsafe_render_output"}
                 code = str(e) if str(e) in allowed else "render_or_verification_failed"
-                self.state.fail(job, code, blocked=code in {"low_disk", "one_time_extension_required"})
+                self.state.fail(job, code, blocked=code in allowed)
             finally:
                 stop.set()
                 thread.join(timeout=35)
@@ -66,7 +67,7 @@ class Runner:
         # Renderer configuration is root-reviewed local configuration, never remote recipe data.
         renderer = self.config.get("renderers", {}).get(manifest["renderer"])
         if not renderer or not renderer.get("reviewed") or not renderer.get("image", "").startswith("sha256:") or video["scene"] not in renderer.get("scenes", []):
-            raise ValueError("one_time_extension_required")
+            raise ValueError("renderer_review_required")
         for root in (self.config["work_root"], self.config["archive_root"]):
             usage = shutil.disk_usage(root)
             if usage.free < self.config["min_free_bytes"] or usage.used / usage.total > self.config["max_disk_fraction"]:
@@ -95,12 +96,27 @@ class Runner:
                 "--tmpfs", "/tmp:rw,size=512m", "-e", "HOME=/tmp", "-e", "XDG_CONFIG_HOME=/tmp/.config", "-e", "XDG_CACHE_HOME=/tmp/.cache",
                 "-v", str(recipe_root) + ":/recipe:ro", "-v", str(work) + ":/work:rw",
                 renderer["image"]], check=True, timeout=7200, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        media_receipt = verify_video(output, video)
-        receipt = self.archive.save(key, output, media_receipt)
+        # Renderer is gone; open without symlink following and copy to manager-only scratch.
+        fd = os.open(output, os.O_RDONLY | os.O_NOFOLLOW)
+        checked = work.parent / (str(job["cursor"]) + ".checked.mp4")
+        os.chmod(work.parent, 0o700)
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise ValueError("unsafe_render_output")
+            with os.fdopen(fd, "rb", closefd=False) as r, checked.open("wb") as w:
+                shutil.copyfileobj(r, w)
+                w.flush()
+                os.fsync(w.fileno())
+        finally:
+            os.close(fd)
+        media_receipt = verify_video(checked, video)
+        receipt = self.archive.save(key, checked, media_receipt)
         self.state.finish_video(job, key, receipt)
         # Only this verified temporary render is removable; masters/recipes/archive stay.
         if self.archive.verify(receipt):
             output.unlink()
+            checked.unlink()
 
 
 def main():
