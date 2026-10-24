@@ -1,0 +1,24 @@
+[Unit]
+Description=Kylo outbound video factory manager
+After=network-online.target docker.service
+Requires=docker.service
+StartLimitIntervalSec=600
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -u /opt/kylo-video-factory/current/agent.py
+Restart=on-failure
+RestartSec=60
+TimeoutStopSec=7500
+KillMode=process
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/kylo-video-factory /var/brain/archive /run/lock
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+[Install]
+WantedBy=multi-user.target

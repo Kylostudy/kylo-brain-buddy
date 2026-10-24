@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "kylogic_origin": "https://kylogic.lovable.app",
+  "agent_id": "factory-finnish-vps-1",
+  "work_root": "/var/lib/kylo-video-factory/work",
+  "recipe_root": "/var/lib/kylo-video-factory/recipes",
+  "archive_root": "/var/brain/archive/videos/versioned-factory",
+  "production_lock": "/run/lock/kylo-video-production.lock",
+  "takeover_approved": false,
+  "cpus": 2,
+  "memory": "4g",
+  "min_free_bytes": 21474836480,
+  "max_disk_fraction": 0.8,
+  "renderers": {}
+}
