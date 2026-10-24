@@ -6,7 +6,7 @@ const payloadSchema = z.object({
   publicKey: z.string().max(4096).startsWith('-----BEGIN PUBLIC KEY-----'),
 }).strict();
 
-export async function provisionFactory(request: Request, token: string | undefined, secret: string | undefined) {
+export async function provisionFactory(request: Request, token: string | undefined, secret: string | undefined, authorizedDeployment: () => Promise<boolean>) {
   const headers = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json' };
   const fail = (status: number) => new Response(JSON.stringify({ ok: false }), { status, headers });
   const provided = request.headers.get('authorization')?.replace(/^Bearer /, '') ?? '';
@@ -14,6 +14,7 @@ export async function provisionFactory(request: Request, token: string | undefin
   const a = Buffer.from(provided);
   const b = Buffer.from(token.trim());
   if (a.length !== b.length || !timingSafeEqual(a, b)) return fail(401);
+  if (!await authorizedDeployment()) return fail(403);
   if (!secret) return fail(503);
   try {
     const text = await request.text();
