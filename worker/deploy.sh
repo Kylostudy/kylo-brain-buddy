@@ -287,6 +287,7 @@ else
   fi
 fi
 echo VF: állapot: \$(ls /opt/kylo-video-factory/releases/ 2>/dev/null | tr '\n' ' ')
+python3 /opt/kylo-video-factory/provision-host.py '$WORKER_DIR/.env'
 echo VF: szolgáltatás: \$(systemctl is-active kylo-video-factory 2>&1 || true)
 "
   if [ "$(id -u)" = "0" ]; then
