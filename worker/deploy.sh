@@ -266,6 +266,34 @@ echo SF: status: \$(head -c 600 /opt/kylo-subject-factory/work/status.json 2>/de
   printf '%s\n' "$SF_OUT" | tail -6 | while IFS= read -r l; do log "FACTORY: $l"; done || true
 fi
 
+# ---- 2e. Önálló videógyár: csak előkészített (staging) telepítés ------------
+# Az install.sh ellenőrzi az ellenőrzőösszegeket és verziózott könyvtárba másol,
+# de NEM aktiválja és NEM indítja el a kezelőt — az külön, ellenőrzött lépés.
+VF_SRC="$REPO_DIR/infra/video-factory"
+if [ -f "$VF_SRC/install.sh" ] && [ -f "$VF_SRC/SHA256SUMS" ]; then
+  VF_VER="$(sha256sum "$VF_SRC/SHA256SUMS" | cut -c1-16)"
+  VF_SCRIPT="
+set -e
+mkdir -p /opt/kylo-video-factory
+for f in '$VF_SRC'/*; do cp \"\$f\" /opt/kylo-video-factory/; done
+if [ -d /opt/kylo-video-factory/releases/$VF_VER ]; then
+  echo VF: a $VF_VER változat már elő van készítve
+else
+  bash /opt/kylo-video-factory/install.sh && echo VF: $VF_VER előkészítve
+fi
+echo VF: állapot: \$(ls /opt/kylo-video-factory/releases/ 2>/dev/null | tr '\n' ' ')
+echo VF: szolgáltatás: \$(systemctl is-active kylo-video-factory 2>&1 || true)
+"
+  if [ "$(id -u)" = "0" ]; then
+    VF_OUT="$(sh -c "$VF_SCRIPT" 2>&1)" || true
+  else
+    VF_IMG="$(docker image inspect kylo-executor:latest >/dev/null 2>&1 && echo kylo-executor:latest || echo ubuntu:24.04)"
+    VF_OUT="$(timeout 120 docker run --rm --privileged --pid=host --net=host --entrypoint nsenter "$VF_IMG" \
+      -t 1 -m -u -i -n -p -- sh -c "$VF_SCRIPT" 2>&1)" || true
+  fi
+  printf '%s\n' "$VF_OUT" | tail -5 | while IFS= read -r l; do log "VIDEOFACTORY: $l"; done || true
+fi
+
 # ---- 3. Építés (a futó színt ez nem érinti) --------------------------------
 log "Executor image építése…"
 docker compose build executor-image
