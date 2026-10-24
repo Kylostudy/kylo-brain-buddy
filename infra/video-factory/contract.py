@@ -78,10 +78,10 @@ def validate_recipe(raw):
             if not isinstance(receipt, dict) or receipt.get("storage_type") != "local" or type(receipt.get("bytes")) is not int or receipt["bytes"] < 1 or not SHA.fullmatch(str(receipt.get("sha256", ""))):
                 raise ValueError("invalid_completed_receipt")
             object_key(receipt.get("object_key"))
-        if completed & set(languages) or completed | set(languages) != IELTS_LANGUAGES:
-            raise ValueError("continuation_must_cover_27_without_repeats")
         if set(languages) != CONTINUATION_LANGUAGES:
             raise ValueError("continuation_languages_restricted")
+        if completed & set(languages) or completed | set(languages) != IELTS_LANGUAGES:
+            raise ValueError("continuation_must_cover_27_without_repeats")
     if raw["series"] == "ielts" and continuation is None and len(languages) != 27 and not (raw["recipe_id"] == "ielts-cs-trial" and languages == ["cs"] and len(raw["videos"]) == 1):
         raise ValueError("ielts_requires_27_languages")
     files = raw["files"]
