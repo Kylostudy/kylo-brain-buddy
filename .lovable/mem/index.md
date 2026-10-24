@@ -11,3 +11,4 @@
 - [linkedin-poszt-sorozat](mem://features/linkedin-post-series) — 4 részes LinkedIn történetív; a 4. poszt nyitánya: érveléstechnika + vitaszimulátor + kritikai gondolkodás
 - [reddit-figyelés-leállítva](mem://features/reddit-monitoring-stopped) — 2026-08-31: Lead Radar/őrjárat/diskurzus/digest/dispatch kikapcsolva; új irány: magyar fiók + béta tesztelők holtnyelvekre
 - [telegram-értesítések-kikapcsolva](mem://features/telegram-alerts-off) — 2026-09-16: minden kimenő Telegram riasztás globálisan tiltva (TELEGRAM_ALERTS_DISABLED)
+- [ielts-folytatás-11-nyelv](mem://features/ielts-continuation-11-languages) — IELTS-ben csak AR/DA/HI/JA/KO/RU/SK/SL/SR/SV/TR gyártható, a többi 16 kész; EN/RO/HR/EL csak archiválandó; gyártás csak kifejezett KyLogic-feladatra
