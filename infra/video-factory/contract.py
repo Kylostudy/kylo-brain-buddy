@@ -14,6 +14,9 @@ OPERATIONS = {"register_recipe", "trial", "start_series", "status", "preview", "
 ID = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}\Z")
 SHA = re.compile(r"[a-f0-9]{64}\Z")
 IELTS_LANGUAGES = set("en de nl fr ja es pt it ko pl no sv cs tr sk sl da fi ar hi sr ru ro hr el hu zh".split())
+# Owner policy 2026-10-24: a continuation may only manufacture these 11 missing
+# languages; the other 16 must arrive as verified archive receipts, never re-rendered.
+CONTINUATION_LANGUAGES = set("ar da hi ja ko ru sk sl sr sv tr".split())
 
 
 def canonical(value):
@@ -75,6 +78,8 @@ def validate_recipe(raw):
             if not isinstance(receipt, dict) or receipt.get("storage_type") != "local" or type(receipt.get("bytes")) is not int or receipt["bytes"] < 1 or not SHA.fullmatch(str(receipt.get("sha256", ""))):
                 raise ValueError("invalid_completed_receipt")
             object_key(receipt.get("object_key"))
+        if set(languages) != CONTINUATION_LANGUAGES:
+            raise ValueError("continuation_languages_restricted")
         if completed & set(languages) or completed | set(languages) != IELTS_LANGUAGES:
             raise ValueError("continuation_must_cover_27_without_repeats")
     if raw["series"] == "ielts" and continuation is None and len(languages) != 27 and not (raw["recipe_id"] == "ielts-cs-trial" and languages == ["cs"] and len(raw["videos"]) == 1):
