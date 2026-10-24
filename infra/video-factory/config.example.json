@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "kylogic_origin": "https://kylogic.lovable.app",
+  "kylogic_origin": "https://yqhipzwmgpopelfcenie.supabase.co/functions/v1/video-factory",
   "agent_id": "factory-finnish-vps-1",
   "work_root": "/var/lib/kylo-video-factory/work",
   "recipe_root": "/var/lib/kylo-video-factory/recipes",
