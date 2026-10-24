@@ -26,9 +26,14 @@ def collect():
         parsed = json.loads(raw)
         status = {k: parsed.get(k) for k in ("status", "current", "verified_count")}
         status["status_sha256"] = hashlib.sha256(raw).hexdigest()
-    units = subprocess.run(["/usr/bin/systemctl", "show", "kylo-subject-factory.service", "--property=ActiveState,SubState,ExecMainStatus,Result"], capture_output=True, timeout=10, check=False)
+    unit = ""
+    try:
+        units = subprocess.run(["/usr/bin/systemctl", "show", "kylo-subject-factory.service", "--property=ActiveState,SubState,ExecMainStatus,Result"], capture_output=True, timeout=10, check=False)
+        unit = units.stdout.decode()[:2000]
+    except (OSError, subprocess.SubprocessError) as exc:
+        unit = f"systemctl unavailable: {exc}"
     return {"observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "storage": storage,
-            "production": status, "unit": units.stdout.decode()[:2000]}
+            "production": status, "unit": unit}
 
 
 if __name__ == "__main__":
