@@ -11,6 +11,7 @@
 - [x] Önálló VPS-videógyár: staging telepítés bekötve a worker/deploy.sh 2e lépésébe (nsenter mintára; csak előkészít, nem aktivál)
 - [ ] Önálló VPS-videógyár: staging telepítés igazolása; 15:21 UTC-kor a kód megérkezett, de üres release-lista/inactive. Előkészítési hibák explicit jelentése javítva; friss szervernapló szükséges.
 - [ ] Önálló VPS-videógyár: aktiválás és hét valódi elfogadási próba (blokkoló: gépi titok a védett konfigurációba, jóváhagyott receptek, közvetlen VPS-hozzáférés nincs igazolva)
+- [ ] Videógyár gépi titkának titkosított VPS-bekötése: hitelesített átadó és root-only mentés elkészült; publikálás és friss szervernapló szükséges a tényleges beállítás igazolásához.
 
 - [x] Subject factory: külön hitelesített csomagfogadó és 9 teszt, helyi HTTP 401/403/400 ellenőrzés
 - [x] Subject factory: KyLogic átadási leírás és teljes 17 fájlos JSON-példa

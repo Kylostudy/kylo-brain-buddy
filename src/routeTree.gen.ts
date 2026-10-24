@@ -72,6 +72,7 @@ import { Route as ApiPublicWorkerSaveCookiesRouteImport } from './routes/api/pub
 import { Route as ApiPublicWorkerStructureTranscriptRouteImport } from './routes/api/public/worker/structure-transcript'
 import { Route as ApiPublicWorkerUiReconIngestRouteImport } from './routes/api/public/worker/ui-recon-ingest'
 import { Route as ApiPublicWorkerVaultReportRouteImport } from './routes/api/public/worker/vault-report'
+import { Route as ApiPublicWorkerVideoFactoryProvisionRouteImport } from './routes/api/public/worker/video-factory-provision'
 import { Route as ApiPublicWorkerVisionExtractRouteImport } from './routes/api/public/worker/vision-extract'
 import { Route as ApiPublicAuthGoogleCallbackRouteImport } from './routes/api/public/auth.google.callback'
 import { Route as ApiPublicCrossKitTaskRouteImport } from './routes/api/public/cross/kit/task'
@@ -455,6 +456,12 @@ const ApiPublicWorkerVaultReportRoute =
     path: '/api/public/worker/vault-report',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWorkerVideoFactoryProvisionRoute =
+  ApiPublicWorkerVideoFactoryProvisionRouteImport.update({
+    id: '/api/public/worker/video-factory-provision',
+    path: '/api/public/worker/video-factory-provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWorkerVisionExtractRoute =
   ApiPublicWorkerVisionExtractRouteImport.update({
     id: '/api/public/worker/vision-extract',
@@ -659,6 +666,7 @@ export interface FileRoutesByFullPath {
   '/api/public/worker/structure-transcript': typeof ApiPublicWorkerStructureTranscriptRoute
   '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
+  '/api/public/worker/video-factory-provision': typeof ApiPublicWorkerVideoFactoryProvisionRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
@@ -747,6 +755,7 @@ export interface FileRoutesByTo {
   '/api/public/worker/structure-transcript': typeof ApiPublicWorkerStructureTranscriptRoute
   '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
+  '/api/public/worker/video-factory-provision': typeof ApiPublicWorkerVideoFactoryProvisionRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
@@ -837,6 +846,7 @@ export interface FileRoutesById {
   '/api/public/worker/structure-transcript': typeof ApiPublicWorkerStructureTranscriptRoute
   '/api/public/worker/ui-recon-ingest': typeof ApiPublicWorkerUiReconIngestRoute
   '/api/public/worker/vault-report': typeof ApiPublicWorkerVaultReportRoute
+  '/api/public/worker/video-factory-provision': typeof ApiPublicWorkerVideoFactoryProvisionRoute
   '/api/public/worker/vision-extract': typeof ApiPublicWorkerVisionExtractRoute
   '/api/public/auth/google/callback': typeof ApiPublicAuthGoogleCallbackRoute
   '/api/public/cross/kit/task': typeof ApiPublicCrossKitTaskRouteWithChildren
@@ -927,6 +937,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/structure-transcript'
     | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
+    | '/api/public/worker/video-factory-provision'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
@@ -1015,6 +1026,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/structure-transcript'
     | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
+    | '/api/public/worker/video-factory-provision'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
@@ -1104,6 +1116,7 @@ export interface FileRouteTypes {
     | '/api/public/worker/structure-transcript'
     | '/api/public/worker/ui-recon-ingest'
     | '/api/public/worker/vault-report'
+    | '/api/public/worker/video-factory-provision'
     | '/api/public/worker/vision-extract'
     | '/api/public/auth/google/callback'
     | '/api/public/cross/kit/task'
@@ -1179,6 +1192,7 @@ export interface RootRouteChildren {
   ApiPublicWorkerStructureTranscriptRoute: typeof ApiPublicWorkerStructureTranscriptRoute
   ApiPublicWorkerUiReconIngestRoute: typeof ApiPublicWorkerUiReconIngestRoute
   ApiPublicWorkerVaultReportRoute: typeof ApiPublicWorkerVaultReportRoute
+  ApiPublicWorkerVideoFactoryProvisionRoute: typeof ApiPublicWorkerVideoFactoryProvisionRoute
   ApiPublicWorkerVisionExtractRoute: typeof ApiPublicWorkerVisionExtractRoute
   ApiPublicAuthGoogleCallbackRoute: typeof ApiPublicAuthGoogleCallbackRoute
   ApiPublicCrossKitTaskRoute: typeof ApiPublicCrossKitTaskRouteWithChildren
@@ -1646,6 +1660,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWorkerVaultReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/worker/video-factory-provision': {
+      id: '/api/public/worker/video-factory-provision'
+      path: '/api/public/worker/video-factory-provision'
+      fullPath: '/api/public/worker/video-factory-provision'
+      preLoaderRoute: typeof ApiPublicWorkerVideoFactoryProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/worker/vision-extract': {
       id: '/api/public/worker/vision-extract'
       path: '/api/public/worker/vision-extract'
@@ -1941,6 +1962,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicWorkerStructureTranscriptRoute,
   ApiPublicWorkerUiReconIngestRoute: ApiPublicWorkerUiReconIngestRoute,
   ApiPublicWorkerVaultReportRoute: ApiPublicWorkerVaultReportRoute,
+  ApiPublicWorkerVideoFactoryProvisionRoute:
+    ApiPublicWorkerVideoFactoryProvisionRoute,
   ApiPublicWorkerVisionExtractRoute: ApiPublicWorkerVisionExtractRoute,
   ApiPublicAuthGoogleCallbackRoute: ApiPublicAuthGoogleCallbackRoute,
   ApiPublicCrossKitTaskRoute: ApiPublicCrossKitTaskRouteWithChildren,
