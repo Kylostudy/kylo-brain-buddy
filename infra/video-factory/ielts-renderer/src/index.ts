@@ -10,6 +10,7 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import * as fs from "fs";
 import * as path from "path";
 import { execFileSync } from "child_process";
+import { fileURLToPath } from "url";
 
 const RECIPE = "/recipe";
 const REQUEST = "/request.json";
@@ -21,8 +22,15 @@ function fail(msg: string): never {
 }
 
 function stageKey(key: string, stage: string) {
+  if (!/^[a-z0-9][a-z0-9_-]*(\/[a-z0-9][a-z0-9_-]*)*$/.test(key)) fail("unsafe_recipe_key");
   const src = path.join(RECIPE, key);
   const dst = path.join(stage, key);
+  let current = RECIPE;
+  for (const part of key.split("/")) {
+    current = path.join(current, part);
+    if (fs.lstatSync(current).isSymbolicLink()) fail("symlink_recipe_key");
+  }
+  if (!fs.realpathSync(src).startsWith(fs.realpathSync(RECIPE) + path.sep)) fail("unsafe_recipe_path");
   if (!fs.existsSync(src)) fail("missing_recipe_file:" + key);
   fs.mkdirSync(path.dirname(dst), { recursive: true });
   fs.copyFileSync(src, dst);
@@ -70,7 +78,7 @@ async function main() {
   };
 
   const serveUrl = await bundle({
-    entryPoint: path.resolve(__dirname, "entry.tsx"),
+    entryPoint: fileURLToPath(new URL("./entry.tsx", import.meta.url)),
     outDir: "/tmp/bundle",
     publicDir: stage,
     webpackOverride: (c) => c,

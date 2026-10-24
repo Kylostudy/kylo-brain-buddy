@@ -157,6 +157,29 @@ class PolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "ielts_first_required"):
             self.state.apply(command("start_series", {"recipe_id": r["recipe_id"], "version": "v1", "approval": approval}))
 
+    def test_czech_trial_completes_only_one_video(self):
+        r = recipe()
+        r.update(series="ielts", recipe_id="ielts-cs-trial", languages=["cs"])
+        r["videos"][0].update(language="cs", video_id="ielts-cs")
+        self.state.apply(command("register_recipe", r))
+        self.state.apply(command("trial", {"recipe_id": r["recipe_id"], "version": "v1"}))
+        job = self.state.claim()
+        self.state.finish_video(job, "ielts-cs-trial/v1/ielts-cs", {"sha256": "4" * 64})
+        self.assertIsNone(self.state.claim())
+        with self.state.transaction() as db:
+            row = db.execute("SELECT cursor,status FROM jobs WHERE recipe='ielts-cs-trial'").fetchone()
+            self.assertEqual((row["cursor"], row["status"]), (1, "completed"))
+
+    def test_czech_recipe_rejects_series(self):
+        r = recipe()
+        r.update(series="ielts", recipe_id="ielts-cs-trial", languages=["cs"])
+        r["videos"][0].update(language="cs", video_id="ielts-cs")
+        self.state.apply(command("register_recipe", r))
+        approval = {"approval_id": str(uuid.uuid4()), "recipe_sha256": digest(r),
+                    "trial_receipt_sha256": "0" * 64, "approved_at": int(time.time()), "owner_authorized": True}
+        with self.assertRaisesRegex(ValueError, "trial_only_recipe"):
+            self.state.apply(command("start_series", {"recipe_id": r["recipe_id"], "version": "v1", "approval": approval}))
+
     def test_recipe_cannot_supply_code_or_secret(self):
         for field in ("shell", "install", "secret", "url"):
             r = recipe()
