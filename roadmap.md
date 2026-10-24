@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Cseh IELTS próba: kizárólag egy VPS-es videó, ellenőrzött csomagátvétel, helyi képépítés, egyszeri indítás és archivált eredmény igazolása; nincs sorozat és publikálás.
+
 - [x] Önálló VPS-videógyár: feltöltött követelmények és friss szerverjelentés felmérése (2026-10-24 13:54 UTC; 1274 ellenőrzött videó, completed, service failed a lezárás után)
 - [ ] Önálló VPS-videógyár: közvetlen KyLogic feladatsor és gépi hitelesítés (blokkoló: KyLogic-oldali kapcsolat még nincs megvalósítva)
 - [x] Önálló VPS-videógyár: előkészítő kezelő, helyi tartós feladatsor, aláírt kifelé kapcsolódó kliens, recept-/jóváhagyási szabályok, helyi archívum, telepítő és kapcsolódási dokumentáció; 20 új szabályteszt és 13 meglévő/regressziós teszt sikeres; tiszta ZIP átadva
