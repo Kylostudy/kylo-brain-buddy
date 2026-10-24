@@ -276,6 +276,7 @@ if [ -f "$VF_SRC/install.sh" ] && [ -f "$VF_SRC/SHA256SUMS" ]; then
 set -e
 mkdir -p /opt/kylo-video-factory
 for f in '$VF_SRC'/*; do [ -f \"\$f\" ] || continue; cp \"\$f\" /opt/kylo-video-factory/; done
+bash /opt/kylo-video-factory/prepare-host.sh
 if [ -d /opt/kylo-video-factory/releases/$VF_VER ]; then
   echo VF: a $VF_VER változat már elő van készítve
 else
@@ -294,7 +295,7 @@ echo VF: szolgáltatás: \$(systemctl is-active kylo-video-factory 2>&1 || true)
     VF_OUT="$(sh -c "$VF_SCRIPT" 2>&1)" || true
   else
     VF_IMG="$(docker image inspect kylo-executor:latest >/dev/null 2>&1 && echo kylo-executor:latest || echo ubuntu:24.04)"
-    VF_OUT="$(timeout 120 docker run --rm --privileged --pid=host --net=host --entrypoint nsenter "$VF_IMG" \
+    VF_OUT="$(timeout 600 docker run --rm --privileged --pid=host --net=host --entrypoint nsenter "$VF_IMG" \
       -t 1 -m -u -i -n -p -- sh -c "$VF_SCRIPT" 2>&1)" || true
   fi
   printf '%s\n' "$VF_OUT" | tail -40 | while IFS= read -r l; do log "VIDEOFACTORY: $l"; done || true
