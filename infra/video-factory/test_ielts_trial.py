@@ -44,3 +44,51 @@ class TrialTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'symlink_destination'):
                 module.exclusive_file(link / 'outside', b'blocked')
             self.assertFalse((Path(root) / 'outside').exists())
+
+import sys
+sys.path.insert(0, str(Path(__file__).parent))
+trial_spec = importlib.util.spec_from_file_location('ielts_trial', Path(__file__).with_name('ielts-trial.py'))
+trial = importlib.util.module_from_spec(trial_spec)
+trial_spec.loader.exec_module(trial)
+from state import State
+
+
+def failed_trial(root):
+    state = State(Path(root) / 'state.sqlite3')
+    with state.transaction() as db:
+        db.execute("INSERT INTO recipes VALUES('ielts-cs-trial','v1','h','{}')")
+        db.execute("INSERT INTO jobs(id,recipe,version,mode,status,attempts) VALUES('0f1e2d3c-4b5a-4968-8776-655443322110','ielts-cs-trial','v1','trial','failed',1)")
+        state.emit(db, 'final_error', '0f1e2d3c-4b5a-4968-8776-655443322110', {'code': 'render_or_verification_failed'})
+    scratch = Path(root) / '0f1e2d3c-4b5a-4968-8776-655443322110' / '0'
+    scratch.mkdir(parents=True)
+    (scratch / 'output.mp4').write_bytes(b'stale-shortened-render')
+    return state
+
+
+class TrialRetryTests(unittest.TestCase):
+    def test_failed_trial_retried_once_with_stale_scratch_removed(self):
+        with tempfile.TemporaryDirectory() as root:
+            state = failed_trial(root)
+            self.assertTrue(trial.retry_failed_trial(state, {'work_root': root}))
+            self.assertFalse((Path(root) / '0f1e2d3c-4b5a-4968-8776-655443322110').exists())
+            with state.transaction() as db:
+                self.assertEqual(db.execute("SELECT status FROM jobs").fetchone()[0], 'queued')
+                db.execute("UPDATE jobs SET status='failed', attempts=2")
+            self.assertFalse(trial.retry_failed_trial(state, {'work_root': root}))
+
+    def test_completed_output_never_retried(self):
+        with tempfile.TemporaryDirectory() as root:
+            state = failed_trial(root)
+            with state.transaction() as db:
+                db.execute("INSERT INTO outputs VALUES('ielts-cs-trial/v1/ielts-cs','{}')")
+            self.assertFalse(trial.retry_failed_trial(state, {'work_root': root}))
+            self.assertTrue((Path(root) / '0f1e2d3c-4b5a-4968-8776-655443322110' / '0' / 'output.mp4').exists())
+
+    def test_last_error_code_reported(self):
+        with tempfile.TemporaryDirectory() as root:
+            state = failed_trial(root)
+            self.assertEqual(trial.last_error(state, '0f1e2d3c-4b5a-4968-8776-655443322110'), 'render_or_verification_failed')
+
+
+if __name__ == '__main__':
+    unittest.main()

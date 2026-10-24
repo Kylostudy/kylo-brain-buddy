@@ -9,7 +9,6 @@ import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import * as fs from "fs";
 import * as path from "path";
-import { execFileSync } from "child_process";
 import { fileURLToPath } from "url";
 
 const RECIPE = "/recipe";
@@ -109,7 +108,9 @@ async function main() {
     scale: 1,
     onProgress: () => undefined,
   });
-  execFileSync("bash", ["/app/tight-cut.sh", "/work/raw.mp4", OUT, "7"], {stdio: "inherit"});
+  // Approved recipe duration is the contract; tight-cut shortened it and failed verification.
+  fs.copyFileSync("/work/raw.mp4", OUT);
+  fs.unlinkSync("/work/raw.mp4");
   if (!fs.existsSync(OUT) || fs.statSync(OUT).size < 100_000) fail("output_too_small");
   console.log("render_ok bytes=" + fs.statSync(OUT).size);
 }
