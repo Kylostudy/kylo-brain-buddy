@@ -5,7 +5,9 @@ set -euo pipefail
 SRC="$(cd "$(dirname "$0")" && pwd)"
 cd "$SRC"
 sha256sum --strict -c SHA256SUMS
-for exe in python3 docker ffmpeg ffprobe systemctl; do command -v "$exe" >/dev/null; done
+for exe in python3 docker ffmpeg ffprobe systemctl; do
+  command -v "$exe" >/dev/null || { echo "VF: telepítés megállt: hiányzó hostprogram: $exe" >&2; exit 3; }
+done
 VERSION="$(sha256sum SHA256SUMS | cut -c1-16)"
 REL="/opt/kylo-video-factory/releases/$VERSION"
 if [ ! -d "$REL" ]; then

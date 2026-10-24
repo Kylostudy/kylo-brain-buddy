@@ -9,7 +9,7 @@
 - [ ] Önálló VPS-videógyár: S3/SFTP illesztések és alternatív tároló próba (blokkoló: szolgáltató/hozzáférés és önálló átviteli ellenőrzés még nincs)
 - [x] Önálló VPS-videógyár: v1.1 csomag (KyLogic valódi címével) integritása igazolva, SHA256SUMS javítva (doksik nem a csomagban), inventory.py systemctl-hiány tűrése; telepítő-próba hibátlan, 20 teszt OK
 - [x] Önálló VPS-videógyár: staging telepítés bekötve a worker/deploy.sh 2e lépésébe (nsenter mintára; csak előkészít, nem aktivál)
-- [ ] Önálló VPS-videógyár: staging telepítés lefutásának igazolása a szerver deploynaplóból (következő automatikus frissítésnél)
+- [ ] Önálló VPS-videógyár: staging telepítés igazolása; 15:21 UTC-kor a kód megérkezett, de üres release-lista/inactive. Előkészítési hibák explicit jelentése javítva; friss szervernapló szükséges.
 - [ ] Önálló VPS-videógyár: aktiválás és hét valódi elfogadási próba (blokkoló: gépi titok a védett konfigurációba, jóváhagyott receptek, közvetlen VPS-hozzáférés nincs igazolva)
 
 - [x] Subject factory: külön hitelesített csomagfogadó és 9 teszt, helyi HTTP 401/403/400 ellenőrzés
