@@ -311,7 +311,7 @@ if [ -f '$VF_SRC/prepare-ielts-continuation.py' ]; then
       --property=StandardOutput=append:/var/log/kylo-ielts-trial-install.log \
       --property=StandardError=append:/var/log/kylo-ielts-trial-install.log \
       /usr/bin/python3 -u '$VF_SRC/prepare-ielts-continuation.py' '$VF_SRC' '$VF_VER'
-    echo VF: IELTS folytatás előkészítése kérve (4 kész videó archiválása, 11 hang)
+    echo 'VF: IELTS folytatás előkészítése kérve - 4 kész videó archiválása, 11 hang'
   fi
 fi
 "
