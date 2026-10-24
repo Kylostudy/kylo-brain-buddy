@@ -78,8 +78,13 @@ class Runner:
                 raise ValueError("media_checksum_failed")
         work = Path(self.config["work_root"]) / job["id"] / str(job["cursor"])
         work.mkdir(parents=True, exist_ok=True)
+        # Only the renderer's scratch directory is writable by its unprivileged UID.
+        os.chown(work, 65532, 65532)
+        os.chmod(work, 0o700)
         request = work / "request.json"
         request.write_bytes(canonical({"manifest": manifest, "video": video}))
+        os.chown(request, 65532, 65532)
+        os.chmod(request, 0o600)
         # Recovered crash: verify existing output instead of re-rendering it.
         output = work / "output.mp4"
         if not output.exists():
@@ -101,6 +106,8 @@ class Runner:
 def main():
     config_path = Path("/etc/kylo-video-factory/config.json")
     config = json.loads(config_path.read_text())
+    if config.get("schema_version") != 1 or not 1 <= config["cpus"] <= 2 or config["memory"] != "4g" or not 0 < config["max_disk_fraction"] <= 0.8 or config["min_free_bytes"] < 20 * 1024**3:
+        raise RuntimeError("reviewed_resource_limits_required")
     secret_path = Path("/etc/kylo-video-factory/machine-secret")
     if secret_path.stat().st_mode & 0o077:
         raise RuntimeError("machine_secret_permissions")
@@ -118,6 +125,7 @@ def main():
                     if ack.get("acknowledged_event_id") == event["event_id"]:
                         state.acknowledge(event["event_id"])
                 if time.time() - last_claim >= 20:
+                    client.request("heartbeat", {"schema_version": 1, "agent_id": config["agent_id"], "takeover_approved": config["takeover_approved"], "pending_events": len(state.pending())})
                     response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")
                     if command is not None:

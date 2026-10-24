@@ -9,6 +9,10 @@ export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "Kylo — Workflow automatizáció" },
+      { property: "og:title", content: "Kylo — Workflow automatizáció" },
+      { property: "og:description", content: "Kylo Brain és Audit munkafolyamatok, felvételek és futások kezelése." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
