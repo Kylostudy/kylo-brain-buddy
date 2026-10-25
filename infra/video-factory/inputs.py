@@ -9,6 +9,25 @@ from storage import checksum, safe_path
 CHUNK_BYTES = 256 * 1024
 
 
+def readable_inputs(root, files):
+    """Repair only verified recipe data, never archive or host ancestors."""
+    root = Path(root)
+    paths = []
+    for media in files:
+        target = safe_path(root, media["key"])
+        if not target.is_file() or target.stat().st_size != media["bytes"] or checksum(target) != media["sha256"]:
+            raise ValueError("media_checksum_failed")
+        paths.append(target)
+    # Verify the entire set before changing any permission.
+    os.chmod(root, 0o755)
+    for target in paths:
+        current = target.parent
+        while current != root:
+            os.chmod(current, 0o755)
+            current = current.parent
+        os.chmod(target, 0o444)
+
+
 class Inputs:
     def __init__(self, root, client, archive):
         self.root, self.client, self.archive = root, client, archive
@@ -56,3 +75,4 @@ class Inputs:
                     os.close(fd)
             finally:
                 staging.unlink(missing_ok=True)
+        readable_inputs(root, manifest["files"])
