@@ -48,12 +48,14 @@ if not renderer.get("reviewed") or not str(renderer.get("image", "")).startswith
     raise SystemExit("VF-AKT: nincs ellenőrzött renderelő")
 config["renderers"] = {"ielts-promo-v1": renderer}
 extra = etc / "reviewed-renderers.json"
+# Fixed allowlist: additive renderer name -> the only scene it may render.
+ALLOWED_EXTRA = {"ielts-promo-fonts-v1": ["ielts-promo-v1"], "exam-promo-profiles-v1": ["exam-promo-profiles-v1"]}
 if extra.exists():
     import re
     additions = json.loads(extra.read_text())
     for name, entry in additions.items():
-        if name != "ielts-promo-fonts-v1" or not entry.get("reviewed") or not re.fullmatch(r"sha256:[a-f0-9]{64}", str(entry.get("image", ""))) or entry.get("scenes") != ["ielts-promo-v1"]:
-            raise SystemExit("VF-AKT: nem ellenőrzött kiegészítő renderelő")
+        if name not in ALLOWED_EXTRA or not entry.get("reviewed") or not re.fullmatch(r"sha256:[a-f0-9]{64}", str(entry.get("image", ""))) or entry.get("scenes") != ALLOWED_EXTRA[name]:
+            raise SystemExit(f"VF-AKT: nem ellenőrzött kiegészítő renderelő: {name}")
         config["renderers"][name] = entry
 config["takeover_approved"] = True
 tmp = etc / "config.json.tmp"
