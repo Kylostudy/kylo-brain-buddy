@@ -32,9 +32,29 @@ class DiagnosticsTests(unittest.TestCase):
         with patch.object(report, "command", return_value="ActiveState=failed") as commands, patch.object(report, "tail_file", return_value={"available": False}) as files:
             result = report.collect()
             self.assertEqual(set(result["units"]), {"kylo-subject-factory-install.service", "kylo-subject-factory.service"})
-            self.assertEqual([c.args[0] for c in files.call_args_list], ["/var/log/kylo-subject-factory-install.log", "/opt/kylo-subject-factory/work/status.json", "/var/log/kylo-ielts-trial-install.log", "/var/lib/kylo-video-factory/ielts-trial-status.json", "/var/lib/kylo-video-factory/ielts-continuation-status.json"])
+            self.assertEqual([c.args[0] for c in files.call_args_list], ["/var/log/kylo-subject-factory-install.log", "/opt/kylo-subject-factory/work/status.json", "/var/log/kylo-ielts-trial-install.log", "/var/lib/kylo-video-factory/ielts-trial-status.json", "/var/lib/kylo-video-factory/ielts-continuation-status.json", "/var/lib/kylo-video-factory/last-render-failure.json"])
             self.assertEqual(len(commands.call_args_list), 8)
             self.assertTrue(all(c.args[0][0] in ("systemctl", "journalctl") for c in commands.call_args_list))
+
+    def test_factory_state_missing_db_is_explicit(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(report.factory_state(str(Path(d) / "none.sqlite3")), {"available": False, "error": "OperationalError"})
+
+    def test_factory_state_reports_jobs_and_error_events_only(self):
+        import sqlite3, json
+        with tempfile.TemporaryDirectory() as d:
+            f = str(Path(d) / "s.sqlite3")
+            db = sqlite3.connect(f)
+            db.execute("CREATE TABLE jobs(id TEXT, recipe TEXT, version TEXT, mode TEXT, status TEXT, attempts INTEGER, cursor INTEGER, manifest TEXT)")
+            db.execute("INSERT INTO jobs VALUES('j','r','v','trial','failed',1,0,'SECRET_MANIFEST')")
+            db.execute("CREATE TABLE outbox(id TEXT, body TEXT, sent INTEGER)")
+            db.execute("INSERT INTO outbox VALUES('a',?,0)", (json.dumps({"type": "final_error", "payload": {"code": "render_or_verification_failed"}}),))
+            db.execute("INSERT INTO outbox VALUES('b',?,0)", (json.dumps({"type": "batch_verified"}),))
+            db.commit(); db.close()
+            result = report.factory_state(f)
+            self.assertEqual(result["jobs"][0]["status"], "failed")
+            self.assertNotIn("SECRET_MANIFEST", json.dumps(result))
+            self.assertEqual(len(result["error_events"]), 1)
 
     def test_config_is_data_not_shell(self):
         with tempfile.TemporaryDirectory() as d:

@@ -59,7 +59,34 @@ def collect():
         "video_factory_unit": command(["systemctl", "show", "kylo-video-factory.service", "--no-pager", "--property=LoadState,ActiveState,SubState,Result,ExecMainStatus,UnitFileState"]),
         "video_factory_journal": command(["journalctl", "-u", "kylo-video-factory.service", "-n", "30", "--no-pager", "-o", "short-iso"]),
         "ielts_continuation_status": tail_file("/var/lib/kylo-video-factory/ielts-continuation-status.json"),
+        "video_factory_last_failure": tail_file("/var/lib/kylo-video-factory/last-render-failure.json"),
+        "video_factory_state": factory_state("/var/lib/kylo-video-factory/work/state.sqlite3"),
     }
+
+
+def factory_state(filename):
+    """Read-only summary of recent jobs and error events; never manifests, recipes or secrets."""
+    import sqlite3
+    try:
+        db = sqlite3.connect("file:%s?mode=ro" % filename, uri=True, timeout=2)
+        try:
+            jobs = [dict(zip(("id", "recipe", "version", "mode", "status", "attempts", "cursor"), r)) for r in
+                    db.execute("SELECT id,recipe,version,mode,status,attempts,cursor FROM jobs ORDER BY rowid DESC LIMIT 8")]
+            events = []
+            for (body,) in db.execute("SELECT body FROM outbox ORDER BY rowid DESC LIMIT 40"):
+                try:
+                    event = json.loads(body)
+                except ValueError:
+                    continue
+                if "error" in json.dumps(event.get("type", event.get("kind", ""))) or "error" in body[:400]:
+                    events.append(sanitize(json.dumps(event, ensure_ascii=False))[:1200])
+                if len(events) >= 8:
+                    break
+            return {"available": True, "jobs": jobs, "error_events": events}
+        finally:
+            db.close()
+    except Exception as e:
+        return {"available": False, "error": type(e).__name__}
 
 
 def load_config(filename):
