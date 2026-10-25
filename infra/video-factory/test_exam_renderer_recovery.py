@@ -17,7 +17,8 @@ def run(entries, docker_present):
         docker.write_text("#!/bin/sh\nexit %d\n" % (0 if docker_present else 1))
         docker.chmod(docker.stat().st_mode | stat.S_IXUSR)
         env = dict(os.environ, PATH=str(bin_dir) + os.pathsep + os.environ["PATH"])
-        p = subprocess.run([sys.executable, "-c", SNIPPET, NEW_IMG],
+        snippet = SNIPPET.replace("/etc/kylo-video-factory", d)
+        p = subprocess.run([sys.executable, "-c", snippet, NEW_IMG],
                            capture_output=True, text=True, env=env, cwd=d)
         out = json.loads((etc / "reviewed-renderers.json").read_text())
         return p.returncode, out, p.stderr
