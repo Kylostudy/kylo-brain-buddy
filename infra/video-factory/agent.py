@@ -21,7 +21,7 @@ from inputs import Inputs
 class Runner:
     def __init__(self, config, state):
         self.config, self.state = config, state
-        self.archive = LocalArchive(config["archive_root"])
+        self.archive = LocalArchive(config["archive_root"], config.get("read_roots"))
 
     def run_one(self):
         if not self.config.get("takeover_approved", False):
@@ -134,7 +134,7 @@ def main():
     print("manager start: agent_id=%s origin=%s secret_len=%d secret_sha256_8=%s takeover=%s renderers=%s" % (
         config["agent_id"], config["kylogic_origin"], len(secret), hashlib.sha256(secret.encode()).hexdigest()[:8],
         config.get("takeover_approved"), ",".join(sorted(config.get("renderers", {})))), flush=True)
-    state = State(Path(config["work_root"]) / "state.sqlite3", LocalArchive(config["archive_root"]))
+    state = State(Path(config["work_root"]) / "state.sqlite3", LocalArchive(config["archive_root"], config.get("read_roots")))
     runner = Runner(config, state)
     inputs = Inputs(config["recipe_root"], client, runner.archive)
     # Exclusive manager lock persists across process life, including network outages.
@@ -164,6 +164,16 @@ def main():
                 import urllib.error
                 if isinstance(e, urllib.error.HTTPError):
                     reason = "http_%d" % e.code
+                elif isinstance(e, ValueError) and str(e).startswith("completed_video_missing:"):
+                    from contract import object_key
+                    parts = str(e).split(":", 2)
+                    try:
+                        if len(parts) != 3 or parts[1] not in {"factory", "brain-archive"}:
+                            raise ValueError("invalid_missing_file_detail")
+                        object_key(parts[2])
+                        reason = str(e)
+                    except ValueError:
+                        reason = "invalid_missing_file_detail"
                 elif isinstance(e, ValueError) and str(e).replace("_", "").isalnum() and len(str(e)) < 60:
                     reason = str(e)
                 else:

@@ -34,6 +34,10 @@ import json, os, sys
 from pathlib import Path
 etc = Path(sys.argv[1])
 config = json.loads((etc / "config.json").read_text())
+roots = config.get("read_roots", {})
+if not isinstance(roots, dict) or set(roots) - {"brain-archive"} or roots.get("brain-archive", "/var/brain/archive") != "/var/brain/archive":
+    raise SystemExit("VF-AKT: váratlan olvasási archívumgyökér")
+config["read_roots"] = {"brain-archive": "/var/brain/archive"}
 trial = json.loads((etc / "ielts-trial.json").read_text())
 if config.get("agent_id") != "factory-finnish-vps-1":
     raise SystemExit("VF-AKT: váratlan ügynöknév")

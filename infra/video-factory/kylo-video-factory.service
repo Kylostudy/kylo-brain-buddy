@@ -17,7 +17,8 @@ NoNewPrivileges=yes
 PrivateTmp=no
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/var/lib/kylo-video-factory /var/brain/archive /run/lock
+ReadOnlyPaths=/var/brain/archive
+ReadWritePaths=/var/lib/kylo-video-factory /var/brain/archive/videos/versioned-factory /run/lock
 Environment=PYTHONDONTWRITEBYTECODE=1
 
 [Install]
