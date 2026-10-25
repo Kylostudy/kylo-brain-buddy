@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Cambridge-próba hiba (18:24 UTC): a configban jegyzett Docker-kép (sha256:8e19866f…) nem létezik a szerveren, returncode 125. prepare-exam-renderer.sh helyreállítása: eltűnt kép esetén újrajegyzés engedélyezett, meglévő képnél immutable_renderer_conflict marad; 3 új teszt OK.
+- [ ] Cambridge helyreállítás VPS-igazolása: c002a9b1-2a17-4e4f-ad69-e663535d6e7b frissítés pending; Brain Publish kell, hogy a javított telepítő a szerverre kerüljön. Utána KyLogic retry a 9e275ddd próbára. Sorozat nem indítható.
+
 - [x] v1.4 hozzáférési javítás beépítve az eddigi hibajelentés, betűk és nyelvi korlátok megtartásával; meglévő recept is javul renderelés előtt, archívum változatlan.
 - [x] v1.4 VPS-átvétel: a4d95270 frissítés 10:47 UTC-kor sikeres, videógyár 10:22 UTC-kor új változattal újraindult, aktív.
 - [ ] Japán újrapróba: 13:34 UTC-ig a szerver nem kapott/futtatott új japán renderelést (utolsó hiba a 10:12-es); KyLogic retry parancsának tényleges kézbesítése szükséges. Sorozat nem indítható.
