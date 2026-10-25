@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -35,6 +36,7 @@ class ManagerStartupTests(unittest.TestCase):
             continuation = "if [ -f '$VF_SRC/prepare-ielts-continuation.py' ]; then" + continuation
             continuation = continuation.replace(
                 "/var/lib/kylo-video-factory/ielts-continuation-status.json", str(status))
+            continuation = continuation.replace("/usr/bin/python3", sys.executable)
             expanded = subprocess.run(
                 ["bash", "-c", 'VF_SRC="$1"; VF_VER=test-v12; VF_SCRIPT="' + continuation +
                  '\n"; printf "%s" "$VF_SCRIPT"', "--", str(root)],
