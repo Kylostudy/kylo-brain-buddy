@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import stat
 import subprocess
+import sys
 import tempfile
 import unittest
 from storage import checksum
@@ -35,10 +36,11 @@ class PermissionsTests(unittest.TestCase):
             os.setgroups([])
             os.setgid(65532)
             os.setuid(65532)
-        before = subprocess.run(["/usr/bin/head", "-c", "1", str(self.audio)], preexec_fn=renderer_uid, capture_output=True)
+        read = [sys.executable, "-c", "import sys; sys.stdout.buffer.write(open(sys.argv[1], 'rb').read(1))", str(self.audio)]
+        before = subprocess.run(read, preexec_fn=renderer_uid, capture_output=True)
         self.assertNotEqual(before.returncode, 0)
         readable_inputs(self.root, [self.media])
-        after = subprocess.run(["/usr/bin/head", "-c", "1", str(self.audio)], preexec_fn=renderer_uid, capture_output=True)
+        after = subprocess.run(read, preexec_fn=renderer_uid, capture_output=True)
         self.assertEqual(after.returncode, 0)
         self.assertEqual(after.stdout, b"J")
 
