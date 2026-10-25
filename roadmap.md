@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] v1.3: csak olvasási archívumgyökér, megnevezett hiányzó fájl, folytatási nyugták jelentése; csomag és regressziós tesztek, VPS-átvétel ellenőrzése. Gyártási parancs nincs.
+- [x] v1.3: csak olvasási archívumgyökér, megnevezett hiányzó fájl és folytatási nyugták jelentése beépítve; kapott csomag 35, integrált változat 55 + 5 teszt OK. Korábbi betű- és részlegesfolytatás-szabályok megmaradtak.
+- [ ] v1.3 VPS-átvétel és friss négy nyugta/indítási napló: 54e6bff0-1849-4113-bbff-c664e0a74208 frissítés kérve. Betűk továbbra is receptadatként érkeznek, japán szemrevételezés nincs; gyártási parancs nincs.
 
 - [x] Receptelakadás: naplóban continuation_languages_restricted; részleges folytatás szigorú kimaradási jegyzékkel és tartós command_result hibával elkészült.
 - [x] Receptbeli opcionális font, négy OFL betűadat és külön változatú renderelő előkészítése; 46 szabályteszt sikeres, négy írásrendszer mintakarakterei a betűkben megtalálhatók.
