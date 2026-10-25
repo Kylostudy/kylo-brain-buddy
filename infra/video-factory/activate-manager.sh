@@ -42,6 +42,14 @@ renderer = trial.get("renderers", {}).get("ielts-promo-v1", {})
 if not renderer.get("reviewed") or not str(renderer.get("image", "")).startswith("sha256:"):
     raise SystemExit("VF-AKT: nincs ellenőrzött renderelő")
 config["renderers"] = {"ielts-promo-v1": renderer}
+extra = etc / "reviewed-renderers.json"
+if extra.exists():
+    import re
+    additions = json.loads(extra.read_text())
+    for name, entry in additions.items():
+        if name != "ielts-promo-fonts-v1" or not entry.get("reviewed") or not re.fullmatch(r"sha256:[a-f0-9]{64}", str(entry.get("image", ""))) or entry.get("scenes") != ["ielts-promo-v1"]:
+            raise SystemExit("VF-AKT: nem ellenőrzött kiegészítő renderelő")
+        config["renderers"][name] = entry
 config["takeover_approved"] = True
 tmp = etc / "config.json.tmp"
 tmp.write_text(json.dumps(config, indent=2))

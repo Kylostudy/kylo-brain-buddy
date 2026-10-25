@@ -37,7 +37,7 @@ class ContinuationPolicyTests(unittest.TestCase):
 
     def test_missing_language_subset_rejected(self):
         with self.assertRaisesRegex(ValueError, "continuation_must_cover_27_without_repeats"):
-            validate_recipe(continuation_recipe(sorted(CONTINUATION_LANGUAGES - {"ja"}), DONE + ["ja"]))
+            validate_recipe(continuation_recipe(sorted(CONTINUATION_LANGUAGES - {"ja"}), DONE))
 
     def test_documented_seven_language_continuation(self):
         r = continuation_recipe(["da", "sv", "tr", "sk", "sl", "sr", "ru"], DONE)

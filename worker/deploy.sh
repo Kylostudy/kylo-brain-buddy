@@ -290,6 +290,18 @@ fi
 echo VF: állapot: \$(ls /opt/kylo-video-factory/releases/ 2>/dev/null | tr '\n' ' ')
 python3 /opt/kylo-video-factory/provision-host.py '$WORKER_DIR/.env'
 echo VF: szolgáltatás: \$(systemctl is-active kylo-video-factory 2>&1 || true)
+if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-font-renderer.sh' ]; then
+  if systemctl is-active --quiet kylo-ielts-font-renderer-prepare.service; then
+    echo FONT: ellenőrzött betűrenderelő előkészítése folyamatban
+  else
+    systemd-run --unit=kylo-ielts-font-renderer-prepare --collect --property=Type=exec --property=Restart=no \
+      --property=RuntimeMaxSec=10000 --property=KillMode=process \
+      --property=StandardOutput=append:/var/log/kylo-ielts-trial-install.log \
+      --property=StandardError=append:/var/log/kylo-ielts-trial-install.log \
+      /bin/bash '$VF_SRC/prepare-font-renderer.sh' '$VF_SRC' '$VF_VER'
+    echo FONT: új, külön változatú renderelő előkészítése kérve; nincs gyártási parancs
+  fi
+fi
   if [ -f '$VF_SRC/prepare-ielts-trial.py' ]; then
   if systemctl is-active --quiet kylo-ielts-trial-prepare.service || systemctl is-active --quiet kylo-ielts-trial.service; then
     echo VF: cseh próba már folyamatban
