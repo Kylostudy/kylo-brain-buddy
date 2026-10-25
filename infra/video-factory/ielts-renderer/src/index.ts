@@ -57,10 +57,27 @@ async function main() {
     stageKey(fixed, stage);
   }
   for (const [from, to] of [["assets/bed-mp3", "assets/bed.mp3"], ["assets/stinger-mp3", "assets/stinger.mp3"], ["assets/kylo-dog-png", "assets/kylo-dog.png"]]) fs.renameSync(path.join(stage, from), path.join(stage, to));
-  for (const f of fs.readdirSync(path.join(RECIPE, "fonts"))) stageKey("fonts/" + f, stage);
-  for (const f of fs.readdirSync(path.join(stage, "fonts"))) fs.renameSync(path.join(stage, "fonts", f), path.join(stage, "fonts", f.replace(/-ttf$/, ".ttf")));
+  const declared = new Set<string>(req.manifest.files.map((f: { key: string }) => f.key));
+  for (const key of declared) {
+    if (!key.startsWith("fonts/")) continue;
+    const from = stageKey(key, stage);
+    const to = path.join(stage, key.replace(/-ttf$/, ".ttf"));
+    if (from !== to) fs.renameSync(from, to);
+  }
+  let font: { file: string; family: string } | undefined;
+  if (video.font !== undefined) {
+    if (typeof video.font !== "string" || !declared.has(video.font)) fail("missing_font_reference");
+    // An internal stable path and family permit arbitrary future recipe fonts,
+    // without allowing recipe text to inject CSS or a remote URL.
+    const selected = stageKey(video.font, "/tmp/selected-font");
+    fs.mkdirSync(path.join(stage, "fonts"), { recursive: true });
+    fs.copyFileSync(selected, path.join(stage, "fonts/recipe-selected.ttf"));
+    const families: Record<string, string> = { ja: "Noto Sans JP", ko: "Noto Sans KR", ar: "Noto Sans Arabic", hi: "Noto Sans Devanagari" };
+    font = { file: "fonts/recipe-selected.ttf", family: families[video.language] ?? "Kylo Recipe Font" };
+  }
 
   const props = {
+    font,
     lang: text.lang ?? video.video_id,
     beats: timing.beats,
     subs: subs.subs,

@@ -12,6 +12,7 @@ import {
   Img,
   Sequence,
   continueRender,
+  cancelRender,
   delayRender,
   interpolate,
   random,
@@ -39,6 +40,7 @@ export interface PromoProps {
   narration: Record<string, string>;
   strings: Record<string, string>;
   telegram: string | null;
+  font?: { file: string; family: string };
   assets: { vo: string; bed: string; stinger: string; dog: string; tail: string };
 }
 
@@ -62,20 +64,21 @@ const C = {
 };
 
 const FONT =
-  '"Nunito", "Noto Sans", "Noto JP", "Noto KR", "Noto SC", "Noto Arabic", "Noto Devanagari", sans-serif';
+  'var(--recipe-font, "Nunito"), "Nunito", "Noto Sans", sans-serif';
 
 const FONT_FILES: { file: string; family: string; weight: string }[] = [
   { file: "fonts/nunito-var.ttf", family: "Nunito", weight: "200 1000" },
   { file: "fonts/notosans-var.ttf", family: "Noto Sans", weight: "200 1000" },
 ];
 
-let fontsStarted = false;
-function ensureFonts() {
-  if (fontsStarted) return;
-  fontsStarted = true;
+const fontsStarted = new Set<string>();
+function ensureFonts(font?: PromoProps["font"]) {
+  const key = font ? `${font.family}:${font.file}` : "legacy";
+  if (fontsStarted.has(key)) return;
+  fontsStarted.add(key);
   const handle = delayRender("loading-fonts");
   Promise.all(
-    FONT_FILES.map(
+    [...FONT_FILES, ...(font ? [{ ...font, weight: "100 900" }] : [])].map(
       (f) =>
         new Promise<void>((resolve, reject) => {
           const ff = new FontFace(f.family, `url(${staticFile(f.file)})`, { weight: f.weight });
@@ -87,7 +90,7 @@ function ensureFonts() {
     )
   ).then(
     () => continueRender(handle),
-    (error) => { throw error; }
+    (error) => cancelRender(error)
   );
 }
 
@@ -931,7 +934,7 @@ function SceneOutro({ b, now, strings, telegram }: { b: Beat; now: number; strin
 }
 
 export const IELTSPromo: React.FC<PromoProps> = (props) => {
-  ensureFonts();
+  ensureFonts(props.font);
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const now = (frame / fps) * 1000;
@@ -939,7 +942,7 @@ export const IELTSPromo: React.FC<PromoProps> = (props) => {
   const b = (i: number) => beats[Math.min(i, beats.length - 1)];
   const dur = durationInFrames * (1000 / fps);
   return (
-    <AbsoluteFill style={{ background: C.bg, fontFamily: FONT }}>
+    <AbsoluteFill style={{ background: C.bg, fontFamily: FONT, ...(props.font ? { "--recipe-font": `"${props.font.family}"` } : {}) } as React.CSSProperties}>
       <Backdrop />
       {now < b(1).t0 && <SceneChat b={b(0)} now={now} strings={props.strings} />}
       {now >= b(1).t0 && now < b(2).t0 && <SceneExam b={b(1)} now={now} strings={props.strings} />}
