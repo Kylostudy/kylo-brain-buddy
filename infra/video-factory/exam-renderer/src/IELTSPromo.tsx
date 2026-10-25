@@ -5,6 +5,7 @@
 // 190+ exams -> 3-month refresh -> vocab trainer -> gold dog CTA -> black outro.
 import React from "react";
 import { BrandTail } from "./BrandTail";
+import { IELTS_PROFILE, type ExamProfile } from "./examProfiles";
 import {
   AbsoluteFill,
   Audio,
@@ -41,6 +42,7 @@ export interface PromoProps {
   strings: Record<string, string>;
   telegram: string | null;
   font?: { file: string; family: string };
+  examProfile?: ExamProfile;
   assets: { vo: string; bed: string; stinger: string; dog: string; tail: string };
 }
 
@@ -322,19 +324,19 @@ function SceneChat({ b, now, strings }: { b: Beat; now: number; strings: Record<
   );
 }
 
-function ExamArt({ b, now, strings }: { b: Beat; now: number; strings: Record<string, string> }) {
+function ExamArt({ b, now, strings, profile }: { b: Beat; now: number; strings: Record<string, string>; profile: ExamProfile }) {
   const p = l(now, b.t0, b.t1);
   const badgeA = l(p, 0.02, 0.1);
   const ghostA = l(p, 0.12, 0.22);
   const strikeA = l(p, 0.42, 0.52);
   const examA = l(p, 0.5, 0.62);
   const cardA = l(p, 0.2, 0.32);
-  const shown = 30 * 60 - Math.min(5, Math.floor((now - b.t0) / 1000));
+  const shown = profile.timerSeconds - Math.min(5, Math.floor((now - b.t0) / 1000));
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   return (
     <>
       <div style={{ position: "absolute", top: 250, width: "100%", display: "flex", justifyContent: "center", opacity: badgeA }}>
-        <div style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "14px 34px", fontSize: 34, fontWeight: 900, fontFamily: FONT }}>IELTS Academic</div>
+        <div style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "14px 34px", fontSize: 34, fontWeight: 900, fontFamily: FONT }}>{profile.name}</div>
       </div>
       <div style={{ position: "absolute", top: 420, width: "100%", textAlign: "center" }}>
         <span
@@ -384,14 +386,14 @@ function ExamArt({ b, now, strings }: { b: Beat; now: number; strings: Record<st
       </div>
       <Panel style={{ position: "absolute", left: 90, right: 90, top: 940, padding: "36px 42px", opacity: cardA, transform: `translateY(${(1 - cardA) * 24}px)` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ color: C.gold, fontSize: 27, fontWeight: 800, letterSpacing: 3, fontFamily: FONT }}>LISTENING · PART 1</span>
+          <span style={{ color: C.gold, fontSize: 24, fontWeight: 800, fontFamily: FONT, maxWidth: 580 }}>{profile.taskHeading}</span>
           <span style={{ color: C.red, fontSize: 40, fontWeight: 900, fontFamily: FONT }}>{mmss(shown)}</span>
         </div>
         <div
           dir="auto"
           style={{ marginTop: 26, color: C.text, fontSize: 37, fontWeight: 700, lineHeight: 1.35, fontFamily: FONT }}
         >
-          Complete the form below. Write NO MORE THAN TWO WORDS for each answer.
+          {profile.taskPrompt}
         </div>
         {[1, 0.82, 0.62].map((w, i) => (
           <div key={i} style={{ marginTop: 20, height: 18, borderRadius: 9, width: `${w * 100}%`, background: "rgba(245,239,226,0.14)" }} />
@@ -401,21 +403,21 @@ function ExamArt({ b, now, strings }: { b: Beat; now: number; strings: Record<st
   );
 }
 
-function SceneExam({ b, now, strings }: { b: Beat; now: number; strings: Record<string, string> }) {
+function SceneExam({ b, now, strings, profile }: { b: Beat; now: number; strings: Record<string, string>; profile: ExamProfile }) {
   return (
     <AbsoluteFill>
-      <ExamArt b={b} now={now} strings={strings} />
+      <ExamArt b={b} now={now} strings={strings} profile={profile} />
     </AbsoluteFill>
   );
 }
 
-function SceneStamp({ b, prev, now, strings }: { b: Beat; prev: Beat; now: number; strings: Record<string, string> }) {
+function SceneStamp({ b, prev, now, strings, profile }: { b: Beat; prev: Beat; now: number; strings: Record<string, string>; profile: ExamProfile }) {
   const p = l(now, b.t0, b.t1);
   const punch = spring({ frame: (now - b.t0) / 1000 * 30, fps: 30, config: { damping: 9, mass: 0.7 }, durationInFrames: 18 });
   const shake = Math.sin(p * 40) * Math.exp(-p * 8) * 8;
   return (
     <AbsoluteFill style={{ transform: `translateX(${shake}px)` }}>
-      <ExamArt b={prev} now={now} strings={strings} />
+      <ExamArt b={prev} now={now} strings={strings} profile={profile} />
       <div
         style={{
           position: "absolute",
@@ -437,14 +439,7 @@ function SceneStamp({ b, prev, now, strings }: { b: Beat; prev: Beat; now: numbe
   );
 }
 
-const SKILLS: [string, string][] = [
-  ["Listening", "30"],
-  ["Reading", "60"],
-  ["Writing", "60"],
-  ["Speaking", "11–14"],
-];
-
-function SceneSim({ b, now, strings }: { b: Beat; now: number; strings: Record<string, string> }) {
+function SceneSim({ b, now, strings, profile }: { b: Beat; now: number; strings: Record<string, string>; profile: ExamProfile }) {
   const p = l(now, b.t0, b.t1);
   return (
     <AbsoluteFill>
@@ -501,10 +496,10 @@ function SceneSim({ b, now, strings }: { b: Beat; now: number; strings: Record<s
       </div>
       <Panel style={{ position: "absolute", left: 90, right: 90, top: 640, padding: "34px 40px", opacity: l(p, 0.12, 0.2) }}>
         <div style={{ color: C.gold, fontSize: 26, fontWeight: 800, letterSpacing: 3, fontFamily: FONT }}>
-          IELTS · 165 <span dir="auto">{strings.minutes}</span>
+          {profile.id === "ielts-academic" ? <>IELTS · 165 <span dir="auto">{strings.minutes}</span></> : profile.name}
         </div>
         <div style={{ marginTop: 18 }}>
-          {SKILLS.map(([name, dur], i) => {
+          {profile.skills.map(([name, dur], i) => {
             const at = 0.3 + i * 0.16;
             const active = p > at;
             const check = spring({ frame: (p - at) * 600, fps: 30, durationInFrames: 16, config: { damping: 10 } });
@@ -523,7 +518,7 @@ function SceneSim({ b, now, strings }: { b: Beat; now: number; strings: Record<s
                   opacity: l(p, at - 0.06, at),
                 }}
               >
-                <span style={{ color: C.text, fontSize: 38, fontWeight: 800, fontFamily: FONT, flex: 1, textAlign: "left" }}>{name}</span>
+                <span style={{ color: C.text, fontSize: name.length > 18 ? 30 : 38, fontWeight: 800, fontFamily: FONT, flex: 1, textAlign: "left", minWidth: 0 }}>{name}</span>
                 <span style={{ color: C.muted, fontSize: 30, fontWeight: 700, fontFamily: FONT }}>
                   {dur} <span dir="auto">{strings.minutes}</span>
                 </span>
@@ -561,7 +556,7 @@ const SCORES: [string, number, number][] = [
   ["Speaking", 27, 71],
 ];
 
-function SceneScore({ b, now, strings }: { b: Beat; now: number; strings: Record<string, string> }) {
+function SceneScore({ b, now, strings, profile }: { b: Beat; now: number; strings: Record<string, string>; profile: ExamProfile }) {
   const p = l(now, b.t0, b.t1);
   const ringP = l(p, 0.55, 0.92);
   const ringVal = Math.round(ringP * 74);
@@ -585,7 +580,8 @@ function SceneScore({ b, now, strings }: { b: Beat; now: number; strings: Record
         {strings.keyWord}
       </div>
       <Panel style={{ position: "absolute", left: 90, right: 90, top: 470, padding: "40px 42px", opacity: l(p, 0.12, 0.2) }}>
-        {SCORES.map(([name, low, high], i) => {
+        {SCORES.map(([, low, high], i) => {
+          const name = profile.scoreLabels[i];
           const at = 0.2 + i * 0.07;
           const early = interpolate(p, [at, at + 0.18], [0, low], { easing: Easing.out(Easing.cubic), extrapolateLeft: "clamp", extrapolateRight: "clamp" });
           const late = interpolate(p, [0.5, 0.68], [low, high], { easing: Easing.out(Easing.cubic), extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -593,7 +589,7 @@ function SceneScore({ b, now, strings }: { b: Beat; now: number; strings: Record
           return (
             <div key={i} style={{ marginTop: i ? 30 : 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ color: C.text, fontSize: 35, fontWeight: 800, fontFamily: FONT }}>{name}</span>
+                <span style={{ color: C.text, fontSize: 30, fontWeight: 800, fontFamily: FONT }}>{name}</span>
                 <span style={{ color: C.gold, fontSize: 35, fontWeight: 900, fontFamily: FONT }}>{val}%</span>
               </div>
               <div style={{ marginTop: 10, height: 26, borderRadius: 13, background: "rgba(233,180,76,0.13)", overflow: "hidden" }}>
@@ -632,7 +628,7 @@ const CHIPS: { t: string; x: number; y: number; at: number }[] = [
   { t: "CILS B2", x: 60, y: 1250, at: 0.44 },
 ];
 
-function SceneExams({ b, now, strings }: { b: Beat; now: number; strings: Record<string, string> }) {
+function SceneExams({ b, now, strings, profile }: { b: Beat; now: number; strings: Record<string, string>; profile: ExamProfile }) {
   const p = l(now, b.t0, b.t1);
   const count = Math.round(interpolate(p, [0.3, 0.6], [134, 190], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
   return (
@@ -652,7 +648,7 @@ function SceneExams({ b, now, strings }: { b: Beat; now: number; strings: Record
             padding: "14px 30px",
           }}
         >
-          <span style={{ color: i === 0 ? C.goldLite : C.text, fontSize: 28, fontWeight: 700, fontFamily: FONT }}>{c.t}</span>
+          <span style={{ color: i === 0 ? C.goldLite : C.text, fontSize: 28, fontWeight: 700, fontFamily: FONT }}>{i === 0 ? profile.name : c.t}</span>
         </div>
       ))}
       {[strings.examChip1, strings.examChip2].map((t, i) => (
@@ -749,7 +745,7 @@ function SceneFresh({ b, now, strings }: { b: Beat; now: number; strings: Record
   );
 }
 
-function VocabCard({ p, phase, strings }: { p: number; phase: number; strings: Record<string, string> }) {
+function VocabCard({ p, phase, strings, profile }: { p: number; phase: number; strings: Record<string, string>; profile: ExamProfile }) {
   const flipAt = phase === 0 ? 0.6 : 0.45;
   const flip = l(p, flipAt, flipAt + 0.09);
   const scale = Math.abs(Math.cos(flip * Math.PI));
@@ -780,7 +776,7 @@ function VocabCard({ p, phase, strings }: { p: number; phase: number; strings: R
             <span style={{ color: C.gold, fontSize: 30, fontWeight: 800, letterSpacing: 5, fontFamily: FONT }}>
               {strings.wordLabel} {phase + 1} / 3
             </span>
-            <span style={{ color: C.text, fontSize: 84, fontWeight: 900, fontFamily: FONT }}>{phase === 0 ? "to mitigate" : "substantial"}</span>
+            <span style={{ color: C.text, fontSize: 84, fontWeight: 900, fontFamily: FONT }}>{profile.vocabulary[phase]}</span>
             <span dir="auto" style={{ color: C.dim, fontSize: 28, fontWeight: 700, fontFamily: FONT }}>{strings.flipHint}</span>
           </>
         ) : (
@@ -798,7 +794,7 @@ function VocabCard({ p, phase, strings }: { p: number; phase: number; strings: R
   );
 }
 
-function SceneVocab({ b, now, strings }: { b: Beat; now: number; strings: Record<string, string> }) {
+function SceneVocab({ b, now, strings, profile }: { b: Beat; now: number; strings: Record<string, string>; profile: ExamProfile }) {
   const p = l(now, b.t0, b.t1);
   const bar1 = interpolate(p, [0.55, 0.68], [7, 36], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const bar2 = interpolate(p, [0.85, 0.95], [36, 64], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -824,7 +820,7 @@ function SceneVocab({ b, now, strings }: { b: Beat; now: number; strings: Record
         {strings.vocabTitle}
       </div>
       <div style={{ position: "absolute", top: 460, width: "100%" }}>
-        <VocabCard p={phase === 0 ? p : p - 0.52} phase={phase} strings={strings} />
+        <VocabCard p={phase === 0 ? p : p - 0.52} phase={phase} strings={strings} profile={profile} />
       </div>
       <Panel style={{ position: "absolute", left: 90, right: 90, top: 1080, padding: "30px 38px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -935,6 +931,7 @@ function SceneOutro({ b, now, strings, telegram }: { b: Beat; now: number; strin
 
 export const IELTSPromo: React.FC<PromoProps> = (props) => {
   ensureFonts(props.font);
+  const profile = props.examProfile ?? IELTS_PROFILE;
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const now = (frame / fps) * 1000;
@@ -945,13 +942,13 @@ export const IELTSPromo: React.FC<PromoProps> = (props) => {
     <AbsoluteFill style={{ background: C.bg, fontFamily: FONT, ...(props.font ? { "--recipe-font": `"${props.font.family}"` } : {}) } as React.CSSProperties}>
       <Backdrop />
       {now < b(1).t0 && <SceneChat b={b(0)} now={now} strings={props.strings} />}
-      {now >= b(1).t0 && now < b(2).t0 && <SceneExam b={b(1)} now={now} strings={props.strings} />}
-      {now >= b(2).t0 && now < b(3).t0 && <SceneStamp b={b(2)} prev={b(1)} now={now} strings={props.strings} />}
-      {now >= b(3).t0 && now < b(4).t0 && <SceneSim b={b(3)} now={now} strings={props.strings} />}
-      {now >= b(4).t0 && now < b(5).t0 && <SceneScore b={b(4)} now={now} strings={props.strings} />}
-      {now >= b(5).t0 && now < b(6).t0 && <SceneExams b={b(5)} now={now} strings={props.strings} />}
+      {now >= b(1).t0 && now < b(2).t0 && <SceneExam b={b(1)} now={now} strings={props.strings} profile={profile} />}
+      {now >= b(2).t0 && now < b(3).t0 && <SceneStamp b={b(2)} prev={b(1)} now={now} strings={props.strings} profile={profile} />}
+      {now >= b(3).t0 && now < b(4).t0 && <SceneSim b={b(3)} now={now} strings={props.strings} profile={profile} />}
+      {now >= b(4).t0 && now < b(5).t0 && <SceneScore b={b(4)} now={now} strings={props.strings} profile={profile} />}
+      {now >= b(5).t0 && now < b(6).t0 && <SceneExams b={b(5)} now={now} strings={props.strings} profile={profile} />}
       {now >= b(6).t0 && now < b(7).t0 && <SceneFresh b={b(6)} now={now} strings={props.strings} />}
-      {now >= b(7).t0 && now < b(8).t0 && <SceneVocab b={b(7)} now={now} strings={props.strings} />}
+      {now >= b(7).t0 && now < b(8).t0 && <SceneVocab b={b(7)} now={now} strings={props.strings} profile={profile} />}
       {now >= b(8).t0 && now < b(9).t0 && <SceneCta b={b(8)} now={now} strings={props.strings} />}
       {now >= b(9).t0 && now < dur && <SceneOutro b={b(9)} now={now} strings={props.strings} telegram={props.telegram} />}
       <Caption now={now} subs={props.subs} />

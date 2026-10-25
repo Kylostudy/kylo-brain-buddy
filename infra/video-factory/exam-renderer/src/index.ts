@@ -10,6 +10,7 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { resolveExamProfile } from "./examProfiles";
 
 const RECIPE = "/recipe";
 const REQUEST = "/request.json";
@@ -49,6 +50,7 @@ async function main() {
   fs.mkdirSync(stage, { recursive: true });
 
   const text = JSON.parse(video.text);
+  const examProfile = resolveExamProfile(text.examProfileId, req.manifest?.series);
   const subs = JSON.parse(video.subtitle);
   const cta = JSON.parse(video.cta);
   const timing = { beats: video.timing.map((t: {start_ms: number; end_ms: number}, i: number) => ({id: String(i), t0: t.start_ms, t1: t.end_ms})) };
@@ -78,6 +80,7 @@ async function main() {
 
   const props = {
     font,
+    examProfile,
     lang: text.lang ?? video.video_id,
     beats: timing.beats,
     subs: subs.subs,
