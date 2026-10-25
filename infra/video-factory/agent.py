@@ -18,6 +18,47 @@ from verify import verify_video
 from inputs import Inputs
 
 
+FAILURE_FILE = "last-render-failure.json"
+
+
+def failure_detail(exc):
+    """Bounded diagnostic: exception class, message, failing code line and renderer stderr tail."""
+    import traceback
+    frames = traceback.extract_tb(exc.__traceback__)[-3:]
+    detail = {
+        "type": type(exc).__name__,
+        "message": str(exc)[:500],
+        "where": ["%s:%s %s" % (os.path.basename(f.filename), f.lineno, f.name) for f in frames],
+    }
+    filename = getattr(exc, "filename", None)
+    if filename:
+        detail["path"] = str(filename)[:400]
+    if isinstance(exc, subprocess.CalledProcessError):
+        detail["returncode"] = exc.returncode
+        err = exc.stderr or b""
+        if isinstance(err, bytes):
+            err = err.decode("utf-8", "replace")
+        detail["stderr_tail"] = err[-4000:]
+    return detail
+
+
+def record_failure(config, job, code, detail):
+    try:
+        root = Path(config["work_root"]).parent
+        manifest = job.get("manifest") or {}
+        videos = manifest.get("videos") or []
+        cursor = job.get("cursor", 0)
+        video = videos[cursor] if isinstance(cursor, int) and 0 <= cursor < len(videos) else {}
+        body = {"at": int(time.time()), "job_id": job.get("id"), "cursor": cursor,
+                "recipe_id": manifest.get("recipe_id"), "version": manifest.get("version"),
+                "video_id": video.get("video_id"), "code": code, "detail": detail}
+        tmp = root / (FAILURE_FILE + ".tmp")
+        tmp.write_text(json.dumps(body, ensure_ascii=False, indent=1))
+        os.replace(tmp, root / FAILURE_FILE)
+    except Exception as e:
+        print("render failure record unavailable (%s)" % type(e).__name__, flush=True)
+
+
 class Runner:
     def __init__(self, config, state):
         self.config, self.state = config, state
@@ -50,6 +91,10 @@ class Runner:
             except Exception as e:
                 allowed = {"low_disk", "archive_conflict", "media_checksum_failed", "renderer_review_required", "archive_readback_failed", "unsafe_render_output"}
                 code = str(e) if str(e) in allowed else "render_or_verification_failed"
+                # Persist a bounded, local-only cause so a generic code is never the only trace.
+                detail = failure_detail(e)
+                record_failure(self.config, job, code, detail)
+                print("render failed: job=%s cursor=%s code=%s detail=%s" % (job.get("id"), job.get("cursor"), code, json.dumps(detail, ensure_ascii=False)), flush=True)
                 self.state.fail(job, code, blocked=code in allowed)
             finally:
                 stop.set()
