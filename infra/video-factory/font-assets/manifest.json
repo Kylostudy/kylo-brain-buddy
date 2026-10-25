@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "key": "fonts/notosans-jp-ttf",
+      "bytes": 9589900,
+      "sha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+      "url": "https://brain.kylosystems.com/__l5e/assets-v1/c153eaf7-ec03-4915-8ce0-50cda862972e/notosans-jp-ttf.ttf",
+      "sample": "日本語試験",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf"
+    },
+    {
+      "key": "fonts/notosans-kr-ttf",
+      "bytes": 10414588,
+      "sha256": "194018e6b2b293a7964f037b25c0249ce1418bc9ab3c971060a03aa57861e252",
+      "url": "https://brain.kylosystems.com/__l5e/assets-v1/fe7c5b8d-5570-44d4-8738-6948bba660be/notosans-kr-ttf.ttf",
+      "sample": "한국어시험",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanskr/NotoSansKR%5Bwght%5D.ttf"
+    },
+    {
+      "key": "fonts/notosans-arabic-ttf",
+      "bytes": 844676,
+      "sha256": "63111b5b2e074dd48cc67692e0a2726d86ee94c1c37fe8598257b7b4e87e869e",
+      "url": "https://brain.kylosystems.com/__l5e/assets-v1/e08eb11f-95a9-41ac-804b-e24f4ebe4062/notosans-arabic-ttf.ttf",
+      "sample": "العربية",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic/NotoSansArabic%5Bwdth%2Cwght%5D.ttf"
+    },
+    {
+      "key": "fonts/notosans-devanagari-ttf",
+      "bytes": 641944,
+      "sha256": "14ec4af41f27482216d1c2229f417ff9b1425e1babb014e57d1d40d03229853e",
+      "url": "https://brain.kylosystems.com/__l5e/assets-v1/d9867a72-d697-4da3-b6a4-24d845a768e4/notosans-devanagari-ttf.ttf",
+      "sample": "हिन्दी",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansdevanagari/NotoSansDevanagari%5Bwdth%2Cwght%5D.ttf"
+    }
+  ]
+}
