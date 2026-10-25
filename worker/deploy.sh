@@ -299,7 +299,7 @@ if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$V
       --property=StandardOutput=append:/var/log/kylo-ielts-trial-install.log \
       --property=StandardError=append:/var/log/kylo-ielts-trial-install.log \
       /bin/bash '$VF_SRC/prepare-font-renderer.sh' '$VF_SRC' '$VF_VER'
-    echo FONT: új, külön változatú renderelő előkészítése kérve; nincs gyártási parancs
+    echo 'FONT: új, külön változatú renderelő előkészítése kérve; nincs gyártási parancs'
   fi
 fi
   if [ -f '$VF_SRC/prepare-ielts-trial.py' ]; then

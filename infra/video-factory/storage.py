@@ -31,12 +31,22 @@ def safe_path(root, key, suffix=""):
     return path
 
 
+READ_ROOT_ALIASES = {"brain-archive"}
+
+
 class LocalArchive:
     kind = "local"
 
-    def __init__(self, root):
+    def __init__(self, root, read_roots=None):
         self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
+        self.read_roots = {}
+        for alias, path in (read_roots or {}).items():
+            if alias not in READ_ROOT_ALIASES:
+                raise ValueError("unknown_read_root")
+            if Path(path).is_symlink():
+                raise ValueError("symlink_not_allowed")
+            self.read_roots[alias] = Path(path).resolve()
 
     def exists(self, key):
         return safe_path(self.root, key, ".mp4").is_file()
@@ -45,8 +55,20 @@ class LocalArchive:
         return safe_path(self.root, key, ".mp4").open("rb")
 
     def verify(self, receipt):
-        target = safe_path(self.root, receipt["object_key"], ".mp4")
-        return target.stat().st_size == receipt["bytes"] and checksum(target) == receipt["sha256"]
+        alias = receipt.get("read_root")
+        if alias is None:
+            root = self.root
+        elif isinstance(alias, str) and alias in self.read_roots:
+            root = self.read_roots[alias]
+        else:
+            raise ValueError("read_root_not_configured")
+        target = safe_path(root, receipt["object_key"], ".mp4")
+        try:
+            if not target.is_file():
+                raise FileNotFoundError()
+            return target.stat().st_size == receipt["bytes"] and checksum(target) == receipt["sha256"]
+        except FileNotFoundError:
+            raise ValueError("completed_video_missing:" + (alias or "factory") + ":" + receipt["object_key"]) from None
 
     def save(self, key, source, media_receipt):
         target = safe_path(self.root, key, ".mp4")

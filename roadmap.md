@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] v1.3: csak olvasási archívumgyökér, megnevezett hiányzó fájl, folytatási nyugták jelentése; csomag és regressziós tesztek, VPS-átvétel ellenőrzése. Gyártási parancs nincs.
+
 - [x] Receptelakadás: naplóban continuation_languages_restricted; részleges folytatás szigorú kimaradási jegyzékkel és tartós command_result hibával elkészült.
 - [x] Receptbeli opcionális font, négy OFL betűadat és külön változatú renderelő előkészítése; 46 szabályteszt sikeres, négy írásrendszer mintakarakterei a betűkben megtalálhatók.
 - [ ] Új változat VPS-es átvétele és japán próbavideó szemrevételezése; KyLogic új receptje és tulajdonosi jóváhagyás szükséges, nincs automatikus sorozatindítás.

@@ -78,6 +78,8 @@ def validate_recipe(raw):
             if not isinstance(receipt, dict) or receipt.get("storage_type") != "local" or type(receipt.get("bytes")) is not int or receipt["bytes"] < 1 or not SHA.fullmatch(str(receipt.get("sha256", ""))):
                 raise ValueError("invalid_completed_receipt")
             object_key(receipt.get("object_key"))
+            if receipt.get("read_root") not in (None, "brain-archive"):
+                raise ValueError("invalid_completed_receipt")
         blocked = set()
         entries = continuation.get("blocked_languages", [])
         if not isinstance(entries, list):
