@@ -28,6 +28,7 @@ for file in contract.py storage.py verify.py state.py client.py agent.py invento
     install -m 644 "$SRC/$file" "$REL/$file"
   fi
 done
+CONFIG_BEFORE="$(sha256sum "$ETC/config.json" | cut -d' ' -f1)"
 python3 - "$ETC" <<'PY'
 import json, os, sys
 from pathlib import Path
@@ -63,7 +64,7 @@ install -m 644 "$REL/kylo-video-factory.service" /etc/systemd/system/kylo-video-
 systemctl daemon-reload
 systemctl enable kylo-video-factory.service >/dev/null 2>&1
 if systemctl is-active --quiet kylo-video-factory.service; then
-  if [ "$OLD" != "$REL" ]; then
+  if [ "$OLD" != "$REL" ] || [ "$CONFIG_BEFORE" != "$(sha256sum "$ETC/config.json" | cut -d' ' -f1)" ]; then
     if docker ps --format '{{.Names}}' | grep -qx kylo-video-factory-render; then
       echo 'VF-AKT: renderelés fut, az újraindítás a következő frissítésre marad'
     else

@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Receptelakadás: részleges folytatás szigorú kimaradási jegyzékkel és tartós command_result hibával.
-- [ ] Receptbeli opcionális font, négy OFL betűadat és külön változatú renderelő előkészítése, regressziós tesztek.
+- [x] Receptelakadás: naplóban continuation_languages_restricted; részleges folytatás szigorú kimaradási jegyzékkel és tartós command_result hibával elkészült.
+- [x] Receptbeli opcionális font, négy OFL betűadat és külön változatú renderelő előkészítése; 46 szabályteszt sikeres, négy írásrendszer mintakarakterei a betűkben megtalálhatók.
 - [ ] Új változat VPS-es átvétele és japán próbavideó szemrevételezése; KyLogic új receptje és tulajdonosi jóváhagyás szükséges, nincs automatikus sorozatindítás.
 
 - [x] Videógyár első frissítés utáni indítása: sikeres háttér-előkészítéshez kötött aktiválás; késleltetett, sikertelen és már kész előkészítés tesztje sikeres, összesen 38 próba OK.
