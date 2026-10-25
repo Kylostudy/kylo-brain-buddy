@@ -26,7 +26,7 @@ class ReadRootTests(unittest.TestCase):
             LocalArchive(Path(self.tmp.name) / "other").verify(self.receipt)
 
     def test_missing_completed_video_is_named(self):
-        with self.assertRaisesRegex(ValueError, "completed_video_missing:videos/nyelvvizsga-promo/kylo-ielts-de-9x16"):
+        with self.assertRaisesRegex(ValueError, "completed_video_missing:factory:videos/nyelvvizsga-promo/kylo-ielts-de-9x16"):
             self.archive.verify({**self.receipt, "read_root": None})
 
     def test_changed_legacy_file_is_rejected(self):
@@ -36,6 +36,25 @@ class ReadRootTests(unittest.TestCase):
     def test_unknown_alias_cannot_be_configured(self):
         with self.assertRaisesRegex(ValueError, "unknown_read_root"):
             LocalArchive(Path(self.tmp.name) / "x", {"anything": "/"})
+
+    def test_legacy_symlink_is_rejected(self):
+        self.video.unlink()
+        other = Path(self.tmp.name) / "outside.mp4"
+        other.write_bytes(b"de-video")
+        self.video.symlink_to(other)
+        with self.assertRaisesRegex(ValueError, "symlink_not_allowed"):
+            self.archive.verify(self.receipt)
+
+    def test_read_root_symlink_is_rejected(self):
+        alias = Path(self.tmp.name) / "alias"
+        alias.symlink_to(self.legacy, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "symlink_not_allowed"):
+            LocalArchive(Path(self.tmp.name) / "x", {"brain-archive": alias})
+
+    def test_missing_legacy_file_names_root_and_key(self):
+        self.video.unlink()
+        with self.assertRaisesRegex(ValueError, "completed_video_missing:brain-archive:videos/nyelvvizsga-promo/kylo-ielts-de-9x16"):
+            self.archive.verify(self.receipt)
 
     def test_new_videos_still_save_under_factory_root(self):
         receipt = self.archive.save("ielts-series/v3/ielts-da", self.video, {})
