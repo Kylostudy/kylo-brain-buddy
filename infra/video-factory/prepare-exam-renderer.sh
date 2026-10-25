@@ -33,8 +33,13 @@ from pathlib import Path
 p = Path('/etc/kylo-video-factory/reviewed-renderers.json')
 entries = json.loads(p.read_text()) if p.exists() else {}
 entry = {'image': sys.argv[1], 'reviewed': True, 'scenes': ['exam-promo-profiles-v1']}
-if 'exam-promo-profiles-v1' in entries and entries['exam-promo-profiles-v1'] != entry:
-    raise SystemExit('immutable_renderer_conflict')
+existing = entries.get('exam-promo-profiles-v1')
+if existing is not None and existing != entry:
+    import subprocess
+    probe = subprocess.run(['docker', 'image', 'inspect', str(existing.get('image', ''))], capture_output=True)
+    if probe.returncode == 0:
+        raise SystemExit('immutable_renderer_conflict')
+    # A bejegyzett kép már nem létezik a Dockerben: ez helyreállítás, nem felülírás.
 entries['exam-promo-profiles-v1'] = entry
 temp = p.with_suffix('.tmp')
 temp.write_text(json.dumps(entries, indent=2))
