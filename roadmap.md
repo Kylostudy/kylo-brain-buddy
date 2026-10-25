@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Videógyár első frissítés utáni indítása: sikeres háttér-előkészítéshez kötött aktiválás; késleltetett, sikertelen és már kész előkészítés tesztje sikeres, összesen 38 próba OK.
+- [ ] Indítási sorrend javításának VPS-es igazolása: a frissített deploy átvétele és új szolgáltatásnapló szükséges; ebben a javításban éles indítás nem történt.
+
 - [x] Cseh IELTS próba: ellenőrzött médiacsomag, átvizsgált gyártó, egyetlen videóra korlátozott indítás és védett jelentések előkészítve; 28 gyártóteszt és 5 jelentőteszt sikeres.
 - [x] Cseh IELTS próba: 17:05-ös hiba oka megvan (a tight-cut 1,5 mp-et vágott, a hosszellenőrzés elutasította); renderelő pontos hosszra javítva, egyszeri újrapróba + hibakód a jelentésben, 31 teszt OK
 - [ ] Cseh IELTS próba: újrapróba VPS-es lefutása és archivált eredmény igazolása; blokkoló: Brain publikálása szükséges. Nincs sorozat vagy közösségi publikálás.

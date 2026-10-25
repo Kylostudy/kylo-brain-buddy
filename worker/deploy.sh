@@ -310,11 +310,11 @@ if [ -f '$VF_SRC/prepare-ielts-continuation.py' ]; then
     systemd-run --unit=kylo-ielts-continuation-prepare --collect --property=Type=exec --property=Restart=no \
       --property=StandardOutput=append:/var/log/kylo-ielts-trial-install.log \
       --property=StandardError=append:/var/log/kylo-ielts-trial-install.log \
-      /usr/bin/python3 -u '$VF_SRC/prepare-ielts-continuation.py' '$VF_SRC' '$VF_VER'
+      /bin/bash -c \"/usr/bin/python3 -u '$VF_SRC/prepare-ielts-continuation.py' '$VF_SRC' '$VF_VER' && /bin/bash '$VF_SRC/activate-manager.sh' '$VF_VER'\"
     echo 'VF: IELTS folytatás előkészítése kérve - 4 kész videó archiválása, 11 hang'
   fi
 fi
-if [ -f '$VF_SRC/activate-manager.sh' ]; then
+if [ -f '$VF_SRC/activate-manager.sh' ] && [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ]; then
   bash '$VF_SRC/activate-manager.sh' '$VF_VER' 2>&1 || echo VF-AKT: aktiválás megállt
 fi
 "
