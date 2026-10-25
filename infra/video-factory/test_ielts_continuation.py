@@ -36,8 +36,25 @@ class ContinuationPolicyTests(unittest.TestCase):
             validate_recipe(continuation_recipe(sorted(CONTINUATION_LANGUAGES | {"xx"}), DONE))
 
     def test_missing_language_subset_rejected(self):
+        with self.assertRaisesRegex(ValueError, "continuation_must_cover_27_without_repeats"):
+            validate_recipe(continuation_recipe(sorted(CONTINUATION_LANGUAGES - {"ja"}), DONE))
+
+    def test_documented_seven_language_continuation(self):
+        r = continuation_recipe(["da", "sv", "tr", "sk", "sl", "sr", "ru"], DONE)
+        r["continuation"]["blocked_languages"] = [{"language": l, "reason": "font_pending"} for l in ["ja", "ko", "ar", "hi"]]
+        self.assertEqual(validate_recipe(r)["languages"], ["da", "sv", "tr", "sk", "sl", "sr", "ru"])
+
+    def test_missing_block_reason_rejected(self):
+        r = continuation_recipe(sorted(CONTINUATION_LANGUAGES - {"ja"}), DONE)
+        r["continuation"]["blocked_languages"] = [{"language": "ja", "reason": " "}]
+        with self.assertRaisesRegex(ValueError, "blocked_language_reason_required"):
+            validate_recipe(r)
+
+    def test_blocked_language_cannot_be_rendered(self):
+        r = continuation_recipe(sorted(CONTINUATION_LANGUAGES), DONE)
+        r["continuation"]["blocked_languages"] = [{"language": "ja", "reason": "font_pending"}]
         with self.assertRaisesRegex(ValueError, "continuation_languages_restricted"):
-            validate_recipe(continuation_recipe(sorted(CONTINUATION_LANGUAGES - {"ja"}), DONE + ["ja"]))
+            validate_recipe(r)
 
 
 if __name__ == "__main__":

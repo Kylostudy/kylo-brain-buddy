@@ -28,6 +28,7 @@ for file in contract.py storage.py verify.py state.py client.py agent.py invento
     install -m 644 "$SRC/$file" "$REL/$file"
   fi
 done
+CONFIG_BEFORE="$(sha256sum "$ETC/config.json" | cut -d' ' -f1)"
 python3 - "$ETC" <<'PY'
 import json, os, sys
 from pathlib import Path
@@ -42,6 +43,14 @@ renderer = trial.get("renderers", {}).get("ielts-promo-v1", {})
 if not renderer.get("reviewed") or not str(renderer.get("image", "")).startswith("sha256:"):
     raise SystemExit("VF-AKT: nincs ellenőrzött renderelő")
 config["renderers"] = {"ielts-promo-v1": renderer}
+extra = etc / "reviewed-renderers.json"
+if extra.exists():
+    import re
+    additions = json.loads(extra.read_text())
+    for name, entry in additions.items():
+        if name != "ielts-promo-fonts-v1" or not entry.get("reviewed") or not re.fullmatch(r"sha256:[a-f0-9]{64}", str(entry.get("image", ""))) or entry.get("scenes") != ["ielts-promo-v1"]:
+            raise SystemExit("VF-AKT: nem ellenőrzött kiegészítő renderelő")
+        config["renderers"][name] = entry
 config["takeover_approved"] = True
 tmp = etc / "config.json.tmp"
 tmp.write_text(json.dumps(config, indent=2))
@@ -55,7 +64,7 @@ install -m 644 "$REL/kylo-video-factory.service" /etc/systemd/system/kylo-video-
 systemctl daemon-reload
 systemctl enable kylo-video-factory.service >/dev/null 2>&1
 if systemctl is-active --quiet kylo-video-factory.service; then
-  if [ "$OLD" != "$REL" ]; then
+  if [ "$OLD" != "$REL" ] || [ "$CONFIG_BEFORE" != "$(sha256sum "$ETC/config.json" | cut -d' ' -f1)" ]; then
     if docker ps --format '{{.Names}}' | grep -qx kylo-video-factory-render; then
       echo 'VF-AKT: renderelés fut, az újraindítás a következő frissítésre marad'
     else

@@ -118,6 +118,23 @@ class State:
             self.emit(db, "command_result", cid, result)
             return result
 
+    def reject(self, command, code):
+        """Persist a bounded failure for a delivered command, without storing its payload."""
+        cid = command.get("delivery_id") if isinstance(command, dict) else None
+        try:
+            if str(uuid.UUID(cid)) != cid:
+                return
+        except (ValueError, TypeError, AttributeError):
+            return
+        identity = digest(command)
+        with self.transaction() as db:
+            previous = db.execute("SELECT hash FROM commands WHERE id=?", (cid,)).fetchone()
+            if previous:
+                return
+            result = {"ok": False, "error": code}
+            db.execute("INSERT INTO commands VALUES(?,?,?)", (cid, identity, canonical(result).decode()))
+            self.emit(db, "command_result", cid, result)
+
     def claim(self, now=None):
         now = int(time.time()) if now is None else now
         with self.transaction() as db:
