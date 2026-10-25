@@ -1,7 +1,8 @@
 # Roadmap
 
 - [x] v1.4 hozzáférési javítás beépítve az eddigi hibajelentés, betűk és nyelvi korlátok megtartásával; meglévő recept is javul renderelés előtt, archívum változatlan.
-- [ ] v1.4 VPS-átvétel: a4d95270-451e-4990-81e0-7ec5b78579fe frissítés pending; 60 gyártó- és 7 jelentőteszt OK. Japán újrapróba blokkolója: frissítés igazolása után KyLogic job_id-alapú retry parancsa szükséges; Brainben nincs külön japánindító végpont. Sorozat nem indítható.
+- [x] v1.4 VPS-átvétel: a4d95270 frissítés 10:47 UTC-kor sikeres, videógyár 10:22 UTC-kor új változattal újraindult, aktív.
+- [ ] Japán újrapróba: 13:34 UTC-ig a szerver nem kapott/futtatott új japán renderelést (utolsó hiba a 10:12-es); KyLogic retry parancsának tényleges kézbesítése szükséges. Sorozat nem indítható.
 
 - [x] v1.3: csak olvasási archívumgyökér, megnevezett hiányzó fájl és folytatási nyugták jelentése beépítve; kapott csomag 35, integrált változat 55 + 5 teszt OK. Korábbi betű- és részlegesfolytatás-szabályok megmaradtak.
 - [ ] v1.3 VPS-átvétel és friss négy nyugta/indítási napló: 54e6bff0-1849-4113-bbff-c664e0a74208 frissítés kérve. Betűk továbbra is receptadatként érkeznek, japán szemrevételezés nincs; gyártási parancs nincs.
