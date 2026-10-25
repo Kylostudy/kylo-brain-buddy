@@ -15,7 +15,7 @@ from contract import canonical
 from state import State
 from storage import LocalArchive, checksum, safe_path
 from verify import verify_video
-from inputs import Inputs
+from inputs import Inputs, readable_inputs
 
 
 FAILURE_FILE = "last-render-failure.json"
@@ -119,6 +119,8 @@ class Runner:
             if usage.free < self.config["min_free_bytes"] or usage.used / usage.total > self.config["max_disk_fraction"]:
                 raise ValueError("low_disk")
         recipe_root = safe_path(self.config["recipe_root"], manifest["recipe_id"] + "/" + manifest["version"])
+        # Includes recipes registered before the permission fix; no re-download.
+        readable_inputs(recipe_root, manifest["files"])
         for media in manifest["files"]:
             path = safe_path(recipe_root, media["key"])
             if not path.is_file() or path.stat().st_size != media["bytes"] or checksum(path) != media["sha256"]:

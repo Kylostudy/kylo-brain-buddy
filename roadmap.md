@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] v1.4 hozzáférési javítás beépítve az eddigi hibajelentés, betűk és nyelvi korlátok megtartásával; meglévő recept is javul renderelés előtt, archívum változatlan.
+- [ ] v1.4 szerverfrissítés igazolása és kizárólag a 017b4056 japán próba újraindítása; sorozat nem indítható.
+
 - [x] v1.3: csak olvasási archívumgyökér, megnevezett hiányzó fájl és folytatási nyugták jelentése beépítve; kapott csomag 35, integrált változat 55 + 5 teszt OK. Korábbi betű- és részlegesfolytatás-szabályok megmaradtak.
 - [ ] v1.3 VPS-átvétel és friss négy nyugta/indítási napló: 54e6bff0-1849-4113-bbff-c664e0a74208 frissítés kérve. Betűk továbbra is receptadatként érkeznek, japán szemrevételezés nincs; gyártási parancs nincs.
 
