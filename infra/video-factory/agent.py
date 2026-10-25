@@ -142,6 +142,7 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         last_claim = 0
         while True:
+            command = None
             try:
                 for event in state.pending():
                     ack = client.request("events", event)
@@ -149,7 +150,7 @@ def main():
                         state.acknowledge(event["event_id"])
                 if time.time() - last_claim >= 20:
                     client.request("heartbeat", {"schema_version": 1, "agent_id": config["agent_id"], "takeover_approved": config["takeover_approved"], "pending_events": len(state.pending())})
-                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1"], "batch_size": 5, "concurrency": 1})
+                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")
                     if command is not None:
                         from contract import validate_command
@@ -167,6 +168,8 @@ def main():
                     reason = str(e)
                 else:
                     reason = type(e).__name__
+                if command is not None:
+                    state.reject(command, reason)
                 print("KyLogic connection or command unavailable (%s); durable work preserved" % reason, flush=True)
             runner.run_one()
             time.sleep(random.uniform(5, 10))

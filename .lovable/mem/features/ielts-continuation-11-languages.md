@@ -13,4 +13,4 @@ Tulajdonosi utasítás (2026-10-24):
 - Az EN, RO, HR, EL kész videók a `ielts-vps-folytatas-meglevo-anyagok-v1.zip` csomagban érkeztek: csak ellenőrzés és kizárólagos (no-overwrite) VPS-archiválás, sosem újrarenderelés.
 - Gyártás csak akkor indulhat, ha a KyLogic kifejezetten erre a 11 nyelvre küld folytatási feladatot.
 - A 11 nyelv hangja eredeti ElevenLabs-felvétel (új TTS tilos); a szövegek és időzítések a history JSON-okban vannak.
-- Kódoldali védelem: `infra/video-factory/contract.py` `CONTINUATION_LANGUAGES` — a folytatási recept nyelvkészlete pontosan ez a 11 kell legyen, különben `continuation_languages_restricted` hibával elutasítva.
+- 2026-10-25-i pontosítás: dokumentált, indoklással ellátott kimaradó nyelvekkel részleges folytatás engedélyezett; a gyártható nyelvek továbbra is kizárólag a fenti 11. Új betűkezelőből először japán próba, a további három csak ellenőrzés és jóváhagyás után.

@@ -63,7 +63,7 @@ def validate_recipe(raw):
         identifier(language)
     continuation = raw.get("continuation")
     if continuation is not None:
-        keys(continuation, {"trial_recipe_id", "trial_version", "completed"}, {"trial_recipe_id", "trial_version", "completed"})
+        keys(continuation, {"trial_recipe_id", "trial_version", "completed", "blocked_languages"}, {"trial_recipe_id", "trial_version", "completed"})
         identifier(continuation["trial_recipe_id"])
         identifier(continuation["trial_version"])
         if raw["series"] != "ielts" or not isinstance(continuation["completed"], list):
@@ -78,9 +78,20 @@ def validate_recipe(raw):
             if not isinstance(receipt, dict) or receipt.get("storage_type") != "local" or type(receipt.get("bytes")) is not int or receipt["bytes"] < 1 or not SHA.fullmatch(str(receipt.get("sha256", ""))):
                 raise ValueError("invalid_completed_receipt")
             object_key(receipt.get("object_key"))
-        if set(languages) != CONTINUATION_LANGUAGES:
+        blocked = set()
+        entries = continuation.get("blocked_languages", [])
+        if not isinstance(entries, list):
+            raise ValueError("invalid_blocked_languages")
+        for item in entries:
+            keys(item, {"language", "reason"}, {"language", "reason"})
+            if not isinstance(item["language"], str) or item["language"] not in CONTINUATION_LANGUAGES or item["language"] in blocked:
+                raise ValueError("invalid_blocked_languages")
+            if not isinstance(item["reason"], str) or not item["reason"].strip() or len(item["reason"]) > 240:
+                raise ValueError("blocked_language_reason_required")
+            blocked.add(item["language"])
+        if not set(languages) <= CONTINUATION_LANGUAGES or blocked & set(languages) or not set(languages):
             raise ValueError("continuation_languages_restricted")
-        if completed & set(languages) or completed | set(languages) != IELTS_LANGUAGES:
+        if completed & (set(languages) | blocked) or completed | set(languages) | blocked != IELTS_LANGUAGES:
             raise ValueError("continuation_must_cover_27_without_repeats")
     if raw["series"] == "ielts" and continuation is None and len(languages) != 27 and not (raw["recipe_id"] == "ielts-cs-trial" and languages == ["cs"] and len(raw["videos"]) == 1):
         raise ValueError("ielts_requires_27_languages")
@@ -104,7 +115,7 @@ def validate_recipe(raw):
         raise ValueError("invalid_video_list")
     ids, covered = set(), set()
     for video in videos:
-        keys(video, {"video_id", "language", "width", "height", "duration_ms", "scene", "text", "subtitle", "cta", "audio", "master", "timing"},
+        keys(video, {"video_id", "language", "width", "height", "duration_ms", "scene", "text", "subtitle", "cta", "audio", "master", "timing", "font"},
              {"video_id", "language", "width", "height", "duration_ms", "scene", "text", "subtitle", "cta", "audio", "master", "timing"})
         name = identifier(video["video_id"])
         if name in ids or video["language"] not in languages:
@@ -123,6 +134,10 @@ def validate_recipe(raw):
         for key in ("audio", "master"):
             if video[key] not in names:
                 raise ValueError("missing_media_reference")
+        if "font" in video:
+            object_key(video["font"])
+            if video["font"] not in names:
+                raise ValueError("missing_font_reference")
         if not isinstance(video["timing"], list) or len(video["timing"]) > 2000:
             raise ValueError("invalid_timing")
         last = 0
