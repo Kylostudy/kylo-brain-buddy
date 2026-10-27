@@ -19,6 +19,19 @@ def run(extra):
 
 
 class ReviewedRenderers(unittest.TestCase):
+    def test_safe_v2_additive_registration(self):
+        old = {"image": IMG, "reviewed": True, "scenes": ["exam-promo-profiles-v1"]}
+        new = {"image": "sha256:" + "b" * 64, "reviewed": True, "scenes": ["exam-promo-profiles-safe-v2"]}
+        code, cfg, _ = run({"exam-promo-profiles-v1": old, "exam-promo-profiles-safe-v2": new})
+        self.assertEqual(code, 0)
+        self.assertEqual(cfg["renderers"]["exam-promo-profiles-v1"], old)
+        self.assertEqual(cfg["renderers"]["exam-promo-profiles-safe-v2"], new)
+
+    def test_safe_v2_wrong_scene_rejected(self):
+        code, cfg, _ = run({"exam-promo-profiles-safe-v2": {"image": IMG, "reviewed": True, "scenes": ["exam-promo-profiles-v1"]}})
+        self.assertNotEqual(code, 0)
+        self.assertNotIn("renderers", cfg)
+
     def test_exam_renderer_accepted(self):
         code, cfg, _ = run({"ielts-promo-fonts-v1": {"image": IMG, "reviewed": True, "scenes": ["ielts-promo-v1"]},
                             "exam-promo-profiles-v1": {"image": IMG, "reviewed": True, "scenes": ["exam-promo-profiles-v1"]}})

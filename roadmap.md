@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Cambridge feliratjavító v2: külön exam-promo-profiles-safe-v2 kiadás, ellenőrzött felirathatárok, régi renderelők és archívum változatlan; 73 gyártó- és 7 diagnosztikai próba sikeres, gyártási parancs nélkül.
+- [ ] Cambridge feliratjavító v2 VPS-igazolása: Brain publikálása után tényleges image ID és friss életjel szükséges; új HU próbát csak KyLogic külön v2 receptje indíthat.
+
 - [x] Cambridge-próba hiba (18:24 UTC): a configban jegyzett Docker-kép (sha256:8e19866f…) nem létezik a szerveren, returncode 125. prepare-exam-renderer.sh helyreállítása: eltűnt kép esetén újrajegyzés engedélyezett, meglévő képnél immutable_renderer_conflict marad; 3 új teszt OK.
 - [ ] Cambridge helyreállítás VPS-igazolása: c002a9b1-2a17-4e4f-ad69-e663535d6e7b frissítés pending; Brain Publish kell, hogy a javított telepítő a szerverre kerüljön. Utána KyLogic retry a 9e275ddd próbára. Sorozat nem indítható.
 
