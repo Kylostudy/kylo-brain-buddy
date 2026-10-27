@@ -49,7 +49,7 @@ if not renderer.get("reviewed") or not str(renderer.get("image", "")).startswith
 config["renderers"] = {"ielts-promo-v1": renderer}
 extra = etc / "reviewed-renderers.json"
 # Fixed allowlist: additive renderer name -> the only scene it may render.
-ALLOWED_EXTRA = {"ielts-promo-fonts-v1": ["ielts-promo-v1"], "exam-promo-profiles-v1": ["exam-promo-profiles-v1"]}
+ALLOWED_EXTRA = {"ielts-promo-fonts-v1": ["ielts-promo-v1"], "exam-promo-profiles-v1": ["exam-promo-profiles-v1"], "exam-promo-profiles-safe-v2": ["exam-promo-profiles-safe-v2"]}
 if extra.exists():
     import re
     additions = json.loads(extra.read_text())
