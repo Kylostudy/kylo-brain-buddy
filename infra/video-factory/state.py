@@ -22,6 +22,8 @@ class State:
             CREATE TABLE IF NOT EXISTS outbox(id TEXT PRIMARY KEY, body TEXT NOT NULL, sent INTEGER DEFAULT 0);
             CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY, at INTEGER, kind TEXT, entity TEXT);
             """)
+            from universal_state import tables
+            tables(db)
 
     @contextmanager
     def transaction(self):
@@ -54,7 +56,10 @@ class State:
                 if previous["hash"] != identity:
                     raise ValueError("delivery_identity_conflict")
                 return json.loads(previous["result"])
-            if op == "register_recipe":
+            if command["schema_version"] == 2:
+                from universal_state import apply
+                result = apply(self, db, command)
+            elif op == "register_recipe":
                 row = db.execute("SELECT hash FROM recipes WHERE id=? AND version=?", (p["recipe_id"], p["version"])).fetchone()
                 if row and row["hash"] != digest(p):
                     raise ValueError("immutable_recipe_conflict")
@@ -118,7 +123,7 @@ class State:
             self.emit(db, "command_result", cid, result)
             return result
 
-    def reject(self, command, code):
+    def reject(self, command, code, detail=None):
         """Persist a bounded failure for a delivered command, without storing its payload."""
         cid = command.get("delivery_id") if isinstance(command, dict) else None
         try:
@@ -131,7 +136,7 @@ class State:
             previous = db.execute("SELECT hash FROM commands WHERE id=?", (cid,)).fetchone()
             if previous:
                 return
-            result = {"ok": False, "error": code}
+            result = {"ok": False, "error": code, **({"detail": detail} if detail else {})}
             db.execute("INSERT INTO commands VALUES(?,?,?)", (cid, identity, canonical(result).decode()))
             self.emit(db, "command_result", cid, result)
 
@@ -156,7 +161,9 @@ class State:
     def heartbeat(self, jid, lease):
         with self.transaction() as db:
             now = int(time.time())
-            return db.execute("UPDATE jobs SET expires=? WHERE id=? AND lease=? AND expires>=? AND status IN ('rendering','paused')", (now + 180, jid, lease, now)).rowcount == 1
+            legacy = db.execute("UPDATE jobs SET expires=? WHERE id=? AND lease=? AND expires>=? AND status IN ('rendering','paused')", (now + 180, jid, lease, now)).rowcount == 1
+            universal = db.execute("UPDATE universal_jobs SET expires=? WHERE id=? AND lease=? AND expires>=? AND status IN ('running','paused','cancelling')", (now + 180, jid, lease, now)).rowcount == 1
+            return legacy or universal
 
     def output(self, video_id):
         with self.transaction() as db:
