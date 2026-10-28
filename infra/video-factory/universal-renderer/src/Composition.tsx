@@ -1,6 +1,7 @@
 import React, {useLayoutEffect,useRef,useState} from 'react';
 import {AbsoluteFill,Audio,Img,staticFile,useCurrentFrame,delayRender,continueRender,cancelRender} from 'remotion';
 import {Props,Rect,sceneAt} from './types';
+import {fitElement,textBounds} from './layout';
 
 function intersects(a:Rect,b:Rect) {return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;}
 function Fitted({id,text,rect,color,fontSize=56,font}:{id:string;text:string;rect:Rect;color:string;fontSize?:number;font:string}) {
@@ -8,8 +9,7 @@ function Fitted({id,text,rect,color,fontSize=56,font}:{id:string;text:string;rec
   const frame=useCurrentFrame();
   useLayoutEffect(()=>{
     const el=ref.current;if(!el)return;
-    let size=fontSize;el.style.fontSize=size+'px';
-    while((el.scrollHeight>rect.bottom-rect.top || el.scrollWidth>rect.right-rect.left)&&size>16) {size--;el.style.fontSize=size+'px';}
+    try{fitElement(el,rect,fontSize);}catch(e){cancelRender(e);}
   },[text,rect.top,rect.bottom,rect.left,rect.right,fontSize,frame]);
   return <div ref={ref} data-box={id} dir="auto" style={{position:'absolute',left:rect.left,top:rect.top,width:rect.right-rect.left,maxHeight:rect.bottom-rect.top,fontFamily:font,fontSize,lineHeight:1.2,fontWeight:800,textAlign:'center',color,overflowWrap:'anywhere',whiteSpace:'pre-wrap'}}>{text}</div>;
 }
@@ -43,14 +43,9 @@ export const Universal:React.FC<Props>=(p)=>{
       const boxes:({id:string}&Rect)[]=[];
       let invalid=false;
       root.current?.querySelectorAll<HTMLElement>('[data-box]').forEach(el=>{
-        const bounds=el.getBoundingClientRect();
-        const range=document.createRange();range.selectNodeContents(el);
-        const textBounds=range.getBoundingClientRect();
         // Refit after the requested font is loaded, before measuring any text.
-        let size=parseFloat(el.style.fontSize);
-        while((el.scrollHeight>parseFloat(el.style.maxHeight)||el.scrollWidth>parseFloat(el.style.width))&&size>16){size--;el.style.fontSize=size+'px';}
-        const fitted=el.getBoundingClientRect();range.selectNodeContents(el);const actual=range.getBoundingClientRect();
-        const r={id:el.dataset.box??'',left:(Math.min(fitted.left,actual.left)-base.left)*scaleX,right:(Math.max(fitted.right,actual.right)-base.left)*scaleX,top:(Math.min(fitted.top,actual.top)-base.top)*scaleY,bottom:(Math.max(fitted.bottom,actual.bottom)-base.top)*scaleY};
+        try{fitElement(el,{left:0,right:parseFloat(el.style.width),top:0,bottom:parseFloat(el.style.maxHeight)},parseFloat(el.style.fontSize));}catch(e){invalid=true;cancelRender(e);return;}
+        const r={id:el.dataset.box??'',...textBounds(el,base)};
         if(r.left<zone.left-.01||r.right>zone.right+.01||r.top<zone.top-.01||r.bottom>zone.bottom+.01||forbidden.some(f=>intersects(r,f))) {invalid=true;cancelRender(new Error(`qa_zone:${current.scene.kind}:${r.id}:${JSON.stringify(r)}`));return;}
         boxes.push(r);
       });

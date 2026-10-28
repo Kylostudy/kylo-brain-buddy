@@ -19,6 +19,8 @@ def probe_audio(path):
 
 def self_check(config, manifest=None):
     checks = []
+    if manifest and manifest["renderer"] not in config.get("renderers", {}):
+        checks.append({"stage": "self_check", "code": "renderer_not_installed", "renderer": manifest["renderer"], "ok": False})
     for name, renderer in config.get("renderers", {}).items():
         if manifest and name != manifest["renderer"]: continue
         try:
@@ -41,8 +43,17 @@ def self_check(config, manifest=None):
         for v in manifest.get("videos", []):
             if manifest.get("schema_version") != 2: continue
             font = safe_path(root, v["font"])
-            # Font glyph coverage is checked by the renderer against actual text.
-            checks.append({"stage": "font_load", "code": "font_data", "language": v["language"], "file": v["font"], "ok": font.is_file() and font.stat().st_size > 0})
+            present = font.is_file() and font.stat().st_size > 0
+            checks.append({"stage": "font_load", "code": "font_data", "language": v["language"], "file": v["font"], "ok": present})
+            renderer = config.get("renderers", {}).get(manifest["renderer"])
+            if present and renderer:
+                # Fixed command; no remote shell, no rendering, network disabled.
+                text = manifest["exam"]["name"] + "".join(s["heading"] + s["body"] for s in v["scenes"]) + v["cta"] + v["telegram"] + "".join(s["name"] + s["time"] + s["example"] for s in manifest["exam"]["sections"]) + "".join(manifest["exam"]["vocabulary"]) + manifest["exam"]["score_scale"]
+                code = "from fontTools.ttLib import TTFont;import sys,json;f=TTFont(sys.argv[1]);m=set().union(*(set(t.cmap) for t in f['cmap'].tables if t.isUnicode()));x=[hex(ord(c)) for c in set(json.loads(sys.argv[2])) if not c.isspace() and ord(c) not in m];print(','.join(x[:30]));sys.exit(1 if x else 0)"
+                try:
+                    result = subprocess.run(["/usr/bin/docker", "run", "--rm", "--network", "none", "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", "65532:65532", "--pids-limit", "32", "--memory", "256m", "-v", str(root) + ":/recipe:ro", "--entrypoint", "/usr/bin/python3", renderer["image"], "-c", code, "/recipe/" + v["font"], json.dumps(text)], capture_output=True, timeout=30)
+                    checks.append({"stage": "font_load", "code": "font_coverage", "language": v["language"], "file": v["font"], "ok": result.returncode == 0, "log_tail": redact(result.stdout.decode("utf8", "replace"))})
+                except Exception as e: checks.append({"stage": "font_load", "code": "font_probe_failed", "language": v["language"], "file": v["font"], "ok": False, "message": type(e).__name__})
     return {"ok": bool(checks) and all(c["ok"] for c in checks), "checks": checks}
 
 
@@ -61,7 +72,12 @@ def preflight(config, job):
             if not f or not path.is_file() or path.stat().st_size != f["bytes"] or checksum(path) != f["sha256"]: absent.append(key)
         if absent: missing.append({"language": item["language"], "missing": absent})
     if missing: raise FactoryError("asset_stage", "series_inputs_missing", "Missing inputs by language", missing=missing)
-    result = self_check(config, m)
+    active = dict(m)
+    active["videos"] = [json.loads(i["video"]) for i in job["items"] if i["status"] != "skipped"]
+    needed = {v[k] for v in active["videos"] for k in ("audio", "alignment", "font", "dog", "bed") if k in v}
+    active["files"] = [f for f in m["files"] if f["key"] in needed]
+    if not active["videos"]: return {"ok": True, "checks": [], "skipped_all": True}
+    result = self_check(config, active)
     if not result["ok"]: raise FactoryError("self_check", "preflight_failed", "Preflight checks failed", checks=result["checks"])
     # Validate every alignment and audio before producing any final output.
     for item in job["items"]:
@@ -101,6 +117,10 @@ def render_item(config, archive, job, item, mode):
     m, v = job["manifest"], json.loads(item["video"])
     renderer = config.get("renderers", {}).get(RENDERER)
     if not renderer or not renderer.get("reviewed") or renderer.get("scenes") != [RENDERER]: raise FactoryError("render", "renderer_review_required", "Universal renderer not installed")
+    for name in ("work_root", "archive_root"):
+        usage = shutil.disk_usage(config[name])
+        if usage.free <= config["min_free_bytes"] or usage.used / usage.total > config["max_disk_fraction"]:
+            raise FactoryError("self_check", "low_disk", "Not enough free disk space")
     root = safe_path(config["recipe_root"], m["recipe_id"] + "/" + m["version"])
     audio_ms = probe_audio(safe_path(root, v["audio"]))
     captions = alignment(json.loads(safe_path(root, v["alignment"]).read_text()), audio_ms)
@@ -112,9 +132,17 @@ def render_item(config, archive, job, item, mode):
     if not (work / "complete.json").is_file():
         subprocess.run(["/usr/bin/docker", "run", "--rm", "--name", "kylo-video-factory-render", "--network", "none", "--cpus", str(config["cpus"]), "--memory", config["memory"], "--memory-swap", config["memory"], "--pids-limit", "256", "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", "65532:65532", "--shm-size", "512m", "--tmpfs", "/tmp:rw,size=512m", "-e", "HOME=/tmp", "-e", "XDG_CONFIG_HOME=/tmp/.config", "-e", "XDG_CACHE_HOME=/tmp/.cache", "-v", str(root) + ":/recipe:ro", "-v", str(request) + ":/request.json:ro", "-v", str(work) + ":/work:rw", renderer["image"]], check=True, timeout=7200, capture_output=True)
     fd = os.open(work / "complete.json", os.O_RDONLY | os.O_NOFOLLOW)
+    import stat, math
+    if not stat.S_ISREG(os.fstat(fd).st_mode) or os.fstat(fd).st_size > 65536:
+        os.close(fd); raise FactoryError("qa_zone", "unsafe_qa_output", "Invalid completion evidence")
     with os.fdopen(fd) as stream: complete = json.load(stream)
     fd = os.open(work / "layout.jsonl", os.O_RDONLY | os.O_NOFOLLOW)
+    if not stat.S_ISREG(os.fstat(fd).st_mode) or os.fstat(fd).st_size > 128 * 1024**2:
+        os.close(fd); raise FactoryError("qa_zone", "unsafe_qa_output", "Invalid layout evidence")
     with os.fdopen(fd) as stream: records = [json.loads(line) for line in stream]
+    expected_total = math.ceil((audio_ms + v["outro_ms"]) / 1000 * 30)
+    if complete.get("total_frames") != expected_total:
+        raise FactoryError("qa_zone", "invalid_total_frames", "Layout frame count must match actual audio plus outro")
     expected = complete["preview_frames"] if mode == "preview" else range(complete["total_frames"])
     check_layout(records, m["safe_zone"], expected)
     qa_key = item["output_key"] + ("/preview" if mode == "preview" else "")
@@ -122,15 +150,22 @@ def render_item(config, archive, job, item, mode):
     qa.update({"ok": True, "audio_ms": audio_ms, "total_frames": complete["total_frames"]})
     if mode == "preview": return qa, None
     fd = os.open(work / "output.mp4", os.O_RDONLY | os.O_NOFOLLOW)
+    info = os.fstat(fd)
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not 1024 <= info.st_size <= 2 * 1024**3:
+        os.close(fd); raise FactoryError("render", "unsafe_render_output", "Invalid output file")
     checked = work.parent / "checked.mp4"
     with os.fdopen(fd, "rb") as r, checked.open("wb") as w: shutil.copyfileobj(r, w)
-    media = verify_video(checked, {"width": 1080, "height": 1920, "duration_ms": audio_ms + v["outro_ms"], "universal": True})
+    try:
+        media = verify_video(checked, {"width": 1080, "height": 1920, "duration_ms": audio_ms + v["outro_ms"], "universal": True})
+    except Exception as e:
+        raise FactoryError("qa_duration", "media_verification_failed", str(e), language=v["language"], file=v["audio"]) from e
     media["qa"] = qa
     receipt = archive.save(item["output_key"], checked, media)
     return qa, receipt
 
 
 def run(config, state, archive, job):
+    item = None
     try:
         if job["phase"] == "preflight":
             result = preflight(config, job)
@@ -154,4 +189,9 @@ def run(config, state, archive, job):
         detail["log_tail"] = redact(stderr.decode("utf8", "replace") if isinstance(stderr, bytes) else stderr)
         detail["message"] = " ".join(redact(detail["message"]))
         detail["job_id"] = job["id"]
+        if item:
+            detail["language"] = item["language"]
+            detail["file"] = json.loads(item["video"])["audio"]
+        if "qa_zone:" in str(stderr): detail["stage"] = "qa_zone"; detail["code"] = "layout_failed"
+        if "font_load:" in str(stderr): detail["stage"] = "font_load"; detail["code"] = "missing_glyphs"
         fail(state, job, detail, blocked=detail["stage"] in {"asset_stage", "self_check", "font_load"})

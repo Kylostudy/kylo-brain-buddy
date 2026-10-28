@@ -83,7 +83,7 @@ def validate(raw):
             raise FactoryError("recipe_schema", "invalid_file", f["key"])
         names.add(f["key"]); total += f["bytes"]
     if total > MAX_PACKAGE_BYTES: raise FactoryError("recipe_schema", "package_too_large", "files")
-    if not isinstance(raw["videos"], list) or not raw["videos"]:
+    if not isinstance(raw["videos"], list) or not 1 <= len(raw["videos"]) <= 40:
         raise FactoryError("recipe_schema", "invalid_videos", "videos")
     seen = set()
     for video in raw["videos"]:
@@ -107,9 +107,14 @@ def validate(raw):
             number(scene["weight"], f"scenes.{i}.weight", 0.01, 100)
             if not isinstance(scene["forbidden"], list) or len(scene["forbidden"]) > 20: raise FactoryError("recipe_schema", "invalid_exclusions", f"scenes.{i}.forbidden")
             for rect in scene["forbidden"]: rectangle(rect, "forbidden")
+    if not isinstance(raw.get("completed", []), list) or len(raw.get("completed", [])) > 1000:
+        raise FactoryError("recipe_schema", "invalid_completed", "completed")
+    completed_languages = set()
     for entry in raw.get("completed", []):
         require(entry, {"language", "receipt"}, {"language", "receipt"}, "completed")
         identifier(entry["language"])
+        if entry["language"] in completed_languages: raise FactoryError("recipe_schema", "duplicate_completed_language", "completed.language")
+        completed_languages.add(entry["language"])
         r = entry["receipt"]
         if not isinstance(r, dict) or r.get("storage_type") != "local" or type(r.get("bytes")) is not int or r["bytes"] <= 0 or not SHA.fullmatch(str(r.get("sha256", ""))):
             raise FactoryError("recipe_schema", "invalid_receipt", "completed.receipt")
@@ -138,10 +143,13 @@ def check_layout(records, zone, expected_frames):
     frames = set()
     for record in records:
         frame = record["frame"]
+        if type(frame) is not int or frame < 0 or frame in frames: raise FactoryError("qa_zone", "invalid_layout_frame", "Duplicate or invalid frame")
         frames.add(frame)
         for box in record["boxes"]:
             if any(not math.isfinite(box[k]) for k in SAFE_ZONE) or not (zone["left"] <= box["left"] <= box["right"] <= zone["right"] and zone["top"] <= box["top"] <= box["bottom"] <= zone["bottom"]):
                 raise FactoryError("qa_zone", "outside_safe_zone", "Text outside safe zone", frame=frame, scene=record["scene"], field=box.get("id"))
+            if box["left"] >= box["right"] or box["top"] >= box["bottom"]:
+                raise FactoryError("qa_zone", "invalid_text_bounds", "Empty text bounds")
             if any(overlaps(box, rect) for rect in record.get("forbidden", [])):
                 raise FactoryError("qa_zone", "reserved_overlap", "Text overlaps scene element", frame=frame, scene=record["scene"], field=box.get("id"))
     if frames != set(expected_frames):
@@ -163,7 +171,7 @@ def alignment(raw, duration_ms):
         if not words: start = item["start"] * 1000
         if not isinstance(item["character"], str) or len(item["character"]) > 8: raise FactoryError("tts_align", "invalid_character", "alignment.character")
         words += item["character"]; previous = finish
-        if len(words) >= 70 and item["character"].isspace() or item["character"] in ".!?":
+        if (len(words) >= 70 and item["character"].isspace()) or item["character"] in (".", "!", "?"):
             captions.append({"start_ms": start, "end_ms": finish, "text": re.sub("kájló", "Kylo", words, flags=re.I).strip()}); words = ""
     if words.strip(): captions.append({"start_ms": start, "end_ms": previous, "text": re.sub("kájló", "Kylo", words, flags=re.I).strip()})
     return captions
