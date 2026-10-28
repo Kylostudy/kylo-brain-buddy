@@ -47,6 +47,9 @@ def keys(value, allowed, required):
 
 
 def validate_recipe(raw):
+    if isinstance(raw, dict) and raw.get("schema_version") == 2:
+        from universal import validate
+        return validate(raw)
     keys(raw, {"schema_version", "recipe_id", "version", "renderer", "series", "languages", "files", "videos", "continuation"},
          {"schema_version", "recipe_id", "version", "renderer", "series", "languages", "files", "videos"})
     if len(canonical(raw)) > MAX_MANIFEST_BYTES or raw["schema_version"] != VERSION:
@@ -154,6 +157,8 @@ def validate_recipe(raw):
 
 
 def validate_command(raw):
+    if isinstance(raw, dict) and raw.get("schema_version") == 2:
+        return validate_universal_command(raw)
     keys(raw, {"schema_version", "delivery_id", "operation", "payload"}, {"schema_version", "delivery_id", "operation", "payload"})
     if raw["schema_version"] != VERSION or raw["operation"] not in OPERATIONS:
         raise ValueError("unsupported_operation")
@@ -186,4 +191,39 @@ def validate_command(raw):
         keys(payload, {"job_id"}, {"job_id"})
         if str(uuid.UUID(payload["job_id"])) != payload["job_id"]:
             raise ValueError("invalid_job_id")
+    return raw
+
+
+def validate_universal_command(raw):
+    from universal import OPERATIONS, FactoryError
+    keys(raw, {"schema_version", "delivery_id", "operation", "payload"}, {"schema_version", "delivery_id", "operation", "payload"})
+    if str(uuid.UUID(raw["delivery_id"])) != raw["delivery_id"] or raw["operation"] not in OPERATIONS:
+        raise FactoryError("command", "unsupported_operation", "Unsupported command")
+    op, p = raw["operation"], raw["payload"]
+    if op == "register_recipe":
+        if p.get("schema_version") != 2: raise FactoryError("command", "universal_recipe_required", "Version two recipe required")
+        validate_recipe(p)
+    elif op in {"preview", "trial", "series_run", "rerender"}:
+        keys(p, {"recipe_id", "version", "languages", "approval", "rerender"}, {"recipe_id", "version"} | ({"approval"} if op in {"series_run", "rerender"} else set()))
+        identifier(p["recipe_id"]); identifier(p["version"])
+        for name in ("languages", "rerender"):
+            if name in p:
+                if not isinstance(p[name], list) or not p[name] or len(p[name]) > 40 or len(set(p[name])) != len(p[name]):
+                    raise FactoryError("command", "invalid_languages", name)
+                for lang in p[name]: identifier(lang)
+        if op in {"series_run", "rerender"}:
+            if op == "rerender" and not p.get("rerender"): raise FactoryError("command", "explicit_rerender_required", "rerender list required")
+            a = p["approval"]
+            keys(a, {"approval_id", "recipe_sha256", "trial_receipt_sha256", "approved_at", "owner_authorized"}, {"approval_id", "recipe_sha256", "trial_receipt_sha256", "approved_at", "owner_authorized"})
+            if str(uuid.UUID(a["approval_id"])) != a["approval_id"] or a["owner_authorized"] is not True:
+                raise FactoryError("command", "owner_approval_required", "Explicit owner approval required")
+            if not all(SHA.fullmatch(str(a[k])) for k in ("recipe_sha256", "trial_receipt_sha256")) or type(a["approved_at"]) is not int:
+                raise FactoryError("command", "invalid_approval", "Approval binding required")
+    elif op == "inventory":
+        keys(p, set(), set())
+    else:
+        keys(p, {"job_id", "language", "artifact"}, {"job_id"})
+        if str(uuid.UUID(p["job_id"])) != p["job_id"]: raise FactoryError("command", "invalid_job", "job_id")
+        if "language" in p: identifier(p["language"])
+        if "artifact" in p and p["artifact"] not in {"contact", "layout", "video"}: raise FactoryError("command", "invalid_artifact", "artifact")
     return raw

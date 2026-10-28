@@ -17,6 +17,8 @@ def verify_video(path, video):
     if (picture[0]["width"], picture[0]["height"]) != (video["width"], video["height"]):
         raise ValueError("dimensions_or_aspect_ratio_mismatch")
     duration = float(data["format"]["duration"])
+    if video.get("universal") and picture[0].get("pix_fmt") != "yuv420p":
+        raise ValueError("pixel_format_yuv420p_required")
     if abs(duration * 1000 - video["duration_ms"]) > 1000:
         raise ValueError("duration_mismatch")
     subprocess.run(["/usr/bin/ffmpeg", "-v", "error", "-xerror", "-err_detect", "explode", "-i", str(path),
