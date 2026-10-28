@@ -67,3 +67,6 @@
 - [x] Facebook teljes belépési sütipárját kötelezővé tenni és proxyt előírni
 - [x] Meglévő közösségi munkafolyamatok IP-, platform- és időzóna-adatait rendezni
 - [x] Ellenőrizni a kódot, az összeállítást és az adatokat
+
+- [x] Videógyár leállása (start-limit-hit, 20:15): a frissítés utáni sok egymás utáni tervezett újraindítás okozta; aktiválások sorba állítva, tervezett újraindítás előtt számláló nullázva; v3-előkészítés naplója bekerült a jelentésbe; 127+15 teszt OK
+- [ ] Videógyár újraindulásának és a v3 videókészítő sikeres elkészültének igazolása a szerverjelentésből; blokkoló: Brain publikálása szükséges
