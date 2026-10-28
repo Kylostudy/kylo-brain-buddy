@@ -11,6 +11,16 @@ from contract import canonical
 
 PREFIX = "/api/public/video-factory/v1"
 MAX_RESPONSE = 1024 * 1024
+REMOTE_ERRORS = frozenset({'invalid_json', 'schema_version', 'lookup_failed', 'recipe_unavailable',
+    'invalid_asset', 'asset_unavailable', 'asset_checksum_failed', 'store_failed',
+    'invalid_event', 'event_conflict'})
+
+
+class RequestError(Exception):
+    """Only authenticated fixed codes, never remote free text."""
+    def __init__(self, operation, status, code):
+        self.operation, self.status, self.code = operation, status, code
+        super().__init__(f'operation={operation} http={status} reason={code}')
 
 
 def signature(secret, timestamp, nonce, method, path, body):
@@ -43,7 +53,23 @@ class Client:
             "Content-Type": "application/json", "User-Agent": "kylo-video-factory/1.0", "X-Factory-Agent": self.agent_id,
             "X-Factory-Timestamp": timestamp, "X-Factory-Nonce": nonce,
             "X-Factory-Signature": signature(self.secret, timestamp, nonce, "POST", path, body)})
-        with urllib.request.build_opener(NoRedirect).open(request, timeout=25) as response:
+        try:
+            response = urllib.request.build_opener(NoRedirect).open(request, timeout=25)
+        except urllib.error.HTTPError as error:
+            status = error.code
+            with error:
+                try:
+                    result = self._response(error, path, nonce)
+                    code = result.get('error')
+                    if not isinstance(code, str) or code not in REMOTE_ERRORS:
+                        code = 'unrecognized_remote_error'
+                except (ValueError, UnicodeError):
+                    code = 'unverified_error_response'
+            raise RequestError(operation, status, code) from None
+        with response:
+            return self._response(response, path, nonce)
+
+    def _response(self, response, path, nonce):
             data = response.read(MAX_RESPONSE + 1)
             stamp = response.headers.get("X-Factory-Timestamp", "")
             received_nonce = response.headers.get("X-Factory-Nonce", "")

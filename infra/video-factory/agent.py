@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import threading
 import time
-from client import Client
+from client import Client, RequestError
 from contract import canonical
 from state import State
 from storage import LocalArchive, checksum, safe_path
@@ -200,29 +200,39 @@ def main():
         last_claim = 0
         while True:
             command = None
+            phase = 'events'
             try:
                 for event in state.pending():
                     ack = client.request("events", event)
                     if ack.get("acknowledged_event_id") == event["event_id"]:
                         state.acknowledge(event["event_id"])
                 if time.time() - last_claim >= 20:
+                    phase = 'heartbeat'
                     client.request("heartbeat", {"schema_version": 1, "agent_id": config["agent_id"], "takeover_approved": config["takeover_approved"], "pending_events": len(state.pending())})
+                    phase = 'claim'
                     response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")
                     if command is not None:
                         from contract import validate_command
+                        phase = 'validate_command'
                         validate_command(command)
                         if command["operation"] == "register_recipe":
+                            phase = 'prepare_inputs'
                             inputs.prepare(command["payload"])
+                        phase = 'apply_command'
                         state.apply(command)
                         if command["operation"] == "register_recipe":
+                            phase = 'self_check'
                             with state.transaction() as db:
                                 state.emit(db, "self_check", command["delivery_id"], self_check(config, command["payload"]))
                     last_claim = time.time()
             except Exception as e:
                 # Only the error class / HTTP status / own error code; never payloads or bodies.
                 import urllib.error
-                if isinstance(e, urllib.error.HTTPError):
+                if isinstance(e, RequestError):
+                    reason = e.code
+                    print('KyLogic request failed: operation=%s http=%d reason=%s; durable work preserved' % (e.operation, e.status, e.code), flush=True)
+                elif isinstance(e, urllib.error.HTTPError):
                     reason = "http_%d" % e.code
                 elif isinstance(e, ValueError) and str(e).startswith("completed_video_missing:"):
                     from contract import object_key
@@ -243,7 +253,8 @@ def main():
                     detail = e.result if isinstance(e, FactoryError) else {"stage": "command", "code": reason, "message": type(e).__name__, "log_tail": []}
                     detail["message"] = " ".join(redact(detail["message"], (secret,)))
                     state.reject(command, reason, detail)
-                print("KyLogic connection or command unavailable (%s); durable work preserved" % reason, flush=True)
+                if not isinstance(e, RequestError):
+                    print("KyLogic connection or command unavailable (stage=%s reason=%s); durable work preserved" % (phase, reason), flush=True)
             runner.run_one()
             time.sleep(random.uniform(5, 10))
 
