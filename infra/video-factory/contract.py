@@ -103,7 +103,7 @@ def validate_recipe(raw):
         if completed & (set(languages) | blocked) or completed | set(languages) | blocked != IELTS_LANGUAGES:
             raise ValueError("continuation_must_cover_27_without_repeats")
         if raw["series"] == "cambridge":
-            if (blocked or raw.get("renderer") != "exam-promo-profiles-safe-v2"
+            if (blocked or raw.get("renderer") not in ("exam-promo-profiles-safe-v2", "exam-promo-profiles-safe-v3")
                     or continuation["trial_recipe_id"] != "cambridge-b2-first-hu-trial"
                     or continuation["trial_version"] != "v2"
                     or completed != {"hu"}
