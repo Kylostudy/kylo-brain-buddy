@@ -11,6 +11,9 @@ REL="/opt/kylo-video-factory/releases/$VER"
 ETC=/etc/kylo-video-factory
 LOG=/var/log/kylo-video-factory-start.log
 cd "$SRC"
+# Several renderer preparations finish around the same deploy; serialize activations.
+exec 9>/run/lock/kylo-video-factory-activate.lock
+flock -w 900 9 || { echo 'VF-AKT: másik aktiválás fut, időtúllépés'; exit 4; }
 sha256sum --strict -c SHA256SUMS >/dev/null
 [ -d "$REL" ] || { echo "VF-AKT: nincs előkészített változat: $VER"; exit 3; }
 [ -f "$ETC/machine-secret" ] || { echo 'VF-AKT: hiányzik a gépi titok'; exit 3; }
@@ -74,6 +77,8 @@ if systemctl is-active --quiet kylo-video-factory.service; then
     if docker ps --format '{{.Names}}' | grep -qx kylo-video-factory-render; then
       echo 'VF-AKT: renderelés fut, az újraindítás a következő frissítésre marad'
     else
+      # Planned activations must not consume the crash-loop start limit.
+      systemctl reset-failed kylo-video-factory.service 2>/dev/null || true
       systemctl restart kylo-video-factory.service
       echo "VF-AKT: új változatra újraindítva: $VER"
     fi
