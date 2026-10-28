@@ -326,6 +326,18 @@ if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$V
     echo 'EXAM-SAFE: exam-promo-profiles-safe-v2 külön kiadás előkészítése kérve; nincs gyártási parancs'
   fi
 fi
+if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-exam-safe-v3-renderer.sh' ]; then
+  if systemctl is-active --quiet kylo-exam-safe-v3-renderer-prepare.service; then
+    echo EXAM-SAFE-V3: teljes betűkészletes kiadás előkészítése folyamatban
+  else
+    systemd-run --unit=kylo-exam-safe-v3-renderer-prepare --collect --property=Type=exec --property=Restart=no \
+      --property=RuntimeMaxSec=10000 --property=KillMode=process \
+      --property=StandardOutput=append:/var/log/kylo-ielts-trial-install.log \
+      --property=StandardError=append:/var/log/kylo-ielts-trial-install.log \
+      /bin/bash '$VF_SRC/prepare-exam-safe-v3-renderer.sh' '$VF_SRC' '$VF_VER'
+    echo 'EXAM-SAFE-V3: exam-promo-profiles-safe-v3 külön kiadás előkészítése kérve; nincs gyártási parancs'
+  fi
+fi
 if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-universal-renderer.sh' ]; then
   if systemctl is-active --quiet kylo-universal-renderer-prepare.service; then
     echo UNIVERSAL: előkészítés folyamatban
