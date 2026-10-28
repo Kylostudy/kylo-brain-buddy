@@ -170,5 +170,41 @@ class UniversalTests(unittest.TestCase):
             self.assertEqual([call.args[-1] for call in render.call_args_list],["preview","preview"])
         j=claim(self.state,time.time());self.assertEqual(j["phase"],"render")
 
+    def test_preview_runtime_never_calls_render_mode(self):
+        self.state.apply(command("preview",self.params(languages=["de","fi"])))
+        with patch('universal_runtime.preflight',return_value={"ok":True}),patch('universal_runtime.render_item',return_value=({"ok":True},None)) as render:
+            while True:
+                j=claim(self.state,time.time())
+                if not j:break
+                run({},self.state,self.archive,j)
+            self.assertEqual([call.args[-1] for call in render.call_args_list],["preview","preview"])
+
+    def test_five_output_checkpoint(self):
+        approval=self.approved();self.r["version"]="v2";self.r["languages"]=["de","fi","fr","es","it"]
+        base=self.r["videos"][0];self.r["videos"]=[{**copy.deepcopy(base),"language":l,"video_id":"video-"+l} for l in self.r["languages"]]
+        self.state.apply(command("register_recipe",self.r))
+        # Isolate checkpoint policy with a synthetic approved series state.
+        from contract import canonical
+        jid=str(uuid.uuid4())
+        with self.state.transaction() as db:
+            db.execute("INSERT INTO universal_jobs(id,recipe,version,mode,status,phase,plan) VALUES(?,?,?,?,?,?,?)",(jid,self.r["recipe_id"],"v2","series_run","queued","render",canonical({}).decode()))
+            for v in self.r["videos"]:db.execute("INSERT INTO universal_items(job,language,video,status,output_key) VALUES(?,?,?,?,?)",(jid,v["language"],canonical(v).decode(),"previewed","new/v2/"+v["video_id"]))
+        for v in self.r["videos"]:
+            j=claim(self.state,time.time());commit(self.state,j,language=v["language"],receipt=self.archive_receipt("new/v2/"+v["video_id"]))
+        batches=[e for e in self.state.pending() if e["kind"]=="batch_verified" and e["entity_id"]==jid]
+        self.assertEqual(batches[0]["result"]["count"],5)
+
+    def test_expired_failure_cannot_commit(self):
+        self.state.apply(command("preview",self.params(languages=["de"])))
+        j=claim(self.state,100);fail(self.state,j,{"stage":"render","code":"x","message":"x","log_tail":[]})
+        with self.state.transaction() as db:self.assertEqual(db.execute("SELECT status FROM universal_jobs").fetchone()[0],"running")
+
+    def test_immutable_legacy_receipts_survive_universal_setup(self):
+        with self.state.transaction() as db:db.execute("INSERT INTO outputs VALUES(?,?)",('legacy/ielts/de',json.dumps({'sha256':'1'*64})))
+        before=self.archive_receipt('legacy/cambridge/v2')
+        self.state.apply(command('preview',self.params(languages=['de'])))
+        with self.state.transaction() as db:self.assertEqual(json.loads(db.execute("SELECT receipt FROM outputs WHERE video_id='legacy/ielts/de'").fetchone()[0]),{'sha256':'1'*64})
+        self.assertTrue(self.archive.verify(before))
+
 
 if __name__=='__main__':unittest.main()
