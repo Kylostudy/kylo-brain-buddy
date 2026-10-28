@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Videógyár B: közös adatvezérelt vizsgasablon, automatikus zónaellenőrzés és előpróba, folytatható sorozatparancs, részletes hibák és önellenőrzés; terv és megvalósítás a 2026-10-28-i követelmények szerint, gyártás nélkül.
+- [ ] Videógyár B átadás: ellenőrzött ZIP és SHA-256, telepítési napló és valódi VPS self_check; gyártás kizárólag KyLogic külön parancsával és tulajdonosi jóváhagyással.
+
 - [x] Cambridge feliratjavító v2: külön exam-promo-profiles-safe-v2 kiadás, ellenőrzött felirathatárok, régi renderelők és archívum változatlan; 73 gyártó- és 7 diagnosztikai próba sikeres, gyártási parancs nélkül.
 - [ ] Cambridge feliratjavító v2 VPS-igazolása: Brain publikálása után tényleges image ID és friss életjel szükséges; új HU próbát csak KyLogic külön v2 receptje indíthat.
 
