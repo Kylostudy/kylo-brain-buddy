@@ -6,6 +6,7 @@ export function fitElement(el:HTMLElement,rect:Rect,maxSize:number) {
   return size;
 }
 export function textBounds(el:HTMLElement,base:DOMRect) {
-  const bounds=el.getBoundingClientRect();const range=document.createRange();range.selectNodeContents(el);const actual=range.getBoundingClientRect();
-  return {left:(Math.min(bounds.left,actual.left)-base.left)*1080/base.width,right:(Math.max(bounds.right,actual.right)-base.left)*1080/base.width,top:(Math.min(bounds.top,actual.top)-base.top)*1920/base.height,bottom:(Math.max(bounds.bottom,actual.bottom)-base.top)*1920/base.height};
+  const range=document.createRange();range.selectNodeContents(el);const lines=[...range.getClientRects()];
+  if(!lines.length)throw new Error('qa_zone:empty_text:'+el.dataset.box);
+  return {left:(Math.min(...lines.map(r=>r.left))-base.left)*1080/base.width,right:(Math.max(...lines.map(r=>r.right))-base.left)*1080/base.width,top:(Math.min(...lines.map(r=>r.top))-base.top)*1920/base.height,bottom:(Math.max(...lines.map(r=>r.bottom))-base.top)*1920/base.height};
 }
