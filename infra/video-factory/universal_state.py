@@ -131,6 +131,8 @@ def commit(state, job, phase=None, language=None, preview=None, receipt=None):
                 n = db.execute("SELECT count(*) FROM universal_items WHERE job=? AND status='completed'", (j["id"],)).fetchone()[0]
                 if n % 5 == 0: state.emit(db, "batch_verified", j["id"], {"count": n, "checkpoint": True})
         next_phase = phase or j["phase"]
+        if j["mode"] == "preview" and next_phase == "render":
+            raise FactoryError("command", "preview_cannot_render", "Preview-only job cannot enter final rendering")
         target = "previewed" if j["mode"] == "preview" else "completed"
         pending = db.execute("SELECT count(*) FROM universal_items WHERE job=? AND status NOT IN (?, 'skipped')", (j["id"], target)).fetchone()[0]
         done = not pending and next_phase != "preflight"
@@ -141,5 +143,5 @@ def commit(state, job, phase=None, language=None, preview=None, receipt=None):
 
 def fail(state, job, detail, blocked=False):
     with state.transaction() as db:
-        changed = db.execute("UPDATE universal_jobs SET status=?,diagnostic=?,attempts=attempts+1,lease=NULL,expires=NULL WHERE id=? AND lease=?", ("blocked" if blocked else "failed", canonical(detail).decode(), job["id"], job["lease"])).rowcount
+        changed = db.execute("UPDATE universal_jobs SET status=?,diagnostic=?,attempts=attempts+1,lease=NULL,expires=NULL WHERE id=? AND lease=? AND expires>=?", ("blocked" if blocked else "failed", canonical(detail).decode(), job["id"], job["lease"], time.time())).rowcount
         if changed: state.emit(db, "final_error", job["id"], detail)

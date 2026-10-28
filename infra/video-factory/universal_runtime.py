@@ -176,7 +176,9 @@ def run(config, state, archive, job):
             if item:
                 qa, _ = render_item(config, archive, job, item, "preview")
                 commit(state, job, language=item["language"], preview=qa); return
-            commit(state, job, phase="render"); return
+            commit(state, job, phase="preview" if job["mode"] == "preview" else "render"); return
+        if job["mode"] == "preview":
+            raise FactoryError("command", "preview_cannot_render", "Preview-only job cannot render final video")
         item = next((i for i in job["items"] if i["status"] == "previewed"), None)
         if item:
             # Existing final output after a crash is verified again, not regenerated.
@@ -186,7 +188,10 @@ def run(config, state, archive, job):
     except Exception as e:
         detail = dict(e.result) if isinstance(e, FactoryError) else {"stage": "render", "code": "render_failed", "message": str(e)[:400], "log_tail": []}
         stderr = getattr(e, "stderr", b"") or b""
-        detail["log_tail"] = redact(stderr.decode("utf8", "replace") if isinstance(stderr, bytes) else stderr)
+        stdout = getattr(e, "stdout", b"") or b""
+        combined = (stdout.decode("utf8", "replace") if isinstance(stdout, bytes) else stdout) + "\n" + (stderr.decode("utf8", "replace") if isinstance(stderr, bytes) else stderr)
+        detail["log_tail"] = redact(combined)
+        if isinstance(e, subprocess.CalledProcessError): detail["returncode"] = e.returncode
         detail["message"] = " ".join(redact(detail["message"]))
         detail["job_id"] = job["id"]
         if item:
@@ -194,4 +199,7 @@ def run(config, state, archive, job):
             detail["file"] = json.loads(item["video"])["audio"]
         if "qa_zone:" in str(stderr): detail["stage"] = "qa_zone"; detail["code"] = "layout_failed"
         if "font_load:" in str(stderr): detail["stage"] = "font_load"; detail["code"] = "missing_glyphs"
+        # Same local diagnostic surface as legacy jobs, with already-redacted data.
+        from agent import record_failure
+        record_failure(config, {"id":job["id"], "manifest":job["manifest"]}, detail["code"], detail)
         fail(state, job, detail, blocked=detail["stage"] in {"asset_stage", "self_check", "font_load"})
