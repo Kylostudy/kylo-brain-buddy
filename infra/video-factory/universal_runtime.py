@@ -160,6 +160,10 @@ def render_item(config, archive, job, item, mode):
     except Exception as e:
         raise FactoryError("qa_duration", "media_verification_failed", str(e), language=v["language"], file=v["audio"]) from e
     media["qa"] = qa
+    from universal_media import verify_gaps
+    total_weight = sum(s["weight"] for s in v["scenes"])
+    cta_start = audio_ms * sum(s["weight"] for s in v["scenes"][:-1]) / total_weight
+    media.update(verify_gaps(checked, audio_ms + v["outro_ms"], captions, cta_start))
     receipt = archive.save(item["output_key"], checked, media)
     return qa, receipt
 
@@ -168,6 +172,11 @@ def run(config, state, archive, job):
     item = None
     try:
         if job["phase"] == "preflight":
+            # A sibling job may have finished since this job was queued.
+            # Refresh receipt-backed inventory before touching any inputs.
+            from universal_state import refresh_inventory
+            if refresh_inventory(state, archive, job):
+                commit(state, job, phase="preview"); return
             result = preflight(config, job)
             with state.transaction() as db: state.emit(db, "self_check", job["id"], result)
             commit(state, job, phase="preview"); return
@@ -181,6 +190,9 @@ def run(config, state, archive, job):
             raise FactoryError("command", "preview_cannot_render", "Preview-only job cannot render final video")
         item = next((i for i in job["items"] if i["status"] == "previewed"), None)
         if item:
+            from universal_state import skip_existing
+            if skip_existing(state, archive, job, item):
+                commit(state, job, phase="render"); return
             # Existing final output after a crash is verified again, not regenerated.
             qa, receipt = render_item(config, archive, job, item, "render")
             commit(state, job, language=item["language"], receipt=receipt)

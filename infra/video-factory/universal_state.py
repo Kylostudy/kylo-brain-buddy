@@ -145,3 +145,23 @@ def fail(state, job, detail, blocked=False):
     with state.transaction() as db:
         changed = db.execute("UPDATE universal_jobs SET status=?,diagnostic=?,attempts=attempts+1,lease=NULL,expires=NULL WHERE id=? AND lease=? AND expires>=?", ("blocked" if blocked else "failed", canonical(detail).decode(), job["id"], job["lease"], time.time())).rowcount
         if changed: state.emit(db, "final_error", job["id"], detail)
+
+
+def skip_existing(state, archive, job, item):
+    if item["language"] in job["plan"].get("rerender", []): return False
+    with state.transaction() as db:
+        live = db.execute("SELECT 1 FROM universal_jobs WHERE id=? AND lease=? AND expires>=?", (job["id"], job["lease"], time.time())).fetchone()
+        if not live: raise FactoryError("lease", "lease_lost", "Work lease expired")
+        row = db.execute("SELECT receipt FROM universal_outputs WHERE recipe=? AND language=? ORDER BY rowid DESC LIMIT 1", (job["recipe"], item["language"])).fetchone()
+        if not row: return False
+        receipt = json.loads(row["receipt"])
+        if not archive.verify(receipt): raise FactoryError("archive", "archive_readback_failed", "Existing output could not be verified")
+        db.execute("UPDATE universal_items SET status='skipped',receipt=? WHERE job=? AND language=?", (row["receipt"], job["id"], item["language"]))
+        item["status"] = "skipped"; item["receipt"] = row["receipt"]
+        return True
+
+
+def refresh_inventory(state, archive, job):
+    for item in job["items"]:
+        if item["status"] != "skipped": skip_existing(state, archive, job, item)
+    return all(i["status"] == "skipped" for i in job["items"])
