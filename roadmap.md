@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] 2026-10-28 tulajdonosi kérés: automatikus vágás befejezése, javított szerverfrissítés ellenőrzése, egy magyar szerveres előpróba; sorozat nélkül.
+
 - [x] Videógyár B forrás-előkészítés: külön univerzális v2 szerződés és készítő, képkockás zónaellenőrzés, előpróba, folytatható sorozat, részletes események, önellenőrzés; 109 gyári + 15 meglévő szakmai/diagnosztikai próba sikeres, német/finn szöveg valódi böngészős tördelésével, gyártás nélkül.
 - [ ] Videógyár B teljes elfogadás: VPS publikálás/telepítés és self_check még nincs igazolva; KyLogic új parancsai és védett QA-megtekintője másik projektben ellenőrizendő; automatikus vágás utáni igazítás/layout újraszámítás nincs kész, jelenleg hibás néma/álló hézag blokkolja az archiválást.
 - [ ] Videógyár B éles próba: valódi VPS-es magyar preview/trial, régi archívum és nyugta checksum-egyezése, további 26 nyelv csak tulajdonosi jóváhagyással. Blokkoló: publikálás, KyLogic új recept/parancs és jóváhagyás.
