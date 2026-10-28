@@ -143,7 +143,17 @@ def render_item(config, archive, job, item, mode):
     expected_total = math.ceil((audio_ms + v["outro_ms"]) / 1000 * 30)
     if complete.get("total_frames") != expected_total:
         raise FactoryError("qa_zone", "invalid_total_frames", "Layout frame count must match actual audio plus outro")
-    expected = complete["preview_frames"] if mode == "preview" else range(complete["total_frames"])
+    weights = sum(scene["weight"] for scene in v["scenes"])
+    elapsed = 0
+    expected_preview = []
+    for scene in v["scenes"]:
+        duration = audio_ms * scene["weight"] / weights
+        expected_preview.append(min(expected_total - 1, math.floor((elapsed + duration / 2) / 1000 * 30)))
+        elapsed += duration
+    expected_preview.append(min(expected_total - 1, math.floor((audio_ms + v["outro_ms"] / 2) / 1000 * 30)))
+    if complete.get("preview_frames") != expected_preview:
+        raise FactoryError("qa_zone", "invalid_preview_frames", "Preview must cover every scene midpoint and the outro")
+    expected = expected_preview if mode == "preview" else range(complete["total_frames"])
     check_layout(records, m["safe_zone"], expected)
     qa_key = item["output_key"] + ("/preview" if mode == "preview" else "")
     qa = save_qa(config["archive_root"], qa_key, work)

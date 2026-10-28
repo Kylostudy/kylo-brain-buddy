@@ -93,9 +93,10 @@ def apply(state, db, command):
 
 
 def insert_output(db, recipe, language, receipt):
-    old = db.execute("SELECT receipt FROM universal_outputs WHERE output_key=?", (receipt["object_key"],)).fetchone()
+    old = db.execute("SELECT recipe,language,receipt FROM universal_outputs WHERE output_key=?", (receipt["object_key"],)).fetchone()
     encoded = canonical(receipt).decode()
-    if old and old["receipt"] != encoded: raise FactoryError("archive", "receipt_conflict", "Archived receipt is immutable")
+    if old and (old["receipt"] != encoded or old["recipe"] != recipe or old["language"] != language):
+        raise FactoryError("archive", "receipt_conflict", "Archived receipt identity is immutable")
     db.execute("INSERT OR IGNORE INTO universal_outputs VALUES(?,?,?,?)", (recipe, language, receipt["object_key"], encoded))
 
 

@@ -223,5 +223,12 @@ class UniversalTests(unittest.TestCase):
         from universal_media import unprotected_gaps
         self.assertEqual(unprotected_gaps([(1,3)],[(2,4)],[(3,4)]),[(2,3)])
 
+    def test_receipt_cannot_be_reassigned_to_other_language(self):
+        from universal_state import insert_output
+        receipt=self.archive_receipt('identity/v1/hu')
+        with self.state.transaction() as db:insert_output(db,'cambridge-b','hu',receipt)
+        with self.assertRaisesRegex(FactoryError,'identity'):
+            with self.state.transaction() as db:insert_output(db,'cambridge-b','de',receipt)
+
 
 if __name__=='__main__':unittest.main()

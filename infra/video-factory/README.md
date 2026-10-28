@@ -1,5 +1,9 @@
 # Kylo önálló VPS-videógyár — előkészített, nem aktivált csomag
 
+## B változat (v2) előkészítés
+
+Külön adatvezérelt készítő: `exam-promo-universal-v1`. A régi ágak és nyugták megmaradnak. Előpróba, hét jelenet és zárókép, képkockás szöveghatárok, jóváhagyáshoz kötött sorozat és csak új verzióba történő újragyártás: részletek a `docs/VIDEO-FACTORY-B-V2.md` átadásban. A telepítés nem ad gyártási parancsot. A VPS-es telepítés, önellenőrzés és valódi próba még igazolandó; az automatikus vágás utáni időigazítás nincs kész, a veszélyes álló/néma hézag jelenleg archiválást blokkoló hibát ad.
+
 ## Állapot
 
 Elkészült: szigorú adat-recept/művelet szerződés, tartós SQLite feladatnyilvántartás, idempotencia, egyvideós foglalás/életjel, jóváhagyáshoz kötött sorozat, ötös adagnyugták, visszaellenőrzött helyi archívumtárolás, VPS-es teljes dekódolási ellenőrzés, kifelé kapcsolódó aláírt kliens, csak előkészítő telepítő és célzott szabálytesztek.
