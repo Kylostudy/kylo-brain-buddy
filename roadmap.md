@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] HTTP diagnosztikai csomag célzottan beépítve: művelet, státusz, csak hitelesített engedélylistás hibakód és helyi fázis; korábbi gyári védelem megtartva, 117 gyári teszt sikeres.
+- [ ] HTTP diagnosztika VPS-átvétel és első valódi részletes hiba: frissített változat publikálása/telepítése szükséges; régi 400 oka visszamenőleg nem állítható helyre.
+
 - [x] 2026-10-28 automatikus vágás: frozen+silent képkockás vágás, feliratidők és layout-indexek újraszámítása, ismételt dekódolás és QA; 113 gyári + 15 diagnosztikai teszt sikeres. Javított változat publikálása kérve.
 - [ ] 2026-10-28 szerveres magyar előpróba: 06:11 UTC jelentés szerint univerzális háttértelepítés 06:09:13 UTC-kor exit 1 hibával leállt; manager KyLogic http_400 választ kap. Frissítés 86b805b3 running, magyar v2 recept nem igazolt. Blokkoló: telepítési hiba pontos oka, KyLogic-kapcsolat/recept; próba nem indult.
 
