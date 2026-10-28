@@ -156,24 +156,37 @@ def render_item(config, archive, job, item, mode):
     expected = expected_preview if mode == "preview" else range(complete["total_frames"])
     check_layout(records, m["safe_zone"], expected)
     qa_key = item["output_key"] + ("/preview" if mode == "preview" else "")
-    qa = save_qa(config["archive_root"], qa_key, work)
-    qa.update({"ok": True, "audio_ms": audio_ms, "total_frames": complete["total_frames"]})
-    if mode == "preview": return qa, None
+    if mode == "preview":
+        qa = save_qa(config["archive_root"], qa_key, work)
+        qa.update({"ok": True, "audio_ms": audio_ms, "total_frames": complete["total_frames"]})
+        return qa, None
     fd = os.open(work / "output.mp4", os.O_RDONLY | os.O_NOFOLLOW)
     info = os.fstat(fd)
     if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not 1024 <= info.st_size <= 2 * 1024**3:
         os.close(fd); raise FactoryError("render", "unsafe_render_output", "Invalid output file")
     checked = work.parent / "checked.mp4"
     with os.fdopen(fd, "rb") as r, checked.open("wb") as w: shutil.copyfileobj(r, w)
-    try:
-        media = verify_video(checked, {"width": 1080, "height": 1920, "duration_ms": audio_ms + v["outro_ms"], "universal": True})
-    except Exception as e:
-        raise FactoryError("qa_duration", "media_verification_failed", str(e), language=v["language"], file=v["audio"]) from e
-    media["qa"] = qa
-    from universal_media import verify_gaps
+    from universal_media import cut_and_remap, remap_ms, verify_gaps
     total_weight = sum(s["weight"] for s in v["scenes"])
     cta_start = audio_ms * sum(s["weight"] for s in v["scenes"][:-1]) / total_weight
-    media.update(verify_gaps(checked, audio_ms + v["outro_ms"], captions, cta_start))
+    checked, final_records, final_captions, cut = cut_and_remap(checked, records, audio_ms + v["outro_ms"], captions, cta_start)
+    final_ms = cut['total_frames'] * 1000 / 30
+    check_layout(final_records, m['safe_zone'], range(cut['total_frames']))
+    final_cta = remap_ms(cta_start, cut['source_frames']) if cut.get('source_frames') else cta_start
+    try:
+        media = verify_video(checked, {"width": 1080, "height": 1920, "duration_ms": final_ms, "universal": True})
+    except Exception as e:
+        raise FactoryError("qa_duration", "media_verification_failed", str(e), language=v["language"], file=v["audio"]) from e
+    if abs(media['duration_ms'] - final_ms) > 100:
+        raise FactoryError('qa_duration', 'cut_duration_mismatch', 'Final cut must match remapped frame count')
+    media.update(verify_gaps(checked, final_ms, final_captions, final_cta))
+    final_work = work.parent / 'final-qa'
+    final_work.mkdir(exist_ok=True)
+    shutil.copyfile(work / 'contact.jpg', final_work / 'contact.jpg')
+    (final_work / 'layout.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in final_records))
+    qa = save_qa(config['archive_root'], qa_key, final_work)
+    qa.update({'ok': True, 'total_frames': cut['total_frames'], 'cut': cut, 'captions': final_captions})
+    media['qa'] = qa
     receipt = archive.save(item["output_key"], checked, media)
     return qa, receipt
 

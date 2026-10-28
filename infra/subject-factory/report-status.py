@@ -61,6 +61,8 @@ def collect():
         "ielts_continuation_status": tail_file("/var/lib/kylo-video-factory/ielts-continuation-status.json"),
         "video_factory_last_failure": tail_file("/var/lib/kylo-video-factory/last-render-failure.json"),
         "video_factory_state": factory_state("/var/lib/kylo-video-factory/work/state.sqlite3"),
+        "universal_prepare_unit": command(["systemctl", "show", "kylo-universal-renderer-prepare.service", "--no-pager", "--property=LoadState,ActiveState,SubState,Result,ExecMainStatus"]),
+        "universal_prepare_journal": command(["journalctl", "-u", "kylo-universal-renderer-prepare.service", "-n", "30", "--no-pager", "-o", "short-iso"]),
     }
 
 
