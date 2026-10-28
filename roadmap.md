@@ -1,7 +1,7 @@
 # Roadmap
 
 - [x] 2026-10-28 automatikus vágás: frozen+silent képkockás vágás, feliratidők és layout-indexek újraszámítása, ismételt dekódolás és QA; 113 gyári + 15 diagnosztikai teszt sikeres. Javított változat publikálása kérve.
-- [ ] 2026-10-28 szerveres magyar előpróba: 06:07 UTC életjel szerint szolgáltatás fut, de KyLogic http_400 választ ad; univerzális készítő háttértelepítése és új magyar recept még nem igazolt. Blokkoló: javított frissítés átvétele és KyLogic-kapcsolat/recept.
+- [ ] 2026-10-28 szerveres magyar előpróba: 06:11 UTC jelentés szerint univerzális háttértelepítés 06:09:13 UTC-kor exit 1 hibával leállt; manager KyLogic http_400 választ kap. Frissítés 86b805b3 running, magyar v2 recept nem igazolt. Blokkoló: telepítési hiba pontos oka, KyLogic-kapcsolat/recept; próba nem indult.
 
 - [x] Videógyár B forrás-előkészítés: külön univerzális v2 szerződés és készítő, képkockás zónaellenőrzés, előpróba, folytatható sorozat, részletes események, önellenőrzés; 109 gyári + 15 meglévő szakmai/diagnosztikai próba sikeres, német/finn szöveg valódi böngészős tördelésével, gyártás nélkül.
 - [ ] Videógyár B teljes elfogadás: VPS telepítés és self_check még nincs igazolva; KyLogic új parancsai és védett QA-megtekintője másik projektben ellenőrizendő; valódi vágási próba még szükséges.
