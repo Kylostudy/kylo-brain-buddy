@@ -152,6 +152,15 @@ const server = http.createServer(async (req, res) => {
       }
       const target = path.resolve(ARCHIVE_ROOT, rel);
       if (!target.startsWith(ARCHIVE_ROOT + path.sep)) return json(res, { error: "bad path" }, 400);
+      // Fixed QA suffixes only; reject symlinks in every archive path component.
+      const qa = /\.(contact\.jpg|layout\.jsonl)$/.test(rel);
+      if (qa && !rel.startsWith("videos/versioned-factory/")) return json(res, { error: "bad path" }, 400);
+      let current = ARCHIVE_ROOT;
+      for (const part of rel.split("/")) {
+        current = path.join(current, part);
+        try { if ((await fsp.lstat(current)).isSymbolicLink()) return json(res, { error: "bad path" }, 400); }
+        catch { return json(res, { error: "not found" }, 404); }
+      }
       let ast;
       try {
         ast = await fsp.stat(target);
@@ -160,7 +169,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (!ast.isFile() || target.endsWith(".part")) return json(res, { error: "not found" }, 404);
       const ext = path.extname(target).toLowerCase();
-      const type = ext === ".mp4" ? "video/mp4" : ext === ".webm" ? "video/webm" : ext === ".mov" ? "video/quicktime" : "application/octet-stream";
+      const type = rel.endsWith(".contact.jpg") ? "image/jpeg" : rel.endsWith(".layout.jsonl") ? "application/x-ndjson" : ext === ".mp4" ? "video/mp4" : ext === ".webm" ? "video/webm" : ext === ".mov" ? "video/quicktime" : "application/octet-stream";
       res.writeHead(200, { "content-type": type, "content-length": ast.size });
       const stream = fs.createReadStream(target);
       stream.on("error", () => res.destroy());

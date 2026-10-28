@@ -18,7 +18,8 @@ export const Universal:React.FC<Props>=(p)=>{
   const frame=useCurrentFrame();const ms=frame/30*1000;const current=sceneAt(p,ms);
   const root=useRef<HTMLDivElement>(null);
   const [fontGate]=useState(()=>delayRender('recipe-font'));
-  const [layoutGate]=useState(()=>delayRender('frame-layout'));
+  const [fontReady,setFontReady]=useState(false);
+  const layoutGate=React.useMemo(()=>delayRender('frame-layout'),[frame]);
   const font='KyloRecipe';const zone=p.zone;const height=zone.bottom-zone.top;const width=zone.right-zone.left;
   const skin=p.exam.skin;
   const isOutro=current.scene.kind==='outro';
@@ -30,27 +31,34 @@ export const Universal:React.FC<Props>=(p)=>{
   const band=(a:number,b:number):Rect=>({left:zone.left+12,right:zone.right-12,top:zone.top+height*a,bottom:zone.top+height*b});
   useLayoutEffect(()=>{
     const face=new FontFace(font,`url(${staticFile(p.font)})`);
-    face.load().then(()=>{document.fonts.add(face);continueRender(fontGate);}).catch(e=>cancelRender(e));
+    face.load().then(()=>{document.fonts.add(face);setFontReady(true);continueRender(fontGate);}).catch(e=>cancelRender(e));
   },[p.font,fontGate]);
   useLayoutEffect(()=>{
+    if(!fontReady)return;
     let cancelled=false;
     document.fonts.ready.then(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
       if(cancelled)return;
       const base=root.current?.getBoundingClientRect();if(!base)return;
+      const scaleX=1080/base.width;const scaleY=1920/base.height;
       const boxes:({id:string}&Rect)[]=[];
+      let invalid=false;
       root.current?.querySelectorAll<HTMLElement>('[data-box]').forEach(el=>{
         const bounds=el.getBoundingClientRect();
         const range=document.createRange();range.selectNodeContents(el);
         const textBounds=range.getBoundingClientRect();
-        const r={id:el.dataset.box??'',left:Math.min(bounds.left,textBounds.left)-base.left,right:Math.max(bounds.right,textBounds.right)-base.left,top:Math.min(bounds.top,textBounds.top)-base.top,bottom:Math.max(bounds.bottom,textBounds.bottom)-base.top};
-        if(r.left<zone.left-.01||r.right>zone.right+.01||r.top<zone.top-.01||r.bottom>zone.bottom+.01||forbidden.some(f=>intersects(r,f))) {cancelRender(new Error(`qa_zone:${current.scene.kind}:${r.id}:${JSON.stringify(r)}`));return;}
+        // Refit after the requested font is loaded, before measuring any text.
+        let size=parseFloat(el.style.fontSize);
+        while((el.scrollHeight>parseFloat(el.style.maxHeight)||el.scrollWidth>parseFloat(el.style.width))&&size>16){size--;el.style.fontSize=size+'px';}
+        const fitted=el.getBoundingClientRect();range.selectNodeContents(el);const actual=range.getBoundingClientRect();
+        const r={id:el.dataset.box??'',left:(Math.min(fitted.left,actual.left)-base.left)*scaleX,right:(Math.max(fitted.right,actual.right)-base.left)*scaleX,top:(Math.min(fitted.top,actual.top)-base.top)*scaleY,bottom:(Math.max(fitted.bottom,actual.bottom)-base.top)*scaleY};
+        if(r.left<zone.left-.01||r.right>zone.right+.01||r.top<zone.top-.01||r.bottom>zone.bottom+.01||forbidden.some(f=>intersects(r,f))) {invalid=true;cancelRender(new Error(`qa_zone:${current.scene.kind}:${r.id}:${JSON.stringify(r)}`));return;}
         boxes.push(r);
       });
       console.log('KYLO_LAYOUT '+JSON.stringify({frame,scene:current.scene.kind,boxes,forbidden:isOutro?[]:forbidden}));
-      continueRender(layoutGate);
+      if(!invalid)continueRender(layoutGate);
     })));
     return ()=>{cancelled=true;};
-  },[frame,fontGate,layoutGate]);
+  },[frame,fontReady,layoutGate]);
   const heading=current.scene.kind==='cta'?p.cta:current.scene.heading;
   let body=current.scene.body;
   if(current.scene.kind==='questions')body+='\n'+p.exam.sections.map(s=>s.name+' · '+s.time+'\n'+s.example).join('\n');

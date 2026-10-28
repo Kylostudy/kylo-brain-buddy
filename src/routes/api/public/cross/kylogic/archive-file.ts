@@ -56,7 +56,8 @@ export const Route = createFileRoute("/api/public/cross/kylogic/archive-file")({
         }
 
         const headers = new Headers();
-        headers.set("content-type", upstream.headers.get("content-type") || "video/mp4");
+        headers.set("content-type", rel.endsWith(".contact.jpg") ? "image/jpeg" : rel.endsWith(".layout.jsonl") ? "application/x-ndjson" : upstream.headers.get("content-type") || "video/mp4");
+        headers.set("x-content-type-options", "nosniff");
         const len = upstream.headers.get("content-length");
         if (len) headers.set("content-length", len);
         headers.set(
