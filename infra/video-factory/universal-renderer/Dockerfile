@@ -1,6 +1,6 @@
 FROM oven/bun:1.3.0
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends chromium ffmpeg bash python3 ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends chromium ffmpeg bash python3 python3-fonttools python3-pil ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json ./
 RUN bun install --production

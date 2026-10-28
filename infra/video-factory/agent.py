@@ -76,7 +76,10 @@ class Runner:
             active = subprocess.run(["/usr/bin/systemctl", "is-active", "--quiet", "kylo-subject-factory.service"], check=False)
             if active.returncode == 0:
                 return
+            from universal_state import claim as claim_universal
             job = self.state.claim()
+            if not job:
+                job = claim_universal(self.state, int(time.time()))
             if not job:
                 return
             stop = threading.Event()
@@ -87,7 +90,11 @@ class Runner:
             thread = threading.Thread(target=renew, daemon=True)
             thread.start()
             try:
-                self.render(job)
+                if job.get("universal"):
+                    from universal_runtime import run
+                    run(self.config, self.state, self.archive, job)
+                else:
+                    self.render(job)
             except Exception as e:
                 allowed = {"low_disk", "archive_conflict", "media_checksum_failed", "renderer_review_required", "archive_readback_failed", "unsafe_render_output"}
                 code = str(e) if str(e) in allowed else "render_or_verification_failed"
@@ -184,6 +191,9 @@ def main():
     state = State(Path(config["work_root"]) / "state.sqlite3", LocalArchive(config["archive_root"], config.get("read_roots")))
     runner = Runner(config, state)
     inputs = Inputs(config["recipe_root"], client, runner.archive)
+    from universal_runtime import self_check
+    with state.transaction() as db:
+        state.emit(db, "self_check", config["agent_id"], self_check(config))
     # Exclusive manager lock persists across process life, including network outages.
     with open(Path(config["work_root"]) / "manager.lock", "a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -197,7 +207,7 @@ def main():
                         state.acknowledge(event["event_id"])
                 if time.time() - last_claim >= 20:
                     client.request("heartbeat", {"schema_version": 1, "agent_id": config["agent_id"], "takeover_approved": config["takeover_approved"], "pending_events": len(state.pending())})
-                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1"], "batch_size": 5, "concurrency": 1})
+                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")
                     if command is not None:
                         from contract import validate_command
@@ -205,6 +215,9 @@ def main():
                         if command["operation"] == "register_recipe":
                             inputs.prepare(command["payload"])
                         state.apply(command)
+                        if command["operation"] == "register_recipe":
+                            with state.transaction() as db:
+                                state.emit(db, "self_check", command["delivery_id"], self_check(config, command["payload"]))
                     last_claim = time.time()
             except Exception as e:
                 # Only the error class / HTTP status / own error code; never payloads or bodies.
@@ -226,7 +239,10 @@ def main():
                 else:
                     reason = type(e).__name__
                 if command is not None:
-                    state.reject(command, reason)
+                    from universal import FactoryError, redact
+                    detail = e.result if isinstance(e, FactoryError) else {"stage": "command", "code": reason, "message": type(e).__name__, "log_tail": []}
+                    detail["message"] = " ".join(redact(detail["message"], (secret,)))
+                    state.reject(command, reason, detail)
                 print("KyLogic connection or command unavailable (%s); durable work preserved" % reason, flush=True)
             runner.run_one()
             time.sleep(random.uniform(5, 10))

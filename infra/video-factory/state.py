@@ -143,6 +143,8 @@ class State:
     def claim(self, now=None):
         now = int(time.time()) if now is None else now
         with self.transaction() as db:
+            if db.execute("SELECT 1 FROM universal_jobs WHERE lease IS NOT NULL AND expires>=?", (now,)).fetchone():
+                return None
             expired = db.execute("SELECT * FROM jobs WHERE lease IS NOT NULL AND expires<?", (now,)).fetchall()
             for stale in expired:
                 attempts = stale["attempts"] + 1
