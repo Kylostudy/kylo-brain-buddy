@@ -1,0 +1,28 @@
+{
+  "ielts-academic": {
+    "name": "IELTS Academic",
+    "sections": [
+      {"name":"Listening","time":"30 min","example":"Complete the form. NO MORE THAN TWO WORDS."},
+      {"name":"Reading","time":"60 min","example":"Choose the correct answer."},
+      {"name":"Writing","time":"60 min","example":"Write a response to the task."},
+      {"name":"Speaking","time":"11–14 min","example":"Discuss the topic with the examiner."}
+    ],
+    "score_scale":"0–9 bands",
+    "sample_percent":82,
+    "vocabulary":["to mitigate","substantial"],
+    "skin":{"background":"#0B0803","foreground":"#F5EFE2","accent":"#E9B44C","muted":"#CFC5AF"}
+  },
+  "cambridge-b2-first": {
+    "name":"Cambridge B2 First",
+    "sections":[
+      {"name":"Reading & Use of English","time":"75 min","example":"Choose the correct answer: A, B, C or D. Practice example."},
+      {"name":"Writing","time":"80 min","example":"Write a response to the task."},
+      {"name":"Listening","time":"≈40 min","example":"Listen and select the answer."},
+      {"name":"Speaking","time":"14 min / pair","example":"Discuss the topic with your partner."}
+    ],
+    "score_scale":"Cambridge English Scale",
+    "sample_percent":82,
+    "vocabulary":["to improve","confident"],
+    "skin":{"background":"#0B0803","foreground":"#F5EFE2","accent":"#E9B44C","muted":"#CFC5AF"}
+  }
+}

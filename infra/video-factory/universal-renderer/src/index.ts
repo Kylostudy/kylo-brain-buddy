@@ -36,7 +36,7 @@ if missing: raise RuntimeError('font_load:missing_glyphs:'+','.join(missing[:30]
   const options={serveUrl,browserExecutable:'/usr/bin/chromium',chromeMode:'chrome-for-testing' as const,inputProps:props as unknown as Record<string,unknown>};
   const composition=await selectComposition({...options,id:'UniversalExam'});
   const records=new Map<number,unknown>();
-  const onBrowserLog=(log:{text:string})=>{const i=log.text.indexOf('KYLO_LAYOUT ');if(i>=0){const r=JSON.parse(log.text.slice(i+12));records.set(r.frame,r);}};
+  const onBrowserLog=(log:{text:string})=>{const i=log.text.indexOf('KYLO_LAYOUT ');if(i>=0){const r=JSON.parse(log.text.slice(i+12));if(req.mode==='preview'&&!frames.includes(r.frame))return;records.set(r.frame,r);}};
   let start=0;const weight=v.scenes.reduce((n:number,s:{weight:number})=>n+s.weight,0);
   const frames:number[]=v.scenes.map((s:{weight:number})=>{const duration=req.audio_ms*s.weight/weight;const frame=Math.min(props.total_frames-1,Math.floor((start+duration/2)/1000*30));start+=duration;return frame;});
   frames.push(Math.min(props.total_frames-1,Math.floor((req.audio_ms+v.outro_ms/2)/1000*30)));

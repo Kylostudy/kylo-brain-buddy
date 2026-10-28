@@ -143,7 +143,17 @@ def render_item(config, archive, job, item, mode):
     expected_total = math.ceil((audio_ms + v["outro_ms"]) / 1000 * 30)
     if complete.get("total_frames") != expected_total:
         raise FactoryError("qa_zone", "invalid_total_frames", "Layout frame count must match actual audio plus outro")
-    expected = complete["preview_frames"] if mode == "preview" else range(complete["total_frames"])
+    weights = sum(scene["weight"] for scene in v["scenes"])
+    elapsed = 0
+    expected_preview = []
+    for scene in v["scenes"]:
+        duration = audio_ms * scene["weight"] / weights
+        expected_preview.append(min(expected_total - 1, math.floor((elapsed + duration / 2) / 1000 * 30)))
+        elapsed += duration
+    expected_preview.append(min(expected_total - 1, math.floor((audio_ms + v["outro_ms"] / 2) / 1000 * 30)))
+    if complete.get("preview_frames") != expected_preview:
+        raise FactoryError("qa_zone", "invalid_preview_frames", "Preview must cover every scene midpoint and the outro")
+    expected = expected_preview if mode == "preview" else range(complete["total_frames"])
     check_layout(records, m["safe_zone"], expected)
     qa_key = item["output_key"] + ("/preview" if mode == "preview" else "")
     qa = save_qa(config["archive_root"], qa_key, work)
@@ -160,6 +170,10 @@ def render_item(config, archive, job, item, mode):
     except Exception as e:
         raise FactoryError("qa_duration", "media_verification_failed", str(e), language=v["language"], file=v["audio"]) from e
     media["qa"] = qa
+    from universal_media import verify_gaps
+    total_weight = sum(s["weight"] for s in v["scenes"])
+    cta_start = audio_ms * sum(s["weight"] for s in v["scenes"][:-1]) / total_weight
+    media.update(verify_gaps(checked, audio_ms + v["outro_ms"], captions, cta_start))
     receipt = archive.save(item["output_key"], checked, media)
     return qa, receipt
 
@@ -168,6 +182,11 @@ def run(config, state, archive, job):
     item = None
     try:
         if job["phase"] == "preflight":
+            # A sibling job may have finished since this job was queued.
+            # Refresh receipt-backed inventory before touching any inputs.
+            from universal_state import refresh_inventory
+            if refresh_inventory(state, archive, job):
+                commit(state, job, phase="preview"); return
             result = preflight(config, job)
             with state.transaction() as db: state.emit(db, "self_check", job["id"], result)
             commit(state, job, phase="preview"); return
@@ -176,9 +195,14 @@ def run(config, state, archive, job):
             if item:
                 qa, _ = render_item(config, archive, job, item, "preview")
                 commit(state, job, language=item["language"], preview=qa); return
-            commit(state, job, phase="render"); return
+            commit(state, job, phase="preview" if job["mode"] == "preview" else "render"); return
+        if job["mode"] == "preview":
+            raise FactoryError("command", "preview_cannot_render", "Preview-only job cannot render final video")
         item = next((i for i in job["items"] if i["status"] == "previewed"), None)
         if item:
+            from universal_state import skip_existing
+            if skip_existing(state, archive, job, item):
+                commit(state, job, phase="render"); return
             # Existing final output after a crash is verified again, not regenerated.
             qa, receipt = render_item(config, archive, job, item, "render")
             commit(state, job, language=item["language"], receipt=receipt)
@@ -186,7 +210,10 @@ def run(config, state, archive, job):
     except Exception as e:
         detail = dict(e.result) if isinstance(e, FactoryError) else {"stage": "render", "code": "render_failed", "message": str(e)[:400], "log_tail": []}
         stderr = getattr(e, "stderr", b"") or b""
-        detail["log_tail"] = redact(stderr.decode("utf8", "replace") if isinstance(stderr, bytes) else stderr)
+        stdout = getattr(e, "stdout", b"") or b""
+        combined = (stdout.decode("utf8", "replace") if isinstance(stdout, bytes) else stdout) + "\n" + (stderr.decode("utf8", "replace") if isinstance(stderr, bytes) else stderr)
+        detail["log_tail"] = redact(combined)
+        if isinstance(e, subprocess.CalledProcessError): detail["returncode"] = e.returncode
         detail["message"] = " ".join(redact(detail["message"]))
         detail["job_id"] = job["id"]
         if item:
@@ -194,4 +221,7 @@ def run(config, state, archive, job):
             detail["file"] = json.loads(item["video"])["audio"]
         if "qa_zone:" in str(stderr): detail["stage"] = "qa_zone"; detail["code"] = "layout_failed"
         if "font_load:" in str(stderr): detail["stage"] = "font_load"; detail["code"] = "missing_glyphs"
+        # Same local diagnostic surface as legacy jobs, with already-redacted data.
+        from agent import record_failure
+        record_failure(config, {"id":job["id"], "manifest":job["manifest"]}, detail["code"], detail)
         fail(state, job, detail, blocked=detail["stage"] in {"asset_stage", "self_check", "font_load"})

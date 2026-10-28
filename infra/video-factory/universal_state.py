@@ -93,9 +93,10 @@ def apply(state, db, command):
 
 
 def insert_output(db, recipe, language, receipt):
-    old = db.execute("SELECT receipt FROM universal_outputs WHERE output_key=?", (receipt["object_key"],)).fetchone()
+    old = db.execute("SELECT recipe,language,receipt FROM universal_outputs WHERE output_key=?", (receipt["object_key"],)).fetchone()
     encoded = canonical(receipt).decode()
-    if old and old["receipt"] != encoded: raise FactoryError("archive", "receipt_conflict", "Archived receipt is immutable")
+    if old and (old["receipt"] != encoded or old["recipe"] != recipe or old["language"] != language):
+        raise FactoryError("archive", "receipt_conflict", "Archived receipt identity is immutable")
     db.execute("INSERT OR IGNORE INTO universal_outputs VALUES(?,?,?,?)", (recipe, language, receipt["object_key"], encoded))
 
 
@@ -131,6 +132,8 @@ def commit(state, job, phase=None, language=None, preview=None, receipt=None):
                 n = db.execute("SELECT count(*) FROM universal_items WHERE job=? AND status='completed'", (j["id"],)).fetchone()[0]
                 if n % 5 == 0: state.emit(db, "batch_verified", j["id"], {"count": n, "checkpoint": True})
         next_phase = phase or j["phase"]
+        if j["mode"] == "preview" and next_phase == "render":
+            raise FactoryError("command", "preview_cannot_render", "Preview-only job cannot enter final rendering")
         target = "previewed" if j["mode"] == "preview" else "completed"
         pending = db.execute("SELECT count(*) FROM universal_items WHERE job=? AND status NOT IN (?, 'skipped')", (j["id"], target)).fetchone()[0]
         done = not pending and next_phase != "preflight"
@@ -141,5 +144,25 @@ def commit(state, job, phase=None, language=None, preview=None, receipt=None):
 
 def fail(state, job, detail, blocked=False):
     with state.transaction() as db:
-        changed = db.execute("UPDATE universal_jobs SET status=?,diagnostic=?,attempts=attempts+1,lease=NULL,expires=NULL WHERE id=? AND lease=?", ("blocked" if blocked else "failed", canonical(detail).decode(), job["id"], job["lease"])).rowcount
+        changed = db.execute("UPDATE universal_jobs SET status=?,diagnostic=?,attempts=attempts+1,lease=NULL,expires=NULL WHERE id=? AND lease=? AND expires>=?", ("blocked" if blocked else "failed", canonical(detail).decode(), job["id"], job["lease"], time.time())).rowcount
         if changed: state.emit(db, "final_error", job["id"], detail)
+
+
+def skip_existing(state, archive, job, item):
+    if item["language"] in job["plan"].get("rerender", []): return False
+    with state.transaction() as db:
+        live = db.execute("SELECT 1 FROM universal_jobs WHERE id=? AND lease=? AND expires>=?", (job["id"], job["lease"], time.time())).fetchone()
+        if not live: raise FactoryError("lease", "lease_lost", "Work lease expired")
+        row = db.execute("SELECT receipt FROM universal_outputs WHERE recipe=? AND language=? ORDER BY rowid DESC LIMIT 1", (job["recipe"], item["language"])).fetchone()
+        if not row: return False
+        receipt = json.loads(row["receipt"])
+        if not archive.verify(receipt): raise FactoryError("archive", "archive_readback_failed", "Existing output could not be verified")
+        db.execute("UPDATE universal_items SET status='skipped',receipt=? WHERE job=? AND language=?", (row["receipt"], job["id"], item["language"]))
+        item["status"] = "skipped"; item["receipt"] = row["receipt"]
+        return True
+
+
+def refresh_inventory(state, archive, job):
+    for item in job["items"]:
+        if item["status"] != "skipped": skip_existing(state, archive, job, item)
+    return all(i["status"] == "skipped" for i in job["items"])
