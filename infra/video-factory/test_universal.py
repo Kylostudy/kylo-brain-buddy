@@ -206,5 +206,22 @@ class UniversalTests(unittest.TestCase):
         with self.state.transaction() as db:self.assertEqual(json.loads(db.execute("SELECT receipt FROM outputs WHERE video_id='legacy/ielts/de'").fetchone()[0]),{'sha256':'1'*64})
         self.assertTrue(self.archive.verify(before))
 
+    def test_queued_duplicate_skips_after_sibling_finishes(self):
+        from universal_state import insert_output,refresh_inventory
+        self.state.apply(command('preview',self.params(languages=['de'])))
+        j=claim(self.state,time.time())
+        receipt=self.archive_receipt('sibling/v1/de')
+        with self.state.transaction() as db:insert_output(db,self.r['recipe_id'],'de',receipt)
+        self.assertTrue(refresh_inventory(self.state,self.archive,j))
+        self.assertEqual(j['items'][0]['status'],'skipped')
+
+    def test_frozen_silent_outro_protected(self):
+        from universal_media import unprotected_gaps
+        self.assertEqual(unprotected_gaps([(8,12)],[(8,12)],[(8,12)]),[])
+
+    def test_unprotected_frozen_silence_detected(self):
+        from universal_media import unprotected_gaps
+        self.assertEqual(unprotected_gaps([(1,3)],[(2,4)],[(3,4)]),[(2,3)])
+
 
 if __name__=='__main__':unittest.main()

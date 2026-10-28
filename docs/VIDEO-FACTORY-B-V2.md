@@ -48,3 +48,5 @@ Checksumos, külön rögzített készítő, új helyi állapottáblák és vált
 Sorrend: Brain változás publikálása → VPS automatikus frissítés → új `self_check` és tényleges `exam-promo-universal-v1` image igazolása → KyLogic regisztrálja az új magyar receptet a meglévő hanggal → külön magyar `preview` → tulajdonosi szemrevételezés → külön `trial` → tulajdonosi jóváhagyás → a további 26 nyelv `series_run`.
 
 Még igazolandó: valódi VPS-es előpróba és teljes videó, régi archívum/nyugták checksum-egyezése, KyLogic új parancsainak és képes megtekintőjének fogadása. A helyi tesztek ezt nem állítják késznek.
+
+Vágási megjegyzés: az új ág ugyanazt a frozen+silent metszetet ellenőrzi, mint a meglévő tight-cut, védett narrációs/CTA/outro-ablakokkal. Nem rövidíti meg automatikusan a kapott karakterigazítást: nem védett néma/álló hézag esetén konkrét QA-hibát ad, nem archivál. Automatikus tényleges vágás és utána a teljes igazítás/layout újraszámítása még külön ellenőrzött bővítés; nincs késznek állítva.
