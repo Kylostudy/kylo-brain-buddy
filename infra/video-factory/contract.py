@@ -17,6 +17,10 @@ IELTS_LANGUAGES = set("en de nl fr ja es pt it ko pl no sv cs tr sk sl da fi ar 
 # Owner policy 2026-10-24: a continuation may only manufacture these 11 missing
 # languages; the other 16 must arrive as verified archive receipts, never re-rendered.
 CONTINUATION_LANGUAGES = set("ar da hi ja ko ru sk sl sr sv tr".split())
+# Approved Hungarian Cambridge B2 First v2 trial (owner approval 2026-10-28); the only allowed Cambridge continuation anchor.
+CAMBRIDGE_HU_V2_KEY = "cambridge-b2-first-hu-trial/v2/cambridge-b2-first-hu"
+CAMBRIDGE_HU_V2_SHA = "781a47ce0d6b74542245bd8c07c2166ac0f84be64ee3880b868947b9fe16dc06"
+CAMBRIDGE_HU_V2_BYTES = 7038003
 
 
 def canonical(value):
@@ -69,7 +73,7 @@ def validate_recipe(raw):
         keys(continuation, {"trial_recipe_id", "trial_version", "completed", "blocked_languages"}, {"trial_recipe_id", "trial_version", "completed"})
         identifier(continuation["trial_recipe_id"])
         identifier(continuation["trial_version"])
-        if raw["series"] != "ielts" or not isinstance(continuation["completed"], list):
+        if raw["series"] not in {"ielts", "cambridge"} or not isinstance(continuation["completed"], list):
             raise ValueError("invalid_continuation")
         completed = set()
         for item in continuation["completed"]:
@@ -94,10 +98,21 @@ def validate_recipe(raw):
             if not isinstance(item["reason"], str) or not item["reason"].strip() or len(item["reason"]) > 240:
                 raise ValueError("blocked_language_reason_required")
             blocked.add(item["language"])
-        if not set(languages) <= CONTINUATION_LANGUAGES or blocked & set(languages) or not set(languages):
+        if raw["series"] == "ielts" and (not set(languages) <= CONTINUATION_LANGUAGES or blocked & set(languages) or not set(languages)):
             raise ValueError("continuation_languages_restricted")
         if completed & (set(languages) | blocked) or completed | set(languages) | blocked != IELTS_LANGUAGES:
             raise ValueError("continuation_must_cover_27_without_repeats")
+        if raw["series"] == "cambridge":
+            if (blocked or raw.get("renderer") != "exam-promo-profiles-safe-v2"
+                    or continuation["trial_recipe_id"] != "cambridge-b2-first-hu-trial"
+                    or continuation["trial_version"] != "v2"
+                    or completed != {"hu"}
+                    or len(raw["videos"]) != 26):
+                raise ValueError("invalid_cambridge_continuation")
+            receipt = continuation["completed"][0]["receipt"]
+            if (receipt["object_key"] != CAMBRIDGE_HU_V2_KEY or receipt["sha256"] != CAMBRIDGE_HU_V2_SHA
+                    or receipt["bytes"] != CAMBRIDGE_HU_V2_BYTES or receipt.get("read_root") is not None):
+                raise ValueError("invalid_cambridge_trial_receipt")
     if raw["series"] == "ielts" and continuation is None and len(languages) != 27 and not (raw["recipe_id"] == "ielts-cs-trial" and languages == ["cs"] and len(raw["videos"]) == 1):
         raise ValueError("ielts_requires_27_languages")
     files = raw["files"]
@@ -151,7 +166,7 @@ def validate_recipe(raw):
             if type(t["start_ms"]) is not int or type(t["end_ms"]) is not int or not last <= t["start_ms"] < t["end_ms"] <= video["duration_ms"]:
                 raise ValueError("invalid_timing")
             last = t["end_ms"]
-    if raw["series"] == "ielts" and covered != set(languages):
+    if (raw["series"] == "ielts" or (raw["series"] == "cambridge" and continuation is not None)) and covered != set(languages):
         raise ValueError("ielts_missing_language_video")
     return raw
 
