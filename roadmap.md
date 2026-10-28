@@ -1,9 +1,10 @@
 # Roadmap
 
-- [ ] 2026-10-28 tulajdonosi kérés: automatikus vágás befejezése, javított szerverfrissítés ellenőrzése, egy magyar szerveres előpróba; sorozat nélkül.
+- [x] 2026-10-28 automatikus vágás: frozen+silent képkockás vágás, feliratidők és layout-indexek újraszámítása, ismételt dekódolás és QA; 113 gyári + 15 diagnosztikai teszt sikeres. Javított változat publikálása kérve.
+- [ ] 2026-10-28 szerveres magyar előpróba: 06:07 UTC életjel szerint szolgáltatás fut, de KyLogic http_400 választ ad; univerzális készítő háttértelepítése és új magyar recept még nem igazolt. Blokkoló: javított frissítés átvétele és KyLogic-kapcsolat/recept.
 
 - [x] Videógyár B forrás-előkészítés: külön univerzális v2 szerződés és készítő, képkockás zónaellenőrzés, előpróba, folytatható sorozat, részletes események, önellenőrzés; 109 gyári + 15 meglévő szakmai/diagnosztikai próba sikeres, német/finn szöveg valódi böngészős tördelésével, gyártás nélkül.
-- [ ] Videógyár B teljes elfogadás: VPS publikálás/telepítés és self_check még nincs igazolva; KyLogic új parancsai és védett QA-megtekintője másik projektben ellenőrizendő; automatikus vágás utáni igazítás/layout újraszámítás nincs kész, jelenleg hibás néma/álló hézag blokkolja az archiválást.
+- [ ] Videógyár B teljes elfogadás: VPS telepítés és self_check még nincs igazolva; KyLogic új parancsai és védett QA-megtekintője másik projektben ellenőrizendő; valódi vágási próba még szükséges.
 - [ ] Videógyár B éles próba: valódi VPS-es magyar preview/trial, régi archívum és nyugta checksum-egyezése, további 26 nyelv csak tulajdonosi jóváhagyással. Blokkoló: publikálás, KyLogic új recept/parancs és jóváhagyás.
 
 - [x] Cambridge feliratjavító v2: külön exam-promo-profiles-safe-v2 kiadás, ellenőrzött felirathatárok, régi renderelők és archívum változatlan; 73 gyártó- és 7 diagnosztikai próba sikeres, gyártási parancs nélkül.
