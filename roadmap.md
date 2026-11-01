@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] IELTS `ielts-promo-fonts-v1` image_unavailable: pontos VPS-ok feltárása, csak a hiányzó kép/hivatkozás javítása; teljes önellenőrzés, v4 teljes image ID és KyLogic-kézbesítés igazolása. Gyártás és új recept nélkül; működő készítők és archívum érintetlen.
+- [x] IELTS helyreállítási korlát javítva: csak sikeres teljes Docker-leltárban igazoltan hiányzó régi képazonosító javítható, változatlan jelenet/jóváhagyás mellett; működő kép és bizonytalan hiba érintetlen. Teljes önellenőrzés időponttal, tényleges képazonosítóval és pontos hibaszakasszal; 143 gyári teszt OK.
+- [ ] IELTS pontos VPS-ok, javítás telepítése és teljes önellenőrzés/KyLogic átvétel igazolása: közvetlen szerveres vezérlés nincs, SSH-ból csak a két IELTS-képbejegyzés és Docker-próba eredménye szükséges. v4 image ID a 2026-11-01 06:42:49 UTC védett jelentés naplójában igazolt: sha256:a4a7ff47aca59b14d1f4fd0c30119162249b07ff03f327ed34d77e0ddc07c89e. Gyártás és új recept nélkül; működő készítők és archívum érintetlen.
 
 - [x] HTTP diagnosztikai csomag célzottan beépítve: művelet, státusz, csak hitelesített engedélylistás hibakód és helyi fázis; korábbi gyári védelem megtartva, 117 gyári teszt sikeres.
 - [ ] HTTP diagnosztika VPS-átvétel és első valódi részletes hiba: frissített változat publikálása/telepítése szükséges; régi 400 oka visszamenőleg nem állítható helyre.
