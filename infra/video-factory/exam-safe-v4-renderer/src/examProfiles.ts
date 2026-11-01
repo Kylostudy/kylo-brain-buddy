@@ -31,11 +31,23 @@ export const CAMBRIDGE_PROFILE: ExamProfile = {
   vocabulary: ["to improve", "confident"],
 };
 
+export const GOETHE_B2_PROFILE: ExamProfile = {
+  id: "goethe-zertifikat-b2",
+  name: "Goethe-Zertifikat B2",
+  taskHeading: "SPRECHEN · ÜBUNGSBEISPIEL",
+  taskPrompt: "Sollten Erwachsene mehr mit dem Fahrrad fahren? Nennen Sie Vorteile und Nachteile. Übungsbeispiel, keine offizielle Prüfungsaufgabe.",
+  timerSeconds: 900,
+  skills: [["Lesen", "65"], ["Hören", "≈40"], ["Schreiben", "75"], ["Sprechen", "≈15 / pair"]],
+  scoreLabels: ["Lesen", "Hören", "Schreiben", "Sprechen"],
+  vocabulary: ["der Vorteil", "der Nachteil"],
+};
+
 export function resolveExamProfile(id: unknown, series: unknown): ExamProfile {
   if (series === "cambridge") {
     if (id !== CAMBRIDGE_PROFILE.id) throw new Error("cambridge_profile_required");
     return CAMBRIDGE_PROFILE;
   }
   if (series === "ielts" && (id === undefined || id === IELTS_PROFILE.id)) return IELTS_PROFILE;
+  if (series === "other" && id === GOETHE_B2_PROFILE.id) return GOETHE_B2_PROFILE;
   throw new Error("unsupported_exam_profile");
 }
