@@ -33,8 +33,25 @@ from pathlib import Path
 p = Path('/etc/kylo-video-factory/reviewed-renderers.json')
 entries = json.loads(p.read_text()) if p.exists() else {}
 entry = {'image': sys.argv[1], 'reviewed': True, 'scenes': ['ielts-promo-v1']}
-if 'ielts-promo-fonts-v1' in entries and entries['ielts-promo-fonts-v1'] != entry:
-    raise SystemExit('immutable_renderer_conflict')
+existing = entries.get('ielts-promo-fonts-v1')
+if existing is not None and existing != entry:
+    import re, subprocess
+    old_image = str(existing.get('image', ''))
+    if not re.fullmatch(r'sha256:[a-f0-9]{64}', old_image) or {**existing, 'image': entry['image']} != entry:
+        raise SystemExit('immutable_renderer_conflict')
+    # A failed inspect alone is not proof of absence (daemon/permission failures).
+    probe = subprocess.run(['docker', 'image', 'inspect', old_image], capture_output=True, timeout=30)
+    if probe.returncode == 0:
+        raise SystemExit('immutable_renderer_conflict')
+    inventory = subprocess.run(['docker', 'image', 'ls', '--all', '--quiet', '--no-trunc'], capture_output=True, text=True, timeout=30)
+    if inventory.returncode != 0:
+        raise SystemExit('renderer_inventory_unavailable')
+    images = inventory.stdout.splitlines()
+    if any(not re.fullmatch(r'sha256:[a-f0-9]{64}', image) for image in images):
+        raise SystemExit('renderer_inventory_unavailable')
+    if old_image in images:
+        raise SystemExit('renderer_probe_failed')
+    # Only a digest proven absent from a successful full local inventory is repaired.
 entries['ielts-promo-fonts-v1'] = entry
 temp = p.with_suffix('.tmp')
 temp.write_text(json.dumps(entries, indent=2))
