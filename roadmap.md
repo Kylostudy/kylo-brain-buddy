@@ -69,4 +69,6 @@
 - [x] Ellenőrizni a kódot, az összeállítást és az adatokat
 
 - [x] Videógyár leállása (start-limit-hit, 20:15): a frissítés utáni sok egymás utáni tervezett újraindítás okozta; aktiválások sorba állítva, tervezett újraindítás előtt számláló nullázva; v3-előkészítés naplója bekerült a jelentésbe; 127+15 teszt OK
-- [ ] Videógyár újraindulásának és a v3 videókészítő sikeres elkészültének igazolása a szerverjelentésből; blokkoló: Brain publikálása szükséges
+- [x] Videógyár újraindulásának és a v3 videókészítő sikeres elkészültének igazolása a szerverjelentésből; blokkoló: Brain publikálása szükséges
+- [x] Goethe B2 profil: exam-promo-profiles-safe-v4 készítő (v3-másolat, csak examProfiles.ts új), engedélylista + deploy-blokk + 6 új próba, 133 teszt OK; gyártás nem indult
+- [ ] v4 szerveres telepítésének és önellenőrzésének igazolása életjelből; blokkoló: Brain publikálása szükséges
