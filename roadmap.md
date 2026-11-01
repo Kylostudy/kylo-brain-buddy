@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] IELTS `ielts-promo-fonts-v1` image_unavailable: pontos VPS-ok feltárása, csak a hiányzó kép/hivatkozás javítása; teljes önellenőrzés, v4 teljes image ID és KyLogic-kézbesítés igazolása. Gyártás és új recept nélkül; működő készítők és archívum érintetlen.
+
 - [x] HTTP diagnosztikai csomag célzottan beépítve: művelet, státusz, csak hitelesített engedélylistás hibakód és helyi fázis; korábbi gyári védelem megtartva, 117 gyári teszt sikeres.
 - [ ] HTTP diagnosztika VPS-átvétel és első valódi részletes hiba: frissített változat publikálása/telepítése szükséges; régi 400 oka visszamenőleg nem állítható helyre.
 
