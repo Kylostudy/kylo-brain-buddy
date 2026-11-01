@@ -18,19 +18,28 @@ def probe_audio(path):
 
 
 def self_check(config, manifest=None):
+    from datetime import datetime, timezone
+    observed_at = datetime.now(timezone.utc).isoformat()
     checks = []
     if manifest and manifest["renderer"] not in config.get("renderers", {}):
         checks.append({"stage": "self_check", "code": "renderer_not_installed", "renderer": manifest["renderer"], "ok": False})
     for name, renderer in config.get("renderers", {}).items():
         if manifest and name != manifest["renderer"]: continue
+        probe_stage = "review"
+        image = str(renderer.get("image", ""))
         try:
             if not renderer.get("reviewed") or not str(renderer.get("image", "")).startswith("sha256:"):
                 raise FactoryError("self_check", "renderer_review_required", "Unreviewed image", renderer=name)
-            subprocess.run(["/usr/bin/docker", "image", "inspect", renderer["image"]], check=True, capture_output=True, timeout=30)
+            probe_stage = "image_inspect"
+            inspected = subprocess.run(["/usr/bin/docker", "image", "inspect", "--format", "{{.Id}}", renderer["image"]], check=True, capture_output=True, timeout=30)
+            actual_image = inspected.stdout.decode("utf8", "replace").strip()
+            if actual_image != image:
+                raise FactoryError("self_check", "image_identity_mismatch", "Pinned image identity differs", renderer=name)
+            probe_stage = "container_echo"
             subprocess.run(["/usr/bin/docker", "run", "--rm", "--network", "none", "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", "65532:65532", "--pids-limit", "32", "--memory", "128m", "--entrypoint", "/bin/echo", renderer["image"], "ok"], check=True, capture_output=True, timeout=30)
-            checks.append({"stage": "self_check", "code": "image_ok", "renderer": name, "ok": True})
+            checks.append({"stage": "self_check", "code": "image_ok", "renderer": name, "ok": True, "image": actual_image})
         except Exception as e:
-            checks.append({"stage": "self_check", "code": "image_unavailable", "renderer": name, "ok": False, "message": type(e).__name__})
+            checks.append({"stage": "self_check", "code": "image_unavailable", "renderer": name, "ok": False, "message": type(e).__name__, "probe_stage": probe_stage, "image": image, "returncode": e.returncode if isinstance(e, subprocess.CalledProcessError) else None})
     for name in ("work_root", "archive_root"):
         usage = shutil.disk_usage(config[name])
         checks.append({"stage": "self_check", "code": "disk", "root": name, "free_bytes": usage.free, "ok": usage.free > config["min_free_bytes"] and usage.used / usage.total <= config["max_disk_fraction"]})
@@ -54,7 +63,7 @@ def self_check(config, manifest=None):
                     result = subprocess.run(["/usr/bin/docker", "run", "--rm", "--network", "none", "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", "65532:65532", "--pids-limit", "32", "--memory", "256m", "-v", str(root) + ":/recipe:ro", "--entrypoint", "/usr/bin/python3", renderer["image"], "-c", code, "/recipe/" + v["font"], json.dumps(text)], capture_output=True, timeout=30)
                     checks.append({"stage": "font_load", "code": "font_coverage", "language": v["language"], "file": v["font"], "ok": result.returncode == 0, "log_tail": redact(result.stdout.decode("utf8", "replace"))})
                 except Exception as e: checks.append({"stage": "font_load", "code": "font_probe_failed", "language": v["language"], "file": v["font"], "ok": False, "message": type(e).__name__})
-    return {"ok": bool(checks) and all(c["ok"] for c in checks), "checks": checks}
+    return {"ok": bool(checks) and all(c["ok"] for c in checks), "checks": checks, "observed_at": observed_at}
 
 
 def preflight(config, job):
