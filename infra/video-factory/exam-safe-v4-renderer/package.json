@@ -1,0 +1,23 @@
+{
+  "name": "kylo-exam-promo-render",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {},
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.538",
+    "@remotion/cli": "4.0.538",
+    "@remotion/bundler": "4.0.538",
+    "@remotion/renderer": "4.0.538",
+    "@remotion/media-parser": "4.0.538",
+    "@remotion/compositor-linux-x64-musl": "4.0.538",
+    "@remotion/compositor-linux-x64-gnu": "4.0.538",
+    "@remotion/sdk": "4.0.538",
+    "@remotion/licensing": "4.0.538"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "^7.0.2"
+  }
+}
