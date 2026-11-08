@@ -310,6 +310,9 @@ export const Route = createFileRoute("/api/public/worker/record-claim")({
             headers: { "content-type": "application/json" },
           });
 
+        // Permanently retired by owner on 2026-11-08; no recording may be claimed.
+        return new Response(null, { status: 204 });
+
         let body: { workerId?: string } = {};
         try {
           body = (await request.json()) as { workerId?: string };

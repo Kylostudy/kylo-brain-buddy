@@ -19,6 +19,8 @@ import { createHealth, installGracefulShutdown, installCrashGuards } from "./hea
 import { currentLimit, HARD_MAX } from "./capacity.js";
 import { liveMounts, liveStatusForLog, liveConfig } from "./live-mode.js";
 
+const NON_BROWSER_TASKS = new Set(["ping", "stt_media_fetch", "stt_calibrate", "archive_video", "membership_transcribe", "receive_subject_factory_package"]);
+
 // A payloadokat (spec, credentials, proxy) fájlon keresztül adjuk át a
 // konténernek. Régebben env változóként (SPEC_JSON=...) argv-be raktuk, de
 // nagy süti-payloadnál (Reddit warmup) argv+envp együtt átlépte a Linux
@@ -438,6 +440,10 @@ async function processOne() {
   inflight.add(job.id);
   console.log(`[run ${job.id}] start (workflow ${job.workflowId})`);
   try {
+    if (!NON_BROWSER_TASKS.has(job.spec?.brain_task?.task_type)) {
+      await reportComplete({ runId: job.id, status: "cancelled", logs: [], result: null, error: "VPS browser execution permanently retired by owner" });
+      return;
+    }
     const out = await runContainer(job);
     const resultForReport = await offloadScreenshots(job.id, out.result);
     await reportComplete({
