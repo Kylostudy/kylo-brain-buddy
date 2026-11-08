@@ -685,6 +685,7 @@ const REMOVE_WEBDRIVER_INIT = `() => {
 }`;
 
 async function runSession(payload) {
+  throw new Error("VPS browser execution permanently retired by owner");
   const { session, supabaseUrl, supabasePublishableKey } = payload;
   if (!supabaseUrl || !supabasePublishableKey) {
     throw new Error("Brain nem küldött Realtime credenialt (supabaseUrl/PublishableKey).");
@@ -2308,7 +2309,7 @@ async function loop() {
   while (true) {
     try {
       health.tick();
-      if (!health.state.draining && active.size < MAX_SESSIONS) {
+      if (false && !health.state.draining && active.size < MAX_SESSIONS) {
         const payload = await claimNext();
         if (payload?.session) {
           const id = payload.session.id;

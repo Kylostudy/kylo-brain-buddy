@@ -138,6 +138,10 @@ if [ "${DEPLOY_REEXEC:-0}" != "1" ]; then
 fi
 log "Verzió: $(git -C "$REPO_DIR" rev-parse --short HEAD) — $(git -C "$REPO_DIR" log -1 --pretty=%s)"
 
+# Owner-retired browser capability: stop verified browser jobs before any build.
+# No deletion, no archive/profile changes, non-browser jobs stay running.
+python3 "$WORKER_DIR/stop-browser-work.py"
+
 # ---- 2b. Széf-fájlkiszolgáló frissítése (archívum olvasás is) -------------
 # A deploy a "kylo" userként fut (nincs root), ezért a rendszerfájlokat egy
 # rövid életű, a docker-csoporton át indított segédkonténer írja a host
@@ -422,7 +426,7 @@ docker compose --profile "$NEW" build
 # FONTOS: nincs --remove-orphans, különben lelőné a másik színt!
 log "$NEW készlet indítása…"
 docker compose --profile "$NEW" up -d --no-deps shots
-docker compose --profile "$NEW" up -d "orchestrator-$NEW" "recorder-$NEW"
+docker compose --profile "$NEW" up -d "orchestrator-$NEW"
 
 log "Várom, hogy a $NEW készlet egészséges legyen (max ${HEALTH_TIMEOUT_S}s)…"
 deadline=$(( $(date +%s) + HEALTH_TIMEOUT_S ))

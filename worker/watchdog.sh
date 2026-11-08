@@ -32,7 +32,7 @@ fi
 RUNNING="$(docker compose --profile "$COLOR" ps --services --filter status=running 2>/dev/null || true)"
 
 need_up=0
-for svc in "orchestrator-$COLOR" "recorder-$COLOR" shots autoheal; do
+for svc in "orchestrator-$COLOR" shots autoheal; do
   if ! echo "$RUNNING" | grep -qx "$svc"; then
     log "hiányzik: $svc"
     need_up=1

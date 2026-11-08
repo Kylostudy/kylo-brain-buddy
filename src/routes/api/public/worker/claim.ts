@@ -9,6 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "node:crypto";
 import type { Database } from "@/integrations/supabase/types";
+import { isNonBrowserSpec } from "@/lib/vps-browser-policy";
 
 function checkAuth(request: Request): string | null {
   const token = (process.env.WORKER_API_TOKEN_V2 || process.env.WORKER_API_TOKEN)?.trim();
@@ -112,6 +113,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
         );
 
         const candidate = (candidates ?? []).find((c) => {
+          if (!isNonBrowserSpec(c.spec_snapshot)) return false;
           const specForPlatform = (c.spec_snapshot ?? {}) as Record<string, unknown>;
           if (videoBusy && VIDEO_PLATFORMS.has(runPlatform(specForPlatform))) {
             return false; // Instagram/TikTok: egyszerre csak egy futhat
@@ -146,7 +148,7 @@ export const Route = createFileRoute("/api/public/worker/claim")({
           .select("id, workflow_id, spec_snapshot, proxy_id")
           .maybeSingle();
 
-        if (updErr || !claimed) return new Response(null, { status: 204 });
+        if (updErr || !claimed || !isNonBrowserSpec(claimed.spec_snapshot)) return new Response(null, { status: 204 });
 
         const specWithFlags =
           claimed.spec_snapshot && typeof claimed.spec_snapshot === "object"

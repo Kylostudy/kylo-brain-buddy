@@ -35,6 +35,7 @@ import { runKyloPricing } from "./scripts/kylo-pricing.js";
 import { humanWait, humanCasualScroll, humanIdleDrift } from "./scripts/humanize.js";
 import { buildFingerprintInitScript } from "./scripts/fingerprint-patch.js";
 import { ensureVirtualDisplay } from "./scripts/display.js";
+import { isNonBrowserSpec } from "./scripts/browser-policy.js";
 
 // A headed ablak mérete a workflow fingerprintjéből (ha van), különben 1280x800.
 function fpViewportWidth(spec) {
@@ -284,6 +285,10 @@ async function main() {
     proxyInfo = raw ? JSON.parse(raw) : null;
   } catch (e) {
     return finish("failed", null, `PROXY olvasás hiba: ${e.message}`);
+  }
+
+  if (!isNonBrowserSpec(spec)) {
+    return finish("cancelled", null, "VPS browser execution permanently retired by owner");
   }
 
   // ---- Brain task rövid ág: ping ----
