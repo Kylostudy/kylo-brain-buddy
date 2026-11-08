@@ -169,7 +169,7 @@ def validate(raw):
             raise ValueError("piggy_i18n_single_en_trial_only")
     elif recipe_id == CONTINUATION_RECIPE:
         expected = sorted(LANGUAGES - {TRIAL_LANGUAGE})
-        if raw.get("version") != VERSION or languages != expected or len(raw["videos"]) != len(expected):
+        if raw.get("version") not in CONTINUATION_VERSIONS or languages != expected or len(raw["videos"]) != len(expected):
             raise ValueError("piggy_i18n_continuation_languages")
         continuation = raw.get("continuation")
         if not isinstance(continuation, dict) or continuation.get("trial_recipe_id") != TRIAL_RECIPE or continuation.get("trial_version") != VERSION:
