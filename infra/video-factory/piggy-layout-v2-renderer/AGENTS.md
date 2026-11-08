@@ -1,0 +1,2 @@
+- Keep the original piggy renderer immutable; layout fixes are additive digest-pinned releases with the same single-HU trial limits, because existing recipes and receipts must retain their meaning.
+- Declare the 1080×1920 root before text measurement; Remotion metadata evaluation mounts in a zero-sized offscreen portal, so inherited percentage dimensions incorrectly trigger piggy_empty_layout.
