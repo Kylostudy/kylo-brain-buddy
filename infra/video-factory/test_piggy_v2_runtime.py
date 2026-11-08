@@ -1,6 +1,7 @@
 """Inert regression tests for the deployed v1-image/v2-recipe mismatch."""
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -56,6 +57,27 @@ class PiggyV2RuntimeTests(unittest.TestCase):
     def test_different_image_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "piggy_v2_validator_review_required"):
             validator_mounts(self.manifest(), {**RENDERER, "image": "sha256:" + "0" * 64})
+
+    def test_v1_only_image_rejection_is_corrected_by_the_single_overlay(self):
+        with tempfile.TemporaryDirectory() as d:
+            validation = Path(d) / "validation"
+            shutil.copytree(Path(__file__).parent / "piggy-multilang-renderer/validation", validation,
+                            ignore=shutil.ignore_patterns("__pycache__"))
+            pinned = validation / "piggy_i18n.py"
+            text = pinned.read_text()
+            pinned.write_text(text.replace('raw.get("version") not in CONTINUATION_VERSIONS',
+                                           'raw.get("version") != VERSION'))
+            run = [sys.executable, "-B", "-c",
+                   'import json,sys;sys.path.insert(0,sys.argv[1]);from contract import validate_recipe;'
+                   'validate_recipe(json.load(sys.stdin))', str(validation)]
+            before = subprocess.run(run, input=json.dumps(self.manifest()), capture_output=True, text=True)
+            self.assertNotEqual(before.returncode, 0)
+            self.assertIn("piggy_i18n_continuation_languages", before.stderr)
+            mounts = validator_mounts(self.manifest(), RENDERER)
+            source = mounts[1].split(":", 1)[0]
+            shutil.copyfile(source, pinned)
+            after = subprocess.run(run, input=json.dumps(self.manifest()), capture_output=True, text=True)
+            self.assertEqual(after.returncode, 0, after.stderr)
 
     def test_renderer_python_entrypoint_accepts_v2_rejects_v3_and_en_v2(self):
         # An isolated interpreter simulates the exact imported validator path;
