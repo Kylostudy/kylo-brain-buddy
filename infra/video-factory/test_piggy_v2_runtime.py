@@ -1,5 +1,4 @@
 """Inert regression tests for the deployed v1-image/v2-recipe mismatch."""
-import copy
 import json
 from pathlib import Path
 import subprocess
@@ -7,12 +6,12 @@ import sys
 import tempfile
 import unittest
 
-from piggy_v2_runtime import validator_mounts
+from piggy_v2_runtime import REVIEWED_IMAGE, validator_mounts
 from test_factory import command
 from test_piggy_i18n import continuation_recipe, trial_recipe
 from state import State
 
-RENDERER = {"reviewed": True, "scenes": ["piggy-bank-i18n-v1"]}
+RENDERER = {"reviewed": True, "scenes": ["piggy-bank-i18n-v1"], "image": REVIEWED_IMAGE}
 
 
 class PiggyV2RuntimeTests(unittest.TestCase):
@@ -53,6 +52,10 @@ class PiggyV2RuntimeTests(unittest.TestCase):
     def test_unreviewed_renderer_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "piggy_v2_validator_review_required"):
             validator_mounts(self.manifest(), {**RENDERER, "reviewed": False})
+
+    def test_different_image_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "piggy_v2_validator_review_required"):
+            validator_mounts(self.manifest(), {**RENDERER, "image": "sha256:" + "0" * 64})
 
     def test_renderer_python_entrypoint_accepts_v2_rejects_v3_and_en_v2(self):
         # An isolated interpreter simulates the exact imported validator path;
