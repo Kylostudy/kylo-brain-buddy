@@ -37,7 +37,14 @@ PY
 )"
 [[ "$BASE" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 3
 docker run --rm --pull never --network none --read-only --cap-drop ALL --security-opt no-new-privileges --user 65532:65532 --entrypoint /usr/bin/python3 "$BASE" -c 'import subprocess; p=subprocess.run(["dpkg-query","-W","-f=${Status}\n","fonts-noto-core","fonts-noto-cjk"],capture_output=True,text=True); assert p.returncode==0 and p.stdout.splitlines()==["install ok installed","install ok installed"], "piggy_font_packages_unavailable"'
-docker build --pull=false --build-arg "REVIEWED_FONT_BASE=$BASE" --tag "kylo-piggy-bank:reviewed-$HASH" "$STAGE"
+# Dockerfile FROM interprets a bare sha256 image ID as a remote repository.
+# Use an isolated local alias, verified back to the full reviewed ID, with the
+# classic builder so it consumes the local image instead of resolving a registry.
+BASE_ALIAS="kylo-piggy-reviewed-base:${BASE#sha256:}"
+docker image tag "$BASE" "$BASE_ALIAS"
+[ "$(docker image inspect --format '{{.Id}}' "$BASE_ALIAS")" = "$BASE" ] || exit 3
+DOCKER_BUILDKIT=0 docker build --pull=false --build-arg "REVIEWED_FONT_BASE=$BASE_ALIAS" --tag "kylo-piggy-bank:reviewed-$HASH" "$STAGE"
+[ "$(docker image inspect --format '{{.Id}}' "$BASE_ALIAS")" = "$BASE" ] || exit 3
 IMAGE="$(docker image inspect --format '{{.Id}}' "kylo-piggy-bank:reviewed-$HASH")"
 [[ "$IMAGE" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 3
 docker run --rm --pull never --network none --read-only --cap-drop ALL --security-opt no-new-privileges --user 65532:65532 --entrypoint /bin/echo "$IMAGE" image_ok
