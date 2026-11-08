@@ -311,9 +311,10 @@ async function main() {
         return finish("failed", null, e.message);
       }
     }
-    // Böngészős brain_task → tovább a normál flow-ra, a main dispatch fogja futtatni.
+    // Never fall through to browser launch, even if task classification changes.
   }
 
+  return finish("cancelled", null, "VPS browser execution permanently retired by owner");
 
   const monitorType = (spec.monitor_type || spec.platform || "").toLowerCase();
   log(

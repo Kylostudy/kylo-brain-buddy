@@ -19,7 +19,7 @@ import { createHealth, installGracefulShutdown, installCrashGuards } from "./hea
 import { currentLimit, HARD_MAX } from "./capacity.js";
 import { liveMounts, liveStatusForLog, liveConfig } from "./live-mode.js";
 
-const NON_BROWSER_TASKS = new Set(["ping", "stt_media_fetch", "stt_calibrate", "archive_video", "membership_transcribe", "receive_subject_factory_package"]);
+const NON_BROWSER_TASKS = new Set(["archive_video", "receive_subject_factory_package"]);
 
 // A payloadokat (spec, credentials, proxy) fájlon keresztül adjuk át a
 // konténernek. Régebben env változóként (SPEC_JSON=...) argv-be raktuk, de

@@ -15,8 +15,8 @@ class BrowserRetirementTests(unittest.TestCase):
         self.assertEqual(module.kind({"Config": {"Image": "kylo-executor:latest", "Env": ["SPEC_FILE=/job/spec.json", "RUN_ID=320d6184-0a05-4bbe-a672-0134ea63b0e9"]}}), "executor")
         self.assertIsNone(module.kind({"Config": {"Image": "kylo-executor:latest", "Env": []}}))
 
-    def test_nonbrowser_audio_and_archive_preserved(self):
-        self.assertEqual(module.NON_BROWSER, {"ping", "stt_media_fetch", "stt_calibrate", "archive_video", "membership_transcribe", "receive_subject_factory_package"})
+    def test_only_video_storage_and_factory_receipt_preserved(self):
+        self.assertEqual(module.NON_BROWSER, {"archive_video", "receive_subject_factory_package"})
 
 if __name__ == "__main__":
     unittest.main()
