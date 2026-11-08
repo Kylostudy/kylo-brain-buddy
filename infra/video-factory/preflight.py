@@ -49,6 +49,8 @@ RENDERER_SOURCES = {
 }
 PIGGY_DESIGN_FRAMES = [120, 300, 120, 300, 150, 90, 90]
 COIN_DESIGN_HITS = {"scene_1": [70], "scene_2": [30, 90, 150, 210]}
+# Codes enforced by the reviewed renderer (not by validate_recipe); excluded from divergence detection.
+RENDERER_CODES = {"piggy_scene_frames_mismatch", "piggy_audio_timing_mismatch"}
 REQUEST_FIELDS = {"protocol", "protocol_version", "request_id", "owner_id", "agent_id", "recipe", "manifest",
                   "contract", "inputs", "expected_image", "requested_at"}
 VIDEO_FIELDS = ({"video_id", "language", "width", "height", "duration_ms", "scene", "text", "subtitle", "cta", "audio", "master", "timing", "font"},
@@ -347,13 +349,15 @@ def _diagnose_timing(issues, p, v, scene_frames, piggy):
                 _issue(issues, "%s.%s" % (tp, side), "piggy_invalid_timing", **extra)
                 ok = False
             elif expected and ms != expected[k + (1 if side == "end_ms" else 0)] and not (side == "start_ms" and k > 0):
-                _issue(issues, "%s.%s" % (tp, side), "piggy_invalid_timing", expected=expected[k + (1 if side == "end_ms" else 0)],
+                _issue(issues, "%s.%s" % (tp, side), "piggy_scene_frames_mismatch", expected=expected[k + (1 if side == "end_ms" else 0)],
                        hint="must match cumulative sceneFrames")
                 ok = False
         end = t["end_ms"]
-    want_duration = expected[-1] if expected else end
-    if v.get("duration_ms") != want_duration:
-        _issue(issues, p + ".duration_ms", "piggy_invalid_timing", expected=want_duration)
+    if v.get("duration_ms") != end:
+        _issue(issues, p + ".duration_ms", "piggy_invalid_timing", expected=expected[-1] if expected else end)
+        ok = False
+    elif expected and end != expected[-1]:
+        _issue(issues, p + ".duration_ms", "piggy_scene_frames_mismatch", expected=expected[-1])
         ok = False
     if ok:
         frames = [round(t["end_ms"] * FPS / 1000) - round(t["start_ms"] * FPS / 1000) for t in timing]
@@ -375,7 +379,7 @@ def check_recipe(recipe, scene_frames_by_language=None, validator_root=None):
         authoritative = str(exc) if isinstance(exc, ValueError) and str(exc).replace("_", "").isalnum() else "validator_error"
     if authoritative != "accepted" and not issues:
         _issue(issues, "$", authoritative, hint="authoritative_validator_rejected")
-    if authoritative == "accepted" and issues:
+    if authoritative == "accepted" and any(i["code"] not in RENDERER_CODES for i in issues):
         # Fail closed: a diagnostic the authoritative validator does not share is a rule divergence.
         _issue(issues, "$", "preflight_rule_divergence")
     status = "pass" if authoritative == "accepted" and not issues else "fail"
