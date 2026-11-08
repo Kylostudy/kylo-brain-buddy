@@ -604,11 +604,9 @@ class Store:
         self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.path = str(self.root / "state.sqlite3")
         with self._db() as db:
-            db.executescript("""
-            CREATE TABLE IF NOT EXISTS preflight(request_id TEXT PRIMARY KEY, agent_id TEXT NOT NULL, request_sha256 TEXT NOT NULL,
-                result TEXT NOT NULL, result_sha256 TEXT NOT NULL, checked_at INTEGER NOT NULL, acked_at INTEGER);
-            CREATE TABLE IF NOT EXISTS nonces(nonce TEXT PRIMARY KEY, seen_at INTEGER NOT NULL);
-            """)
+            db.execute("""CREATE TABLE IF NOT EXISTS preflight(request_id TEXT PRIMARY KEY, agent_id TEXT NOT NULL,
+                request_sha256 TEXT NOT NULL, result TEXT NOT NULL, result_sha256 TEXT NOT NULL, checked_at INTEGER NOT NULL, acked_at INTEGER)""")
+            db.execute("CREATE TABLE IF NOT EXISTS nonces(nonce TEXT PRIMARY KEY, seen_at INTEGER NOT NULL)")
 
     def _db(self):
         db = sqlite3.connect(self.path, timeout=30, isolation_level=None)
