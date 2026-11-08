@@ -387,18 +387,35 @@ def check_recipe(recipe, scene_frames_by_language=None, validator_root=None):
 
 
 # ---------------------------------------------------------------- staging & media
+def _open_nofollow(name, flags, dir_fd):
+    """O_NOFOLLOW plus an lstat/fstat identity check (some kernels/sandboxes ignore O_NOFOLLOW)."""
+    before = os.lstat(name, dir_fd=dir_fd)
+    if stat.S_ISLNK(before.st_mode):
+        raise PreflightError("preflight_unsafe_path")
+    fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | flags, dir_fd=dir_fd)
+    after = os.fstat(fd)
+    if (after.st_dev, after.st_ino) != (before.st_dev, before.st_ino):
+        os.close(fd)
+        raise PreflightError("preflight_unsafe_path")
+    return fd
+
+
 def staged_fd(staging_root, request_id, key, contract):
     """Open a staged input read-only without following symlinks at any depth."""
     contract.object_key(key)
-    if str(uuid.UUID(request_id)) != request_id:
+    try:
+        valid = str(uuid.UUID(request_id)) == request_id
+    except (ValueError, TypeError, AttributeError):
+        valid = False
+    if not valid:
         raise PreflightError("preflight_invalid_request_id")
-    fd = os.open(str(staging_root), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    fd = _open_nofollow(str(staging_root), os.O_DIRECTORY, None)
     try:
         for part in [request_id] + key.split("/")[:-1]:
-            nfd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            nfd = _open_nofollow(part, os.O_DIRECTORY, fd)
             os.close(fd)
             fd = nfd
-        leaf = os.open(key.split("/")[-1], os.O_RDONLY | os.O_NOFOLLOW, dir_fd=fd)
+        leaf = _open_nofollow(key.split("/")[-1], 0, fd)
     finally:
         os.close(fd)
     if not stat.S_ISREG(os.fstat(leaf).st_mode):
@@ -528,7 +545,11 @@ def validate_request(req, validator_root=None):
         raise PreflightError("preflight_unsupported_fields")
     if req["protocol"] != PROTOCOL or req["protocol_version"] != PROTOCOL_VERSION:
         raise PreflightError("preflight_protocol_unsupported", "$.protocol")
-    if str(uuid.UUID(str(req["request_id"]))) != req["request_id"]:
+    try:
+        valid = str(uuid.UUID(str(req["request_id"]))) == req["request_id"]
+    except ValueError:
+        valid = False
+    if not valid:
         raise PreflightError("preflight_invalid_request_id", "$.request_id")
     for key in ("owner_id", "agent_id"):
         try:
@@ -672,7 +693,11 @@ class Store:
 
     def reserve_staging(self, request_id, total_bytes):
         from contract import MAX_PACKAGE_BYTES
-        if str(uuid.UUID(request_id)) != request_id:
+        try:
+            valid = str(uuid.UUID(request_id)) == request_id
+        except (ValueError, TypeError, AttributeError):
+            valid = False
+        if not valid:
             raise PreflightError("preflight_invalid_request_id")
         if total_bytes > MAX_PACKAGE_BYTES or self._staged_bytes() + total_bytes > STAGING_QUOTA_BYTES:
             raise PreflightError("preflight_staging_quota")
