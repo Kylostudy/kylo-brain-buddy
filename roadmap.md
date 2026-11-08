@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] 2026-11-08 08:07 UTC tulajdonosi kérés: legújabb videókészítő VPS-telepítése és próbára kész állapot ellenőrzése; csak telepítés/önellenőrzés, gyártási indítás nélkül.
+
 - [x] VPS böngészős feladatok végleges tiltása minden platformon: éles adatvédelmi indítási korlát, Reddit aktiválási próba active=false, claim/record-claim 204; 2 Bun (74 állítás) és 3 Python próba sikeres. Böngésző nélküli feladatok megőrizve.
 - [x] Futó Reddit-böngésző leállítása és VPS-es tiltás átvételi igazolása: 71d02b5 frissítés 2026-11-08 07:50:08 UTC sikeres; recorder leállítása ok:true; 08:03:52 UTC nulla aktív munkafolyamat, minden felvétel cancelled/closed, négy adatvédelmi tiltás aktív, friss green életjelben nincs recorder.
 - [x] 2026-11-08 újbóli ellenőrzés: éles engedélylista csak archive_video/receive_subject_factory_package; 08:06 UTC nulla aktív munkafolyamat/feladatsor, claim és record-claim HTTP 204; 4 Bun (80 állítás), 3 Python teszt OK. Régi nem videós feladatok lezárva, archívum/videógyár érintetlen.
