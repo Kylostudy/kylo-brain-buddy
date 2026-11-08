@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] 2026-11-08 08:45 UTC közvetlen inspect igazolta a helyi címkék teljes azonosítóit és visszakereshetőségét: IELTS-fonts=9a97cf2f…, exam-v1=aa3f0028…, safe-v2=727aff38…, safe-v3=fa71cd8a…. A hibás önellenőrzés más azonosítókat keresett; a hibás hivatkozások keletkezésének oka nem bizonyított. Javítás előtt a config és reviewed-renderers kizárólag kép/jelenet/jóváhagyás mezői összevetendők; működő képek nem cserélhetők, manager nem indítható újra.
+
 - [ ] 2026-11-08 08:44 UTC feltöltött teljes képleltár: IELTS-fonts/exam-v1/exam-safe-v2 ellenőrzött címkéi jelen vannak, a 08:42 önellenőrzés hivatkozott azonosítói viszont nem szerepelnek; v3 sikeres azonosítója sem szerepel. Ezért törlés nem bizonyított, képazonosító-típus/névfeloldás eltérés is vizsgálandó. Következő kizárólag olvasási próba: a négy címke docker image inspect Id/RepoDigests és a kapott Id közvetlen visszakeresése; config nem változhat enélkül.
 
 - [ ] 2026-11-08 08:42:32 UTC feltöltött VPS-önellenőrzés: ok:false, KyLogic acknowledged:true (a61f1815-9b87-4bbf-be44-7bcd84223e9a). Malacpersely/v3/v4/IELTS-alap és tárhely OK; IELTS-fonts/exam-v1/exam-safe-v2 image_inspect returncode=1. A hiba nem csak régi jelentés: friss Docker-leltár és a három helyi ellenőrzött képcím inspect eredménye kell az ok és biztonságos javítás meghatározásához; nincs törlés, új publikálás vagy gyártás.
