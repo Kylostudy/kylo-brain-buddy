@@ -143,13 +143,15 @@ class Runner:
         # Recovered crash: verify existing output instead of re-rendering it.
         output = work / "output.mp4"
         if not output.exists():
+            from piggy_v2_runtime import validator_mounts
+            validation_mounts = validator_mounts(manifest, renderer)
             subprocess.run(["/usr/bin/docker", "run", "--rm", "--name", "kylo-video-factory-render",
                 "--network", "none", "--cpus", str(self.config["cpus"]), "--memory", self.config["memory"],
                 "--memory-swap", self.config["memory"], "--pids-limit", "256", "--read-only", "--cap-drop", "ALL",
                 "--security-opt", "no-new-privileges", "--user", "65532:65532", "--shm-size", "512m",
                 "--tmpfs", "/tmp:rw,size=512m", "-e", "HOME=/tmp", "-e", "XDG_CONFIG_HOME=/tmp/.config", "-e", "XDG_CACHE_HOME=/tmp/.cache",
                 "-v", str(recipe_root) + ":/recipe:ro", "-v", str(request) + ":/request.json:ro", "-v", str(work) + ":/work:rw",
-                renderer["image"]], check=True, timeout=7200, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                *validation_mounts, renderer["image"]], check=True, timeout=7200, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         # Renderer is gone; open without symlink following and copy to manager-only scratch.
         fd = os.open(output, os.O_RDONLY | os.O_NOFOLLOW)
         checked = work.parent / (str(job["cursor"]) + ".checked.mp4")
