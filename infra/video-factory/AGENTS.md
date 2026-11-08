@@ -1,0 +1,1 @@
+- Shared KyLogic–VPS preflight (preflight.py) lets the installed contract.validate_recipe make every accept decision, and its contract export is generated from the imported validator modules; field diagnostics only explain the result and fail closed on divergence, because a second hand-kept rule copy caused the mismatch rounds.
