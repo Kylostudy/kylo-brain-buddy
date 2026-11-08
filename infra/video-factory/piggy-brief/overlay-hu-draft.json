@@ -1,0 +1,239 @@
+{
+  "recipe": "malacpersely-hu-trial",
+  "status": "DRAFT – not rendered, TTS not started; times are design estimates to be re-aligned to the real Jessica VO",
+  "master": {
+    "composition": "KyloPiggyBankMaster",
+    "fps": 30,
+    "size": [
+      1080,
+      1920
+    ],
+    "design_scene_frames": [
+      120,
+      300,
+      120,
+      300,
+      150,
+      90,
+      90
+    ],
+    "duration_s": 39
+  },
+  "voice": {
+    "provider_voice": "Jessica (approved HU)",
+    "pronunciation": {
+      "Kylo": "Kájló"
+    },
+    "subtitle_spelling": "Kylo"
+  },
+  "safe_zone": "Use video-factory/exam-promo/renderer/src/captionSafeZone.ts; all text must be visually checked after VPS rendering.",
+  "vo": [
+    {
+      "scene": 1,
+      "t": [
+        0.3,
+        3.9
+      ],
+      "text": "Egy előfizetés a jegyzetekhez. Egy másik a gyakorláshoz."
+    },
+    {
+      "scene": 2,
+      "t": [
+        4.2,
+        13.6
+      ],
+      "text": "Aztán jön a tételkidolgozás, a nyelvi gyakorlás és még néhány tanulási eszköz. Havonta több mint száz dollárba is kerülhetnek."
+    },
+    {
+      "scene": 3,
+      "t": [
+        15.2,
+        17.8
+      ],
+      "text": "De miért kellene mindent külön helyen intézned?"
+    },
+    {
+      "scene": 4,
+      "t": [
+        18.4,
+        27.4
+      ],
+      "text": "Kylo. A jegyzetedből magyarázat, tanulókártya és vizsgagyakorlás. Egy helyen."
+    },
+    {
+      "scene": 5,
+      "t": [
+        28.6,
+        32.4
+      ],
+      "text": "Havi huszonkilenc dollár kilencvenkilenc centért."
+    },
+    {
+      "scene": 6,
+      "t": [
+        33.4,
+        35.2
+      ],
+      "text": "Tizennégy napig ingyen kipróbálhatod."
+    }
+  ],
+  "text_layers": [
+    {
+      "id": "hook_title",
+      "t": [
+        0.2,
+        4.0
+      ],
+      "y": 150,
+      "size": 64,
+      "text": "Mennyibe kerül havonta a tanulásod?"
+    },
+    {
+      "id": "counter",
+      "t": [
+        2.4,
+        14.0
+      ],
+      "y": 330,
+      "size": 96,
+      "style": "tabular-nums, rolls to value on each coin impact",
+      "keys": [
+        {
+          "t": 2.33,
+          "value": "20 USD/hó",
+          "label": "Jegyzetelés"
+        },
+        {
+          "t": 5.0,
+          "value": "35 USD/hó",
+          "label": "Tanulókártyák és kvízek"
+        },
+        {
+          "t": 7.0,
+          "value": "55 USD/hó",
+          "label": "Tételkidolgozás"
+        },
+        {
+          "t": 9.0,
+          "value": "80 USD/hó",
+          "label": "Nyelvi és vizsgagyakorlás"
+        },
+        {
+          "t": 11.0,
+          "value": "105 USD/hó",
+          "label": "További tanulási eszközök"
+        }
+      ],
+      "note": "keys = coin impact frames of the master (scene1 f70; scene2 f30/90/150/210 → 4+1, 4+3, 4+5, 4+7 s). Label shows under the counter for 1.8 s per item."
+    },
+    {
+      "id": "disclaimer",
+      "t": [
+        4.0,
+        18.0
+      ],
+      "y": 560,
+      "size": 30,
+      "opacity": 0.85,
+      "text": "Szemléltető előfizetési kosár. A tényleges díjak eltérhetnek."
+    },
+    {
+      "id": "truth_total",
+      "t": [
+        14.0,
+        17.6
+      ],
+      "y": 380,
+      "size": 76,
+      "weight": 900,
+      "text": "Több mint 100 USD/hó",
+      "note": "hold, short dramatic pause before VO"
+    },
+    {
+      "id": "flow_step",
+      "t": [
+        18.3,
+        28.0
+      ],
+      "y": 150,
+      "size": 54,
+      "keys": [
+        {
+          "t": 18.3,
+          "text": "Órai jegyzet"
+        },
+        {
+          "t": 20.7,
+          "text": "Magyarázat"
+        },
+        {
+          "t": 23.0,
+          "text": "Tanulókártya"
+        },
+        {
+          "t": 25.2,
+          "text": "Gyakorló vizsgakérdés"
+        }
+      ]
+    },
+    {
+      "id": "price",
+      "t": [
+        29.0,
+        33.0
+      ],
+      "y": 960,
+      "size": 120,
+      "weight": 900,
+      "text": "29,99 USD/hó",
+      "note": "static, no strike-through competitor price, no '% saving' claim"
+    },
+    {
+      "id": "cta",
+      "t": [
+        33.3,
+        36.0
+      ],
+      "y": 1120,
+      "size": 76,
+      "text": "Próbáld ki ingyen!",
+      "trial_days": 14,
+      "supporting_text": "14 napos ingyenes próba"
+    },
+    {
+      "id": "outro_url",
+      "t": [
+        36.3,
+        39.0
+      ],
+      "y": 1060,
+      "size": 64,
+      "text": "kylo.study"
+    },
+    {
+      "id": "outro_tagline",
+      "t": [
+        36.3,
+        39.0
+      ],
+      "y": 1150,
+      "size": 44,
+      "text": "Your AI tutor"
+    },
+    {
+      "id": "subtitles",
+      "source": "vo[] lines, word-timed from Jessica alignment",
+      "y": 1480,
+      "size": 48
+    }
+  ],
+  "audio": {
+    "music": "not generated (no paid/generated assets requested in this step); bed + max 3 accents (first coin, 100 USD hold, price) to be chosen from existing licensed library on VPS",
+    "duck_under_vo_db": -14
+  },
+  "open_items": [
+    "29,99 USD/hó: confirm plan, billing period, tax wording before any publication",
+    "example fees (20/10/20/25/25 USD) are illustrative, not a verified market price list",
+    "re-time all keys after Jessica TTS; pass sceneFrames to the master so scenes compress to the VO"
+  ]
+}
