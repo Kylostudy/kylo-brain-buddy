@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] 2026-11-08 08:44 UTC feltöltött teljes képleltár: IELTS-fonts/exam-v1/exam-safe-v2 ellenőrzött címkéi jelen vannak, a 08:42 önellenőrzés hivatkozott azonosítói viszont nem szerepelnek; v3 sikeres azonosítója sem szerepel. Ezért törlés nem bizonyított, képazonosító-típus/névfeloldás eltérés is vizsgálandó. Következő kizárólag olvasási próba: a négy címke docker image inspect Id/RepoDigests és a kapott Id közvetlen visszakeresése; config nem változhat enélkül.
+
 - [ ] 2026-11-08 08:42:32 UTC feltöltött VPS-önellenőrzés: ok:false, KyLogic acknowledged:true (a61f1815-9b87-4bbf-be44-7bcd84223e9a). Malacpersely/v3/v4/IELTS-alap és tárhely OK; IELTS-fonts/exam-v1/exam-safe-v2 image_inspect returncode=1. A hiba nem csak régi jelentés: friss Docker-leltár és a három helyi ellenőrzött képcím inspect eredménye kell az ok és biztonságos javítás meghatározásához; nincs törlés, új publikálás vagy gyártás.
 
 - [ ] 2026-11-08 08:38 UTC: tulajdonos megerősítette a közzétételt; új publikálás nélkül VPS-átvétel ellenőrizve. 88558185 frissítés 08:36:08 UTC sikeres; 08:39:21 UTC életjel aktív videógyár/lezárt előkészítések, malacpersely image_ok, 08:35:13 UTC teljes önellenőrzés négy régi képazonosítót nem talál és KyLogic acknowledged:true. Blokkoló: előkészítések UTÁNI új teljes ellenőrzés és aktuális Docker-leltár; meglévő távoli kizárólag-diagnosztikai indítás nincs, helyi self-check-only.py SSH-ból futtatható manager/recept/gyártás nélkül. Új publikálás, frissítés vagy gyártás nem indult.
