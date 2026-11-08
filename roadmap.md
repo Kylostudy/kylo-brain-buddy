@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] 2026-11-08 08:47 UTC két jegyzékből igazolt: exam-v1/safe-v2/safe-v3 már helyes; csak config.json IELTS-fonts azonosítója (1f7b3b4f…) tér el a reviewed-renderers és közvetlen Docker-próba 9a97cf2f… azonosítójától. Következő célzott host-javítás kizárólag ezt az egy mezőt szinkronizálja, teljes sikeres leltár + régi ID hiány + új ID indulás + változatlan reviewed/scenes ellenőrzéssel, két nem blokkoló zárral és helyi mentéssel; utána self-check-only. Manager újraindítás, képépítés, receptek, archívum, fontok érintetlenek.
+
 - [ ] 2026-11-08 08:45 UTC közvetlen inspect igazolta a helyi címkék teljes azonosítóit és visszakereshetőségét: IELTS-fonts=9a97cf2f…, exam-v1=aa3f0028…, safe-v2=727aff38…, safe-v3=fa71cd8a…. A hibás önellenőrzés más azonosítókat keresett; a hibás hivatkozások keletkezésének oka nem bizonyított. Javítás előtt a config és reviewed-renderers kizárólag kép/jelenet/jóváhagyás mezői összevetendők; működő képek nem cserélhetők, manager nem indítható újra.
 
 - [ ] 2026-11-08 08:44 UTC feltöltött teljes képleltár: IELTS-fonts/exam-v1/exam-safe-v2 ellenőrzött címkéi jelen vannak, a 08:42 önellenőrzés hivatkozott azonosítói viszont nem szerepelnek; v3 sikeres azonosítója sem szerepel. Ezért törlés nem bizonyított, képazonosító-típus/névfeloldás eltérés is vizsgálandó. Következő kizárólag olvasási próba: a négy címke docker image inspect Id/RepoDigests és a kapott Id közvetlen visszakeresése; config nem változhat enélkül.
