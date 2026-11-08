@@ -3,13 +3,14 @@ import json
 
 RECIPE = "malacpersely-hu-trial"
 RENDERER = "piggy-bank-safe-v1"
+RENDERERS = (RENDERER, "piggy-bank-layout-safe-v2")
 SCENE = "piggy-bank-v1"
 COUNTER = [20, 35, 55, 80, 105]
 
 
 def targeted(raw):
     videos = raw.get("videos")
-    return raw.get("recipe_id") == RECIPE or raw.get("renderer") == RENDERER or any(
+    return raw.get("recipe_id") == RECIPE or raw.get("renderer") in RENDERERS or any(
         isinstance(v, dict) and v.get("scene") == SCENE for v in (videos if isinstance(videos, list) else []))
 
 
@@ -32,7 +33,7 @@ def data(value, fields):
 
 
 def validate(raw):
-    if (raw.get("schema_version") != 1 or raw.get("recipe_id") != RECIPE or raw.get("renderer") != RENDERER
+    if (raw.get("schema_version") != 1 or raw.get("recipe_id") != RECIPE or raw.get("renderer") not in RENDERERS
             or raw.get("series") != "other" or raw.get("languages") != ["hu"] or "continuation" in raw
             or not isinstance(raw.get("videos"), list) or len(raw["videos"]) != 1):
         raise ValueError("piggy_hu_trial_only")
