@@ -72,7 +72,7 @@ class State:
                 manifest = json.loads(recipe["manifest"])
                 mode = "trial" if op == "trial" else "series"
                 if mode == "series":
-                    if manifest["recipe_id"] == "ielts-cs-trial":
+                    if manifest["recipe_id"] in {"ielts-cs-trial", "malacpersely-hu-trial"} or manifest.get("renderer") == "piggy-bank-safe-v1":
                         raise ValueError("trial_only_recipe")
                     continuation = manifest.get("continuation")
                     source_id = continuation["trial_recipe_id"] if continuation else p["recipe_id"]
