@@ -66,6 +66,7 @@ def collect():
         "universal_prepare_unit": command(["systemctl", "show", "kylo-universal-renderer-prepare.service", "--no-pager", "--property=LoadState,ActiveState,SubState,Result,ExecMainStatus"]),
         "piggy_prepare_unit": command(["systemctl", "show", "kylo-piggy-renderer-prepare.service", "--no-pager", "--property=LoadState,ActiveState,SubState,Result,ExecMainStatus"]),
         "piggy_prepare_install": tail_file("/var/log/kylo-piggy-renderer-install.log"),
+        "video_factory_self_check": tail_file("/var/lib/kylo-video-factory/self-check-only.json"),
         "universal_prepare_journal": command(["journalctl", "-u", "kylo-universal-renderer-prepare.service", "-n", "30", "--no-pager", "-o", "short-iso"]),
     }
 
