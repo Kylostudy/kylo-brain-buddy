@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Minden VPS-es böngészős folyamat végleges letiltása minden platformon; futó böngészők leállítása és szerveres visszaigazolás; videógyár/archívum megőrzése.
+
 - [x] Malacpersely: elkülönített piggy-bank-safe-v1 forrás, scene piggy-bank-v1, szigorú hétjelenetes adatbemenet, csak egy HU próba és sorozattilalom; 161 gyári (18 új), 8 brief, 15 diagnosztikai és 3 Bun teszt sikeres. Checksumok/szintaxis OK; gyártás/publikálás nélkül, vizuális vagy Docker/VPS-próba nem történt.
 - [ ] Malacpersely VPS-telepítés, tényleges képazonosító, teljes önellenőrzés és KyLogic-átvétel: tulajdonos 2026-11-08 07:02 UTC-kor telepítést és önellenőrzést kért; nincs render/narráció/receptregisztráció. Védett frissítés és tényleges szervereredmény igazolandó. 07:10 UTC-s futás: betűellenőrzés átment, de a képépítés a csupasz képazonosítós alapkép miatt leállt (semmi nem települt, régi készítők érintetlenek). Javítás (helyi álnév) a GitHubon; a szerver a 018875b frissítés régi készletének kivárása (max 07:56 UTC) után veszi át.
 
