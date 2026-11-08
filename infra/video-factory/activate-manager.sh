@@ -24,7 +24,7 @@ if systemctl is-active --quiet kylo-subject-factory.service; then
   echo 'VF-AKT: a régi gyártó még fut, átvétel tiltva'; exit 3
 fi
 # Complete the staged release with every checksum-listed runtime module (adds inputs.py).
-for file in contract.py piggy.py storage.py verify.py state.py client.py agent.py inventory.py inputs.py universal.py universal_state.py universal_runtime.py universal_media.py; do
+for file in contract.py piggy.py piggy_i18n.py storage.py verify.py state.py client.py agent.py inventory.py inputs.py universal.py universal_state.py universal_runtime.py universal_media.py; do
   if [ -e "$REL/$file" ]; then
     cmp -s "$SRC/$file" "$REL/$file" || { echo "VF-AKT: eltérő fájl a kiadásban: $file"; exit 3; }
   else
@@ -55,6 +55,7 @@ extra = etc / "reviewed-renderers.json"
 ALLOWED_EXTRA = {"ielts-promo-fonts-v1": ["ielts-promo-v1"], "exam-promo-profiles-v1": ["exam-promo-profiles-v1"], "exam-promo-profiles-safe-v2": ["exam-promo-profiles-safe-v2"], "exam-promo-profiles-safe-v3": ["exam-promo-profiles-safe-v3"], "exam-promo-profiles-safe-v4": ["exam-promo-profiles-safe-v4"], "exam-promo-universal-v1": ["exam-promo-universal-v1"]}
 ALLOWED_EXTRA["piggy-bank-safe-v1"] = ["piggy-bank-v1"]
 ALLOWED_EXTRA["piggy-bank-layout-safe-v2"] = ["piggy-bank-v1"]
+ALLOWED_EXTRA["piggy-bank-multilang-safe-v1"] = ["piggy-bank-i18n-v1"]
 if extra.exists():
     import re
     additions = json.loads(extra.read_text())

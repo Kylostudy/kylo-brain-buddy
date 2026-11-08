@@ -77,7 +77,9 @@ def validate_recipe(raw):
         keys(continuation, {"trial_recipe_id", "trial_version", "completed", "blocked_languages"}, {"trial_recipe_id", "trial_version", "completed"})
         identifier(continuation["trial_recipe_id"])
         identifier(continuation["trial_version"])
-        if raw["series"] not in {"ielts", "cambridge"} or not isinstance(continuation["completed"], list):
+        # Additive: the multilingual piggy continuation (series "other") is validated by piggy_i18n.
+        piggy_i18n_continuation = raw["series"] == "other" and raw.get("recipe_id") == "malacpersely-i18n-continuation"
+        if not piggy_i18n_continuation and (raw["series"] not in {"ielts", "cambridge"} or not isinstance(continuation["completed"], list)):
             raise ValueError("invalid_continuation")
         completed = set()
         for item in continuation["completed"]:
@@ -104,7 +106,7 @@ def validate_recipe(raw):
             blocked.add(item["language"])
         if raw["series"] == "ielts" and (not set(languages) <= CONTINUATION_LANGUAGES or blocked & set(languages) or not set(languages)):
             raise ValueError("continuation_languages_restricted")
-        if completed & (set(languages) | blocked) or completed | set(languages) | blocked != IELTS_LANGUAGES:
+        if not piggy_i18n_continuation and (completed & (set(languages) | blocked) or completed | set(languages) | blocked != IELTS_LANGUAGES):
             raise ValueError("continuation_must_cover_27_without_repeats")
         if raw["series"] == "cambridge":
             if (blocked or raw.get("renderer") not in ("exam-promo-profiles-safe-v2", "exam-promo-profiles-safe-v3")
@@ -174,6 +176,9 @@ def validate_recipe(raw):
         raise ValueError("ielts_missing_language_video")
     if targeted(raw):
         validate_piggy(raw)
+    from piggy_i18n import targeted as targeted_i18n, validate as validate_i18n
+    if targeted_i18n(raw):
+        validate_i18n(raw)
     return raw
 
 
@@ -194,7 +199,7 @@ def validate_command(raw):
         keys(payload, allowed, allowed)
         identifier(payload["recipe_id"])
         identifier(payload["version"])
-        if op == "start_series" and payload["recipe_id"] == "malacpersely-hu-trial":
+        if op == "start_series" and payload["recipe_id"] in {"malacpersely-hu-trial", "malacpersely-i18n-en-trial"}:
             raise ValueError("trial_only_recipe")
         if op == "start_series":
             approval = payload["approval"]
@@ -229,7 +234,7 @@ def validate_universal_command(raw):
     elif op in {"preview", "trial", "series_run", "rerender"}:
         keys(p, {"recipe_id", "version", "languages", "approval", "rerender"}, {"recipe_id", "version"} | ({"approval"} if op in {"series_run", "rerender"} else set()))
         identifier(p["recipe_id"]); identifier(p["version"])
-        if p["recipe_id"] == "malacpersely-hu-trial":
+        if p["recipe_id"] in {"malacpersely-hu-trial", "malacpersely-i18n-en-trial"}:
             raise FactoryError("command", "trial_only_recipe", "Piggy trial requires version one")
         for name in ("languages", "rerender"):
             if name in p:

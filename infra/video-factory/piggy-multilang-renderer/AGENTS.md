@@ -1,0 +1,5 @@
+- Additive multilingual release next to piggy-bank-layout-safe-v2; the original piggy renderer and the Hungarian single-trial limits stay immutable, because existing recipes and receipts must retain their meaning.
+- Only the 26 approved non-Hungarian languages may render here; fixed strings (disclaimer, truth, price, unit, CTA) are pinned per language in validation/piggy_i18n.py, and Hungarian fixed strings are rejected, so no Hungarian text can survive in a non-Hungarian video.
+- Narration (audio/vo-<lang>-mp3) and coin impacts (audio/coins-mp3) are separate inputs mixed at render time; coin hit frames scale with each language's scene lengths, because a pre-mixed Hungarian track under foreign narration is forbidden.
+- Declare the 1080×1920 root before text measurement; Remotion metadata evaluation mounts in a zero-sized offscreen portal, so inherited percentage dimensions incorrectly trigger piggy_empty_layout.
+- Arabic renders with dir="rtl"; the font fallback list (Noto Sans CJK/Arabic/Devanagari) relies on the reviewed base image's fonts-noto-core and fonts-noto-cjk packages, never on recipe-supplied fonts.
