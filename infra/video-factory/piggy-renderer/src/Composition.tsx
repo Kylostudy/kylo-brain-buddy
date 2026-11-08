@@ -16,18 +16,19 @@ export function PiggyBank(p: Props) {
   const sub = p.subs.find(s => ms >= s.start_ms && ms < s.end_ms);
   useLayoutEffect(() => {
     const handle = delayRender('piggy_layout_frame');
-    const timer = setTimeout(() => {
+    const timer = setInterval(() => {
       try {
         const els = [...document.querySelectorAll<HTMLElement>('[data-piggy-text]')];
-        const records = els.map(el => {if (!el.dataset.bounds) throw new Error('piggy_layout_missing'); return {id: el.dataset.piggyText, ...JSON.parse(el.dataset.bounds)};});
+        if (els.some(el => !el.dataset.bounds)) return;
+        const records = els.map(el => ({id: el.dataset.piggyText, ...JSON.parse(el.dataset.bounds ?? '{}')}));
         for (let i = 0; i < records.length; i++) for (let j = i+1; j < records.length; j++) {
           const a=records[i], b=records[j];
           if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) throw new Error('piggy_text_overlap');
         }
-        console.log('PIGGY_LAYOUT ' + JSON.stringify({frame, boxes: records})); continueRender(handle);
-      } catch(error) {cancelRender(error instanceof Error ? error : new Error(String(error)));}
-    }, 150);
-    return () => clearTimeout(timer);
+        clearInterval(timer);console.log('PIGGY_LAYOUT ' + JSON.stringify({frame, boxes: records})); continueRender(handle);
+      } catch(error) {clearInterval(timer);cancelRender(error instanceof Error ? error : new Error(String(error)));}
+    }, 20);
+    return () => clearInterval(timer);
   }, [frame]);
   return <AbsoluteFill data-piggy-root style={{'--piggy-text': '#E8EEF7'} as React.CSSProperties}>
     <KyloPiggyBankMaster sceneFrames={lens}/>

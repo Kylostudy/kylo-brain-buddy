@@ -76,7 +76,9 @@ class PiggyTests(unittest.TestCase):
 
     def test_version_two_series_rejected(self):
         c=command("series_run",{"recipe_id":"malacpersely-hu-trial","version":"v1","approval":{}});c["schema_version"]=2
-        with self.assertRaisesRegex(ValueError,"trial_only_recipe"):validate_command(c)
+        from universal import FactoryError
+        with self.assertRaises(FactoryError) as caught:validate_command(c)
+        self.assertEqual(caught.exception.result["code"],"trial_only_recipe")
 
     def test_version_two_recipe_rejected(self):
         r=recipe();r["schema_version"]=2
