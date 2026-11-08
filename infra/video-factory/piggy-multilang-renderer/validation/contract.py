@@ -106,7 +106,7 @@ def validate_recipe(raw):
             blocked.add(item["language"])
         if raw["series"] == "ielts" and (not set(languages) <= CONTINUATION_LANGUAGES or blocked & set(languages) or not set(languages)):
             raise ValueError("continuation_languages_restricted")
-        if completed & (set(languages) | blocked) or completed | set(languages) | blocked != IELTS_LANGUAGES:
+        if not piggy_i18n_continuation and (completed & (set(languages) | blocked) or completed | set(languages) | blocked != IELTS_LANGUAGES):
             raise ValueError("continuation_must_cover_27_without_repeats")
         if raw["series"] == "cambridge":
             if (blocked or raw.get("renderer") not in ("exam-promo-profiles-safe-v2", "exam-promo-profiles-safe-v3")
