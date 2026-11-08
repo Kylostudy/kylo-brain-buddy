@@ -2991,6 +2991,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      vps_task_is_nonbrowser: { Args: { task_type: string }; Returns: boolean }
     }
     Enums: {
       app_module: "brain" | "audit"
