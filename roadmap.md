@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] 2026-11-08 08:38 UTC: tulajdonos megerősítette a közzétételt; új publikálás nélkül friss VPS-átvétel és teljes önellenőrzés ellenőrzése. 88558185 frissítés 08:36:08 UTC sikeres; 08:35:13 UTC önellenőrzés még négy régi képazonosítót nem talál, új eredmény/aktuális bejegyzések szükségesek.
+
 - [ ] 2026-11-08 08:07 UTC tulajdonosi kérés: próbára kész állapot. A legújabb malacpersely-készítő VPS-en telepítve és image_ok; tényleges kép sha256:15fde4038a0a764585a19e99f7c1d391a1a1b23c217a92d4d0d03901ec80fb4b. Blokkoló: a legfrissebb teljes önellenőrzés (08:10:44.485457 UTC, 08:33:17 UTC életjelben) ok:false, IELTS-fonts/exam-v1/exam-safe-v3 image_inspect hibával; KyLogic acknowledged:true. Új publikálást a tulajdonos elutasított, új telepítést nem kértem; hang és külön HU recept/próba továbbra is szükséges, gyártás nem indult.
 
 - [x] VPS böngészős feladatok végleges tiltása minden platformon: éles adatvédelmi indítási korlát, Reddit aktiválási próba active=false, claim/record-claim 204; 2 Bun (74 állítás) és 3 Python próba sikeres. Böngésző nélküli feladatok megőrizve.
