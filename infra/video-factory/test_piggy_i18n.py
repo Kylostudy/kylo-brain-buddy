@@ -66,6 +66,33 @@ class PiggyI18nTests(unittest.TestCase):
         r = continuation_recipe()
         self.assertEqual(validate_recipe(r), r)
 
+    def test_continuation_v2_accepted(self):
+        # Additive: v2 carries the full preserved trial receipts; v1 stays valid.
+        r = continuation_recipe()
+        r["version"] = "v2"
+        self.assertEqual(validate_recipe(r), r)
+
+    def test_continuation_v3_rejected(self):
+        r = continuation_recipe()
+        r["version"] = "v3"
+        with self.assertRaisesRegex(ValueError, "piggy_i18n_continuation_languages"):
+            validate_recipe(r)
+
+    def test_en_trial_v2_rejected(self):
+        # The single English trial remains v1-only.
+        r = trial_recipe()
+        r["version"] = "v2"
+        with self.assertRaisesRegex(ValueError, "piggy_i18n_single_en_trial_only"):
+            validate_recipe(r)
+
+    def test_continuation_v2_trial_anchor_stays_v1(self):
+        # The continuation still anchors to the v1 English trial, even at v2.
+        r = continuation_recipe()
+        r["version"] = "v2"
+        r["continuation"]["trial_version"] = "v2"
+        with self.assertRaisesRegex(ValueError, "piggy_i18n_continuation_anchor"):
+            validate_recipe(r)
+
     def test_all_26_languages_have_approved_translations(self):
         self.assertEqual(set(TRANSLATIONS), LANGUAGES)
         self.assertEqual(len(LANGUAGES), 26)
