@@ -54,6 +54,7 @@ extra = etc / "reviewed-renderers.json"
 # Fixed allowlist: additive renderer name -> the only scene it may render.
 ALLOWED_EXTRA = {"ielts-promo-fonts-v1": ["ielts-promo-v1"], "exam-promo-profiles-v1": ["exam-promo-profiles-v1"], "exam-promo-profiles-safe-v2": ["exam-promo-profiles-safe-v2"], "exam-promo-profiles-safe-v3": ["exam-promo-profiles-safe-v3"], "exam-promo-profiles-safe-v4": ["exam-promo-profiles-safe-v4"], "exam-promo-universal-v1": ["exam-promo-universal-v1"]}
 ALLOWED_EXTRA["piggy-bank-safe-v1"] = ["piggy-bank-v1"]
+ALLOWED_EXTRA["piggy-bank-layout-safe-v2"] = ["piggy-bank-v1"]
 if extra.exists():
     import re
     additions = json.loads(extra.read_text())

@@ -21,6 +21,12 @@ class PiggyTests(unittest.TestCase):
     def test_one_hu_accepted(self):
         r=recipe(); self.assertEqual(validate_recipe(r),r)
 
+    def test_layout_fix_renderer_accepts_only_same_single_hu_trial(self):
+        r=recipe();r['renderer']='piggy-bank-layout-safe-v2'
+        self.assertEqual(validate_recipe(r),r)
+        r['languages']=['hu','en']
+        with self.assertRaisesRegex(ValueError,'piggy_hu_trial_only'):validate_recipe(r)
+
     def test_exact_seven_positive_integer_frames(self):
         self.assertEqual(scene_frames([120,300,120,300,150,90,90]),[120,300,120,300,150,90,90])
         for value in ([],[1]*6,[1]*8,[0]*7,[-1]*7,[True]*7,[1.1]*7,[float("nan")]*7,[float("inf")]*7):

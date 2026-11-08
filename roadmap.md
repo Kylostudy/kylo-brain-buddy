@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] 424bf311-fe2a-424e-9d0d-1342f9a6eb09 videópróba: 09:50:41 UTC védett életjelben egyező job_id, malacpersely-hu-trial/v1, CalledProcessError a Docker-render lépésnél, returncode=1; nem kép-inspect/tárhely/utóellenőrzés. Pontos stderr a soronkénti titokszűrés miatt kimarad (JSON egysoros stderr_tail), state olvasás OperationalError. Blokkoló: VPS-en csak fix hibakódokat kivonó olvasási diagnosztika eredménye; gyártás/retry/deploy nem indult, találgatásos javítás tilos.
+- [x] 424bf311-fe2a-424e-9d0d-1342f9a6eb09 hibajelentés: tulajdonosi VPS-kivonat piggy_empty_layout/exit 1. Nulla szélességű Remotion előzetes befogadó reprodukálva; külön piggy-bank-layout-safe-v2 forrás fix 1080×1920 alappal, eredeti renderer érintetlen. 165 Python és 3 Bun/13 állítás sikeres; ellenőrzőösszegek frissítve, nincs render/narráció/recept/retry.
+- [ ] Malacpersely javítókiadás VPS-telepítése és teljes self_check/KyLogic átvétel; közzététel és szerveres átvétel szükséges. Utána KyLogic külön receptverziója használhatja piggy-bank-layout-safe-v2-t; régi recept/feladat nem módosítható, próbát csak külön indítás engedélyez.
 - [x] 2026-11-08 08:56:24 UTC tulajdonosi VPS-visszaolvasás: teljes önellenőrzés ok:true, KyLogic acknowledged:true, esemény c5391a55-067e-473a-abaf-f3606c95ccb2. IELTS-fonts két jegyzéke egyezik, elérhető kép 0e178825…; korábbi zár/hivatkozás vizsgálati tételek lezárva ezzel az eredménnyel, gyártás nélkül.
 
 - [ ] 2026-11-08 08:48 UTC védett IELTS-hivatkozásjavítás nem futott: az egyik nem blokkoló zár foglalt, semmi nem módosult, új önellenőrzés nem indult. Következő lépés kizárólag a két zár tulajdonosának azonosítása; foglaltság nem bizonyít renderelést, védelem megkerülése/folyamat leállítása tilos bizonyíték nélkül.
