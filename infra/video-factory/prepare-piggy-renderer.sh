@@ -36,7 +36,7 @@ else: raise SystemExit('piggy_reviewed_font_base_unavailable')
 PY
 )"
 [[ "$BASE" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 3
-docker run --rm --pull never --network none --read-only --cap-drop ALL --security-opt no-new-privileges --user 65532:65532 --entrypoint /bin/sh "$BASE" -c 'dpkg-query -W -f="${Status}\n" fonts-noto-core fonts-noto-cjk | grep -c "install ok installed" | grep -qx 2'
+docker run --rm --pull never --network none --read-only --cap-drop ALL --security-opt no-new-privileges --user 65532:65532 --entrypoint /usr/bin/python3 "$BASE" -c 'import subprocess; p=subprocess.run(["dpkg-query","-W","-f=${Status}\n","fonts-noto-core","fonts-noto-cjk"],capture_output=True,text=True); assert p.returncode==0 and p.stdout.splitlines()==["install ok installed","install ok installed"], "piggy_font_packages_unavailable"'
 docker build --pull=false --build-arg "REVIEWED_FONT_BASE=$BASE" --tag "kylo-piggy-bank:reviewed-$HASH" "$STAGE"
 IMAGE="$(docker image inspect --format '{{.Id}}' "kylo-piggy-bank:reviewed-$HASH")"
 [[ "$IMAGE" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 3
@@ -58,6 +58,10 @@ if old_config is not None and old_config!=entry: raise SystemExit('immutable_ren
 if old is None:
     entries['piggy-bank-safe-v1']=entry
     temp=p.with_suffix('.piggy.tmp');temp.write_text(json.dumps(entries,indent=2));os.chmod(temp,0o600);os.replace(temp,p)
+config['renderers']['piggy-bank-safe-v1']=entry
+c=Path('/etc/kylo-video-factory/config.json')
+temp=c.with_suffix('.piggy.tmp');temp.write_text(json.dumps(config,indent=2));os.chmod(temp,0o600);os.replace(temp,c)
 PY
-bash "$SRC/activate-manager.sh" "$VER"
+# A separate diagnostic process sends only its own event, never starts the manager.
+python3 "$SRC/self-check-only.py"
 echo "PIGGY: piggy-bank-safe-v1 installed ($IMAGE); scene piggy-bank-v1; no production submitted"
