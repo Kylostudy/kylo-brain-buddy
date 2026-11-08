@@ -16,6 +16,9 @@ TRIAL_RECIPE = "malacpersely-i18n-en-trial"
 TRIAL_LANGUAGE = "en"
 CONTINUATION_RECIPE = "malacpersely-i18n-continuation"
 VERSION = "v1"
+# Additive: the continuation also accepts "v2" (full preserved trial receipts);
+# v1 stays valid and unchanged, the single English trial remains v1-only.
+CONTINUATION_VERSIONS = ("v1", "v2")
 # The 26 approved non-Hungarian languages (English is the single trial language).
 LANGUAGES = set("en de nl fr ja es pt it ko pl no sv cs tr sk sl da fi ar hi sr ru ro hr el zh".split())
 RTL_LANGUAGES = {"ar"}
@@ -166,7 +169,7 @@ def validate(raw):
             raise ValueError("piggy_i18n_single_en_trial_only")
     elif recipe_id == CONTINUATION_RECIPE:
         expected = sorted(LANGUAGES - {TRIAL_LANGUAGE})
-        if raw.get("version") != VERSION or languages != expected or len(raw["videos"]) != len(expected):
+        if raw.get("version") not in CONTINUATION_VERSIONS or languages != expected or len(raw["videos"]) != len(expected):
             raise ValueError("piggy_i18n_continuation_languages")
         continuation = raw.get("continuation")
         if not isinstance(continuation, dict) or continuation.get("trial_recipe_id") != TRIAL_RECIPE or continuation.get("trial_version") != VERSION:

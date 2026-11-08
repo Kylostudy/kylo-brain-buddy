@@ -100,7 +100,7 @@ def contract_document(validator_root=None):
             i18n.TRIAL_RECIPE: {"versions": [i18n.VERSION], "languages": [i18n.TRIAL_LANGUAGE], "videos": 1,
                                 "continuation": "forbidden", "allowed_operations": ["register_recipe", "trial"],
                                 "forbidden_operations": ["start_series", "series_run", "rerender"]},
-            i18n.CONTINUATION_RECIPE: {"versions": [i18n.VERSION], "languages": sorted(i18n.LANGUAGES - {i18n.TRIAL_LANGUAGE}),
+            i18n.CONTINUATION_RECIPE: {"versions": list(i18n.CONTINUATION_VERSIONS), "languages": sorted(i18n.LANGUAGES - {i18n.TRIAL_LANGUAGE}),
                                        "videos": len(i18n.LANGUAGES) - 1, "continuation": {
                                            "trial_recipe_id": i18n.TRIAL_RECIPE, "trial_version": i18n.VERSION,
                                            "completed_languages": ["en", "hu"], "hu_receipt_sha256": i18n.HU_V4_SHA256,

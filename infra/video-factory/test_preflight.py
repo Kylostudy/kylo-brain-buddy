@@ -129,7 +129,9 @@ class ContractExportTests(unittest.TestCase):
         self.assertEqual(a["generated_from"]["validator_sha256"], {
             "contract.py": "509bd75ce42b1892cf4a1c177afa1e3c807a9fbafd3d453f735fb2583fb692c6",
             "piggy.py": "8f3d438f1bc7dbd687d996516c94fe1aa56ada484a1a295b4c745240356da033",
-            "piggy_i18n.py": "5269e95ad92711c8bd76d088d97e845d5e3fcf9d609462312a7811f34be3e004"})
+            "piggy_i18n.py": "88bb596298a47bcc46c13f1afa5f7e8fc54e8989c914b149e7e76d9b588b54f5"})
+        self.assertEqual(a["recipes"]["malacpersely-i18n-continuation"]["versions"], ["v1", "v2"])
+        self.assertEqual(a["recipes"]["malacpersely-i18n-en-trial"]["versions"], ["v1"])
         self.assertEqual(a["translations"]["en"]["unit"], "USD/mo.")
         self.assertEqual(a["recipes"]["malacpersely-i18n-en-trial"]["forbidden_operations"], ["start_series", "series_run", "rerender"])
 
