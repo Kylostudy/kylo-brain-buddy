@@ -4,10 +4,10 @@ set -euo pipefail
 [ "$(id -u)" = 0 ] || exit 2
 SRC="${1:?source required}"
 VER="${2:?manager version required}"
-cd "$SRC/piggy-renderer"
+cd "$SRC/piggy-layout-v2-renderer"
 sha256sum --strict -c SHA256SUMS
 HASH="$(sha256sum SHA256SUMS | cut -c1-16)"
-STAGE="/opt/kylo-video-factory/renderer-releases/piggy-bank-$HASH"
+STAGE="/opt/kylo-video-factory/renderer-releases/piggy-layout-v2-$HASH"
 mkdir -p "$STAGE"
 while read -r sha name; do
   name="${name#\*}"
@@ -43,9 +43,9 @@ docker run --rm --pull never --network none --read-only --cap-drop ALL --securit
 BASE_ALIAS="kylo-piggy-reviewed-base:${BASE#sha256:}"
 docker image tag "$BASE" "$BASE_ALIAS"
 [ "$(docker image inspect --format '{{.Id}}' "$BASE_ALIAS")" = "$BASE" ] || exit 3
-DOCKER_BUILDKIT=0 docker build --pull=false --build-arg "REVIEWED_FONT_BASE=$BASE_ALIAS" --tag "kylo-piggy-bank:reviewed-$HASH" "$STAGE"
+DOCKER_BUILDKIT=0 docker build --pull=false --build-arg "REVIEWED_FONT_BASE=$BASE_ALIAS" --tag "kylo-piggy-layout-v2:reviewed-$HASH" "$STAGE"
 [ "$(docker image inspect --format '{{.Id}}' "$BASE_ALIAS")" = "$BASE" ] || exit 3
-IMAGE="$(docker image inspect --format '{{.Id}}' "kylo-piggy-bank:reviewed-$HASH")"
+IMAGE="$(docker image inspect --format '{{.Id}}' "kylo-piggy-layout-v2:reviewed-$HASH")"
 [[ "$IMAGE" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 3
 docker run --rm --pull never --network none --read-only --cap-drop ALL --security-opt no-new-privileges --user 65532:65532 --entrypoint /bin/echo "$IMAGE" image_ok
 exec 8>/run/lock/kylo-video-production.lock
@@ -57,18 +57,18 @@ from pathlib import Path
 p=Path('/etc/kylo-video-factory/reviewed-renderers.json')
 entries=json.loads(p.read_text())
 entry={'image':sys.argv[1],'reviewed':True,'scenes':['piggy-bank-v1']}
-old=entries.get('piggy-bank-safe-v1')
+old=entries.get('piggy-bank-layout-safe-v2')
 if old is not None and old!=entry: raise SystemExit('immutable_renderer_conflict')
 config=json.loads(Path('/etc/kylo-video-factory/config.json').read_text())
-old_config=config.get('renderers',{}).get('piggy-bank-safe-v1')
+old_config=config.get('renderers',{}).get('piggy-bank-layout-safe-v2')
 if old_config is not None and old_config!=entry: raise SystemExit('immutable_renderer_conflict')
 if old is None:
-    entries['piggy-bank-safe-v1']=entry
+    entries['piggy-bank-layout-safe-v2']=entry
     temp=p.with_suffix('.piggy.tmp');temp.write_text(json.dumps(entries,indent=2));os.chmod(temp,0o600);os.replace(temp,p)
-config['renderers']['piggy-bank-safe-v1']=entry
+config['renderers']['piggy-bank-layout-safe-v2']=entry
 c=Path('/etc/kylo-video-factory/config.json')
 temp=c.with_suffix('.piggy.tmp');temp.write_text(json.dumps(config,indent=2));os.chmod(temp,0o600);os.replace(temp,c)
 PY
 # A separate diagnostic process sends only its own event, never starts the manager.
 python3 "$SRC/self-check-only.py"
-echo "PIGGY: piggy-bank-safe-v1 installed ($IMAGE); scene piggy-bank-v1; no production submitted"
+echo "PIGGY: piggy-bank-layout-safe-v2 installed ($IMAGE); scene piggy-bank-v1; no production submitted"

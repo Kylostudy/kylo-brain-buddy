@@ -30,7 +30,9 @@ export function PiggyBank(p: Props) {
     }, 20);
     return () => clearInterval(timer);
   }, [frame]);
-  return <AbsoluteFill data-piggy-root style={{'--piggy-text': '#E8EEF7'} as React.CSSProperties}>
+  // Metadata evaluation mounts inside a zero-sized offscreen Remotion portal.
+  // Declare the actual coordinate space before any text measurement occurs.
+  return <AbsoluteFill data-piggy-root style={{width: 1080, height: 1920, '--piggy-text': '#E8EEF7'} as React.CSSProperties}>
     <KyloPiggyBankMaster sceneFrames={lens}/>
     {index === 0 && <SafeText id="heading" text={p.text.heading} top={240} height={170} size={58}/>}
     {index <= 1 && counter >= 0 && <>

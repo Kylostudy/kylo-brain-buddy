@@ -366,6 +366,18 @@ if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$V
     echo 'PIGGY: piggy-bank-safe-v1 előkészítése kérve; nincs render vagy receptregisztráció'
   fi
 fi
+if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-piggy-layout-v2-renderer.sh' ]; then
+  if systemctl is-active --quiet kylo-piggy-layout-v2-renderer-prepare.service; then
+    echo PIGGY-V2: feliratmérési javítókiadás előkészítése folyamatban
+  else
+    systemd-run --unit=kylo-piggy-layout-v2-renderer-prepare --collect --property=Type=exec --property=Restart=no \
+      --property=RuntimeMaxSec=10000 --property=KillMode=process \
+      --property=StandardOutput=append:/var/log/kylo-piggy-layout-v2-renderer-install.log \
+      --property=StandardError=append:/var/log/kylo-piggy-layout-v2-renderer-install.log \
+      /bin/bash '$VF_SRC/prepare-piggy-layout-v2-renderer.sh' '$VF_SRC' '$VF_VER'
+    echo 'PIGGY-V2: külön feliratmérési javítókiadás kérve; nincs gyártás vagy receptregisztráció'
+  fi
+fi
 if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-universal-renderer.sh' ]; then
   if systemctl is-active --quiet kylo-universal-renderer-prepare.service; then
     echo UNIVERSAL: előkészítés folyamatban
