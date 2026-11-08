@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] 2026-11-08 08:48 UTC védett IELTS-hivatkozásjavítás nem futott: az egyik nem blokkoló zár foglalt, semmi nem módosult, új önellenőrzés nem indult. Következő lépés kizárólag a két zár tulajdonosának azonosítása; foglaltság nem bizonyít renderelést, védelem megkerülése/folyamat leállítása tilos bizonyíték nélkül.
+
 - [ ] 2026-11-08 08:47 UTC két jegyzékből igazolt: exam-v1/safe-v2/safe-v3 már helyes; csak config.json IELTS-fonts azonosítója (1f7b3b4f…) tér el a reviewed-renderers és közvetlen Docker-próba 9a97cf2f… azonosítójától. Következő célzott host-javítás kizárólag ezt az egy mezőt szinkronizálja, teljes sikeres leltár + régi ID hiány + új ID indulás + változatlan reviewed/scenes ellenőrzéssel, két nem blokkoló zárral és helyi mentéssel; utána self-check-only. Manager újraindítás, képépítés, receptek, archívum, fontok érintetlenek.
 
 - [ ] 2026-11-08 08:45 UTC közvetlen inspect igazolta a helyi címkék teljes azonosítóit és visszakereshetőségét: IELTS-fonts=9a97cf2f…, exam-v1=aa3f0028…, safe-v2=727aff38…, safe-v3=fa71cd8a…. A hibás önellenőrzés más azonosítókat keresett; a hibás hivatkozások keletkezésének oka nem bizonyított. Javítás előtt a config és reviewed-renderers kizárólag kép/jelenet/jóváhagyás mezői összevetendők; működő képek nem cserélhetők, manager nem indítható újra.
