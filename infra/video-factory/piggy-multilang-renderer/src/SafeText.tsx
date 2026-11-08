@@ -1,7 +1,10 @@
 import React, {useLayoutEffect, useRef} from 'react';
 import {delayRender, continueRender, cancelRender} from 'remotion';
 import {CAPTION_SAFE_ZONE} from './captionSafeZone';
-export function SafeText({id, text, top, height, size = 64}: {id: string; text: string; top: number; height: number; size?: number}) {
+// The reviewed base image ships fonts-noto-core and fonts-noto-cjk; the explicit
+// fallback list keeps CJK, Arabic and Devanagari glyphs deterministic.
+const FONT_FAMILY = "'Noto Sans','Noto Sans CJK JP','Noto Sans CJK SC','Noto Sans CJK KR','Noto Sans Arabic','Noto Sans Devanagari',sans-serif";
+export function SafeText({id, text, top, height, size = 64, dir = 'ltr'}: {id: string; text: string; top: number; height: number; size?: number; dir?: 'ltr' | 'rtl'}) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const handle = delayRender('measure:' + id);
@@ -26,6 +29,6 @@ export function SafeText({id, text, top, height, size = 64}: {id: string; text: 
         continueRender(handle);
       } catch (error) { cancelRender(error instanceof Error ? error : new Error(String(error))); }
     }).catch(error => cancelRender(error instanceof Error ? error : new Error(String(error))));
-  }, [id, text, size, height]);
-  return <div ref={ref} data-piggy-text={id} style={{position: 'absolute', left: 85, top, width: 845, height, fontSize: size, lineHeight: 1.16, fontWeight: 700, textAlign: 'center', color: 'var(--piggy-text)', fontFamily: 'Noto Sans, sans-serif', overflowWrap: 'anywhere', letterSpacing: 0}}>{text}</div>;
+  }, [id, text, size, height, dir]);
+  return <div ref={ref} dir={dir} data-piggy-text={id} style={{position: 'absolute', left: 85, top, width: 845, height, fontSize: size, lineHeight: 1.16, fontWeight: 700, textAlign: 'center', direction: dir, unicodeBidi: 'plaintext', color: 'var(--piggy-text)', fontFamily: FONT_FAMILY, overflowWrap: 'anywhere', letterSpacing: 0}}>{text}</div>;
 }
