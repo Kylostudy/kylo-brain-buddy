@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Malacpersely: elkülönített piggy-bank-safe-v1 készítő, szigorú hétjelenetes adatbemenet, csak egy HU próba és sorozattilalom; célzott és regressziós tesztek, gyártás/publikálás nélkül.
+- [x] Malacpersely: elkülönített piggy-bank-safe-v1 forrás, scene piggy-bank-v1, szigorú hétjelenetes adatbemenet, csak egy HU próba és sorozattilalom; 161 gyári (18 új), 8 brief, 15 diagnosztikai és 3 Bun teszt sikeres. Checksumok/szintaxis OK; gyártás/publikálás nélkül, vizuális vagy Docker/VPS-próba nem történt.
 - [ ] Malacpersely VPS-telepítés, tényleges képazonosító, teljes önellenőrzés és KyLogic-átvétel: publikált forrás és szerveres végrehajtás szükséges; nincs render/narráció/receptregisztráció.
 
 - [x] IELTS helyreállítási korlát javítva: csak sikeres teljes Docker-leltárban igazoltan hiányzó régi képazonosító javítható, változatlan jelenet/jóváhagyás mellett; működő kép és bizonytalan hiba érintetlen. Teljes önellenőrzés időponttal, tényleges képazonosítóval és pontos hibaszakasszal; 143 gyári teszt OK.
