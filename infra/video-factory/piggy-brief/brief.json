@@ -1,0 +1,65 @@
+{
+  "status": "approved_script_not_rendered",
+  "language": "hu",
+  "width": 1080,
+  "height": 1920,
+  "target_duration_ms": 40000,
+  "output_count": 1,
+  "publication_enabled": false,
+  "render_location": "vps_only",
+  "basket_is_illustrative": true,
+  "basket": [
+    {
+      "category": "Jegyzetelés",
+      "monthly_usd": 20
+    },
+    {
+      "category": "Tanulókártyák és kvízek",
+      "monthly_usd": 15
+    },
+    {
+      "category": "Tételkidolgozás",
+      "monthly_usd": 20
+    },
+    {
+      "category": "Nyelvi és vizsgagyakorlás",
+      "monthly_usd": 25
+    },
+    {
+      "category": "További tanulási eszközök",
+      "monthly_usd": 25
+    }
+  ],
+  "kylo_monthly_usd": "29.99",
+  "price_source": "owner_statement_2026_11_08",
+  "hosted_price_verified": false,
+  "exam_success_guaranteed": false,
+  "beats_ms": [
+    [
+      0,
+      4000
+    ],
+    [
+      4000,
+      14000
+    ],
+    [
+      14000,
+      18000
+    ],
+    [
+      18000,
+      28000
+    ],
+    [
+      28000,
+      33000
+    ],
+    [
+      33000,
+      40000
+    ]
+  ],
+  "trial_days": 14,
+  "basket_claim_threshold_usd": 100
+}

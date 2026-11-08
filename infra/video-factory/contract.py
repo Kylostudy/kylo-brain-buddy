@@ -51,6 +51,10 @@ def keys(value, allowed, required):
 
 
 def validate_recipe(raw):
+    from piggy import targeted, validate as validate_piggy
+    if isinstance(raw, dict) and targeted(raw):
+        if raw.get("schema_version") != 1:
+            raise ValueError("piggy_hu_trial_only")
     if isinstance(raw, dict) and raw.get("schema_version") == 2:
         from universal import validate
         return validate(raw)
@@ -168,6 +172,8 @@ def validate_recipe(raw):
             last = t["end_ms"]
     if (raw["series"] == "ielts" or (raw["series"] == "cambridge" and continuation is not None)) and covered != set(languages):
         raise ValueError("ielts_missing_language_video")
+    if targeted(raw):
+        validate_piggy(raw)
     return raw
 
 
@@ -188,6 +194,8 @@ def validate_command(raw):
         keys(payload, allowed, allowed)
         identifier(payload["recipe_id"])
         identifier(payload["version"])
+        if op == "start_series" and payload["recipe_id"] == "malacpersely-hu-trial":
+            raise ValueError("trial_only_recipe")
         if op == "start_series":
             approval = payload["approval"]
             keys(approval, {"approval_id", "recipe_sha256", "trial_receipt_sha256", "approved_at", "owner_authorized"},
@@ -221,6 +229,8 @@ def validate_universal_command(raw):
     elif op in {"preview", "trial", "series_run", "rerender"}:
         keys(p, {"recipe_id", "version", "languages", "approval", "rerender"}, {"recipe_id", "version"} | ({"approval"} if op in {"series_run", "rerender"} else set()))
         identifier(p["recipe_id"]); identifier(p["version"])
+        if p["recipe_id"] == "malacpersely-hu-trial":
+            raise FactoryError("command", "trial_only_recipe", "Piggy trial requires version one")
         for name in ("languages", "rerender"):
             if name in p:
                 if not isinstance(p[name], list) or not p[name] or len(p[name]) > 40 or len(set(p[name])) != len(p[name]):

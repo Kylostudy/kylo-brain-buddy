@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Malacpersely: elkülönített piggy-bank-safe-v1 forrás, scene piggy-bank-v1, szigorú hétjelenetes adatbemenet, csak egy HU próba és sorozattilalom; 161 gyári (18 új), 8 brief, 15 diagnosztikai és 3 Bun teszt sikeres. Checksumok/szintaxis OK; gyártás/publikálás nélkül, vizuális vagy Docker/VPS-próba nem történt.
+- [ ] Malacpersely VPS-telepítés, tényleges képazonosító, teljes önellenőrzés és KyLogic-átvétel: publikált forrás és szerveres végrehajtás szükséges; nincs render/narráció/receptregisztráció.
+
 - [x] IELTS helyreállítási korlát javítva: csak sikeres teljes Docker-leltárban igazoltan hiányzó régi képazonosító javítható, változatlan jelenet/jóváhagyás mellett; működő kép és bizonytalan hiba érintetlen. Teljes önellenőrzés időponttal, tényleges képazonosítóval és pontos hibaszakasszal; 143 gyári teszt OK.
 - [ ] IELTS pontos VPS-ok, javítás telepítése és teljes önellenőrzés/KyLogic átvétel igazolása: közvetlen szerveres vezérlés nincs, SSH-ból csak a két IELTS-képbejegyzés és Docker-próba eredménye szükséges. v4 image ID a 2026-11-01 06:42:49 UTC védett jelentés naplójában igazolt: sha256:a4a7ff47aca59b14d1f4fd0c30119162249b07ff03f327ed34d77e0ddc07c89e. Gyártás és új recept nélkül; működő készítők és archívum érintetlen.
 

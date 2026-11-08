@@ -32,8 +32,8 @@ class DiagnosticsTests(unittest.TestCase):
         with patch.object(report, "command", return_value="ActiveState=failed") as commands, patch.object(report, "tail_file", return_value={"available": False}) as files:
             result = report.collect()
             self.assertEqual(set(result["units"]), {"kylo-subject-factory-install.service", "kylo-subject-factory.service"})
-            self.assertEqual([c.args[0] for c in files.call_args_list], ["/var/log/kylo-subject-factory-install.log", "/opt/kylo-subject-factory/work/status.json", "/var/log/kylo-ielts-trial-install.log", "/var/lib/kylo-video-factory/ielts-trial-status.json", "/var/lib/kylo-video-factory/ielts-continuation-status.json", "/var/lib/kylo-video-factory/last-render-failure.json"])
-            self.assertEqual(len(commands.call_args_list), 12)
+            self.assertEqual([c.args[0] for c in files.call_args_list], ["/var/log/kylo-subject-factory-install.log", "/opt/kylo-subject-factory/work/status.json", "/var/log/kylo-ielts-trial-install.log", "/var/lib/kylo-video-factory/ielts-trial-status.json", "/var/lib/kylo-video-factory/ielts-continuation-status.json", "/var/lib/kylo-video-factory/last-render-failure.json", "/var/log/kylo-piggy-renderer-install.log"])
+            self.assertEqual(len(commands.call_args_list), 13)
             self.assertTrue(all(c.args[0][0] in ("systemctl", "journalctl") for c in commands.call_args_list))
 
     def test_factory_state_missing_db_is_explicit(self):

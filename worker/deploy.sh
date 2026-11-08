@@ -350,6 +350,18 @@ if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$V
     echo 'EXAM-SAFE-V4: exam-promo-profiles-safe-v4 külön kiadás előkészítése kérve; nincs gyártási parancs'
   fi
 fi
+if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-piggy-renderer.sh' ]; then
+  if systemctl is-active --quiet kylo-piggy-renderer-prepare.service; then
+    echo PIGGY: előkészítés folyamatban
+  else
+    systemd-run --unit=kylo-piggy-renderer-prepare --collect --property=Type=exec --property=Restart=no \
+      --property=RuntimeMaxSec=10000 --property=KillMode=process \
+      --property=StandardOutput=append:/var/log/kylo-piggy-renderer-install.log \
+      --property=StandardError=append:/var/log/kylo-piggy-renderer-install.log \
+      /bin/bash '$VF_SRC/prepare-piggy-renderer.sh' '$VF_SRC' '$VF_VER'
+    echo 'PIGGY: piggy-bank-safe-v1 előkészítése kérve; nincs render vagy receptregisztráció'
+  fi
+fi
 if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-universal-renderer.sh' ]; then
   if systemctl is-active --quiet kylo-universal-renderer-prepare.service; then
     echo UNIVERSAL: előkészítés folyamatban
