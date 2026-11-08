@@ -1,0 +1,10 @@
+{
+  "source": "kylo-malacpersely-brain-v1.zip",
+  "scope": "additive VPS renderer draft, not an application migration",
+  "capabilities": [
+    {"capability":"renderer code","source":"source-draft","outcome":"review and integrate additive piggy-bank-safe-v1","status":"in_progress","next_action":"implement isolated entrypoint and tests"},
+    {"capability":"assets","source":"assets/kylo-dog.png","outcome":"checksum-reviewed local renderer asset","status":"in_progress","next_action":"verify package checksums"},
+    {"capability":"VPS deployment and verification","source":"BRAIN-TASK.md","outcome":"prepare only, no rendering or publication","status":"pending","next_action":"published source and authenticated host deployment required"},
+    {"capability":"schema, records, auth, storage providers, callbacks, schedules, secrets, cutover","source":"archive inspection","outcome":"not an application migration; existing Brain capabilities unchanged","status":"not_applicable","next_action":null}
+  ]
+}
