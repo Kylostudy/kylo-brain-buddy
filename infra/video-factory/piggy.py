@@ -8,8 +8,9 @@ COUNTER = [20, 35, 55, 80, 105]
 
 
 def targeted(raw):
+    videos = raw.get("videos")
     return raw.get("recipe_id") == RECIPE or raw.get("renderer") == RENDERER or any(
-        isinstance(v, dict) and v.get("scene") == SCENE for v in raw.get("videos", []) if isinstance(raw.get("videos"), list))
+        isinstance(v, dict) and v.get("scene") == SCENE for v in (videos if isinstance(videos, list) else []))
 
 
 def scene_frames(value):
