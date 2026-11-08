@@ -1,7 +1,8 @@
 # Roadmap
 
 - [x] VPS böngészős feladatok végleges tiltása minden platformon: éles adatvédelmi indítási korlát, Reddit aktiválási próba active=false, claim/record-claim 204; 2 Bun (74 állítás) és 3 Python próba sikeres. Böngésző nélküli feladatok megőrizve.
-- [ ] Futó Reddit-böngésző fizikai leállítása és VPS-es tiltás átvételi igazolása: 07:30 UTC green még 1 futást jelez. Nincs közvetlen SSH/szerveres leállító kapcsolat, régi deploy még aktív; kizárólag igazolt worker böngészőket leállító frissítés bekérve, archívum/videógyár változatlan.
+- [x] Futó Reddit-böngésző leállítása és VPS-es tiltás átvételi igazolása: 71d02b5 frissítés 2026-11-08 07:50:08 UTC sikeres; recorder leállítása ok:true; 08:03:52 UTC nulla aktív munkafolyamat, minden felvétel cancelled/closed, négy adatvédelmi tiltás aktív, friss green életjelben nincs recorder.
+- [ ] 2026-11-08 újbóli ellenőrzés: kizárólag videó/tárolás feladatengedélyek, böngészőindítás végső tiltása és újraindítási útvonalak célzott ellenőrzése; szerveres átvétel igazolandó.
 
 - [x] Malacpersely: elkülönített piggy-bank-safe-v1 forrás, scene piggy-bank-v1, szigorú hétjelenetes adatbemenet, csak egy HU próba és sorozattilalom; 161 gyári (18 új), 8 brief, 15 diagnosztikai és 3 Bun teszt sikeres. Checksumok/szintaxis OK; gyártás/publikálás nélkül, vizuális vagy Docker/VPS-próba nem történt.
 - [ ] Malacpersely VPS-telepítés, tényleges képazonosító, teljes önellenőrzés és KyLogic-átvétel: tulajdonos 2026-11-08 07:02 UTC-kor telepítést és önellenőrzést kért; nincs render/narráció/receptregisztráció. Védett frissítés és tényleges szervereredmény igazolandó. 07:10 UTC-s futás: betűellenőrzés átment, de a képépítés a csupasz képazonosítós alapkép miatt leállt (semmi nem települt, régi készítők érintetlenek). Javítás (helyi álnév) a GitHubon; a szerver a 018875b frissítés régi készletének kivárása (max 07:56 UTC) után veszi át.

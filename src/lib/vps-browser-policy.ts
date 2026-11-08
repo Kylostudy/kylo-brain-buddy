@@ -1,7 +1,6 @@
 // Keep in sync with the fixed VPS policy and public.vps_task_is_nonbrowser.
 export const NON_BROWSER_TASKS = [
-  "ping", "stt_media_fetch", "stt_calibrate", "archive_video",
-  "membership_transcribe", "receive_subject_factory_package",
+  "archive_video", "receive_subject_factory_package",
 ] as const;
 export function isNonBrowserSpec(spec: unknown): boolean {
   if (!spec || typeof spec !== "object" || !("brain_task" in spec)) return false;

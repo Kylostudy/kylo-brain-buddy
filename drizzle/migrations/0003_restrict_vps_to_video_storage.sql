@@ -1,0 +1,4 @@
+CREATE OR REPLACE FUNCTION public.vps_task_is_nonbrowser(task_type text) RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path=public AS $$ SELECT COALESCE(task_type = ANY(ARRAY['archive_video','receive_subject_factory_package']), false) $$;
+REVOKE ALL ON FUNCTION public.vps_task_is_nonbrowser(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.vps_task_is_nonbrowser(text) TO authenticated, service_role;
+COMMENT ON FUNCTION public.vps_task_is_nonbrowser(text) IS 'Owner policy 2026-11-08: VPS video production and storage only; all platform browser tasks and unrelated STT/membership work denied.';

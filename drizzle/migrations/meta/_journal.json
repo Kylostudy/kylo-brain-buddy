@@ -22,6 +22,13 @@
       "when": 1794122859446,
       "tag": "0002_retire_vps_browser_execution",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794125090580,
+      "tag": "0003_restrict_vps_to_video_storage",
+      "breakpoints": true
     }
   ]
 }

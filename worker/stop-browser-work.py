@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-NON_BROWSER = {"ping", "stt_media_fetch", "stt_calibrate", "archive_video", "membership_transcribe", "receive_subject_factory_package"}
+NON_BROWSER = {"archive_video", "receive_subject_factory_package"}
 
 def kind(info):
     config = info.get("Config") or {}
@@ -22,7 +22,7 @@ def kind(info):
 def stop_all(run=subprocess.run):
     def call(args):
         return run(["docker", *args], capture_output=True, text=True, check=True).stdout
-    ids = call(["ps", "-q"]).split()
+    ids = call(["ps", "-aq"]).split()
     stopped = []
     for cid in ids:
         info = json.loads(call(["inspect", cid]))[0]
@@ -37,7 +37,8 @@ def stop_all(run=subprocess.run):
             if (spec.get("brain_task") or {}).get("task_type") in NON_BROWSER:
                 continue
         call(["update", "--restart=no", cid])
-        call(["stop", "-t", "0", cid])
+        if (info.get("State") or {}).get("Running"):
+            call(["stop", "-t", "0", cid])
         stopped.append({"id": cid, "kind": category})
     return {"ok": True, "stopped": stopped}
 

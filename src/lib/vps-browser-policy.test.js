@@ -13,10 +13,16 @@ describe("Owner permanently retired all VPS browser tasks", () => {
     expect(isNonBrowserSpec({ brain_task: { task_type: "membership_archive" } })).toBe(false);
     expect(isNonBrowserSpec({ brain_task: { task_type: "future_unknown_task" } })).toBe(false);
   });
-  test("Non-browser audio and archive tasks stay available", () => {
-    for (const task_type of ["ping", "stt_media_fetch", "stt_calibrate", "archive_video", "membership_transcribe", "receive_subject_factory_package"]) {
+  test("Only video storage and reviewed factory package receipt stay available", () => {
+    for (const task_type of ["archive_video", "receive_subject_factory_package"]) {
       expect(isNonBrowserSpec({ brain_task: { task_type } })).toBe(true);
       expect(workerPolicy({ brain_task: { task_type } })).toBe(true);
+    }
+  });
+  test("Unrelated audio, membership and ping tasks are denied on the video-only VPS", () => {
+    for (const task_type of ["ping", "stt_media_fetch", "stt_calibrate", "membership_transcribe"]) {
+      expect(isNonBrowserSpec({ brain_task: { task_type } })).toBe(false);
+      expect(workerPolicy({ brain_task: { task_type } })).toBe(false);
     }
   });
 });

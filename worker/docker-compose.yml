@@ -72,7 +72,9 @@ x-recorder: &recorder
     dockerfile: recorder/Dockerfile
   image: kylo-recorder:latest
   shm_size: "1gb"
-  restart: always
+  # Even explicit Compose starts or autoheal retries cannot run recorder code.
+  command: ["/bin/true"]
+  restart: "no"
   stop_grace_period: 1200s
   volumes:
     - ${RECORDER_PROFILES_DIR:-/srv/kylo-recorder-profiles}:/profiles
