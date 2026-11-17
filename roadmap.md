@@ -107,3 +107,5 @@
 - [x] Videógyár újraindulásának és a v3 videókészítő sikeres elkészültének igazolása a szerverjelentésből; blokkoló: Brain publikálása szükséges
 - [x] Goethe B2 profil: exam-promo-profiles-safe-v4 készítő (v3-másolat, csak examProfiles.ts új), engedélylista + deploy-blokk + 6 új próba, 133 teszt OK; gyártás nem indult
 - [ ] v4 szerveres telepítésének és önellenőrzésének igazolása életjelből; blokkoló: Brain publikálása szükséges
+- [ ] Vizsgaszimulátor: VPS-telepítés utáni önellenőrzés + valódi digest visszaküldése (tulajdonos futtatja SSH-n)
+- [ ] Vizsgaszimulátor: 1 HU próbarender — külön KyLogic-kérés és tulajdonosi jóváhagyás után
