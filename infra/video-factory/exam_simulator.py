@@ -9,6 +9,7 @@ RENDERER = "exam-simulator-safe-v1"
 SCENE = "exam-simulator-v1"
 RECIPE = "vizsgaszimulator-hu-trial"
 VERSION = "v1"
+VERSIONS = ("v1", "v2")
 FPS = 30
 WIDTH, HEIGHT = 1080, 1920
 MIN_SCENE_FRAMES = 17          # the master fades 8 frames in and 8 out of every scene
@@ -30,6 +31,9 @@ PINNED = {
     "audio/chime-mp3": ("fcefab215e46358851807eba77e5c0f98045089836400fcddd6888c3b8e21973", 58662),
     "audio/music-mp3": ("123fd86a29ade6f34bc2a7247098ebdac33163d7992be9687ffef6932367c212", 590152),
 }
+# v2 (owner-approved, KyLogic 2026-11-17): only the narration changed (sentences 1-2 slower, 3-7 unchanged).
+PINNED_BY_VERSION = {"v1": PINNED, "v2": dict(PINNED, **{
+    "audio/vo-hu-wav": ("506cd25c8d8c9e491131ac3e9d72af3467e44bb167f6d45153f343eeebfaaff1", 2578458)})}
 SCREENS = ["screens/magic-school-1-png", "screens/magic-school-2-png", "screens/magic-school-5-png", "screens/magic-school-6-png"]
 AUDIO = {"vo": "audio/vo-hu-wav", "whoosh": "audio/whoosh-mp3", "clock": "audio/clock-mp3",
          "heartbeat": "audio/heartbeat-mp3", "chime": "audio/chime-mp3", "music": "audio/music-mp3"}
@@ -77,7 +81,11 @@ def diagnose(manifest):
     errors = []
     if not isinstance(manifest, dict):
         return ["manifest: object required"]
-    expect = {"recipe": RECIPE, "version": VERSION, "series": "other", "renderer": RENDERER}
+    version = manifest.get("version")
+    if version not in VERSIONS:
+        errors.append("version: must be one of %r" % (VERSIONS,))
+    pinned = PINNED_BY_VERSION.get(version, PINNED)
+    expect = {"recipe": RECIPE, "series": "other", "renderer": RENDERER}
     for k, v in expect.items():
         if manifest.get(k) != v:
             errors.append("%s: must be %r" % (k, v))
@@ -104,11 +112,11 @@ def diagnose(manifest):
             errors.append("files[%d].sha256: 64 lowercase hex required" % i)
         if type(f["bytes"]) is not int or f["bytes"] < 1:
             errors.append("files[%d].bytes: positive integer required" % i)
-        if key not in PINNED:
+        if key not in pinned:
             errors.append("files[%d].key: not an approved trial input (%s)" % (i, key))
-        elif (f["sha256"], f["bytes"]) != PINNED[key]:
+        elif (f["sha256"], f["bytes"]) != pinned[key]:
             errors.append("files[%d]: checksum/size differ from the approved %s" % (i, key))
-    for key in PINNED:
+    for key in pinned:
         if key not in by_key:
             errors.append("files: missing %s" % key)
 

@@ -13,8 +13,34 @@ def envelope():
 
 
 class ExamSimWiring(unittest.TestCase):
-    def test_host_validator_is_byte_identical_to_pinned_renderer_copy(self):
-        self.assertEqual((HERE / "exam_simulator.py").read_bytes(), (HERE / "exam-simulator-renderer/validation/exam_simulator.py").read_bytes())
+    def test_renderer_copy_unchanged_and_v1_decisions_identical(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("es_img", HERE / "exam-simulator-renderer/validation/exam_simulator.py")
+        img = importlib.util.module_from_spec(spec); spec.loader.exec_module(img)
+        self.assertEqual(img.VERSION, "v1")
+        m = renderer_manifest()
+        self.assertEqual(es.diagnose(m), img.diagnose(m))
+        bad = copy.deepcopy(m); bad["videos"][0]["language"] = "fr"
+        self.assertEqual(es.diagnose(bad), img.diagnose(bad))
+
+    def test_v2_recipe_from_kylogic_timing_accepted(self):
+        import json
+        r = json.loads((HERE / "vizsgaszimulator-hu-trial-v2-recipe.json").read_text())
+        self.assertEqual(rt.diagnose(r), [])
+        self.assertTrue(es.validate_request(rt.request(r, r["videos"][0])))
+
+    def test_v2_with_old_narration_and_v1_with_new_narration_rejected(self):
+        import json
+        r = json.loads((HERE / "vizsgaszimulator-hu-trial-v2-recipe.json").read_text())
+        old = copy.deepcopy(r)
+        for f in old["files"]:
+            if f["key"] == "audio/vo-hu-wav":
+                f["sha256"], f["bytes"] = es.PINNED["audio/vo-hu-wav"]
+        self.assertTrue(any("checksum" in x for x in rt.diagnose(old)))
+        mixed = copy.deepcopy(r); mixed["version"] = "v1"
+        self.assertTrue(any("checksum" in x for x in rt.diagnose(mixed)))
+        v3 = copy.deepcopy(r); v3["version"] = "v3"
+        self.assertTrue(any("version" in x for x in rt.diagnose(v3)))
 
     def test_factory_envelope_accepted_and_projection_passes_renderer_check(self):
         e = envelope()

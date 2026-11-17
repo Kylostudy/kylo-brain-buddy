@@ -12,7 +12,7 @@ VERSION="$(sha256sum SHA256SUMS | cut -c1-16)"
 REL="/opt/kylo-video-factory/releases/$VERSION"
 if [ ! -d "$REL" ]; then
   mkdir -p "$REL"
-  for file in contract.py piggy.py piggy_i18n.py piggy_v2_runtime.py exam_simulator.py exam_sim_runtime.py exam_sim_caption.py exam_sim_caption_v2.tsx storage.py verify.py state.py client.py agent.py inventory.py inputs.py universal.py universal_state.py universal_runtime.py universal_media.py config.example.json kylo-video-factory.service SHA256SUMS; do
+  for file in contract.py piggy.py piggy_i18n.py piggy_v2_runtime.py exam_simulator.py exam_sim_runtime.py exam_sim_caption.py exam_sim_caption_v2.tsx exam_sim_master_v2.tsx exam_sim_composition_v2.tsx storage.py verify.py state.py client.py agent.py inventory.py inputs.py universal.py universal_state.py universal_runtime.py universal_media.py config.example.json kylo-video-factory.service SHA256SUMS; do
     install -m 644 "$SRC/$file" "$REL/$file"
   done
 fi
