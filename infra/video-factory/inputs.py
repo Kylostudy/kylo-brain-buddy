@@ -3,7 +3,7 @@ import base64
 import os
 from pathlib import Path
 import uuid
-from contract import validate_recipe
+from exam_sim_runtime import validate_recipe
 from storage import checksum, safe_path
 
 CHUNK_BYTES = 256 * 1024

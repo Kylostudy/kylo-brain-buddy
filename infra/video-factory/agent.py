@@ -138,7 +138,11 @@ class Runner:
         os.chown(work, 65532, 65532)
         os.chmod(work, 0o700)
         request = work.parent / (str(job["cursor"]) + ".request.json")
-        request.write_bytes(canonical({"manifest": manifest, "video": video}))
+        import exam_sim_runtime
+        exam_sim = exam_sim_runtime.targeted(manifest)
+        if exam_sim:
+            exam_sim_runtime.validate(manifest)
+        request.write_bytes(canonical(exam_sim_runtime.request(manifest, video) if exam_sim else {"manifest": manifest, "video": video}))
         os.chmod(request, 0o644)
         # Recovered crash: verify existing output instead of re-rendering it.
         output = work / "output.mp4"
@@ -166,7 +170,16 @@ class Runner:
                 os.fsync(w.fileno())
         finally:
             os.close(fd)
-        media_receipt = verify_video(checked, video)
+        if exam_sim:
+            # Only frozen-and-silent frames outside the protected windows are removed.
+            final, cut = exam_sim_runtime.tight_cut(checked, video)
+            media_receipt = verify_video(final, exam_sim_runtime.expected(video, cut["after_ms"]))
+            media_receipt["tight_cut"] = cut
+            if final != checked:
+                checked.unlink()
+                checked = final
+        else:
+            media_receipt = verify_video(checked, video)
         receipt = self.archive.save(key, checked, media_receipt)
         self.state.finish_video(job, key, receipt)
         # Only this verified temporary render is removable; masters/recipes/archive stay.
@@ -215,7 +228,7 @@ def main():
                     response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")
                     if command is not None:
-                        from contract import validate_command
+                        from exam_sim_runtime import validate_command
                         phase = 'validate_command'
                         validate_command(command)
                         if command["operation"] == "register_recipe":
