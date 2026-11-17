@@ -14,7 +14,7 @@ class CaptionOverlay(unittest.TestCase):
         self.assertTrue(m[1].endswith(":/app/sim-src/Caption.tsx:ro"))
 
     def test_other_recipes_untouched(self):
-        for k, v in (("recipe_id", "ielts-cs-trial"), ("version", "v3"), ("renderer", "piggy-bank-multilang-safe-v1")):
+        for k, v in (("recipe_id", "ielts-cs-trial"), ("version", "v4"), ("renderer", "piggy-bank-multilang-safe-v1")):
             self.assertEqual(c.caption_mounts({**M, k: v}, R), [])
 
     def test_unreviewed_image_rejected(self):
@@ -62,6 +62,22 @@ class CaptionOverlay(unittest.TestCase):
         # Static geometry at full scale; downward slide-in only lowers the phone (it is also scaled down then).
         phone = dict(left=210, right=210 + 680, top=250, bottom=250 + 820 + 80)
         card = dict(left=140, right=940, top=400, bottom=400 + 640)
+        for b in (phone, card):
+            self.assertTrue(b["left"] >= 65 and b["right"] <= 950 and b["top"] >= 231 and b["bottom"] <= 1459, b)
+
+    def test_v3_gets_v3_overlays_only(self):
+        m = c.caption_mounts({**M, "version": "v3"}, R)
+        joined = " ".join(m)
+        self.assertIn("exam_sim_master_v3.tsx:/app/sim-src/KyloExamSimulatorMaster.tsx:ro", joined)
+        self.assertNotIn("exam_sim_master_v2.tsx", joined)
+        self.assertNotIn("exam_sim_master_v3.tsx", " ".join(c.caption_mounts({**M, "version": "v2"}, R)))
+
+    def test_v3_measures_shadow_and_keeps_full_visible_box_in_zone(self):
+        comp = (SRC.parent / "exam_sim_composition_v3.tsx").read_text()
+        self.assertIn("boxShadow", comp); self.assertIn("sim_unsafe_element", comp)
+        # Worst case per frame: phone at full size (top 300, shadow 40px blur - 16px offset up, 40+16 down, 40 sideways).
+        phone = dict(left=210 - 40, right=890 + 40, top=300 - 24, bottom=360 + 780 + 56)
+        card = dict(left=165 - 28, right=915 + 28, top=420 - 28, bottom=1020 + 28)
         for b in (phone, card):
             self.assertTrue(b["left"] >= 65 and b["right"] <= 950 and b["top"] >= 231 and b["bottom"] <= 1459, b)
 

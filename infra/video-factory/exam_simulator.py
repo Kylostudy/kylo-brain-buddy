@@ -9,7 +9,7 @@ RENDERER = "exam-simulator-safe-v1"
 SCENE = "exam-simulator-v1"
 RECIPE = "vizsgaszimulator-hu-trial"
 VERSION = "v1"
-VERSIONS = ("v1", "v2")
+VERSIONS = ("v1", "v2", "v3")
 FPS = 30
 WIDTH, HEIGHT = 1080, 1920
 MIN_SCENE_FRAMES = 17          # the master fades 8 frames in and 8 out of every scene
@@ -33,7 +33,10 @@ PINNED = {
 }
 # v2 (owner-approved, KyLogic 2026-11-17): only the narration changed (sentences 1-2 slower, 3-7 unchanged).
 PINNED_BY_VERSION = {"v1": PINNED, "v2": dict(PINNED, **{
-    "audio/vo-hu-wav": ("506cd25c8d8c9e491131ac3e9d72af3467e44bb167f6d45153f343eeebfaaff1", 2578458)})}
+    "audio/vo-hu-wav": ("506cd25c8d8c9e491131ac3e9d72af3467e44bb167f6d45153f343eeebfaaff1", 2578458)}),
+    # v3 (owner-approved, KyLogic 2026-11-17): sentence 2 split + slower, sentence 3 slightly slower; rest identical.
+    "v3": dict(PINNED, **{
+    "audio/vo-hu-wav": ("f7b47ae4bdb8ec9004520ccaddfa5a800326e18acd4b4feabf505d5de1216b4a", 2672538)})}
 SCREENS = ["screens/magic-school-1-png", "screens/magic-school-2-png", "screens/magic-school-5-png", "screens/magic-school-6-png"]
 AUDIO = {"vo": "audio/vo-hu-wav", "whoosh": "audio/whoosh-mp3", "clock": "audio/clock-mp3",
          "heartbeat": "audio/heartbeat-mp3", "chime": "audio/chime-mp3", "music": "audio/music-mp3"}

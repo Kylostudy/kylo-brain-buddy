@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "recipe_id": "vizsgaszimulator-hu-trial",
+  "version": "v3",
+  "renderer": "exam-simulator-safe-v1",
+  "series": "other",
+  "languages": [
+    "hu"
+  ],
+  "files": [
+    {
+      "key": "screens/magic-school-1-png",
+      "bytes": 194627,
+      "sha256": "e9cdf2582f425eebcc86907970e15ed06ace2abc0b9275fef8d493541b6da3f4"
+    },
+    {
+      "key": "screens/magic-school-2-png",
+      "bytes": 36898,
+      "sha256": "8e13245fede394ded526b8f81533ba62191d312d09d7fdfb8889032ad847044f"
+    },
+    {
+      "key": "screens/magic-school-5-png",
+      "bytes": 132973,
+      "sha256": "3127975636659d9d95d9cbd5b008fe3d12f5af2e161f15542e500030416f0b23"
+    },
+    {
+      "key": "screens/magic-school-6-png",
+      "bytes": 224765,
+      "sha256": "edec0aa6253b69a5ab01b43b61b68ff9988d8245cac5f27f5369f1decbc440a3"
+    },
+    {
+      "key": "audio/vo-hu-wav",
+      "bytes": 2672538,
+      "sha256": "f7b47ae4bdb8ec9004520ccaddfa5a800326e18acd4b4feabf505d5de1216b4a"
+    },
+    {
+      "key": "audio/whoosh-mp3",
+      "bytes": 60647,
+      "sha256": "6af09290e91bec3cdca50ed617f3ec8822adba0d2af88de474aa17f4f5ed66bc"
+    },
+    {
+      "key": "audio/clock-mp3",
+      "bytes": 134231,
+      "sha256": "f70f8d92e1fb3991e40b5c24644dc29b28f9d01405155d06949e37ed49e4d827"
+    },
+    {
+      "key": "audio/heartbeat-mp3",
+      "bytes": 41175,
+      "sha256": "4f15d4ba0c2ba8c180d43f319cfecd9d71e86203e9aeb64b1343c5e494311ae1"
+    },
+    {
+      "key": "audio/chime-mp3",
+      "bytes": 58662,
+      "sha256": "fcefab215e46358851807eba77e5c0f98045089836400fcddd6888c3b8e21973"
+    },
+    {
+      "key": "audio/music-mp3",
+      "bytes": 590152,
+      "sha256": "123fd86a29ade6f34bc2a7247098ebdac33163d7992be9687ffef6932367c212"
+    }
+  ],
+  "videos": [
+    {
+      "video_id": "vizsgaszimulator-hu-v4-r3",
+      "language": "hu",
+      "width": 1080,
+      "height": 1920,
+      "scene": "exam-simulator-v1",
+      "text": {
+        "language": "hu",
+        "variant": 4,
+        "audience": "parent_facebook",
+        "skin": "magic_school"
+      },
+      "cta": {
+        "text": "Gyakorolja a dolgozatírást a Kylóval!",
+        "url": "kylo.study",
+        "tagline": "a te AI magántanárod"
+      },
+      "screens": [
+        "screens/magic-school-1-png",
+        "screens/magic-school-2-png",
+        "screens/magic-school-5-png",
+        "screens/magic-school-6-png"
+      ],
+      "audio": {
+        "vo": "audio/vo-hu-wav",
+        "whoosh": "audio/whoosh-mp3",
+        "clock": "audio/clock-mp3",
+        "heartbeat": "audio/heartbeat-mp3",
+        "chime": "audio/chime-mp3",
+        "music": "audio/music-mp3"
+      },
+      "timing": {
+        "fps": 30,
+        "sceneFrames": [
+          97,
+          134,
+          135,
+          119,
+          90,
+          94,
+          240
+        ],
+        "duration_ms": 30300,
+        "protected_windows_ms": [
+          [
+            16166,
+            19166
+          ]
+        ],
+        "black_outro_start_ms": 26700
+      },
+      "subtitle": [
+        {
+          "scene": 1,
+          "start_ms": 300,
+          "end_ms": 2343,
+          "text": "Holnap témazárót ír a gyereked?"
+        },
+        {
+          "scene": 2,
+          "start_ms": 3533,
+          "end_ms": 6815,
+          "text": "Este még tudja. Reggel már izgul."
+        },
+        {
+          "scene": 3,
+          "start_ms": 8000,
+          "end_ms": 11715,
+          "text": "Kylo megíratja vele a dolgozatot előre – a saját füzetéből."
+        },
+        {
+          "scene": 4,
+          "start_ms": 12500,
+          "end_ms": 15657,
+          "text": "Barátságosan, korrektül vagy szigorú professzorként."
+        },
+        {
+          "scene": 6,
+          "start_ms": 19467,
+          "end_ms": 21788,
+          "text": "Így a dolgozat már nem lesz ismeretlen."
+        },
+        {
+          "scene": 7,
+          "start_ms": 22600,
+          "end_ms": 24829,
+          "text": "Gyakorolja a dolgozatírást a Kylóval!"
+        },
+        {
+          "scene": 7,
+          "start_ms": 26700,
+          "end_ms": 30043,
+          "text": "kylo.study – a te AI magántanárod"
+        }
+      ]
+    }
+  ]
+}

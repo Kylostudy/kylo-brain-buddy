@@ -17,7 +17,13 @@ CAPTION_SHA256 = "c2f8e1a243bcfd40da665db7c48d14b0fb4744526bee1d694596e044a467c5
 V2_OVERLAYS = {
     "exam_sim_master_v2.tsx": ("/app/sim-src/KyloExamSimulatorMaster.tsx", "1054b48ee83a204514ac8a0daed4c5945f5749e63d4f7ab4dc048d201f6809d3"),
     "exam_sim_composition_v2.tsx": ("/app/sim-src/Composition.tsx", "cfbe49b385340b81ec522a0bea1a944a8619b158806a84f51eeb1e85d2097fbb"),
-    "exam_simulator.py": ("/app/validation/exam_simulator.py", "7817f0a774a102d5de56742b1c97dcc6113b6444a0873ee3ff6265e9b7f8da0e"),
+    "exam_simulator.py": ("/app/validation/exam_simulator.py", "0c01023150dd97eb0279c14f36039cfc5d05e7abc751d483a018223294074fb4"),
+}
+# v3 only: phone/card lowered with shadow margin, per-frame check of the full visible box (incl. shadow).
+V3_OVERLAYS = {
+    "exam_sim_master_v3.tsx": ("/app/sim-src/KyloExamSimulatorMaster.tsx", "e271f27792b43c4281376ad67313d8087f68648d05945f8055a32b5a3891f447"),
+    "exam_sim_composition_v3.tsx": ("/app/sim-src/Composition.tsx", "33fa1461fa36c23580e08699a34b8f5a010da862897bb6c61580e0071f1d8273"),
+    "exam_simulator.py": ("/app/validation/exam_simulator.py", "0c01023150dd97eb0279c14f36039cfc5d05e7abc751d483a018223294074fb4"),
 }
 REVIEWED_IMAGE = "sha256:9cb5cbd097e27ceacdf16394115d75848c97f494b7634894c349fed0782845c6"
 
@@ -32,7 +38,7 @@ def _checked(path, digest):
 
 def caption_mounts(manifest, renderer, source=None, root=None):
     version = manifest.get("version")
-    if (manifest.get("recipe_id") != "vizsgaszimulator-hu-trial" or version not in ("v1", "v2")
+    if (manifest.get("recipe_id") != "vizsgaszimulator-hu-trial" or version not in ("v1", "v2", "v3")
             or manifest.get("renderer") != "exam-simulator-safe-v1"):
         return []
     if (renderer.get("reviewed") is not True or renderer.get("scenes") != ["exam-simulator-v1"]
@@ -43,5 +49,8 @@ def caption_mounts(manifest, renderer, source=None, root=None):
     mounts = ["-v", str(path) + ":/app/sim-src/Caption.tsx:ro"]
     if version == "v2":
         for name, (target, digest) in V2_OVERLAYS.items():
+            mounts += ["-v", str(_checked(base / name, digest)) + ":" + target + ":ro"]
+    if version == "v3":
+        for name, (target, digest) in V3_OVERLAYS.items():
             mounts += ["-v", str(_checked(base / name, digest)) + ":" + target + ":ro"]
     return mounts

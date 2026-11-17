@@ -39,8 +39,8 @@ class ExamSimWiring(unittest.TestCase):
         self.assertTrue(any("checksum" in x for x in rt.diagnose(old)))
         mixed = copy.deepcopy(r); mixed["version"] = "v1"
         self.assertTrue(any("checksum" in x for x in rt.diagnose(mixed)))
-        v3 = copy.deepcopy(r); v3["version"] = "v3"
-        self.assertTrue(any("version" in x for x in rt.diagnose(v3)))
+        v4 = copy.deepcopy(r); v4["version"] = "v4"
+        self.assertTrue(any("version" in x for x in rt.diagnose(v4)))
 
     def test_factory_envelope_accepted_and_projection_passes_renderer_check(self):
         e = envelope()
@@ -91,6 +91,19 @@ class ExamSimWiring(unittest.TestCase):
     def test_no_gap_means_no_cut(self):
         kept, removed = rt.plan([(1.0, 3.0)], [(5.0, 6.0)], [], 833)
         self.assertEqual((len(kept), removed), (833, []))
+
+
+class V3RecipeTest(unittest.TestCase):
+    def test_v3_recipe_accepted_and_v2_audio_rejected(self):
+        import json, exam_sim_runtime as r
+        d = json.loads((HERE / "vizsgaszimulator-hu-trial-v3-recipe.json").read_text())
+        self.assertEqual(r.diagnose(d), [])
+        self.assertEqual(d["videos"][0]["timing"]["sceneFrames"], [97, 134, 135, 119, 90, 94, 240])
+        bad = json.loads(json.dumps(d))
+        for f in bad["files"]:
+            if f["key"] == "audio/vo-hu-wav":
+                f.update(sha256="506cd25c8d8c9e491131ac3e9d72af3467e44bb167f6d45153f343eeebfaaff1", bytes=2578458)
+        self.assertTrue(any("checksum" in e for e in r.diagnose(bad)))
 
 
 if __name__ == "__main__":
