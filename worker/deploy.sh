@@ -390,6 +390,18 @@ if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$V
     echo 'PIGGY-I18N: külön többnyelvű kiadás kérve; nincs gyártás vagy receptregisztráció'
   fi
 fi
+if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-exam-simulator-renderer.sh' ]; then
+  if systemctl is-active --quiet kylo-exam-simulator-renderer-prepare.service; then
+    echo SIM: vizsgaszimulátor-készítő előkészítése folyamatban
+  else
+    systemd-run --unit=kylo-exam-simulator-renderer-prepare --collect --property=Type=exec --property=Restart=no \
+      --property=RuntimeMaxSec=10000 --property=KillMode=process \
+      --property=StandardOutput=append:/var/log/kylo-exam-simulator-renderer-install.log \
+      --property=StandardError=append:/var/log/kylo-exam-simulator-renderer-install.log \
+      /bin/bash '$VF_SRC/prepare-exam-simulator-renderer.sh' '$VF_SRC' '$VF_VER'
+    echo 'SIM: vizsgaszimulátor-készítő telepítése kérve; nincs gyártás, narráció vagy receptregisztráció'
+  fi
+fi
 if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-universal-renderer.sh' ]; then
   if systemctl is-active --quiet kylo-universal-renderer-prepare.service; then
     echo UNIVERSAL: előkészítés folyamatban

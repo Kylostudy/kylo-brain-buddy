@@ -1,0 +1,3 @@
+- Additive exam-simulator release (exam-simulator-safe-v1, scene exam-simulator-v1); existing renderers stay untouched, because their recipes and receipts must keep their meaning.
+- Only the single Hungarian vizsgaszimulator-hu-trial may validate here; captions, narration hash, screens and sound-effect hashes are pinned in validation/exam_simulator.py, because the narration must never be regenerated and other languages need their own approval.
+- The Remotion master renders silent video; captions are local Remotion text measured against the caption-safe zone, and the audio (VO, effects, ducked music, -14 LUFS) is mixed locally by ffmpeg in validation/exam_audio.py; no remote render service.

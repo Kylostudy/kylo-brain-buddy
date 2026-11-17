@@ -56,6 +56,7 @@ ALLOWED_EXTRA = {"ielts-promo-fonts-v1": ["ielts-promo-v1"], "exam-promo-profile
 ALLOWED_EXTRA["piggy-bank-safe-v1"] = ["piggy-bank-v1"]
 ALLOWED_EXTRA["piggy-bank-layout-safe-v2"] = ["piggy-bank-v1"]
 ALLOWED_EXTRA["piggy-bank-multilang-safe-v1"] = ["piggy-bank-i18n-v1"]
+ALLOWED_EXTRA["exam-simulator-safe-v1"] = ["exam-simulator-v1"]
 if extra.exists():
     import re
     additions = json.loads(extra.read_text())
