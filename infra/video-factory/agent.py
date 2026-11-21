@@ -49,7 +49,7 @@ def record_failure(config, job, code, detail):
         videos = manifest.get("videos") or []
         cursor = job.get("cursor", 0)
         video = videos[cursor] if isinstance(cursor, int) and 0 <= cursor < len(videos) else {}
-        body = {"at": int(time.time()), "job_id": job.get("id"), "cursor": cursor,
+        body = {"at": int(time.time()), "job_id": job.get("id"), "cursor": cursor, "attempt": job.get("attempts"),
                 "recipe_id": manifest.get("recipe_id"), "version": manifest.get("version"),
                 "video_id": video.get("video_id"), "code": code, "detail": detail}
         tmp = root / (FAILURE_FILE + ".tmp")
