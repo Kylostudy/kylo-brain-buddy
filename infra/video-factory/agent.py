@@ -21,6 +21,26 @@ from inputs import Inputs, readable_inputs
 FAILURE_FILE = "last-render-failure.json"
 
 
+def refresh_series_renderer(config, config_path=Path('/etc/kylo-video-factory/config.json'),
+                            reviewed_path=Path('/etc/kylo-video-factory/reviewed-renderers.json')):
+    """Refresh only the installed series binding, never resources, credentials or legacy entries."""
+    import copy
+    import re
+    import seven_series as series
+    disk = json.loads(config_path.read_text())
+    reviewed = json.loads(reviewed_path.read_text())
+    entry = disk.get('renderers', {}).get(series.RENDERER)
+    if (not isinstance(entry, dict) or entry != reviewed.get(series.RENDERER)
+            or entry.get('reviewed') is not True or entry.get('scenes') != series.SCENES):
+        raise ValueError('seven_series_renderer_binding')
+    if not re.fullmatch(r'sha256:[a-f0-9]{64}', str(entry.get('image', ''))):
+        raise ValueError('seven_series_renderer_digest')
+    old = config.get('renderers', {}).get(series.RENDERER)
+    if old is not None and old != entry:
+        raise ValueError('immutable_renderer_conflict')
+    config.setdefault('renderers', {})[series.RENDERER] = copy.deepcopy(entry)
+
+
 def failure_detail(exc):
     """Bounded diagnostic: exception class, message, failing code line and renderer stderr tail."""
     import traceback
@@ -112,6 +132,7 @@ class Runner:
         import seven_series
         is_series = seven_series.targeted(manifest)
         if is_series:
+            refresh_series_renderer(self.config)
             from seven_series_state import before_render
             before_render(self.state, job, self.config)
         video = manifest["videos"][job["cursor"]]
@@ -255,6 +276,7 @@ def main():
                         if command["operation"] == "self_check":
                             from seven_series_preflight import run as series_preflight
                             from seven_series_state import record
+                            refresh_series_renderer(config, config_path)
                             record(state, series_preflight(config, state))
                         if command["operation"] == "register_recipe":
                             phase = 'self_check'
