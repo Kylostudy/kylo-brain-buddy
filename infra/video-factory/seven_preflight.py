@@ -11,6 +11,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import seven_stories as seven
+import seven_audio
 
 
 def failure_detail(error, stage):
@@ -23,6 +24,8 @@ def failure_detail(error, stage):
     if isinstance(error, ValueError) and str(error) in {
         "seven_audio_duration", "seven_alignment_invalid",
         "seven_subtitles_invalid", "seven_outro_speech_outside_outro",
+        "seven_renderer_binding", "seven_renderer_digest", "renderer_review_required",
+        "low_disk", "seven_legacy_self_check_failed",
     }:
         detail["reason"] = str(error)
     return detail
@@ -61,15 +64,14 @@ def run(root, config=None, registered=False):
         if not row["errors"]:
             stage = "audio_probe"
             try:
-                p = json.loads(subprocess.check_output(["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(audio)], timeout=30))
-                stage = "audio_duration"
-                seconds = float(p["format"]["duration"])
-                if len([s for s in p["streams"] if s["codec_type"] == "audio"]) != 1 or abs(seconds - t["audio_duration_seconds"]) > .002 or t["duration_ms"] < seconds * 1000 + 2000:
-                    raise ValueError("seven_audio_duration")
+                stream = seven_audio.probe(audio)
                 row["checked"].append("audio_probe")
                 stage = "full_audio_decode"
-                subprocess.run(["ffmpeg", "-v", "error", "-xerror", "-i", str(audio), "-f", "null", "-"], check=True, capture_output=True, timeout=120)
+                measurement = seven_audio.decode(audio, stream)
                 row["checked"].append("full_audio_decode")
+                stage = "audio_duration"
+                row["audio_measurement"] = seven_audio.validate_duration(measurement, t["audio_duration_seconds"], t["duration_ms"])
+                seconds = measurement["samples"] / measurement["sample_rate"]
                 stage = "alignment"
                 alignment = json.loads(paths["alignment.json"].read_text())
                 chars, a, b = [alignment[k] for k in ("characters", "character_start_times_seconds", "character_end_times_seconds")]
@@ -93,6 +95,7 @@ def run(root, config=None, registered=False):
     if config is None:
         report["skipped_checks"].extend(["installed_renderer_digest", "reviewed_config_match", "host_disk_space", "legacy_full_self_check"])
     else:
+        stage = "reviewed_config_match"
         try:
             c = json.loads(Path(config).read_text())
             reviewed = json.loads((Path(config).parent / "reviewed-renderers.json").read_text())
@@ -102,20 +105,27 @@ def run(root, config=None, registered=False):
             import re
             if not re.fullmatch(r"sha256:[a-f0-9]{64}", r.get("image", "")):
                 raise ValueError("seven_renderer_digest")
+            stage = "installed_renderer_digest"
             image = subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Id}}", r["image"]], timeout=30, text=True).strip()
             if image != r["image"]:
                 raise ValueError("seven_renderer_digest")
             report["image"] = image
+            stage = "audio_check_overlays"
+            from seven_audio_runtime import audio_mounts, OVERLAYS
+            audio_mounts(seven.template(seven.STORIES[0]), r)
+            report["audio_check_overlays"] = {name: digest for name, (_, digest) in OVERLAYS.items()}
+            stage = "host_disk_space"
             for key in ("work_root", "archive_root"):
                 d = shutil.disk_usage(c[key])
                 if d.free < c["min_free_bytes"] or d.used/d.total > c["max_disk_fraction"]:
                     raise ValueError("low_disk")
             from universal_runtime import self_check
+            stage = "legacy_full_self_check"
             report["legacy_self_check"] = self_check(c)
             if not report["legacy_self_check"].get("ok"):
                 raise ValueError("seven_legacy_self_check_failed")
-        except (ValueError, KeyError, OSError, subprocess.SubprocessError):
-            report["errors"].append({"field": "host", "code": "seven_host_check_failed"})
+        except (ValueError, KeyError, OSError, subprocess.SubprocessError) as error:
+            report["errors"].append({"field": "host", "code": "seven_host_check_failed", **failure_detail(error, stage)})
     report["skipped_checks"] += ["VPS_composition_frame_QA", "decoded_output_waveform", "archived_MP4_readback", "KyLogic_ack"]
     report["preparation_ok"] = report["input_ok"] and not report["errors"] and report["image"] is not None
     report["ok"] = report["preparation_ok"] and not report["skipped_checks"]

@@ -149,7 +149,8 @@ class Runner:
         if not output.exists():
             from piggy_v2_runtime import validator_mounts
             from exam_sim_caption import caption_mounts
-            validation_mounts = validator_mounts(manifest, renderer) + caption_mounts(manifest, renderer)
+            from seven_audio_runtime import audio_mounts
+            validation_mounts = validator_mounts(manifest, renderer) + caption_mounts(manifest, renderer) + audio_mounts(manifest, renderer)
             subprocess.run(["/usr/bin/docker", "run", "--rm", "--name", "kylo-video-factory-render",
                 "--network", "none", "--cpus", str(self.config["cpus"]), "--memory", self.config["memory"],
                 "--memory-swap", self.config["memory"], "--pids-limit", "256", "--read-only", "--cap-drop", "ALL",

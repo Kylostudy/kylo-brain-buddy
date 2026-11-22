@@ -2,7 +2,10 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock
+import json
+import sys
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 from state import State
 
 spec = importlib.util.spec_from_file_location("self_check_only", Path(__file__).with_name("self-check-only.py"))
@@ -31,3 +34,34 @@ class CheckOnlyTests(unittest.TestCase):
             result = module.run({"agent_id": "factory-finnish-vps-1"}, state, client, lambda c: {"ok": True, "checks": []})
             self.assertFalse(result["kylogic_acknowledged"])
             self.assertEqual(len(state.pending()), 1)
+
+    def test_seven_diagnostic_emits_only_its_own_event_without_trial(self):
+        with tempfile.TemporaryDirectory() as d:
+            state = State(Path(d) / "state.sqlite3")
+            client = Mock()
+            client.request.side_effect = lambda op, event: {"acknowledged_event_id": event["event_id"]}
+            report = {"contract_id": "kylo-seven-stories-hu-v1", "input_ok": True, "preparation_ok": True, "ok": False, "render_started": False}
+            result = module.run({"agent_id": "factory-finnish-vps-1"}, state, client, lambda c: report)
+            self.assertTrue(result["kylogic_acknowledged"])
+            self.assertEqual([c.args[0] for c in client.request.call_args_list], ["events"])
+            with state.transaction() as db:
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM jobs").fetchone()[0], 0)
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM recipes").fetchone()[0], 0)
+
+    def test_seven_cli_readiness_requires_preparation_and_ack_not_production_qa(self):
+        config = {"recipe_root": "/recipes", "work_root": "/work", "kylogic_origin": "https://example.invalid", "agent_id": "test-agent"}
+        for acknowledged, code in ((True, 0), (False, 3)):
+            result = {"ok": False, "preparation_ok": True, "kylogic_acknowledged": acknowledged}
+            with patch.object(sys, "argv", ["self-check-only.py", "--seven-stories"]), \
+                    patch.object(Path, "read_text", side_effect=[json.dumps(config), "test-only"]), \
+                    patch.object(Path, "stat", return_value=SimpleNamespace(st_mode=0o600)), \
+                    patch.object(Path, "write_text"), patch.object(module.os, "chmod"), \
+                    patch.object(module.os, "replace") as replace, \
+                    patch.object(module, "State"), patch.object(module, "Client"), \
+                    patch.object(module, "run", return_value=result) as run, \
+                    patch("builtins.print"), patch("seven_preflight.run", return_value=result) as preflight:
+                self.assertEqual(module.main(), code)
+                checker = run.call_args.args[3]
+                self.assertEqual(checker(config), result)
+                preflight.assert_called_once_with("/recipes", "/etc/kylo-video-factory/config.json", registered=True)
+                self.assertEqual(str(replace.call_args.args[1]), "/var/lib/kylo-video-factory/seven-stories-preflight.json")

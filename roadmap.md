@@ -1,7 +1,8 @@
 # Roadmap
 
 - [x] 2026-11-22 hét történet előellenőrzési jelentési hiba: VPS-visszaolvasás és 21 változatlan bemenet ellenőrizve mindkét könyvtárszerkezetben; lépésenkénti kitakart hibajelentés és teljesített/kihagyott vizsgálatok szétválasztása elkészült, elfogadási szabályok változatlanok.
-- [ ] Hét történet VPS-előellenőrzés alapul szolgáló hibája: helyben nem reprodukálható; blokkoló a tulajdonos SSH-s, csak olvasó kivételdiagnosztikája. Utána igazolt ok célzott javítása, friss VPS `input_ok`/`preparation_ok` és KyLogic-átvétel; próbát csak KyLogic indít.
+- [x] Hét történet hanghossz-javítás: a 16:02:09 UTC-s VPS-hosszak a kódolt MP3-kitöltéssel együttiek; közös teljes dekódolt mintaszám-mérés, azonos képre/receptre kötött read-only készítőjavítás, telepítőlisták/checksumok és kizárólag diagnosztikai ACK-küldés elkészült. 334 teszt + 14 valódi bemeneti ellenőrzés sikeres, nincs videógyártás.
+- [ ] Hét történet javításának VPS-átvétele: blokkoló az egyszeri frissítés és SSH-s `self-check-only.py --seven-stories` eredménye; friss `input_ok:true`/`preparation_ok:true`, változatlan kép/javítóhash-ek és KyLogic ACK szükséges. A beküldött régi teljes önellenőrzés külön hibája is visszaolvasandó; próbát csak KyLogic indít siker után.
 
 - [x] Hét magyar történet (2026-11-22): elkülönített készítő/adapter, hét hash-kötött HU próba, közös automatikus előellenőrzés és védett jelentés; 314 gyári + 15 diagnosztikai teszt, 170 böngészős képkockaminta és hét változatlan beszédű hangpróba sikeres. Jelentés/szerződés átadva, gyártás/regisztráció nem indult.
 - [ ] Hét történet VPS-igazolása: tényleges új képdigest, friss életjel, teljes szerveres előellenőrzés és KyLogic-átvétel; blokkoló a frissített kiadás VPS-re juttatása és visszaolvasása. Hét próbát csak KyLogic indít, hajóval kezdve.

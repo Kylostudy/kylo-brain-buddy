@@ -14,13 +14,13 @@ class PreflightDiagnostics(unittest.TestCase):
         def probe(*args, **kwargs):
             if probe_error is not None:
                 raise probe_error
-            return json.dumps({"format": {"duration": seven.APPROVED["stories"]["auto"]["timeline"]["audio_duration_seconds"]}, "streams": [{"codec_type": "audio"}]})
+            return json.dumps({"streams": [{"codec_type": "audio", "sample_rate": "44100", "channels": 1}]})
 
         with tempfile.TemporaryDirectory() as root, \
                 patch.object(seven, "STORIES", ["auto"]), \
                 patch.object(preflight, "checked_file", return_value=True), \
                 patch.object(subprocess, "check_output", side_effect=probe), \
-                patch.object(subprocess, "run", side_effect=decode_error), \
+                patch.object(subprocess, "run", side_effect=decode_error, return_value=subprocess.CompletedProcess([], 0, stdout=b"\0\0" * 1083392)), \
                 patch.object(Path, "read_text", side_effect=alignment_error):
             return preflight.run(root)
 
