@@ -2,9 +2,12 @@
 import uuid
 import seven_stories as seven
 import seven_caption_v2 as caption_v2
+import seven_series as series
 
 
 def validate_recipe(raw):
+    if series.targeted(raw):
+        return series.validate(raw)
     if caption_v2.targeted(raw):
         return caption_v2.validate(raw)
     if seven.targeted(raw):
@@ -15,6 +18,8 @@ def validate_recipe(raw):
 
 def validate_command(raw):
     from contract import keys
+    if isinstance(raw, dict) and (series.targeted(raw.get("payload")) or raw.get("operation") == "self_check"):
+        return series.validate_command(raw)
     if isinstance(raw, dict) and isinstance(raw.get("payload"), dict):
         p, op = raw["payload"], raw.get("operation")
         if op == "register_recipe" and seven.targeted(p):

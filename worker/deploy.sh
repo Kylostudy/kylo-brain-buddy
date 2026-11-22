@@ -414,6 +414,18 @@ if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$V
     echo 'SEVEN: külön készítő telepítése kérve; nincs gyártás, narráció vagy receptregisztráció'
   fi
 fi
+if [ -f /var/lib/kylo-video-factory/seven-stories-renderer-status.json ] && [ -f '$VF_SRC/prepare-seven-series-renderer.sh' ]; then
+  if systemctl is-active --quiet kylo-seven-series-renderer-prepare.service; then
+    echo SEVEN-I18N: sorozatkészítő előkészítése folyamatban
+  else
+    systemd-run --unit=kylo-seven-series-renderer-prepare --collect --property=Type=exec --property=Restart=no \
+      --property=RuntimeMaxSec=10000 --property=KillMode=process \
+      --property=StandardOutput=append:/var/log/kylo-seven-series-renderer-install.log \
+      --property=StandardError=append:/var/log/kylo-seven-series-renderer-install.log \
+      /bin/bash -c \"/bin/bash '$VF_SRC/prepare-seven-series-renderer.sh' '$VF_SRC' '$VF_VER' && /bin/bash '$VF_SRC/activate-manager.sh' '$VF_VER'\"
+    echo 'SEVEN-I18N: külön 26 nyelvű készítő előkészítése kérve; nincs recept, hang vagy gyártási parancs'
+  fi
+fi
 if [ -f /var/lib/kylo-video-factory/ielts-continuation-status.json ] && [ -f '$VF_SRC/prepare-universal-renderer.sh' ]; then
   if systemctl is-active --quiet kylo-universal-renderer-prepare.service; then
     echo UNIVERSAL: előkészítés folyamatban

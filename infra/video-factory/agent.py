@@ -109,6 +109,11 @@ class Runner:
 
     def render(self, job):
         manifest = job["manifest"]
+        import seven_series
+        is_series = seven_series.targeted(manifest)
+        if is_series:
+            from seven_series_state import before_render
+            before_render(self.state, job, self.config)
         video = manifest["videos"][job["cursor"]]
         key = f'{manifest["recipe_id"]}/{manifest["version"]}/{video["video_id"]}'
         old = self.state.output(key)
@@ -183,7 +188,10 @@ class Runner:
         else:
             media_receipt = verify_video(checked, video)
             import seven_stories
-            if seven_stories.targeted(manifest):
+            if is_series:
+                from seven_series_media import verify as verify_series
+                media_receipt["seven_stories"] = verify_series(checked, safe_path(recipe_root, video["audio"]["vo"]), work / "layout.jsonl", video)
+            elif seven_stories.targeted(manifest):
                 from seven_media import verify as verify_seven
                 if manifest["version"] == "v2":
                     from seven_media_v2 import verify as verify_seven
@@ -233,7 +241,7 @@ def main():
                     phase = 'heartbeat'
                     client.request("heartbeat", {"schema_version": 1, "agent_id": config["agent_id"], "takeover_approved": config["takeover_approved"], "pending_events": len(state.pending())})
                     phase = 'claim'
-                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2", "seven-stories-hu-v1", "seven-stories-hu-caption-v2"], "batch_size": 5, "concurrency": 1})
+                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2", "seven-stories-hu-v1", "seven-stories-hu-caption-v2", "seven-stories-i18n-v1"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")
                     if command is not None:
                         from recipe_runtime import validate_command
@@ -244,10 +252,18 @@ def main():
                             inputs.prepare(command["payload"])
                         phase = 'apply_command'
                         state.apply(command)
+                        if command["operation"] == "self_check":
+                            from seven_series_preflight import run as series_preflight
+                            from seven_series_state import record
+                            record(state, series_preflight(config, state))
                         if command["operation"] == "register_recipe":
                             phase = 'self_check'
                             import seven_stories
-                            if seven_stories.targeted(command["payload"]):
+                            import seven_series
+                            if seven_series.targeted(command["payload"]):
+                                # Only the explicit aggregate self_check can authorize the full set.
+                                check_result = {"ok": False, "registered": True, "aggregate_self_check_required": True, "contract_id": seven_series.CONTRACT_ID}
+                            elif seven_stories.targeted(command["payload"]):
                                 from seven_preflight import run as seven_preflight
                                 check_result = seven_preflight(config["recipe_root"], config_path, registered=True, version=command["payload"]["version"])
                                 target = Path(config["work_root"]).parent / "seven-stories-preflight.json"

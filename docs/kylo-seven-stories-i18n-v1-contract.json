@@ -1,0 +1,195 @@
+{
+  "contract_id": "kylo-seven-stories-i18n-v1",
+  "renderer": "seven-stories-i18n-safe-v1",
+  "version": "v1",
+  "schema_version": 1,
+  "stories": [
+    "hajo",
+    "auto",
+    "repulo",
+    "ust",
+    "szamlatorony",
+    "hatizsak",
+    "malacpersely-uj"
+  ],
+  "languages": [
+    "en",
+    "de",
+    "nl",
+    "fr",
+    "ja",
+    "es",
+    "pt",
+    "it",
+    "ko",
+    "pl",
+    "no",
+    "sv",
+    "cs",
+    "tr",
+    "sk",
+    "sl",
+    "da",
+    "fi",
+    "ar",
+    "hi",
+    "sr",
+    "ru",
+    "ro",
+    "hr",
+    "el",
+    "zh"
+  ],
+  "total_videos": 182,
+  "recipe_ids": [
+    "seven-stories-hajo-series",
+    "seven-stories-auto-series",
+    "seven-stories-repulo-series",
+    "seven-stories-ust-series",
+    "seven-stories-szamlatorony-series",
+    "seven-stories-hatizsak-series",
+    "seven-stories-malacpersely-uj-series"
+  ],
+  "scenes": [
+    "seven-stories-auto-i18n-v1",
+    "seven-stories-hajo-i18n-v1",
+    "seven-stories-hatizsak-i18n-v1",
+    "seven-stories-malacpersely-uj-i18n-v1",
+    "seven-stories-repulo-i18n-v1",
+    "seven-stories-szamlatorony-i18n-v1",
+    "seven-stories-ust-i18n-v1"
+  ],
+  "files_per_recipe": 78,
+  "videos_per_recipe": 26,
+  "audio_policy": {
+    "start_ms": 0,
+    "playback_rate": 1,
+    "trim": false,
+    "regenerate": false,
+    "speed_filters": [],
+    "tight_cut": false
+  },
+  "safe_zone": {
+    "left": 65,
+    "right": 950,
+    "top": 231,
+    "bottom": 1459
+  },
+  "trial_days": 14,
+  "last_but_one_caption": "kylo.study",
+  "direction": {
+    "ar": "rtl",
+    "default": "ltr"
+  },
+  "archive_policy": {
+    "path": "videos/versioned-factory/<recipe_id>/v1/<story>-<language>.mp4",
+    "overwrite": false,
+    "publish_social": false
+  },
+  "concurrency": 1,
+  "batch_size": 5,
+  "required_preflight": "all seven registered recipes, 182 inputs, seven archived HU-v2 anchors, reviewed image/fonts/disk, acknowledged self_check event",
+  "video_required_fields": [
+    "video_id",
+    "language",
+    "story",
+    "scene",
+    "width",
+    "height",
+    "duration_ms",
+    "timeline",
+    "audio"
+  ],
+  "timeline_required_fields": [
+    "sceneFrames",
+    "timing",
+    "duration_ms",
+    "audio_duration_us",
+    "audio_sha256",
+    "audio_policy",
+    "safe_zone",
+    "subtitles",
+    "cta",
+    "trial_days",
+    "slogan",
+    "tool_labels",
+    "direction",
+    "protected_windows_ms"
+  ],
+  "alignment_fields": [
+    "characters",
+    "character_start_times_seconds",
+    "character_end_times_seconds"
+  ],
+  "input_keys": {
+    "vo": "<language>/narration-mp3",
+    "alignment": "<language>/alignment-json",
+    "timeline": "<language>/timeline-json"
+  },
+  "hu_anchor_fields": [
+    "recipe_id",
+    "version",
+    "receipt_sha256"
+  ],
+  "operations": {
+    "register_recipe": {
+      "schema_version": 1,
+      "delivery_id": "UUID",
+      "operation": "register_recipe",
+      "payload": "complete recipe"
+    },
+    "self_check": {
+      "schema_version": 1,
+      "delivery_id": "UUID",
+      "operation": "self_check",
+      "payload": {
+        "contract_id": "kylo-seven-stories-i18n-v1"
+      }
+    },
+    "start_series": {
+      "schema_version": 1,
+      "delivery_id": "UUID",
+      "operation": "start_series",
+      "payload": {
+        "recipe_id": "seven-stories-<story>-series",
+        "version": "v1",
+        "preflight_event_id": "ACKed self_check UUID",
+        "approval": {
+          "approval_id": "UUID",
+          "recipe_sha256": "canonical recipe SHA256",
+          "trial_receipt_sha256": "canonical archived HU-v2 receipt SHA256",
+          "approved_at": "UTC epoch seconds",
+          "owner_authorized": true
+        }
+      }
+    }
+  },
+  "canonical_json": {
+    "implementation": "json.dumps(value,sort_keys=True,separators=(\",\",\":\"),ensure_ascii=False).encode(\"utf-8\")",
+    "numbers": "integer milliseconds, integer audio_duration_us; no floating point timing in manifest",
+    "file_sha256": "SHA256 over exact bytes",
+    "receipt_sha256": "SHA256 over canonical full receipt including media and schema_version"
+  },
+  "source_package": {
+    "directory": "<story>/<language>/",
+    "files": [
+      "narration.mp3",
+      "alignment.json",
+      "timeline.json"
+    ],
+    "timeline_source_fields": [
+      "sceneFrames",
+      "audio_duration_us",
+      "subtitles",
+      "cta",
+      "slogan",
+      "tool_labels"
+    ],
+    "assembler": "infra/video-factory/seven_series_export.py",
+    "timing_generation": "round-half-to-even cumulative sceneFrames * 1000 / 30, assembler is authoritative",
+    "audio_duration_us": "full native-rate decoded PCM samples/sample_rate; excludes encoder padding",
+    "cta_and_slogan": "owner-reviewed local translations; numeric trial_days must equal 14; four local tool labels required",
+    "outro_subtitles": "last but one text exactly kylo.study; final text exactly local slogan; both within audio; kylo.study start at or after seventh-scene start",
+    "subtitles": "sorted nonoverlapping integer start_ms/end_ms/text; natural narration; split long sentences into caption chunks"
+  }
+}

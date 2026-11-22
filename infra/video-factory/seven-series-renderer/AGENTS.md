@@ -1,0 +1,2 @@
+- This additive multilingual image derives from the reviewed Hungarian image and embeds its own series validators; old images and HU contracts remain immutable because their receipts are already approved.
+- Series starts require all seven registered recipe hashes, archived HU-v2 anchors and an acknowledged aggregate check; preparation never queues production because installation is not execution authority.

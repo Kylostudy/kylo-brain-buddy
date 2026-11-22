@@ -21,6 +21,10 @@ CAPTION_V2_OVERLAYS = {
 
 
 def audio_mounts(manifest, renderer, root=None):
+    import seven_series
+    if seven_series.targeted(manifest):
+        # The separate reviewed image embeds its own validator; HU overlays never apply.
+        return []
     if not seven.targeted(manifest):
         return []
     from recipe_runtime import validate_recipe

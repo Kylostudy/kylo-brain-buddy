@@ -71,6 +71,9 @@ def collect():
         "seven_stories_prepare_install": tail_file("/var/log/kylo-seven-stories-renderer-install.log"),
         "seven_stories_renderer_status": tail_file("/var/lib/kylo-video-factory/seven-stories-renderer-status.json"),
         "seven_stories_preflight": tail_file("/var/lib/kylo-video-factory/seven-stories-preflight.json"),
+        "seven_series_prepare_unit": command(["systemctl", "show", "kylo-seven-series-renderer-prepare.service", "--no-pager", "--property=LoadState,ActiveState,SubState,Result,ExecMainStatus"]),
+        "seven_series_prepare_install": tail_file("/var/log/kylo-seven-series-renderer-install.log"),
+        "seven_series_renderer_status": tail_file("/var/lib/kylo-video-factory/seven-series-renderer-status.json"),
         "universal_prepare_journal": command(["journalctl", "-u", "kylo-universal-renderer-prepare.service", "-n", "30", "--no-pager", "-o", "short-iso"]),
     }
 

@@ -25,6 +25,8 @@ class State:
             """)
             from universal_state import tables
             tables(db)
+            from seven_series_state import tables as series_tables
+            series_tables(db)
 
     @contextmanager
     def transaction(self):
@@ -66,6 +68,11 @@ class State:
                     raise ValueError("immutable_recipe_conflict")
                 db.execute("INSERT OR IGNORE INTO recipes VALUES(?,?,?,?)", (p["recipe_id"], p["version"], digest(p), canonical(p).decode()))
                 result = {"status": "registered", "recipe_sha256": digest(p)}
+            elif op == "self_check":
+                result = {"status": "self_check_requested", "contract_id": p["contract_id"]}
+            elif op == "start_series" and __import__('seven_series').targeted(p):
+                from seven_series_state import start
+                result = start(self, db, p)
             elif op in {"trial", "start_series"}:
                 recipe = db.execute("SELECT * FROM recipes WHERE id=? AND version=?", (p["recipe_id"], p["version"])).fetchone()
                 if not recipe:
@@ -154,7 +161,7 @@ class State:
                 self.emit(db, "final_error" if status == "failed" else "lease_recovered", stale["id"], {"code": "lease_expired", "attempts": attempts})
             if db.execute("SELECT 1 FROM jobs WHERE lease IS NOT NULL").fetchone():
                 return None
-            row = db.execute("SELECT j.*,r.manifest,r.hash FROM jobs j JOIN recipes r ON r.id=j.recipe AND r.version=j.version WHERE j.status='queued' ORDER BY j.rowid LIMIT 1").fetchone()
+            row = db.execute("SELECT j.*,r.manifest,r.hash FROM jobs j JOIN recipes r ON r.id=j.recipe AND r.version=j.version WHERE j.status='queued' AND (json_extract(r.manifest,'$.renderer') != 'seven-stories-i18n-safe-v1' OR NOT EXISTS (SELECT 1 FROM jobs s JOIN recipes sr ON sr.id=s.recipe AND sr.version=s.version WHERE json_extract(sr.manifest,'$.renderer')='seven-stories-i18n-safe-v1' AND s.status IN ('failed','blocked','paused'))) ORDER BY j.rowid LIMIT 1").fetchone()
             if not row:
                 return None
             lease = str(uuid.uuid4())
