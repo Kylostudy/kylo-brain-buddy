@@ -24,7 +24,7 @@ if systemctl is-active --quiet kylo-subject-factory.service; then
   echo 'VF-AKT: a régi gyártó még fut, átvétel tiltva'; exit 3
 fi
 # Complete the staged release with every checksum-listed runtime module (adds inputs.py).
-for file in contract.py piggy.py piggy_i18n.py piggy_v2_runtime.py exam_simulator.py exam_sim_runtime.py exam_sim_caption.py exam_sim_caption_v2.tsx exam_sim_master_v2.tsx exam_sim_composition_v2.tsx exam_sim_master_v3.tsx exam_sim_composition_v3.tsx recipe_runtime.py seven_stories.py seven_media.py seven_preflight.py seven_audio.py seven_audio_runtime.py seven_audio_index.ts seven_caption_v2.py seven_caption_timing_v2.ts seven_caption_index_v2.ts self-check-only.py seven-stories-approved.json storage.py verify.py state.py client.py agent.py inventory.py inputs.py universal.py universal_state.py universal_runtime.py universal_media.py; do
+for file in contract.py piggy.py piggy_i18n.py piggy_v2_runtime.py exam_simulator.py exam_sim_runtime.py exam_sim_caption.py exam_sim_caption_v2.tsx exam_sim_master_v2.tsx exam_sim_composition_v2.tsx exam_sim_master_v3.tsx exam_sim_composition_v3.tsx recipe_runtime.py seven_stories.py seven_media.py seven_preflight.py seven_audio.py seven_audio_runtime.py seven_audio_index.ts seven_caption_v2.py seven_media_v2.py seven_caption_timing_v2.ts seven_caption_index_v2.ts self-check-only.py seven-stories-approved.json storage.py verify.py state.py client.py agent.py inventory.py inputs.py universal.py universal_state.py universal_runtime.py universal_media.py; do
   if [ -e "$REL/$file" ]; then
     cmp -s "$SRC/$file" "$REL/$file" || { echo "VF-AKT: eltérő fájl a kiadásban: $file"; exit 3; }
   else

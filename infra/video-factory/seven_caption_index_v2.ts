@@ -42,6 +42,6 @@ async function main() {
   execFileSync('ffmpeg',['-nostdin','-v','error','-n','-i','/tmp/silent.mp4','-i',audio,
     '-map','0:v:0','-map','1:a:0','-c:v','copy','-af',`apad=whole_dur=${frames/30}`,
     '-c:a','aac','-b:a','256k','-movflags','+faststart','/work/output.mp4']);
-  execFileSync('python3',['/app/validation/seven_media.py','/work/output.mp4',audio,'/work/layout.jsonl',v.story],{stdio:'pipe'});
+  execFileSync('python3',['/app/validation/seven_media_v2.py','/work/output.mp4',audio,'/work/layout.jsonl',v.story],{stdio:'pipe'});
 }
 main().catch(e=>{console.error(e instanceof Error?e.stack:String(e));process.exit(1);});

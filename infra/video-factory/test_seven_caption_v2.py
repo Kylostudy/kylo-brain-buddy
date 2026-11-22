@@ -68,9 +68,9 @@ class CaptionV2Tests(unittest.TestCase):
             old = audio_mounts(v1.template(story), renderer)
             new = audio_mounts(v2.template(story), renderer)
             self.assertEqual(len(old), 4)
-            self.assertEqual(len(new), 8)
+            self.assertEqual(len(new), 10)
             self.assertTrue(all(m.endswith(":ro") for m in new[1::2]))
-            self.assertEqual(len(set(m.split(":")[-2] for m in new[1::2])), 4)
+            self.assertEqual(len(set(m.split(":")[-2] for m in new[1::2])), 5)
         renderer["image"] = "sha256:" + "0" * 64
         with self.assertRaises(ValueError): audio_mounts(v2.template("hajo"), renderer)
 

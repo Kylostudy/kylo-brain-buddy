@@ -185,6 +185,8 @@ class Runner:
             import seven_stories
             if seven_stories.targeted(manifest):
                 from seven_media import verify as verify_seven
+                if manifest["version"] == "v2":
+                    from seven_media_v2 import verify as verify_seven
                 media_receipt["seven_stories"] = verify_seven(checked, safe_path(recipe_root, video["audio"]["vo"]), work / "layout.jsonl", video)
         receipt = self.archive.save(key, checked, media_receipt)
         self.state.finish_video(job, key, receipt)
