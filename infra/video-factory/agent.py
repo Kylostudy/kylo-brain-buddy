@@ -75,33 +75,92 @@ def record_failure(config, job, code, detail):
         tmp = root / (FAILURE_FILE + ".tmp")
         tmp.write_text(json.dumps(body, ensure_ascii=False, indent=1))
         os.replace(tmp, root / FAILURE_FILE)
+        return body
     except Exception as e:
         print("render failure record unavailable (%s)" % type(e).__name__, flush=True)
+
+
+def render_process(command, image, started, timeout=7200):
+    """Observe the approved live container, not merely a successful Docker client spawn."""
+    import re
+    import tempfile
+    deadline = time.monotonic() + timeout
+    observed = False
+    with tempfile.TemporaryDirectory(prefix="kylo-render-cid-") as cid_root:
+        cid_file = Path(cid_root) / "container-id"
+        bound_command = [*command[:2], "--cidfile", str(cid_file), *command[2:]]
+        return _wait_render_process(bound_command, image, started, timeout, deadline, observed, cid_file)
+
+
+def _wait_render_process(command, image, started, timeout, deadline, observed, cid_file):
+    import re
+    with subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE) as process:
+        try:
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(command, timeout)
+                try:
+                    _, stderr = process.communicate(timeout=min(1, remaining))
+                    if process.returncode:
+                        raise subprocess.CalledProcessError(process.returncode, command, stderr=stderr)
+                    return
+                except subprocess.TimeoutExpired:
+                    if observed:
+                        continue
+                    try:
+                        container_id = cid_file.read_text().strip()
+                        if not re.fullmatch(r"[a-f0-9]{64}", container_id):
+                            continue
+                        probe = subprocess.check_output(
+                            ["/usr/bin/docker", "inspect", "--format", "{{.State.Running}} {{.Image}} {{.Id}}",
+                             container_id], text=True, stderr=subprocess.DEVNULL, timeout=2).strip().split()
+                    except (OSError, subprocess.SubprocessError):
+                        continue
+                    if (len(probe) == 3 and probe[0] == "true" and probe[1] == image
+                            and probe[2] == container_id):
+                        started(probe[2])
+                        observed = True
+        except BaseException:
+            process.kill()
+            process.communicate()
+            raise
 
 
 class Runner:
     def __init__(self, config, state):
         self.config, self.state = config, state
         self.archive = LocalArchive(config["archive_root"], config.get("read_roots"))
+        self.waiting = None
+
+    def report_waiting(self, reason):
+        if self.waiting != reason:
+            if self.state.monitor_waiting(reason):
+                self.waiting = reason
 
     def run_one(self):
         if not self.config.get("takeover_approved", False):
+            self.report_waiting("takeover_not_approved")
             return
         # Shared lock must be adopted by every production renderer before takeover.
         with open(self.config["production_lock"], "a") as lock:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
+                self.report_waiting("production_lock_busy")
                 return
             active = subprocess.run(["/usr/bin/systemctl", "is-active", "--quiet", "kylo-subject-factory.service"], check=False)
             if active.returncode == 0:
+                self.report_waiting("legacy_producer_active")
                 return
             from universal_state import claim as claim_universal
             job = self.state.claim()
             if not job:
                 job = claim_universal(self.state, int(time.time()))
             if not job:
+                self.report_waiting(self.state.waiting_reason())
                 return
+            self.waiting = None
             stop = threading.Event()
             def renew():
                 while not stop.wait(30):
@@ -120,9 +179,19 @@ class Runner:
                 code = str(e) if str(e) in allowed else "render_or_verification_failed"
                 # Persist a bounded, local-only cause so a generic code is never the only trace.
                 detail = failure_detail(e)
-                record_failure(self.config, job, code, detail)
+                stored = record_failure(self.config, job, code, detail)
                 print("render failed: job=%s cursor=%s code=%s detail=%s" % (job.get("id"), job.get("cursor"), code, json.dumps(detail, ensure_ascii=False)), flush=True)
-                self.state.fail(job, code, blocked=code in allowed)
+                report = None
+                try:
+                    from failure_report import build
+                    from contract import digest
+                    manifest = job.get("manifest") or {}
+                    report = build(stored, {"id": job["id"], "recipe": job["recipe"], "version": job["version"],
+                                   "attempts": job["attempts"], "recipe_sha256": digest(manifest)},
+                                   self.config["agent_id"], [f["key"] for f in manifest.get("files", [])])
+                except Exception as diagnostic_error:
+                    print("failure report unavailable (%s)" % type(diagnostic_error).__name__, flush=True)
+                self.state.fail(job, code, blocked=code in allowed, failure_report=report)
             finally:
                 stop.set()
                 thread.join(timeout=35)
@@ -136,6 +205,7 @@ class Runner:
             from seven_series_state import before_render
             before_render(self.state, job, self.config)
         video = manifest["videos"][job["cursor"]]
+        self.state.monitor_video(job, "preparing")
         key = f'{manifest["recipe_id"]}/{manifest["version"]}/{video["video_id"]}'
         old = self.state.output(key)
         if old:
@@ -177,13 +247,21 @@ class Runner:
             from exam_sim_caption import caption_mounts
             from seven_audio_runtime import audio_mounts
             validation_mounts = validator_mounts(manifest, renderer) + caption_mounts(manifest, renderer) + audio_mounts(manifest, renderer)
-            subprocess.run(["/usr/bin/docker", "run", "--rm", "--name", "kylo-video-factory-render",
+            docker_command = ["/usr/bin/docker", "run", "--rm", "--name", "kylo-video-factory-render",
                 "--network", "none", "--cpus", str(self.config["cpus"]), "--memory", self.config["memory"],
                 "--memory-swap", self.config["memory"], "--pids-limit", "256", "--read-only", "--cap-drop", "ALL",
                 "--security-opt", "no-new-privileges", "--user", "65532:65532", "--shm-size", "512m",
                 "--tmpfs", "/tmp:rw,size=512m", "-e", "HOME=/tmp", "-e", "XDG_CONFIG_HOME=/tmp/.config", "-e", "XDG_CACHE_HOME=/tmp/.cache",
                 "-v", str(recipe_root) + ":/recipe:ro", "-v", str(request) + ":/request.json:ro", "-v", str(work) + ":/work:rw",
-                *validation_mounts, renderer["image"]], check=True, timeout=7200, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                *validation_mounts, renderer["image"]]
+            if is_series:
+                self.state.monitor_video(job, "ready")
+                render_process(docker_command, renderer["image"],
+                    lambda container_id: self.state.monitor_video(job, "rendering", container_id=container_id,
+                                                                  image=renderer["image"], evidence="docker_running"))
+            else:
+                subprocess.run(docker_command, check=True, timeout=7200, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        self.state.monitor_video(job, "verifying")
         # Renderer is gone; open without symlink following and copy to manager-only scratch.
         fd = os.open(output, os.O_RDONLY | os.O_NOFOLLOW)
         checked = work.parent / (str(job["cursor"]) + ".checked.mp4")
@@ -217,6 +295,7 @@ class Runner:
                 if manifest["version"] == "v2":
                     from seven_media_v2 import verify as verify_seven
                 media_receipt["seven_stories"] = verify_seven(checked, safe_path(recipe_root, video["audio"]["vo"]), work / "layout.jsonl", video)
+        self.state.monitor_video(job, "archiving")
         receipt = self.archive.save(key, checked, media_receipt)
         self.state.finish_video(job, key, receipt)
         # Only this verified temporary render is removable; masters/recipes/archive stay.
@@ -249,18 +328,15 @@ def main():
     # Exclusive manager lock persists across process life, including network outages.
     with open(Path(config["work_root"]) / "manager.lock", "a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        from monitoring import Transport
+        transport = Transport(state, client, config["agent_id"], config["takeover_approved"])
+        transport.start()
         last_claim = 0
         while True:
             command = None
             phase = 'events'
             try:
-                for event in state.pending():
-                    ack = client.request("events", event)
-                    if ack.get("acknowledged_event_id") == event["event_id"]:
-                        state.acknowledge(event["event_id"])
                 if time.time() - last_claim >= 20:
-                    phase = 'heartbeat'
-                    client.request("heartbeat", {"schema_version": 1, "agent_id": config["agent_id"], "takeover_approved": config["takeover_approved"], "pending_events": len(state.pending())})
                     phase = 'claim'
                     response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2", "seven-stories-hu-v1", "seven-stories-hu-caption-v2", "seven-stories-i18n-v1"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")

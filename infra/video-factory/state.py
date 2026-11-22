@@ -27,6 +27,8 @@ class State:
             tables(db)
             from seven_series_state import tables as series_tables
             series_tables(db)
+            from monitoring import tables as monitor_tables
+            monitor_tables(db)
 
     @contextmanager
     def transaction(self):
@@ -180,6 +182,47 @@ class State:
             row = db.execute("SELECT receipt FROM outputs WHERE video_id=?", (video_id,)).fetchone()
             return json.loads(row["receipt"]) if row else None
 
+    def monitor_video(self, job, phase, **evidence):
+        import seven_series
+        if not seven_series.targeted(job.get("manifest")):
+            return
+        from monitoring import emit, video_result
+        with self.transaction() as db:
+            row = db.execute("SELECT cursor FROM jobs WHERE id=? AND lease=? AND expires>=? AND status IN ('rendering','paused')",
+                             (job["id"], job["lease"], int(time.time()))).fetchone()
+            if not row or row["cursor"] != job["cursor"]:
+                raise ValueError("lease_lost")
+            emit(self, db, "started_verified" if phase == "rendering" else "video_progress", job["id"],
+                 {**video_result(job, phase), **evidence})
+
+    def monitor_waiting(self, reason):
+        import seven_series
+        from monitoring import emit, video_result
+        with self.transaction() as db:
+            rows = db.execute("SELECT j.*,r.manifest FROM jobs j JOIN recipes r ON r.id=j.recipe AND r.version=j.version WHERE j.status='queued' ORDER BY j.rowid").fetchall()
+            for row in rows:
+                manifest = json.loads(row["manifest"])
+                if seven_series.targeted(manifest):
+                    job = {**dict(row), "manifest": manifest}
+                    emit(self, db, "scheduler_waiting", job["id"],
+                         {**video_result(job, "waiting"), "reason": reason, "status": "queued"})
+                    return True
+        return False
+
+    def waiting_reason(self):
+        # Only classify facts proved by local durable state; never guess the lock owner.
+        with self.transaction() as db:
+            if db.execute("SELECT 1 FROM jobs WHERE lease IS NOT NULL").fetchone() or db.execute("SELECT 1 FROM universal_jobs WHERE lease IS NOT NULL").fetchone():
+                return "active_or_recovering_video"
+            rows = db.execute("SELECT j.status,r.manifest FROM jobs j JOIN recipes r ON r.id=j.recipe AND r.version=j.version WHERE j.status IN ('failed','blocked','paused')").fetchall()
+            import seven_series
+            statuses = {r["status"] for r in rows if seven_series.targeted(json.loads(r["manifest"]))}
+            if statuses & {"failed", "blocked"}:
+                return "series_failed_or_blocked"
+            if "paused" in statuses:
+                return "series_paused"
+            return "not_eligible"
+
     def finish_video(self, job, video_id, receipt):
         with self.transaction() as db:
             row = db.execute("SELECT * FROM jobs WHERE id=? AND lease=? AND expires>=? AND status IN ('rendering','paused')", (job["id"], job["lease"], int(time.time()))).fetchone()
@@ -194,14 +237,20 @@ class State:
             total = 1 if row["mode"] == "trial" else len(job["manifest"]["videos"])
             status = "completed" if cursor == total else ("paused" if row["status"] == "paused" else "queued")
             db.execute("UPDATE jobs SET cursor=?,status=?,lease=NULL,expires=NULL,trial_receipt=? WHERE id=?", (cursor, status, encoded if row["mode"] == "trial" else None, job["id"]))
+            import seven_series
+            if seven_series.targeted(job["manifest"]):
+                from monitoring import emit, video_result
+                emit(self, db, "video_archived", job["id"],
+                     {**video_result(job, "archived"), "completed_cursor": cursor, "status": status,
+                      "receipt": receipt, "archive_verified": True})
             if cursor % BATCH_SIZE == 0 or status == "completed":
                 self.emit(db, "batch_verified", job["id"], {"cursor": cursor, "status": status, "last_receipt": receipt})
 
-    def fail(self, job, code, blocked=False):
+    def fail(self, job, code, blocked=False, failure_report=None):
         with self.transaction() as db:
             changed = db.execute("UPDATE jobs SET status=?,attempts=attempts+1,lease=NULL,expires=NULL WHERE id=? AND lease=?", ("blocked" if blocked else "failed", job["id"], job["lease"])).rowcount
             if changed:
-                self.emit(db, "final_error", job["id"], {"code": code})
+                self.emit(db, "final_error", job["id"], {"code": code, **({"failure_report": failure_report} if failure_report else {})})
 
     def pending(self):
         with self.transaction() as db:

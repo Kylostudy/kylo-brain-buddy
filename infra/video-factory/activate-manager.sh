@@ -32,7 +32,7 @@ for file in contract.py piggy.py piggy_i18n.py piggy_v2_runtime.py exam_simulato
   fi
 done
 CONFIG_BEFORE="$(sha256sum "$ETC/config.json" | cut -d' ' -f1)"
-for file in seven_series.py seven_series_media.py seven_series_preflight.py seven_series_state.py; do
+for file in seven_series.py seven_series_media.py seven_series_preflight.py seven_series_state.py monitoring.py failure_report.py renderer_error_codes.json renderer_error_codes_v2.json; do
   if [ -e "$REL/$file" ]; then
     cmp -s "$SRC/$file" "$REL/$file" || exit 3
   else

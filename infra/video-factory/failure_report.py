@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sanitized, attempt-bound failure reports for KyLogic (video-factory-failure-report-v1).
 
-Not wired into the send path yet. Every output field is typed and validated;
+Embedded in the manager's durable final_error result. Every output field is typed and validated;
 identity comes from the authoritative job state and is compared with the local
 failure file. Codes come only from the versioned renderer_error_codes.json list;
 input keys only from the bound recipe's input inventory. Nothing else leaves.
@@ -26,7 +26,7 @@ STAGE_HINTS = (("tight_cut", "tight_cut"), ("verify_video", "verify"), ("archive
                ("readable_inputs", "assets"), ("Inputs", "assets"), ("render", "render"))
 TOP_CODES = ("render_or_verification_failed", "low_disk", "archive_conflict", "media_checksum_failed",
              "renderer_review_required", "archive_readback_failed", "unsafe_render_output")
-_CODES = json.loads((Path(__file__).parent / "renderer_error_codes.json").read_text())
+_CODES = json.loads((Path(__file__).parent / "renderer_error_codes_v2.json").read_text())
 CODES_VERSION, KNOWN_CODES = _CODES["version"], frozenset(_CODES["codes"])
 
 
