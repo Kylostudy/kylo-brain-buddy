@@ -25,6 +25,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--seven-stories", action="store_true")
+    parser.add_argument("--version", choices=("v1", "v2"), default="v1")
     args = parser.parse_args()
     config = json.loads(Path("/etc/kylo-video-factory/config.json").read_text())
     secret_path = Path("/etc/kylo-video-factory/machine-secret")
@@ -34,7 +35,7 @@ def main():
     client = Client(config["kylogic_origin"], config["agent_id"], secret_path.read_text().strip())
     if args.seven_stories:
         from seven_preflight import run as preflight
-        result = run(config, state, client, lambda c: preflight(c["recipe_root"], "/etc/kylo-video-factory/config.json", registered=True))
+        result = run(config, state, client, lambda c: preflight(c["recipe_root"], "/etc/kylo-video-factory/config.json", registered=True, version=args.version))
     else:
         result = run(config, state, client)
     target = Path("/var/lib/kylo-video-factory/seven-stories-preflight.json" if args.seven_stories else "/var/lib/kylo-video-factory/self-check-only.json")

@@ -50,9 +50,9 @@ class CheckOnlyTests(unittest.TestCase):
 
     def test_seven_cli_readiness_requires_preparation_and_ack_not_production_qa(self):
         config = {"recipe_root": "/recipes", "work_root": "/work", "kylogic_origin": "https://example.invalid", "agent_id": "test-agent"}
-        for acknowledged, code in ((True, 0), (False, 3)):
+        for version, acknowledged, code in (("v1", True, 0), ("v1", False, 3), ("v2", True, 0), ("v2", False, 3)):
             result = {"ok": False, "preparation_ok": True, "kylogic_acknowledged": acknowledged}
-            with patch.object(sys, "argv", ["self-check-only.py", "--seven-stories"]), \
+            with patch.object(sys, "argv", ["self-check-only.py", "--seven-stories", "--version", version]), \
                     patch.object(Path, "read_text", side_effect=[json.dumps(config), "test-only"]), \
                     patch.object(Path, "stat", return_value=SimpleNamespace(st_mode=0o600)), \
                     patch.object(Path, "write_text"), patch.object(module.os, "chmod"), \
@@ -63,5 +63,5 @@ class CheckOnlyTests(unittest.TestCase):
                 self.assertEqual(module.main(), code)
                 checker = run.call_args.args[3]
                 self.assertEqual(checker(config), result)
-                preflight.assert_called_once_with("/recipes", "/etc/kylo-video-factory/config.json", registered=True)
+                preflight.assert_called_once_with("/recipes", "/etc/kylo-video-factory/config.json", registered=True, version=version)
                 self.assertEqual(str(replace.call_args.args[1]), "/var/lib/kylo-video-factory/seven-stories-preflight.json")

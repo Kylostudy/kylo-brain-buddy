@@ -231,7 +231,7 @@ def main():
                     phase = 'heartbeat'
                     client.request("heartbeat", {"schema_version": 1, "agent_id": config["agent_id"], "takeover_approved": config["takeover_approved"], "pending_events": len(state.pending())})
                     phase = 'claim'
-                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2", "seven-stories-hu-v1"], "batch_size": 5, "concurrency": 1})
+                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2", "seven-stories-hu-v1", "seven-stories-hu-caption-v2"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")
                     if command is not None:
                         from recipe_runtime import validate_command
@@ -247,7 +247,7 @@ def main():
                             import seven_stories
                             if seven_stories.targeted(command["payload"]):
                                 from seven_preflight import run as seven_preflight
-                                check_result = seven_preflight(config["recipe_root"], config_path, registered=True)
+                                check_result = seven_preflight(config["recipe_root"], config_path, registered=True, version=command["payload"]["version"])
                                 target = Path(config["work_root"]).parent / "seven-stories-preflight.json"
                                 temp = target.with_suffix(".tmp")
                                 temp.write_bytes(canonical(check_result))

@@ -37,15 +37,19 @@ def checked_file(path, descriptor):
     return path.stat().st_size == descriptor["bytes"] and hashlib.sha256(path.read_bytes()).hexdigest() == descriptor["sha256"]
 
 
-def run(root, config=None, registered=False):
+def run(root, config=None, registered=False, version="v1"):
+    if version not in {"v1", "v2"}:
+        raise ValueError("seven_trial_invalid")
+    import seven_caption_v2
+    contract = seven_caption_v2.contract_export() if version == "v2" else seven.contract_export()
     root = Path(root)
-    report = {"contract_id": seven.CONTRACT_ID, "approved_inputs_sha256": seven.contract_export()["approved_inputs_sha256"], "input_layout": "registered" if registered else "original_package", "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    report = {"contract_id": contract["contract_id"], "version": version, "approved_inputs_sha256": contract["approved_inputs_sha256"], "input_layout": "registered" if registered else "original_package", "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "stories": [], "skipped_checks": [], "errors": [], "render_started": False, "image": None}
     for story in seven.STORIES:
         row = {"story": story, "errors": [], "checked": [], "skipped_checks": []}
         spec = seven.APPROVED["stories"][story]
         originals = ("narration.mp3", "alignment.json", "timeline.json")
-        paths = {original: (root / seven.template(story)["recipe_id"] / "v1" / descriptor["key"] if registered else root / story / original)
+        paths = {original: (root / seven.template(story)["recipe_id"] / version / descriptor["key"] if registered else root / story / original)
                  for original, descriptor in zip(originals, spec["files"])}
         for original, descriptor in zip(("narration.mp3", "alignment.json", "timeline.json"), spec["files"]):
             p = paths[original]
@@ -111,9 +115,11 @@ def run(root, config=None, registered=False):
                 raise ValueError("seven_renderer_digest")
             report["image"] = image
             stage = "audio_check_overlays"
-            from seven_audio_runtime import audio_mounts, OVERLAYS
-            audio_mounts(seven.template(seven.STORIES[0]), r)
-            report["audio_check_overlays"] = {name: digest for name, (_, digest) in OVERLAYS.items()}
+            from seven_audio_runtime import audio_mounts, OVERLAYS, CAPTION_V2_OVERLAYS
+            manifest = seven_caption_v2.template(seven.STORIES[0]) if version == "v2" else seven.template(seven.STORIES[0])
+            audio_mounts(manifest, r)
+            overlays = CAPTION_V2_OVERLAYS if version == "v2" else OVERLAYS
+            report["audio_check_overlays"] = {name: digest for name, (_, digest) in overlays.items()}
             stage = "host_disk_space"
             for key in ("work_root", "archive_root"):
                 d = shutil.disk_usage(c[key])
@@ -137,7 +143,8 @@ if __name__ == "__main__":
     parser.add_argument("inputs")
     parser.add_argument("--config")
     parser.add_argument("--registered", action="store_true")
+    parser.add_argument("--version", choices=("v1", "v2"), default="v1")
     args = parser.parse_args()
-    result = run(args.inputs, args.config, args.registered)
+    result = run(args.inputs, args.config, args.registered, args.version)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     raise SystemExit(0 if result["input_ok"] and not result["errors"] else 1)

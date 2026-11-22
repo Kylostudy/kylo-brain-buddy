@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Hét történet kylo.study feliratjavítás: csak v2-re/képdigestre kötött olvasási javítófájlok, hét pontos v2 recept és szerződés; v1/hang/időzítés/kép változatlan. 344 teszt, hét eredeti/javított képpár és 163 további képkockavizsgálat sikeres; KyLogic-átadás és SSH-útmutató elkészült, gyártás nélkül.
+- [ ] Felirat v2 VPS-átvétele és új előellenőrzés/ACK: Sándor egyszeri publikálása és csak olvasó SSH-visszaolvasása szükséges; utána KyLogic hét v2 regisztrációja, sikeres előellenőrzés és hét soros HU próba hajóval kezdve. Régi archívum érintetlen; új videó itt nem indult.
 
 - [x] 2026-11-22 hét történet előellenőrzési jelentési hiba: VPS-visszaolvasás és 21 változatlan bemenet ellenőrizve mindkét könyvtárszerkezetben; lépésenkénti kitakart hibajelentés és teljesített/kihagyott vizsgálatok szétválasztása elkészült, elfogadási szabályok változatlanok.
 - [x] Hét történet hanghossz-javítás: a 16:02:09 UTC-s VPS-hosszak a kódolt MP3-kitöltéssel együttiek; közös teljes dekódolt mintaszám-mérés, azonos képre/receptre kötött read-only készítőjavítás, telepítőlisták/checksumok és kizárólag diagnosztikai ACK-küldés elkészült. 334 teszt + 14 valódi bemeneti ellenőrzés sikeres, nincs videógyártás.
