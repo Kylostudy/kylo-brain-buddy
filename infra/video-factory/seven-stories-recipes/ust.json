@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "recipe_id": "seven-stories-ust-hu-trial",
+  "version": "v1",
+  "renderer": "seven-stories-hu-v1",
+  "series": "other",
+  "languages": [
+    "hu"
+  ],
+  "files": [
+    {
+      "key": "audio/narration-mp3",
+      "bytes": 388327,
+      "sha256": "5d24dc56e111022aab73e78c50fb47e542cb362925b3a9a22fd87e0b989a240e"
+    },
+    {
+      "key": "timing/alignment-json",
+      "bytes": 6334,
+      "sha256": "4164ad5a5073aa487ab11aacd7fb11c76d384ab3f4625bc2c4e5c6ac69d9e777"
+    },
+    {
+      "key": "timing/timeline-json",
+      "bytes": 2507,
+      "sha256": "3173789c2ff848e9e16460659e64234b257d30fc2b65a6c5acdeb37a14170332"
+    }
+  ],
+  "videos": [
+    {
+      "video_id": "ust-hu",
+      "language": "hu",
+      "story": "ust",
+      "scene": "seven-stories-ust-hu-v1",
+      "width": 1080,
+      "height": 1920,
+      "duration_ms": 26200,
+      "timeline": {
+        "schema_version": 1,
+        "story": "ust",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          72,
+          80,
+          68,
+          176,
+          135,
+          68,
+          187
+        ],
+        "duration_ms": 26200,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 2400
+          },
+          {
+            "start_ms": 2400,
+            "end_ms": 5067
+          },
+          {
+            "start_ms": 5067,
+            "end_ms": 7333
+          },
+          {
+            "start_ms": 7333,
+            "end_ms": 13200
+          },
+          {
+            "start_ms": 13200,
+            "end_ms": 17700
+          },
+          {
+            "start_ms": 17700,
+            "end_ms": 19967
+          },
+          {
+            "start_ms": 19967,
+            "end_ms": 26200
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 2032,
+            "text": "Egy alkalmazás a jegyzethez."
+          },
+          {
+            "start_ms": 2403,
+            "end_ms": 4830,
+            "text": "Egy másik a tanulókártyákhoz."
+          },
+          {
+            "start_ms": 5097,
+            "end_ms": 6989,
+            "text": "Még egy a gyakorláshoz."
+          },
+          {
+            "start_ms": 7361,
+            "end_ms": 9404,
+            "text": "A havi díjak összeadódnak."
+          },
+          {
+            "start_ms": 9671,
+            "end_ms": 12306,
+            "text": "De az eszközök ettől még nem kapcsolódnak össze."
+          },
+          {
+            "start_ms": 13224,
+            "end_ms": 17438,
+            "text": "A Kylóban a saját anyagodból juthatsz el a magyarázaton át a gyakorlásig."
+          },
+          {
+            "start_ms": 17705,
+            "end_ms": 19830,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 19969,
+            "end_ms": 21594,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 21966,
+            "end_ms": 24195,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 26200
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "5d24dc56e111022aab73e78c50fb47e542cb362925b3a9a22fd87e0b989a240e",
+        "audio_bytes": 388327,
+        "audio_duration_seconds": 24.195193,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "5d24dc56e111022aab73e78c50fb47e542cb362925b3a9a22fd87e0b989a240e",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "audio": {
+        "vo": "audio/narration-mp3",
+        "alignment": "timing/alignment-json",
+        "timeline": "timing/timeline-json"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1040 @@
+{
+  "contract_id": "kylo-seven-stories-hu-v1",
+  "renderer": "seven-stories-hu-v1",
+  "approved_at": "2026-11-22T14:35:00Z",
+  "stories": {
+    "auto": {
+      "timeline": {
+        "schema_version": 1,
+        "story": "auto",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          122,
+          61,
+          97,
+          112,
+          167,
+          63,
+          176
+        ],
+        "duration_ms": 26600,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 4067
+          },
+          {
+            "start_ms": 4067,
+            "end_ms": 6100
+          },
+          {
+            "start_ms": 6100,
+            "end_ms": 9333
+          },
+          {
+            "start_ms": 9333,
+            "end_ms": 13067
+          },
+          {
+            "start_ms": 13067,
+            "end_ms": 18633
+          },
+          {
+            "start_ms": 18633,
+            "end_ms": 20733
+          },
+          {
+            "start_ms": 20733,
+            "end_ms": 26600
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 1776,
+            "text": "Nem csak az autók fejlődtek."
+          },
+          {
+            "start_ms": 2043,
+            "end_ms": 3762,
+            "text": "A tanulás eszközei is."
+          },
+          {
+            "start_ms": 4075,
+            "end_ms": 5747,
+            "text": "Tanulókártyákból indulunk."
+          },
+          {
+            "start_ms": 6118,
+            "end_ms": 8684,
+            "text": "Gyakorlással és magyarázatokkal folytatjuk."
+          },
+          {
+            "start_ms": 9358,
+            "end_ms": 12585,
+            "text": "Aztán kipróbálhatod magad egy vizsgaszimulációban."
+          },
+          {
+            "start_ms": 13073,
+            "end_ms": 15534,
+            "text": "Nem külön alkalmazások között váltogatva."
+          },
+          {
+            "start_ms": 16114,
+            "end_ms": 18483,
+            "text": "Egy összekapcsolt folyamatban, a Kylóval."
+          },
+          {
+            "start_ms": 18645,
+            "end_ms": 20642,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 20758,
+            "end_ms": 22210,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 22477,
+            "end_ms": 24566,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 26600
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "9015f146cab137de945eca181aa2ccd9add04b31ad4663c5d6a13684e2d0aabb",
+        "audio_bytes": 394178,
+        "audio_duration_seconds": 24.566712,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "9015f146cab137de945eca181aa2ccd9add04b31ad4663c5d6a13684e2d0aabb",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "files": [
+        {
+          "key": "audio/narration-mp3",
+          "bytes": 394178,
+          "sha256": "9015f146cab137de945eca181aa2ccd9add04b31ad4663c5d6a13684e2d0aabb"
+        },
+        {
+          "key": "timing/alignment-json",
+          "bytes": 6829,
+          "sha256": "d6f5460c33a82beb353ca2d6540651a50978d339521fd54411466def35762d1d"
+        },
+        {
+          "key": "timing/timeline-json",
+          "bytes": 2613,
+          "sha256": "8c76419216ab7a765362c47de41ad6d3353e2213c1f521a17c835dd9c4db8182"
+        }
+      ]
+    },
+    "hajo": {
+      "timeline": {
+        "schema_version": 1,
+        "story": "hajo",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          162,
+          59,
+          74,
+          87,
+          82,
+          69,
+          163
+        ],
+        "duration_ms": 23200,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 5400
+          },
+          {
+            "start_ms": 5400,
+            "end_ms": 7367
+          },
+          {
+            "start_ms": 7367,
+            "end_ms": 9833
+          },
+          {
+            "start_ms": 9833,
+            "end_ms": 12733
+          },
+          {
+            "start_ms": 12733,
+            "end_ms": 15467
+          },
+          {
+            "start_ms": 15467,
+            "end_ms": 17767
+          },
+          {
+            "start_ms": 17767,
+            "end_ms": 23200
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 1672,
+            "text": "Egy csónakkal is elindulhatsz."
+          },
+          {
+            "start_ms": 2252,
+            "end_ms": 4923,
+            "text": "De nem mindegy, mi segít az utadon."
+          },
+          {
+            "start_ms": 5410,
+            "end_ms": 7187,
+            "text": "Először tanulókártyák."
+          },
+          {
+            "start_ms": 7384,
+            "end_ms": 9462,
+            "text": "Aztán gyakorlás és magyarázat."
+          },
+          {
+            "start_ms": 9834,
+            "end_ms": 12609,
+            "text": "Végül vizsgaszimuláció a saját anyagodból."
+          },
+          {
+            "start_ms": 12748,
+            "end_ms": 14698,
+            "text": "A Kylóban ezek összekapcsolódnak."
+          },
+          {
+            "start_ms": 15476,
+            "end_ms": 17659,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 17787,
+            "end_ms": 19029,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 19296,
+            "end_ms": 21177,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 23200
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "cbde327044abe5507668405ac15910b95c3cce6d66eb873003d9a9a352a6b2dd",
+        "audio_bytes": 339843,
+        "audio_duration_seconds": 21.176599,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "cbde327044abe5507668405ac15910b95c3cce6d66eb873003d9a9a352a6b2dd",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "files": [
+        {
+          "key": "audio/narration-mp3",
+          "bytes": 339843,
+          "sha256": "cbde327044abe5507668405ac15910b95c3cce6d66eb873003d9a9a352a6b2dd"
+        },
+        {
+          "key": "timing/alignment-json",
+          "bytes": 5591,
+          "sha256": "daa508278a2fad18a91a91293def801b2f9ba55ae84bdac305d5cc57c6797f9f"
+        },
+        {
+          "key": "timing/timeline-json",
+          "bytes": 2470,
+          "sha256": "fbef30c1ca8f6c9d8ccd51e841789b51fa968542a0bfe3b39e3e3bbfd8862c95"
+        }
+      ]
+    },
+    "hatizsak": {
+      "timeline": {
+        "schema_version": 1,
+        "story": "hatizsak",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          29,
+          39,
+          124,
+          120,
+          134,
+          60,
+          159
+        ],
+        "duration_ms": 22167,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 967
+          },
+          {
+            "start_ms": 967,
+            "end_ms": 2267
+          },
+          {
+            "start_ms": 2267,
+            "end_ms": 6400
+          },
+          {
+            "start_ms": 6400,
+            "end_ms": 10400
+          },
+          {
+            "start_ms": 10400,
+            "end_ms": 14867
+          },
+          {
+            "start_ms": 14867,
+            "end_ms": 16867
+          },
+          {
+            "start_ms": 16867,
+            "end_ms": 22167
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 906,
+            "text": "Jegyzet itt."
+          },
+          {
+            "start_ms": 987,
+            "end_ms": 2218,
+            "text": "Tanulókártyák ott."
+          },
+          {
+            "start_ms": 2287,
+            "end_ms": 4679,
+            "text": "A gyakorlófeladatok egy harmadik helyen."
+          },
+          {
+            "start_ms": 4876,
+            "end_ms": 5654,
+            "text": "Ismerős?"
+          },
+          {
+            "start_ms": 6432,
+            "end_ms": 8022,
+            "text": "Nem a tananyagot kell kidobnod."
+          },
+          {
+            "start_ms": 8046,
+            "end_ms": 10287,
+            "text": "Hanem rendet találni az eszközök között."
+          },
+          {
+            "start_ms": 10403,
+            "end_ms": 14652,
+            "text": "A Kylo a saját anyagod köré rendezi a magyarázatot és a gyakorlást."
+          },
+          {
+            "start_ms": 14884,
+            "end_ms": 16765,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 16881,
+            "end_ms": 18065,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 18332,
+            "end_ms": 20155,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 22167
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "c91f0a28c9bdf16c7980be3220ae2f27c447de63843d83cd58e6034346b74c14",
+        "audio_bytes": 323543,
+        "audio_duration_seconds": 20.154921,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "c91f0a28c9bdf16c7980be3220ae2f27c447de63843d83cd58e6034346b74c14",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "files": [
+        {
+          "key": "audio/narration-mp3",
+          "bytes": 323543,
+          "sha256": "c91f0a28c9bdf16c7980be3220ae2f27c447de63843d83cd58e6034346b74c14"
+        },
+        {
+          "key": "timing/alignment-json",
+          "bytes": 6061,
+          "sha256": "b0d0634812cb640dba6f3dfeca86a8f639b60a084d8eaa4bce560b2a65542437"
+        },
+        {
+          "key": "timing/timeline-json",
+          "bytes": 2568,
+          "sha256": "d3c1c4217c6ea3f6fd205666bcb6ff725eebcdfbbf85339c63bcc1fb1a357146"
+        }
+      ]
+    },
+    "malacpersely-uj": {
+      "timeline": {
+        "schema_version": 1,
+        "story": "malacpersely-uj",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          69,
+          51,
+          93,
+          135,
+          147,
+          86,
+          166
+        ],
+        "duration_ms": 24900,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 2300
+          },
+          {
+            "start_ms": 2300,
+            "end_ms": 4000
+          },
+          {
+            "start_ms": 4000,
+            "end_ms": 7100
+          },
+          {
+            "start_ms": 7100,
+            "end_ms": 11600
+          },
+          {
+            "start_ms": 11600,
+            "end_ms": 16500
+          },
+          {
+            "start_ms": 16500,
+            "end_ms": 19367
+          },
+          {
+            "start_ms": 19367,
+            "end_ms": 24900
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 2194,
+            "text": "Csak még egy tanulós előfizetés."
+          },
+          {
+            "start_ms": 2310,
+            "end_ms": 3437,
+            "text": "Aztán még egy."
+          },
+          {
+            "start_ms": 4017,
+            "end_ms": 6803,
+            "text": "A kis havi díjak együtt már nem is olyan kicsik."
+          },
+          {
+            "start_ms": 7117,
+            "end_ms": 11483,
+            "text": "De a tanulás nem attól lesz összefüggő, hogy több alkalmazásért fizetsz."
+          },
+          {
+            "start_ms": 11622,
+            "end_ms": 16243,
+            "text": "A Kylo összekapcsolja a magyarázatot, a gyakorlást és a vizsgaszimulációt."
+          },
+          {
+            "start_ms": 16510,
+            "end_ms": 18808,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 19389,
+            "end_ms": 20643,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 21014,
+            "end_ms": 22895,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 24900
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "da581568c39440469511cf0c5d74acb84278665819deb9c1c68de7bc2be397c9",
+        "audio_bytes": 367429,
+        "audio_duration_seconds": 22.894875,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "da581568c39440469511cf0c5d74acb84278665819deb9c1c68de7bc2be397c9",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "files": [
+        {
+          "key": "audio/narration-mp3",
+          "bytes": 367429,
+          "sha256": "da581568c39440469511cf0c5d74acb84278665819deb9c1c68de7bc2be397c9"
+        },
+        {
+          "key": "timing/alignment-json",
+          "bytes": 6538,
+          "sha256": "62c6c861c65e6ccd58f6c51ccad60cf122c2408759f28e56c9c3a27ba8e6d2f8"
+        },
+        {
+          "key": "timing/timeline-json",
+          "bytes": 2457,
+          "sha256": "83f8509525ddfd908a65f514a1350570958071e785a3dbe158219a2b1bbbad27"
+        }
+      ]
+    },
+    "repulo": {
+      "timeline": {
+        "schema_version": 1,
+        "story": "repulo",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          212,
+          81,
+          47,
+          131,
+          67,
+          61,
+          162
+        ],
+        "duration_ms": 25367,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 7067
+          },
+          {
+            "start_ms": 7067,
+            "end_ms": 9767
+          },
+          {
+            "start_ms": 9767,
+            "end_ms": 11333
+          },
+          {
+            "start_ms": 11333,
+            "end_ms": 15700
+          },
+          {
+            "start_ms": 15700,
+            "end_ms": 17933
+          },
+          {
+            "start_ms": 17933,
+            "end_ms": 19967
+          },
+          {
+            "start_ms": 19967,
+            "end_ms": 25367
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 4249,
+            "text": "A kezdeti repülőtől a nagy utasszállítóig nem csak a méret változott."
+          },
+          {
+            "start_ms": 4621,
+            "end_ms": 6722,
+            "text": "Sok képesség állt össze egy rendszerbe."
+          },
+          {
+            "start_ms": 7094,
+            "end_ms": 8719,
+            "text": "A tanulásban is ezt keresed?"
+          },
+          {
+            "start_ms": 9787,
+            "end_ms": 11145,
+            "text": "Jegyzetből magyarázat."
+          },
+          {
+            "start_ms": 11343,
+            "end_ms": 13003,
+            "text": "Magyarázatból gyakorlás."
+          },
+          {
+            "start_ms": 13200,
+            "end_ms": 15441,
+            "text": "Gyakorlás után vizsgaszimuláció."
+          },
+          {
+            "start_ms": 15708,
+            "end_ms": 17635,
+            "text": "A Kylo összekapcsolja ezeket."
+          },
+          {
+            "start_ms": 17949,
+            "end_ms": 19853,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 19992,
+            "end_ms": 21246,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 21443,
+            "end_ms": 23359,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 25367
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "5561656d51b0d18032614a3c28b69cc3b61b55403487b0cbdd8867a2b67589af",
+        "audio_bytes": 374952,
+        "audio_duration_seconds": 23.359274,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "5561656d51b0d18032614a3c28b69cc3b61b55403487b0cbdd8867a2b67589af",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "files": [
+        {
+          "key": "audio/narration-mp3",
+          "bytes": 374952,
+          "sha256": "5561656d51b0d18032614a3c28b69cc3b61b55403487b0cbdd8867a2b67589af"
+        },
+        {
+          "key": "timing/alignment-json",
+          "bytes": 6623,
+          "sha256": "e94a62c4bfa710d81de22d316a9dff5196b0e046a985e314ceba53364120da17"
+        },
+        {
+          "key": "timing/timeline-json",
+          "bytes": 2609,
+          "sha256": "9468059d90cfce648ba508e5def4be9e8b27be1ae1ac8dd5caf8395a081309da"
+        }
+      ]
+    },
+    "szamlatorony": {
+      "timeline": {
+        "schema_version": 1,
+        "story": "szamlatorony",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          91,
+          52,
+          60,
+          195,
+          102,
+          74,
+          187
+        ],
+        "duration_ms": 25367,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 3033
+          },
+          {
+            "start_ms": 3033,
+            "end_ms": 4767
+          },
+          {
+            "start_ms": 4767,
+            "end_ms": 6767
+          },
+          {
+            "start_ms": 6767,
+            "end_ms": 13267
+          },
+          {
+            "start_ms": 13267,
+            "end_ms": 16667
+          },
+          {
+            "start_ms": 16667,
+            "end_ms": 19133
+          },
+          {
+            "start_ms": 19133,
+            "end_ms": 25367
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 1985,
+            "text": "Külön fizetsz a jegyzetelésért?"
+          },
+          {
+            "start_ms": 3053,
+            "end_ms": 4679,
+            "text": "A tanulókártyákért?"
+          },
+          {
+            "start_ms": 4772,
+            "end_ms": 6095,
+            "text": "A gyakorlásért?"
+          },
+          {
+            "start_ms": 6769,
+            "end_ms": 8963,
+            "text": "Könnyen felépül a havi számlák tornya."
+          },
+          {
+            "start_ms": 9334,
+            "end_ms": 12492,
+            "text": "Pedig nem számlákat szeretnél gyűjteni, hanem tanulni."
+          },
+          {
+            "start_ms": 13270,
+            "end_ms": 16544,
+            "text": "A Kylo több tanulási eszközt kapcsol össze egy helyen."
+          },
+          {
+            "start_ms": 16684,
+            "end_ms": 18878,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 19145,
+            "end_ms": 20724,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 21095,
+            "end_ms": 23359,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 25367
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "e01402b2111ee86eb063d7c1a0e819f27d6f3b30e2ef8e073ba3215170cdf3d0",
+        "audio_bytes": 374952,
+        "audio_duration_seconds": 23.359274,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "e01402b2111ee86eb063d7c1a0e819f27d6f3b30e2ef8e073ba3215170cdf3d0",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "files": [
+        {
+          "key": "audio/narration-mp3",
+          "bytes": 374952,
+          "sha256": "e01402b2111ee86eb063d7c1a0e819f27d6f3b30e2ef8e073ba3215170cdf3d0"
+        },
+        {
+          "key": "timing/alignment-json",
+          "bytes": 6004,
+          "sha256": "dc95f94e6aceb74bb3f3910f508ffc5d60d38f092bf24b39dc3b3a3e898166bd"
+        },
+        {
+          "key": "timing/timeline-json",
+          "bytes": 2501,
+          "sha256": "0ba6314adf13a966a82992628168a946b8454dd9111921eeb2b67f39d444a2db"
+        }
+      ]
+    },
+    "ust": {
+      "timeline": {
+        "schema_version": 1,
+        "story": "ust",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          72,
+          80,
+          68,
+          176,
+          135,
+          68,
+          187
+        ],
+        "duration_ms": 26200,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 2400
+          },
+          {
+            "start_ms": 2400,
+            "end_ms": 5067
+          },
+          {
+            "start_ms": 5067,
+            "end_ms": 7333
+          },
+          {
+            "start_ms": 7333,
+            "end_ms": 13200
+          },
+          {
+            "start_ms": 13200,
+            "end_ms": 17700
+          },
+          {
+            "start_ms": 17700,
+            "end_ms": 19967
+          },
+          {
+            "start_ms": 19967,
+            "end_ms": 26200
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 2032,
+            "text": "Egy alkalmazás a jegyzethez."
+          },
+          {
+            "start_ms": 2403,
+            "end_ms": 4830,
+            "text": "Egy másik a tanulókártyákhoz."
+          },
+          {
+            "start_ms": 5097,
+            "end_ms": 6989,
+            "text": "Még egy a gyakorláshoz."
+          },
+          {
+            "start_ms": 7361,
+            "end_ms": 9404,
+            "text": "A havi díjak összeadódnak."
+          },
+          {
+            "start_ms": 9671,
+            "end_ms": 12306,
+            "text": "De az eszközök ettől még nem kapcsolódnak össze."
+          },
+          {
+            "start_ms": 13224,
+            "end_ms": 17438,
+            "text": "A Kylóban a saját anyagodból juthatsz el a magyarázaton át a gyakorlásig."
+          },
+          {
+            "start_ms": 17705,
+            "end_ms": 19830,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 19969,
+            "end_ms": 21594,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 21966,
+            "end_ms": 24195,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 26200
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "5d24dc56e111022aab73e78c50fb47e542cb362925b3a9a22fd87e0b989a240e",
+        "audio_bytes": 388327,
+        "audio_duration_seconds": 24.195193,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "5d24dc56e111022aab73e78c50fb47e542cb362925b3a9a22fd87e0b989a240e",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "files": [
+        {
+          "key": "audio/narration-mp3",
+          "bytes": 388327,
+          "sha256": "5d24dc56e111022aab73e78c50fb47e542cb362925b3a9a22fd87e0b989a240e"
+        },
+        {
+          "key": "timing/alignment-json",
+          "bytes": 6334,
+          "sha256": "4164ad5a5073aa487ab11aacd7fb11c76d384ab3f4625bc2c4e5c6ac69d9e777"
+        },
+        {
+          "key": "timing/timeline-json",
+          "bytes": 2507,
+          "sha256": "3173789c2ff848e9e16460659e64234b257d30fc2b65a6c5acdeb37a14170332"
+        }
+      ]
+    }
+  },
+  "dog_sha256": "cf92d631602ae73b26d2f7ea7a5d05447d8bac0a66d4099289879d37c330f064"
+}

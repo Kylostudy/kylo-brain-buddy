@@ -181,6 +181,10 @@ class Runner:
                 checked = final
         else:
             media_receipt = verify_video(checked, video)
+            import seven_stories
+            if seven_stories.targeted(manifest):
+                from seven_media import verify as verify_seven
+                media_receipt["seven_stories"] = verify_seven(checked, safe_path(recipe_root, video["audio"]["vo"]), work / "layout.jsonl", video)
         receipt = self.archive.save(key, checked, media_receipt)
         self.state.finish_video(job, key, receipt)
         # Only this verified temporary render is removable; masters/recipes/archive stay.
@@ -226,10 +230,10 @@ def main():
                     phase = 'heartbeat'
                     client.request("heartbeat", {"schema_version": 1, "agent_id": config["agent_id"], "takeover_approved": config["takeover_approved"], "pending_events": len(state.pending())})
                     phase = 'claim'
-                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2"], "batch_size": 5, "concurrency": 1})
+                    response = client.request("claim", {"schema_version": 1, "capabilities": ["data-recipes-v1", "verified-inputs-v1", "ielts-continuation-v1", "partial-continuation-v1", "recipe-font-v1", "universal-exam-v2", "series-run-v2", "layout-qa-v2", "seven-stories-hu-v1"], "batch_size": 5, "concurrency": 1})
                     command = response.get("command")
                     if command is not None:
-                        from exam_sim_runtime import validate_command
+                        from recipe_runtime import validate_command
                         phase = 'validate_command'
                         validate_command(command)
                         if command["operation"] == "register_recipe":
@@ -239,8 +243,19 @@ def main():
                         state.apply(command)
                         if command["operation"] == "register_recipe":
                             phase = 'self_check'
+                            import seven_stories
+                            if seven_stories.targeted(command["payload"]):
+                                from seven_preflight import run as seven_preflight
+                                check_result = seven_preflight(config["recipe_root"], config_path, registered=True)
+                                target = Path(config["work_root"]).parent / "seven-stories-preflight.json"
+                                temp = target.with_suffix(".tmp")
+                                temp.write_bytes(canonical(check_result))
+                                os.chmod(temp, 0o600)
+                                os.replace(temp, target)
+                            else:
+                                check_result = self_check(config, command["payload"])
                             with state.transaction() as db:
-                                state.emit(db, "self_check", command["delivery_id"], self_check(config, command["payload"]))
+                                state.emit(db, "self_check", command["delivery_id"], check_result)
                     last_claim = time.time()
             except Exception as e:
                 # Only the error class / HTTP status / own error code; never payloads or bodies.

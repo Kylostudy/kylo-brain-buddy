@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "recipe_id": "seven-stories-repulo-hu-trial",
+  "version": "v1",
+  "renderer": "seven-stories-hu-v1",
+  "series": "other",
+  "languages": [
+    "hu"
+  ],
+  "files": [
+    {
+      "key": "audio/narration-mp3",
+      "bytes": 374952,
+      "sha256": "5561656d51b0d18032614a3c28b69cc3b61b55403487b0cbdd8867a2b67589af"
+    },
+    {
+      "key": "timing/alignment-json",
+      "bytes": 6623,
+      "sha256": "e94a62c4bfa710d81de22d316a9dff5196b0e046a985e314ceba53364120da17"
+    },
+    {
+      "key": "timing/timeline-json",
+      "bytes": 2609,
+      "sha256": "9468059d90cfce648ba508e5def4be9e8b27be1ae1ac8dd5caf8395a081309da"
+    }
+  ],
+  "videos": [
+    {
+      "video_id": "repulo-hu",
+      "language": "hu",
+      "story": "repulo",
+      "scene": "seven-stories-repulo-hu-v1",
+      "width": 1080,
+      "height": 1920,
+      "duration_ms": 25367,
+      "timeline": {
+        "schema_version": 1,
+        "story": "repulo",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          212,
+          81,
+          47,
+          131,
+          67,
+          61,
+          162
+        ],
+        "duration_ms": 25367,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 7067
+          },
+          {
+            "start_ms": 7067,
+            "end_ms": 9767
+          },
+          {
+            "start_ms": 9767,
+            "end_ms": 11333
+          },
+          {
+            "start_ms": 11333,
+            "end_ms": 15700
+          },
+          {
+            "start_ms": 15700,
+            "end_ms": 17933
+          },
+          {
+            "start_ms": 17933,
+            "end_ms": 19967
+          },
+          {
+            "start_ms": 19967,
+            "end_ms": 25367
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 4249,
+            "text": "A kezdeti repülőtől a nagy utasszállítóig nem csak a méret változott."
+          },
+          {
+            "start_ms": 4621,
+            "end_ms": 6722,
+            "text": "Sok képesség állt össze egy rendszerbe."
+          },
+          {
+            "start_ms": 7094,
+            "end_ms": 8719,
+            "text": "A tanulásban is ezt keresed?"
+          },
+          {
+            "start_ms": 9787,
+            "end_ms": 11145,
+            "text": "Jegyzetből magyarázat."
+          },
+          {
+            "start_ms": 11343,
+            "end_ms": 13003,
+            "text": "Magyarázatból gyakorlás."
+          },
+          {
+            "start_ms": 13200,
+            "end_ms": 15441,
+            "text": "Gyakorlás után vizsgaszimuláció."
+          },
+          {
+            "start_ms": 15708,
+            "end_ms": 17635,
+            "text": "A Kylo összekapcsolja ezeket."
+          },
+          {
+            "start_ms": 17949,
+            "end_ms": 19853,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 19992,
+            "end_ms": 21246,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 21443,
+            "end_ms": 23359,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 25367
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "5561656d51b0d18032614a3c28b69cc3b61b55403487b0cbdd8867a2b67589af",
+        "audio_bytes": 374952,
+        "audio_duration_seconds": 23.359274,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "5561656d51b0d18032614a3c28b69cc3b61b55403487b0cbdd8867a2b67589af",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "audio": {
+        "vo": "audio/narration-mp3",
+        "alignment": "timing/alignment-json",
+        "timeline": "timing/timeline-json"
+      }
+    }
+  ]
+}

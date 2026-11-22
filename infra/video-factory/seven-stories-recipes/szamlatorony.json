@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "recipe_id": "seven-stories-szamlatorony-hu-trial",
+  "version": "v1",
+  "renderer": "seven-stories-hu-v1",
+  "series": "other",
+  "languages": [
+    "hu"
+  ],
+  "files": [
+    {
+      "key": "audio/narration-mp3",
+      "bytes": 374952,
+      "sha256": "e01402b2111ee86eb063d7c1a0e819f27d6f3b30e2ef8e073ba3215170cdf3d0"
+    },
+    {
+      "key": "timing/alignment-json",
+      "bytes": 6004,
+      "sha256": "dc95f94e6aceb74bb3f3910f508ffc5d60d38f092bf24b39dc3b3a3e898166bd"
+    },
+    {
+      "key": "timing/timeline-json",
+      "bytes": 2501,
+      "sha256": "0ba6314adf13a966a82992628168a946b8454dd9111921eeb2b67f39d444a2db"
+    }
+  ],
+  "videos": [
+    {
+      "video_id": "szamlatorony-hu",
+      "language": "hu",
+      "story": "szamlatorony",
+      "scene": "seven-stories-szamlatorony-hu-v1",
+      "width": 1080,
+      "height": 1920,
+      "duration_ms": 25367,
+      "timeline": {
+        "schema_version": 1,
+        "story": "szamlatorony",
+        "language": "hu",
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "sceneFrames": [
+          91,
+          52,
+          60,
+          195,
+          102,
+          74,
+          187
+        ],
+        "duration_ms": 25367,
+        "timing": [
+          {
+            "start_ms": 0,
+            "end_ms": 3033
+          },
+          {
+            "start_ms": 3033,
+            "end_ms": 4767
+          },
+          {
+            "start_ms": 4767,
+            "end_ms": 6767
+          },
+          {
+            "start_ms": 6767,
+            "end_ms": 13267
+          },
+          {
+            "start_ms": 13267,
+            "end_ms": 16667
+          },
+          {
+            "start_ms": 16667,
+            "end_ms": 19133
+          },
+          {
+            "start_ms": 19133,
+            "end_ms": 25367
+          }
+        ],
+        "audio_policy": {
+          "playback_rate": 1,
+          "start_ms": 0,
+          "trim": false,
+          "regenerate": false,
+          "speed_filters": []
+        },
+        "subtitles": [
+          {
+            "start_ms": 0,
+            "end_ms": 1985,
+            "text": "Külön fizetsz a jegyzetelésért?"
+          },
+          {
+            "start_ms": 3053,
+            "end_ms": 4679,
+            "text": "A tanulókártyákért?"
+          },
+          {
+            "start_ms": 4772,
+            "end_ms": 6095,
+            "text": "A gyakorlásért?"
+          },
+          {
+            "start_ms": 6769,
+            "end_ms": 8963,
+            "text": "Könnyen felépül a havi számlák tornya."
+          },
+          {
+            "start_ms": 9334,
+            "end_ms": 12492,
+            "text": "Pedig nem számlákat szeretnél gyűjteni, hanem tanulni."
+          },
+          {
+            "start_ms": 13270,
+            "end_ms": 16544,
+            "text": "A Kylo több tanulási eszközt kapcsol össze egy helyen."
+          },
+          {
+            "start_ms": 16684,
+            "end_ms": 18878,
+            "text": "Próbáld ki ingyen tizennégy napig!"
+          },
+          {
+            "start_ms": 19145,
+            "end_ms": 20724,
+            "text": "Kylo pont study."
+          },
+          {
+            "start_ms": 21095,
+            "end_ms": 23359,
+            "text": "A te AI magántanárod."
+          }
+        ],
+        "cta": "Próbáld ki ingyen 14 napig!",
+        "outro_url": "kylo.study",
+        "outro_tagline": "A te AI magántanárod",
+        "protected_windows_ms": [
+          {
+            "start_ms": 0,
+            "end_ms": 25367
+          }
+        ],
+        "safe_zone": {
+          "left": 65,
+          "right": 950,
+          "top": 231,
+          "bottom": 1459
+        },
+        "audio_sha256": "e01402b2111ee86eb063d7c1a0e819f27d6f3b30e2ef8e073ba3215170cdf3d0",
+        "audio_bytes": 374952,
+        "audio_duration_seconds": 23.359274,
+        "owner_approval": {
+          "at": "2026-11-22T14:35:00Z",
+          "scope": "seven_hu_animations",
+          "approved_audio_sha256": "e01402b2111ee86eb063d7c1a0e819f27d6f3b30e2ef8e073ba3215170cdf3d0",
+          "publish": false,
+          "other_languages": false
+        }
+      },
+      "audio": {
+        "vo": "audio/narration-mp3",
+        "alignment": "timing/alignment-json",
+        "timeline": "timing/timeline-json"
+      }
+    }
+  ]
+}

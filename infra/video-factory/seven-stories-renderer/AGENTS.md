@@ -1,0 +1,4 @@
+- Seven stories use an independent hash-pinned Hungarian trial contract and scene per topic; old validators and images remain immutable because their recipes and receipts retain their meaning.
+- Only the fixed request/recipe/work adapter runs source-reviewed code; media arrives through data ingestion, not package execution, because owner audio approval does not authorize remote installers.
+- The entire narration timeline is protected; render silent pictures then mux the unchanged full audio at zero and verify decoded waveform before archive publication, because animation must follow speech rather than compress it.
+- Every frame must carry measured caption/object bounds from the actual composition; missing or out-of-zone evidence blocks archival, because first/last-frame sampling misses transition overflow.

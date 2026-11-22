@@ -6,7 +6,7 @@ import sqlite3
 import time
 import uuid
 from contract import BATCH_SIZE, MAX_ATTEMPTS, canonical, digest
-from exam_sim_runtime import validate_command
+from recipe_runtime import validate_command
 
 
 class State:
@@ -73,7 +73,7 @@ class State:
                 manifest = json.loads(recipe["manifest"])
                 mode = "trial" if op == "trial" else "series"
                 if mode == "series":
-                    if manifest["recipe_id"] in {"ielts-cs-trial", "malacpersely-hu-trial", "malacpersely-i18n-en-trial"} or manifest.get("renderer") in {"piggy-bank-safe-v1", "exam-simulator-safe-v1"}:
+                    if manifest["recipe_id"] in {"ielts-cs-trial", "malacpersely-hu-trial", "malacpersely-i18n-en-trial"} or manifest.get("renderer") in {"piggy-bank-safe-v1", "exam-simulator-safe-v1", "seven-stories-hu-v1"}:
                         raise ValueError("trial_only_recipe")
                     continuation = manifest.get("continuation")
                     source_id = continuation["trial_recipe_id"] if continuation else p["recipe_id"]
