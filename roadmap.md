@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] 2026-11-22 hét történet előellenőrzési jelentési hiba: VPS-visszaolvasás és 21 változatlan bemenet ellenőrizve mindkét könyvtárszerkezetben; lépésenkénti kitakart hibajelentés és teljesített/kihagyott vizsgálatok szétválasztása elkészült, elfogadási szabályok változatlanok.
+- [ ] Hét történet VPS-előellenőrzés alapul szolgáló hibája: helyben nem reprodukálható; blokkoló a tulajdonos SSH-s, csak olvasó kivételdiagnosztikája. Utána igazolt ok célzott javítása, friss VPS `input_ok`/`preparation_ok` és KyLogic-átvétel; próbát csak KyLogic indít.
+
 - [x] Hét magyar történet (2026-11-22): elkülönített készítő/adapter, hét hash-kötött HU próba, közös automatikus előellenőrzés és védett jelentés; 314 gyári + 15 diagnosztikai teszt, 170 böngészős képkockaminta és hét változatlan beszédű hangpróba sikeres. Jelentés/szerződés átadva, gyártás/regisztráció nem indult.
 - [ ] Hét történet VPS-igazolása: tényleges új képdigest, friss életjel, teljes szerveres előellenőrzés és KyLogic-átvétel; blokkoló a frissített kiadás VPS-re juttatása és visszaolvasása. Hét próbát csak KyLogic indít, hajóval kezdve.
 

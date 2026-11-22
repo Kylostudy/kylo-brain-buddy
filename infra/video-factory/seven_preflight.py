@@ -13,6 +13,21 @@ import subprocess
 import seven_stories as seven
 
 
+def failure_detail(error, stage):
+    """Bounded local metadata only; never export stderr, paths or exception text."""
+    detail = {"stage": stage, "exception": type(error).__name__}
+    if isinstance(error, subprocess.CalledProcessError):
+        detail["returncode"] = error.returncode
+    if isinstance(error, OSError) and error.errno is not None:
+        detail["errno"] = error.errno
+    if isinstance(error, ValueError) and str(error) in {
+        "seven_audio_duration", "seven_alignment_invalid",
+        "seven_subtitles_invalid", "seven_outro_speech_outside_outro",
+    }:
+        detail["reason"] = str(error)
+    return detail
+
+
 def checked_file(path, descriptor):
     if path.is_symlink() or not path.is_file():
         return False
@@ -44,25 +59,34 @@ def run(root, config=None, registered=False):
             row["errors"].append({"field": story + ".sceneFrames", "code": "seven_frame_timing_mismatch"})
         audio = paths["narration.mp3"]
         if not row["errors"]:
+            stage = "audio_probe"
             try:
                 p = json.loads(subprocess.check_output(["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(audio)], timeout=30))
+                stage = "audio_duration"
                 seconds = float(p["format"]["duration"])
                 if len([s for s in p["streams"] if s["codec_type"] == "audio"]) != 1 or abs(seconds - t["audio_duration_seconds"]) > .002 or t["duration_ms"] < seconds * 1000 + 2000:
                     raise ValueError("seven_audio_duration")
+                row["checked"].append("audio_probe")
+                stage = "full_audio_decode"
                 subprocess.run(["ffmpeg", "-v", "error", "-xerror", "-i", str(audio), "-f", "null", "-"], check=True, capture_output=True, timeout=120)
+                row["checked"].append("full_audio_decode")
+                stage = "alignment"
                 alignment = json.loads(paths["alignment.json"].read_text())
                 chars, a, b = [alignment[k] for k in ("characters", "character_start_times_seconds", "character_end_times_seconds")]
                 if not len(chars) == len(a) == len(b) or any(not 0 <= x <= y <= seconds + .002 for x, y in zip(a, b)) or any(x > y for x, y in zip(a, a[1:])):
                     raise ValueError("seven_alignment_invalid")
+                row["checked"].append("alignment")
+                stage = "subtitles"
                 if any(s["start_ms"] >= s["end_ms"] or s["end_ms"] > seconds * 1000 + 2 for s in t["subtitles"]):
                     raise ValueError("seven_subtitles_invalid")
+                row["checked"].append("subtitles")
+                stage = "outro_hold_2s"
                 if t["subtitles"][-2]["start_ms"] < t["timing"][-1]["start_ms"]:
                     raise ValueError("seven_outro_speech_outside_outro")
-                row["checked"] += ["full_audio_decode", "alignment", "subtitles", "sceneFrames", "full_narration_protection", "outro_hold_2s"]
-            except (ValueError, KeyError, OSError, subprocess.SubprocessError):
-                row["errors"].append({"field": story + ".audio_alignment", "code": "seven_audio_or_timing_invalid"})
-        if "full_audio_decode" not in row["checked"]:
-            row["skipped_checks"] += ["full_audio_decode", "alignment", "subtitles", "outro_hold_2s"]
+                row["checked"] += ["sceneFrames", "full_narration_protection", "outro_hold_2s"]
+            except (ValueError, KeyError, OSError, subprocess.SubprocessError) as error:
+                row["errors"].append({"field": story + ".audio_alignment", "code": "seven_audio_or_timing_invalid", **failure_detail(error, stage)})
+        row["skipped_checks"] += [name for name in ("full_audio_decode", "alignment", "subtitles", "outro_hold_2s") if name not in row["checked"]]
         row["ok"] = not row["errors"]
         report["stories"].append(row)
     report["input_ok"] = all(s["ok"] for s in report["stories"])
