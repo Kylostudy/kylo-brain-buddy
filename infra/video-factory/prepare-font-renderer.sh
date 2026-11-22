@@ -7,6 +7,11 @@ VER="${2:?manager version required}"
 cd "$SRC/ielts-renderer"
 sha256sum --strict -c SHA256SUMS
 HASH="$(sha256sum SHA256SUMS | cut -c1-16)"
+# A pinned image that still exists is never rebuilt (a rebuild moves the tag and can drop the pinned image).
+if python3 "$SRC/pinned_image_present.py" ielts-promo-fonts-v1 ielts-promo-v1; then
+  echo "FONT: pinned reviewed image for ielts-promo-fonts-v1 present; no rebuild, no registry change"
+  exit 0
+fi
 STAGE="/opt/kylo-video-factory/renderer-releases/$HASH"
 mkdir -p "$STAGE"
 # Only checksum-reviewed files; concurrent deploy cannot change staged sources.

@@ -7,6 +7,11 @@ VER="${2:?manager version required}"
 cd "$SRC/exam-safe-v3-renderer"
 sha256sum --strict -c SHA256SUMS
 HASH="$(sha256sum SHA256SUMS | cut -c1-16)"
+# A pinned image that still exists is never rebuilt (a rebuild moves the tag and can drop the pinned image).
+if python3 "$SRC/pinned_image_present.py" exam-promo-profiles-safe-v3 exam-promo-profiles-safe-v3; then
+  echo "EXAM-SAFE-V3: pinned reviewed image for exam-promo-profiles-safe-v3 present; no rebuild, no registry change"
+  exit 0
+fi
 STAGE="/opt/kylo-video-factory/renderer-releases/exam-safe-v3-$HASH"
 mkdir -p "$STAGE"
 # Only checksum-reviewed files; concurrent deploy cannot change staged sources.
