@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Hajó EN azonnali leállás (194bc8b6): 21:19:39 UTC VPS-napló igazolja az indulásfigyelő írhatatlan globális ideiglenesmappáját, Docker még nem indul; explicit privát CID-mappa a már engedélyezett manager-munkaterületen, a konténermounton kívül. 457 gyári teszt OK, szolgáltatás/jogosultság/kép/recept/archívum változatlan, nincs retry.
+- [ ] Hajó EN mappajavítás VPS-átvétele: egyszeri publikálás/telepítés és friss szerveres kiadásigazolás kell; közvetlen SSH-hozzáférés nincs. KyLogic újrapróbálás a javítás igazolásáig tiltva.
 - [x] VPS gyártási riasztás forráskiegészítése: független 30 másodperces életjel, elkülönített tartós eseménysor, saját/pinelt konténerindulás, videónkénti archiválás, várakozási ok és kitakart részlethiba; additív 184-kódos jegyzék és KyLogic mezőátadás. 455 gyári próba sikeres; telepítők/checksumok ellenőrizve, gyártás nem indult.
 - [ ] Riasztás teljes VPS/KyLogic átvétele: új jelzések fogadása és valódi szerveres visszaigazolása szükséges; közvetlen SSH-hozzáférés nincs.
 - [x] Régi készítők image_unavailable oka: minden frissítés újraépítette az IELTS-betűs, vizsga v1/v2/v3 képeket (új azonosító, régi rögzített kép eltűnt); új védelem: meglévő rögzített képnél nincs újraépítés. 437 teszt OK; v4 és újabbak változatlanok.

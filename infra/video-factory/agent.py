@@ -80,13 +80,15 @@ def record_failure(config, job, code, detail):
         print("render failure record unavailable (%s)" % type(e).__name__, flush=True)
 
 
-def render_process(command, image, started, timeout=7200):
+def render_process(command, image, started, *, scratch_root, timeout=7200):
     """Observe the approved live container, not merely a successful Docker client spawn."""
     import re
     import tempfile
     deadline = time.monotonic() + timeout
     observed = False
-    with tempfile.TemporaryDirectory(prefix="kylo-render-cid-") as cid_root:
+    # ProtectSystem=strict makes global /tmp read-only. Use the already
+    # authorized manager workspace, outside the renderer-writable /work mount.
+    with tempfile.TemporaryDirectory(prefix="kylo-render-cid-", dir=scratch_root) as cid_root:
         cid_file = Path(cid_root) / "container-id"
         bound_command = [*command[:2], "--cidfile", str(cid_file), *command[2:]]
         return _wait_render_process(bound_command, image, started, timeout, deadline, observed, cid_file)
@@ -258,7 +260,8 @@ class Runner:
                 self.state.monitor_video(job, "ready")
                 render_process(docker_command, renderer["image"],
                     lambda container_id: self.state.monitor_video(job, "rendering", container_id=container_id,
-                                                                  image=renderer["image"], evidence="docker_running"))
+                                                                  image=renderer["image"], evidence="docker_running"),
+                    scratch_root=work.parent)
             else:
                 subprocess.run(docker_command, check=True, timeout=7200, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         self.state.monitor_video(job, "verifying")

@@ -246,6 +246,11 @@ class Progress(Fixture):
 
 
 class ContainerEvidence(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.scratch = Path(self.temp.name)
+
     def process(self, returncode=0):
         p = MagicMock()
         p.__enter__.return_value = p
@@ -260,7 +265,7 @@ class ContainerEvidence(unittest.TestCase):
         with patch("agent.subprocess.Popen", return_value=p), \
              patch("agent.Path.read_text", return_value="b" * 64), \
              patch("agent.subprocess.check_output", return_value="true sha256:" + "a" * 64 + " " + "b" * 64) as inspect:
-            render_process(["docker"], "sha256:" + "a" * 64, start)
+            render_process(["docker"], "sha256:" + "a" * 64, start, scratch_root=self.scratch)
         start.assert_called_once_with("b" * 64)
         self.assertEqual(inspect.call_count, 1)
 
@@ -271,7 +276,7 @@ class ContainerEvidence(unittest.TestCase):
         with patch("agent.subprocess.Popen", return_value=p), \
              patch("agent.Path.read_text", return_value="b" * 64), \
              patch("agent.subprocess.check_output", return_value="true sha256:" + "c" * 64 + " " + "b" * 64):
-            render_process(["docker"], "sha256:" + "a" * 64, start)
+            render_process(["docker"], "sha256:" + "a" * 64, start, scratch_root=self.scratch)
         start.assert_not_called()
 
     def test_other_running_container_cannot_prove_this_attempt_started(self):
@@ -281,7 +286,7 @@ class ContainerEvidence(unittest.TestCase):
         with patch("agent.subprocess.Popen", return_value=p), \
              patch("agent.Path.read_text", return_value="b" * 64), \
              patch("agent.subprocess.check_output", return_value="true sha256:" + "a" * 64 + " " + "c" * 64):
-            render_process(["docker", "run"], "sha256:" + "a" * 64, start)
+            render_process(["docker", "run"], "sha256:" + "a" * 64, start, scratch_root=self.scratch)
         start.assert_not_called()
 
     def test_immediate_docker_error_does_not_emit_start(self):
@@ -289,7 +294,7 @@ class ContainerEvidence(unittest.TestCase):
         p.communicate.return_value = (None, b"no image")
         start = MagicMock()
         with patch("agent.subprocess.Popen", return_value=p), self.assertRaises(subprocess.CalledProcessError):
-            render_process(["docker"], "sha256:" + "a" * 64, start)
+            render_process(["docker"], "sha256:" + "a" * 64, start, scratch_root=self.scratch)
         start.assert_not_called()
 
     def test_timeout_kills_client_and_preserves_failure(self):
@@ -297,8 +302,33 @@ class ContainerEvidence(unittest.TestCase):
         p.communicate.return_value = (None, b"")
         with patch("agent.subprocess.Popen", return_value=p), patch("agent.time.monotonic", side_effect=[0, 7201]), \
              self.assertRaises(subprocess.TimeoutExpired):
-            render_process(["docker"], "sha256:" + "a" * 64, MagicMock())
+            render_process(["docker"], "sha256:" + "a" * 64, MagicMock(), scratch_root=self.scratch)
         p.kill.assert_called_once()
+
+    def test_readonly_global_tmp_does_not_block_docker_and_cid_stays_outside_work(self):
+        p = self.process()
+        p.communicate.return_value = (None, b"")
+        renderer_work = self.scratch / "0"
+        renderer_work.mkdir()
+        def inspect_command(command, **kwargs):
+            cid = Path(command[command.index("--cidfile") + 1])
+            self.assertEqual(cid.parent.parent, self.scratch)
+            self.assertNotEqual(cid.parent, renderer_work)
+            self.assertEqual(cid.parent.stat().st_mode & 0o777, 0o700)
+            self.assertFalse(cid.exists())
+            return p
+        with patch("tempfile._get_default_tempdir", side_effect=FileNotFoundError("read-only global tmp")), \
+             patch("agent.subprocess.Popen", side_effect=inspect_command) as spawn:
+            render_process(["docker", "run", "--rm"], "sha256:" + "a" * 64,
+                           MagicMock(), scratch_root=self.scratch)
+        spawn.assert_called_once()
+        self.assertEqual(list(self.scratch.iterdir()), [renderer_work])
+
+    def test_missing_authorized_scratch_fails_closed_before_docker(self):
+        with patch("agent.subprocess.Popen") as spawn, self.assertRaises(FileNotFoundError):
+            render_process(["docker", "run"], "sha256:" + "a" * 64,
+                           MagicMock(), scratch_root=self.scratch / "missing")
+        spawn.assert_not_called()
 
 
 class ErrorCodes(unittest.TestCase):
